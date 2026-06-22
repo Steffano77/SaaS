@@ -2,8 +2,8 @@
 --  PanificaPro ERP — Schema MySQL
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS panificapro CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE panificapro;
+CREATE DATABASE IF NOT EXISTS estef511_panificapro CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE estef511_panificapro;
 
 -- ── Padarias (tenants) ──────────────────────────────────────
 CREATE TABLE padarias (
