@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PanificaPro ERP — Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: { primary: '#1e3a5f', accent: '#f97316' }}}
+    }
+  </script>
+  <style>
+    .sidebar-link { display:flex; align-items:center; gap:12px; padding:12px 16px; border-radius:8px; color:#cbd5e1; cursor:pointer; transition:all .15s; }
+    .sidebar-link:hover { background:rgba(255,255,255,.1); color:#fff; }
+    .sidebar-link.active { background:#f97316; color:#fff; }
+    .kpi-card { background:#fff; border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.07); border:1px solid #f1f5f9; }
+    .badge-ok  { display:inline-block; padding:2px 8px; border-radius:99px; font-size:11px; font-weight:600; background:#dcfce7; color:#15803d; }
+    .badge-min { display:inline-block; padding:2px 8px; border-radius:99px; font-size:11px; font-weight:600; background:#fef9c3; color:#a16207; }
+    .badge-zero{ display:inline-block; padding:2px 8px; border-radius:99px; font-size:11px; font-weight:600; background:#fee2e2; color:#b91c1c; }
+    .badge-val { display:inline-block; padding:2px 8px; border-radius:99px; font-size:11px; font-weight:600; background:#ffedd5; color:#c2410c; }
+    body { background:#f8fafc; font-family:system-ui,sans-serif; margin:0; }
+    #app { display:flex; height:100vh; overflow:hidden; }
+    aside { width:256px; background:#1e3a5f; display:flex; flex-direction:column; flex-shrink:0; }
+    main  { flex:1; overflow-y:auto; }
+    .page { display:none; padding:24px; }
+    .page.active { display:block; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th { text-align:left; padding:10px 16px; background:#f8fafc; color:#64748b; font-size:11px; text-transform:uppercase; letter-spacing:.05em; }
+    td { padding:10px 16px; border-bottom:1px solid #f1f5f9; }
+    tr:hover td { background:#f8fafc; }
+    .btn { background:#f97316; color:#fff; font-weight:600; padding:8px 20px; border-radius:8px; border:none; cursor:pointer; font-size:14px; }
+    .btn:hover { background:#ea6c0a; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Sidebar -->
+  <aside>
+    <div style="padding:20px; border-bottom:1px solid rgba(255,255,255,.1)">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div style="font-size:28px">🥖</div>
+        <div>
+          <div style="color:#fff; font-weight:700; font-size:14px;">PanificaPro</div>
+          <div style="color:#94a3b8; font-size:12px;">Padaria do Jota</div>
+        </div>
+      </div>
+    </div>
+    <nav style="flex:1; padding:12px; display:flex; flex-direction:column; gap:4px;">
+      <div class="sidebar-link active" onclick="pg('dashboard',this)"><span>📊</span><span>Dashboard</span></div>
+      <div class="sidebar-link" onclick="pg('estoque',this)"><span>📦</span><span>Estoque</span></div>
+      <div class="sidebar-link" onclick="pg('movimentacoes',this)"><span>↕️</span><span>Movimentações</span></div>
+      <div class="sidebar-link" onclick="pg('sync',this)"><span>🔄</span><span>Sync Saurus</span></div>
+    </nav>
+    <div style="padding:12px; border-top:1px solid rgba(255,255,255,.1);">
+      <div class="sidebar-link"><span>🚪</span><span>Sair</span></div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main>
+
+    <!-- DASHBOARD -->
+    <div id="pg-dashboard" class="page active">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+        <div>
+          <h2 style="font-size:22px; font-weight:700; color:#1e3a5f; margin:0">Dashboard</h2>
+          <p style="color:#94a3b8; font-size:13px; margin:4px 0 0">Atualizado hoje, 22/06/2026 às 08:31</p>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px;">
+        <div class="kpi-card">
+          <div style="font-size:32px; font-weight:800; color:#1e3a5f;">126</div>
+          <div style="color:#94a3b8; font-size:13px; margin-top:4px;">Total de produtos</div>
+        </div>
+        <div class="kpi-card">
+          <div style="font-size:32px; font-weight:800; color:#ef4444;">8</div>
+          <div style="color:#94a3b8; font-size:13px; margin-top:4px;">Sem estoque</div>
+        </div>
+        <div class="kpi-card">
+          <div style="font-size:32px; font-weight:800; color:#f59e0b;">19</div>
+          <div style="color:#94a3b8; font-size:13px; margin-top:4px;">Abaixo do mínimo</div>
+        </div>
+        <div class="kpi-card">
+          <div style="font-size:28px; font-weight:800; color:#f97316;">R$ 18.742</div>
+          <div style="color:#94a3b8; font-size:13px; margin-top:4px;">Valor em estoque</div>
+        </div>
+      </div>
+
+      <!-- Listas -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+        <div style="background:#fff; border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.07); border:1px solid #f1f5f9;">
+          <h3 style="font-weight:700; color:#334155; margin:0 0 16px; font-size:15px;">⚠️ Precisa repor</h3>
+          <div style="display:flex; flex-direction:column; gap:0;">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #f8fafc;">
+              <div><div style="font-weight:600; font-size:13px; color:#1e293b;">Farinha de trigo especial 50kg</div><div style="font-size:11px; color:#94a3b8;">Falta: <b>2.000 KG</b></div></div>
+              <span class="badge-zero">🔴 Zerado</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #f8fafc;">
+              <div><div style="font-weight:600; font-size:13px; color:#1e293b;">Açúcar refinado 5kg</div><div style="font-size:11px; color:#94a3b8;">Falta: <b>8.000 KG</b></div></div>
+              <span class="badge-zero">🔴 Zerado</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #f8fafc;">
+              <div><div style="font-weight:600; font-size:13px; color:#1e293b;">Manteiga sem sal 500g</div><div style="font-size:11px; color:#94a3b8;">Falta: <b>5.000 UNIDADE</b></div></div>
+              <span class="badge-min">⚠️ Baixo</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #f8fafc;">
+              <div><div style="font-weight:600; font-size:13px; color:#1e293b;">Fermento biológico seco 500g</div><div style="font-size:11px; color:#94a3b8;">Falta: <b>3.000 UNIDADE</b></div></div>
+              <span class="badge-min">⚠️ Baixo</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #f8fafc;">
+              <div><div style="font-weight:600; font-size:13px; color:#1e293b;">Leite integral 1L</div><div style="font-size:11px; color:#94a3b8;">Falta: <b>12.000 UNIDADE</b></div></div>
+              <span class="badge-min">⚠️ Baixo</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0;">
+              <div><div style="font-weight:600; font-size:13px; color:#1e293b;">Chocolate em pó 50% 400g</div><div style="font-size:11px; color:#94a3b8;">Falta: <b>6.000 UNIDADE</b></div></div>
+              <span class="badge-min">⚠️ Baixo</span>
+            </div>
+          </div>
+          <div style="margin-top:12px; font-size:12px; color:#94a3b8; text-align:right;">+13 produtos a mais...</div>
+        </div>
+
+        <div style="background:#fff; border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.07); border:1px solid #f1f5f9;">
+          <h3 style="font-weight:700; color:#334155; margin:0 0 16px; font-size:15px;">🟡 Vencendo em até 10 dias</h3>
+          <div style="display:flex; flex-direction:column; gap:0;">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #f8fafc;">
+              <div><div style="font-weight:600; font-size:13px; color:#1e293b;">Creme de leite UHT 200ml</div><div style="font-size:11px; color:#94a3b8;">Vence: <b>24/06/2026</b></div></div>
+              <span class="badge-val">2d</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #f8fafc;">
+              <div><div style="font-weight:600; font-size:13px; color:#1e293b;">Ovos tipo A (bandeja 30un)</div><div style="font-size:11px; color:#94a3b8;">Vence: <b>27/06/2026</b></div></div>
+              <span class="badge-val">5d</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #f8fafc;">
+              <div><div style="font-weight:600; font-size:13px; color:#1e293b;">Requeijão cremoso 500g</div><div style="font-size:11px; color:#94a3b8;">Vence: <b>29/06/2026</b></div></div>
+              <span class="badge-val">7d</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0;">
+              <div><div style="font-weight:600; font-size:13px; color:#1e293b;">Iogurte natural integral 500g</div><div style="font-size:11px; color:#94a3b8;">Vence: <b>01/07/2026</b></div></div>
+              <span class="badge-val">9d</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Movimentações recentes -->
+      <div style="background:#fff; border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,.07); border:1px solid #f1f5f9; margin-top:20px;">
+        <h3 style="font-weight:700; color:#334155; margin:0 0 16px; font-size:15px;">🕐 Últimas movimentações</h3>
+        <table>
+          <thead><tr><th>Data</th><th>Produto</th><th>Tipo</th><th style="text-align:right">Qtd</th><th style="text-align:right">Valor</th></tr></thead>
+          <tbody>
+            <tr><td style="color:#64748b;font-size:12px">22/06/2026 08:31</td><td style="font-weight:500">Farinha de trigo especial 50kg</td><td><span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">🔄 Saurus</span></td><td style="text-align:right;font-family:monospace">-3.000 KG</td><td style="text-align:right">R$ 42,00</td></tr>
+            <tr><td style="color:#64748b;font-size:12px">22/06/2026 08:31</td><td style="font-weight:500">Açúcar refinado 5kg</td><td><span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">🔄 Saurus</span></td><td style="text-align:right;font-family:monospace">-2.000 KG</td><td style="text-align:right">R$ 18,40</td></tr>
+            <tr><td style="color:#64748b;font-size:12px">21/06/2026 14:12</td><td style="font-weight:500">Manteiga sem sal 500g</td><td><span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">📥 Entrada</span></td><td style="text-align:right;font-family:monospace">+24.000 UN</td><td style="text-align:right">R$ 312,00</td></tr>
+            <tr><td style="color:#64748b;font-size:12px">21/06/2026 09:05</td><td style="font-weight:500">Leite integral 1L</td><td><span style="background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">📤 Saída</span></td><td style="text-align:right;font-family:monospace">-6.000 UN</td><td style="text-align:right">R$ 31,80</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ESTOQUE -->
+    <div id="pg-estoque" class="page">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+        <h2 style="font-size:22px; font-weight:700; color:#1e3a5f; margin:0">Estoque</h2>
+        <button class="btn">+ Novo produto</button>
+      </div>
+
+      <div style="background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,.07); border:1px solid #f1f5f9; overflow:hidden;">
+        <div style="padding:16px; border-bottom:1px solid #f1f5f9; display:flex; gap:12px;">
+          <input type="text" placeholder="🔍  Buscar produto ou código de barras..."
+            style="flex:1; border:1px solid #e2e8f0; border-radius:8px; padding:8px 16px; font-size:13px; outline:none;"/>
+          <select style="border:1px solid #e2e8f0; border-radius:8px; padding:8px 16px; font-size:13px; color:#475569;">
+            <option>Todos os status</option>
+            <option>🔴 Sem estoque</option>
+            <option>⚠️ Abaixo do mínimo</option>
+            <option>🟡 Vencendo</option>
+          </select>
+          <select style="border:1px solid #e2e8f0; border-radius:8px; padding:8px 16px; font-size:13px; color:#475569;">
+            <option>Todas as categorias</option>
+            <option>Farinhas</option><option>Gorduras</option><option>Açúcares</option>
+            <option>Laticínios</option><option>Ovos</option>
+          </select>
+        </div>
+        <div style="overflow-x:auto;">
+        <table>
+          <thead><tr>
+            <th>Produto</th><th>Categoria</th>
+            <th style="text-align:right">Saldo</th>
+            <th style="text-align:right">Mínimo</th>
+            <th style="text-align:right">Custo Unit.</th>
+            <th style="text-align:right">Valor Total</th>
+            <th style="text-align:center">Validade</th>
+            <th style="text-align:center">Status</th>
+            <th></th>
+          </tr></thead>
+          <tbody>
+            <tr><td><b style="font-size:13px">Farinha de trigo especial 50kg</b><br><span style="font-size:11px;color:#94a3b8">7896002362436</span></td><td style="color:#64748b">Farinhas</td><td style="text-align:right;font-family:monospace">0.000 KG</td><td style="text-align:right;font-family:monospace;color:#94a3b8">2.000</td><td style="text-align:right">R$ 14,00</td><td style="text-align:right;font-weight:600">R$ 0,00</td><td style="text-align:center;color:#94a3b8">—</td><td style="text-align:center"><span class="badge-zero">🔴 Sem estoque</span></td><td><button style="border:none;background:none;cursor:pointer;color:#94a3b8;font-size:16px">✏️</button></td></tr>
+            <tr><td><b style="font-size:13px">Açúcar refinado 5kg</b><br><span style="font-size:11px;color:#94a3b8">7896002311830</span></td><td style="color:#64748b">Açúcares</td><td style="text-align:right;font-family:monospace">0.000 KG</td><td style="text-align:right;font-family:monospace;color:#94a3b8">8.000</td><td style="text-align:right">R$ 9,20</td><td style="text-align:right;font-weight:600">R$ 0,00</td><td style="text-align:center;color:#94a3b8">—</td><td style="text-align:center"><span class="badge-zero">🔴 Sem estoque</span></td><td><button style="border:none;background:none;cursor:pointer;color:#94a3b8;font-size:16px">✏️</button></td></tr>
+            <tr><td><b style="font-size:13px">Manteiga sem sal 500g</b><br><span style="font-size:11px;color:#94a3b8">7894650937761</span></td><td style="color:#64748b">Gorduras</td><td style="text-align:right;font-family:monospace">3.000 UN</td><td style="text-align:right;font-family:monospace;color:#94a3b8">8.000</td><td style="text-align:right">R$ 13,00</td><td style="text-align:right;font-weight:600">R$ 39,00</td><td style="text-align:center;color:#94a3b8">—</td><td style="text-align:center"><span class="badge-min">⚠️ Abaixo mín.</span></td><td><button style="border:none;background:none;cursor:pointer;color:#94a3b8;font-size:16px">✏️</button></td></tr>
+            <tr><td><b style="font-size:13px">Creme de leite UHT 200ml</b><br><span style="font-size:11px;color:#94a3b8">7896007811304</span></td><td style="color:#64748b">Laticínios</td><td style="text-align:right;font-family:monospace">12.000 UN</td><td style="text-align:right;font-family:monospace;color:#94a3b8">6.000</td><td style="text-align:right">R$ 3,80</td><td style="text-align:right;font-weight:600">R$ 45,60</td><td style="text-align:center;color:#c2410c;font-weight:600">24/06/2026</td><td style="text-align:center"><span class="badge-val">🟡 Vencendo</span></td><td><button style="border:none;background:none;cursor:pointer;color:#94a3b8;font-size:16px">✏️</button></td></tr>
+            <tr><td><b style="font-size:13px">Fermento biológico seco 500g</b><br><span style="font-size:11px;color:#94a3b8">7896002361019</span></td><td style="color:#64748b">Outros</td><td style="text-align:right;font-family:monospace">2.000 UN</td><td style="text-align:right;font-family:monospace;color:#94a3b8">5.000</td><td style="text-align:right">R$ 8,50</td><td style="text-align:right;font-weight:600">R$ 17,00</td><td style="text-align:center;color:#94a3b8">—</td><td style="text-align:center"><span class="badge-min">⚠️ Abaixo mín.</span></td><td><button style="border:none;background:none;cursor:pointer;color:#94a3b8;font-size:16px">✏️</button></td></tr>
+            <tr><td><b style="font-size:13px">Leite integral 1L</b><br><span style="font-size:11px;color:#94a3b8">7896002363259</span></td><td style="color:#64748b">Laticínios</td><td style="text-align:right;font-family:monospace">4.000 UN</td><td style="text-align:right;font-family:monospace;color:#94a3b8">16.000</td><td style="text-align:right">R$ 5,30</td><td style="text-align:right;font-weight:600">R$ 21,20</td><td style="text-align:center;color:#94a3b8">—</td><td style="text-align:center"><span class="badge-min">⚠️ Abaixo mín.</span></td><td><button style="border:none;background:none;cursor:pointer;color:#94a3b8;font-size:16px">✏️</button></td></tr>
+            <tr><td><b style="font-size:13px">Ovos tipo A (bandeja 30un)</b><br><span style="font-size:11px;color:#94a3b8">7896089088656</span></td><td style="color:#64748b">Ovos</td><td style="text-align:right;font-family:monospace">6.000 UN</td><td style="text-align:right;font-family:monospace;color:#94a3b8">4.000</td><td style="text-align:right">R$ 22,00</td><td style="text-align:right;font-weight:600">R$ 132,00</td><td style="text-align:center;color:#c2410c;font-weight:600">27/06/2026</td><td style="text-align:center"><span class="badge-val">🟡 Vencendo</span></td><td><button style="border:none;background:none;cursor:pointer;color:#94a3b8;font-size:16px">✏️</button></td></tr>
+            <tr><td><b style="font-size:13px">Chocolate em pó 50% 400g</b><br><span style="font-size:11px;color:#94a3b8">7891000248768</span></td><td style="color:#64748b">Outros</td><td style="text-align:right;font-family:monospace">3.000 UN</td><td style="text-align:right;font-family:monospace;color:#94a3b8">9.000</td><td style="text-align:right">R$ 11,90</td><td style="text-align:right;font-weight:600">R$ 35,70</td><td style="text-align:center;color:#94a3b8">—</td><td style="text-align:center"><span class="badge-min">⚠️ Abaixo mín.</span></td><td><button style="border:none;background:none;cursor:pointer;color:#94a3b8;font-size:16px">✏️</button></td></tr>
+            <tr><td><b style="font-size:13px">Sal refinado iodado 1kg</b><br><span style="font-size:11px;color:#94a3b8">7898395840362</span></td><td style="color:#64748b">Outros</td><td style="text-align:right;font-family:monospace">18.000 UN</td><td style="text-align:right;font-family:monospace;color:#94a3b8">5.000</td><td style="text-align:right">R$ 2,90</td><td style="text-align:right;font-weight:600">R$ 52,20</td><td style="text-align:center;color:#94a3b8">—</td><td style="text-align:center"><span class="badge-ok">✅ OK</span></td><td><button style="border:none;background:none;cursor:pointer;color:#94a3b8;font-size:16px">✏️</button></td></tr>
+            <tr><td><b style="font-size:13px">Óleo de soja 900ml</b><br><span style="font-size:11px;color:#94a3b8">7896932426042</span></td><td style="color:#64748b">Gorduras</td><td style="text-align:right;font-family:monospace">24.000 UN</td><td style="text-align:right;font-family:monospace;color:#94a3b8">8.000</td><td style="text-align:right">R$ 6,40</td><td style="text-align:right;font-weight:600">R$ 153,60</td><td style="text-align:center;color:#94a3b8">—</td><td style="text-align:center"><span class="badge-ok">✅ OK</span></td><td><button style="border:none;background:none;cursor:pointer;color:#94a3b8;font-size:16px">✏️</button></td></tr>
+            <tr><td><b style="font-size:13px">Margarina 500g</b><br><span style="font-size:11px;color:#94a3b8">7896051130116</span></td><td style="color:#64748b">Gorduras</td><td style="text-align:right;font-family:monospace">15.000 UN</td><td style="text-align:right;font-family:monospace;color:#94a3b8">6.000</td><td style="text-align:right">R$ 5,20</td><td style="text-align:right;font-weight:600">R$ 78,00</td><td style="text-align:center;color:#94a3b8">—</td><td style="text-align:center"><span class="badge-ok">✅ OK</span></td><td><button style="border:none;background:none;cursor:pointer;color:#94a3b8;font-size:16px">✏️</button></td></tr>
+            <tr><td><b style="font-size:13px">Açúcar cristal 5kg</b><br><span style="font-size:11px;color:#94a3b8">7896110100043</span></td><td style="color:#64748b">Açúcares</td><td style="text-align:right;font-family:monospace">10.000 KG</td><td style="text-align:right;font-family:monospace;color:#94a3b8">4.000</td><td style="text-align:right">R$ 7,80</td><td style="text-align:right;font-weight:600">R$ 78,00</td><td style="text-align:center;color:#94a3b8">—</td><td style="text-align:center"><span class="badge-ok">✅ OK</span></td><td><button style="border:none;background:none;cursor:pointer;color:#94a3b8;font-size:16px">✏️</button></td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div style="padding:12px 16px; border-top:1px solid #f1f5f9; font-size:12px; color:#94a3b8; text-align:right;">
+          Mostrando 12 de 126 produtos
+        </div>
+      </div>
+    </div>
+
+    <!-- MOVIMENTAÇÕES -->
+    <div id="pg-movimentacoes" class="page">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+        <h2 style="font-size:22px; font-weight:700; color:#1e3a5f; margin:0">Movimentações</h2>
+        <button class="btn">+ Registrar</button>
+      </div>
+      <div style="background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,.07); border:1px solid #f1f5f9; overflow:hidden;">
+        <table>
+          <thead><tr><th>Data</th><th>Produto</th><th>Tipo</th><th style="text-align:right">Quantidade</th><th style="text-align:right">Valor Total</th><th>Observação</th></tr></thead>
+          <tbody>
+            <tr><td style="color:#64748b;font-size:12px">22/06/2026 08:31</td><td style="font-weight:500">Farinha de trigo especial 50kg</td><td><span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">🔄 Saurus</span></td><td style="text-align:right;font-family:monospace">-3.000 KG</td><td style="text-align:right">R$ 42,00</td><td style="color:#94a3b8;font-size:12px">Sync Saurus — 22/06/2026</td></tr>
+            <tr><td style="color:#64748b;font-size:12px">22/06/2026 08:31</td><td style="font-weight:500">Açúcar refinado 5kg</td><td><span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">🔄 Saurus</span></td><td style="text-align:right;font-family:monospace">-2.000 KG</td><td style="text-align:right">R$ 18,40</td><td style="color:#94a3b8;font-size:12px">Sync Saurus — 22/06/2026</td></tr>
+            <tr><td style="color:#64748b;font-size:12px">21/06/2026 14:12</td><td style="font-weight:500">Manteiga sem sal 500g</td><td><span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">📥 Entrada</span></td><td style="text-align:right;font-family:monospace">+24.000 UN</td><td style="text-align:right">R$ 312,00</td><td style="color:#94a3b8;font-size:12px">Recebimento NF 4521</td></tr>
+            <tr><td style="color:#64748b;font-size:12px">21/06/2026 09:05</td><td style="font-weight:500">Leite integral 1L</td><td><span style="background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">📤 Saída</span></td><td style="text-align:right;font-family:monospace">-6.000 UN</td><td style="text-align:right">R$ 31,80</td><td style="color:#94a3b8;font-size:12px">Uso produção</td></tr>
+            <tr><td style="color:#64748b;font-size:12px">20/06/2026 16:30</td><td style="font-weight:500">Chocolate em pó 50% 400g</td><td><span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">📥 Entrada</span></td><td style="text-align:right;font-family:monospace">+12.000 UN</td><td style="text-align:right">R$ 142,80</td><td style="color:#94a3b8;font-size:12px">Compra fornecedor</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SYNC -->
+    <div id="pg-sync" class="page">
+      <h2 style="font-size:22px; font-weight:700; color:#1e3a5f; margin:0 0 24px">Sync Saurus</h2>
+      <div style="max-width:480px; background:#fff; border-radius:12px; padding:24px; box-shadow:0 1px 3px rgba(0,0,0,.07); border:1px solid #f1f5f9;">
+        <p style="color:#64748b; font-size:14px; line-height:1.6; margin:0 0 20px">
+          Exporte o relatório de produtos no Saurus Retaguarda:<br>
+          <strong>Relatórios → Produtos → Exportar Excel</strong><br>
+          Depois selecione o arquivo abaixo para sincronizar.
+        </p>
+        <div style="border:2px dashed #e2e8f0; border-radius:12px; padding:40px; text-align:center; margin-bottom:16px; cursor:pointer; transition:.15s;" onmouseenter="this.style.borderColor='#f97316'" onmouseleave="this.style.borderColor='#e2e8f0'">
+          <div style="font-size:40px; margin-bottom:8px;">📂</div>
+          <div style="color:#94a3b8; font-size:14px;">Clique para selecionar o arquivo .xlsx</div>
+        </div>
+        <div style="background:#dcfce7; border-radius:8px; padding:12px 16px; margin-bottom:16px; font-size:13px; color:#15803d; display:none" id="sync-ok">
+          ✅ Última sync: 22/06/2026 08:31 — 126 atualizados, 0 novos, 374 ignorados
+        </div>
+        <button class="btn" style="width:100%; padding:12px; font-size:15px;" onclick="document.getElementById('sync-ok').style.display='block'">🔄 Sincronizar agora</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+function pg(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('pg-' + id).classList.add('active');
+  document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>
