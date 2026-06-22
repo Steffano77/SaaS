@@ -1,28 +1,31 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
-  <!-- White background circle -->
-  <circle cx="60" cy="60" r="58" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Arc swoosh -->
+  <path d="M 28 158 A 82 82 0 1 1 178 112" fill="none" stroke="#1e3a5f" stroke-width="14" stroke-linecap="round"/>
 
-  <!-- Navy semi-circle arc at bottom -->
-  <path d="M 16 82 A 46 46 0 0 1 104 82 Z" fill="#1e3a5f"/>
+  <!-- Bar chart - 3 bars growing -->
+  <rect x="98" y="118" width="19" height="42" rx="3" fill="#1e3a5f"/>
+  <rect x="123" y="96" width="19" height="64" rx="3" fill="#1e3a5f"/>
+  <rect x="148" y="72" width="19" height="88" rx="3" fill="#1e3a5f"/>
 
-  <!-- Bar chart inside arc (3 bars, navy shades) -->
-  <rect x="29" y="58" width="13" height="24" rx="2.5" fill="#2d5282"/>
-  <rect x="48" y="46" width="13" height="36" rx="2.5" fill="#1e3a5f"/>
-  <rect x="67" y="52" width="13" height="30" rx="2.5" fill="#2d5282"/>
+  <!-- Wheat stem -->
+  <line x1="70" y1="170" x2="70" y2="48" stroke="#f97316" stroke-width="5.5" stroke-linecap="round"/>
 
-  <!-- Wheat stalk - center vertical stem -->
-  <line x1="60" y1="80" x2="60" y2="18" stroke="#f97316" stroke-width="2.8" stroke-linecap="round"/>
+  <!-- Grains left -->
+  <ellipse cx="53" cy="150" rx="14" ry="7.5" fill="#f97316" transform="rotate(-40 53 150)"/>
+  <ellipse cx="45" cy="128" rx="15" ry="8" fill="#f97316" transform="rotate(-44 45 128)"/>
+  <ellipse cx="41" cy="106" rx="14" ry="7.5" fill="#f97316" transform="rotate(-47 41 106)"/>
+  <ellipse cx="43" cy="84" rx="13" ry="7" fill="#f97316" transform="rotate(-49 43 84)"/>
+  <ellipse cx="49" cy="64" rx="12" ry="6.5" fill="#f97316" transform="rotate(-47 49 64)"/>
+  <ellipse cx="57" cy="48" rx="11" ry="6" fill="#f97316" transform="rotate(-44 57 48)"/>
 
-  <!-- Grain pairs - left side -->
-  <ellipse cx="52" cy="70" rx="6" ry="3.2" fill="#f97316" transform="rotate(-38 52 70)"/>
-  <ellipse cx="49" cy="57" rx="6" ry="3.2" fill="#f97316" transform="rotate(-42 49 57)"/>
-  <ellipse cx="48" cy="44" rx="5.5" ry="3" fill="#f97316" transform="rotate(-46 48 44)"/>
-
-  <!-- Grain pairs - right side -->
-  <ellipse cx="68" cy="70" rx="6" ry="3.2" fill="#f97316" transform="rotate(38 68 70)"/>
-  <ellipse cx="71" cy="57" rx="6" ry="3.2" fill="#f97316" transform="rotate(42 71 57)"/>
-  <ellipse cx="72" cy="44" rx="5.5" ry="3" fill="#f97316" transform="rotate(46 72 44)"/>
+  <!-- Grains right -->
+  <ellipse cx="87" cy="147" rx="14" ry="7.5" fill="#f97316" transform="rotate(40 87 147)"/>
+  <ellipse cx="95" cy="125" rx="15" ry="8" fill="#f97316" transform="rotate(44 95 125)"/>
+  <ellipse cx="97" cy="103" rx="14" ry="7.5" fill="#f97316" transform="rotate(47 97 103)"/>
+  <ellipse cx="95" cy="81" rx="13" ry="7" fill="#f97316" transform="rotate(49 95 81)"/>
+  <ellipse cx="89" cy="61" rx="12" ry="6.5" fill="#f97316" transform="rotate(47 89 61)"/>
+  <ellipse cx="81" cy="46" rx="11" ry="6" fill="#f97316" transform="rotate(44 81 46)"/>
 
   <!-- Wheat tip -->
-  <ellipse cx="60" cy="20" rx="4.5" ry="7" fill="#f97316"/>
+  <ellipse cx="70" cy="37" rx="7.5" ry="13" fill="#f97316"/>
 </svg>
