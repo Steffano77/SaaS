@@ -38,13 +38,17 @@
 
   <!-- Sidebar -->
   <aside>
-    <div style="padding:20px; border-bottom:1px solid rgba(255,255,255,.1)">
+    <div style="padding:16px; border-bottom:1px solid rgba(255,255,255,.1)">
       <div style="display:flex; align-items:center; gap:12px;">
-        <div style="font-size:28px">🥖</div>
+        <img src="/img/logo.svg" alt="Logo" style="width:44px; height:44px; flex-shrink:0;"/>
         <div>
-          <div style="color:#fff; font-weight:700; font-size:14px;">PanificaPro</div>
-          <div style="color:#94a3b8; font-size:12px;">Padaria do Jota</div>
+          <div style="color:#fff; font-weight:700; font-size:15px; line-height:1.2">PanificaPro</div>
+          <div style="color:#f97316; font-size:11px; font-weight:600; letter-spacing:.05em">ERP</div>
         </div>
+      </div>
+      <div style="margin-top:12px; background:rgba(255,255,255,.06); border-radius:8px; padding:10px 12px;">
+        <div style="color:#94a3b8; font-size:11px;">Logado como</div>
+        <div style="color:#fff; font-size:13px; font-weight:500; margin-top:2px;">Padaria do Jota</div>
       </div>
     </div>
     <nav style="flex:1; padding:12px; display:flex; flex-direction:column; gap:4px;">
@@ -165,7 +169,7 @@
     <div id="pg-estoque" class="page">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
         <h2 style="font-size:22px; font-weight:700; color:#1e3a5f; margin:0">Estoque</h2>
-        <button class="btn">+ Novo produto</button>
+        <button class="btn" onclick="abrirModal('modal-produto')">+ Novo produto</button>
       </div>
 
       <div style="background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,.07); border:1px solid #f1f5f9; overflow:hidden;">
@@ -222,7 +226,7 @@
     <div id="pg-movimentacoes" class="page">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
         <h2 style="font-size:22px; font-weight:700; color:#1e3a5f; margin:0">Movimentações</h2>
-        <button class="btn">+ Registrar</button>
+        <button class="btn" onclick="abrirModal('modal-mov')">+ Registrar</button>
       </div>
       <div style="background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,.07); border:1px solid #f1f5f9; overflow:hidden;">
         <table>
@@ -261,6 +265,114 @@
   </main>
 </div>
 
+<!-- ── MODAL NOVO PRODUTO ──────────────────────────────────── -->
+<div id="modal-produto" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100; align-items:center; justify-content:center; padding:16px;">
+  <div style="background:#fff; border-radius:16px; width:100%; max-width:520px; box-shadow:0 20px 60px rgba(0,0,0,.2); max-height:90vh; overflow-y:auto;">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px; border-bottom:1px solid #f1f5f9;">
+      <h3 style="font-weight:700; color:#1e3a5f; font-size:17px; margin:0;">Novo produto</h3>
+      <button onclick="fecharModal('modal-produto')" style="border:none; background:none; font-size:20px; cursor:pointer; color:#94a3b8; line-height:1;">✕</button>
+    </div>
+    <div style="padding:24px; display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+      <div style="grid-column:1/-1">
+        <label style="font-size:13px; font-weight:500; color:#475569;">Nome do produto *</label>
+        <input type="text" placeholder="Ex: Farinha de trigo especial 50kg" style="margin-top:6px; width:100%; border:1px solid #e2e8f0; border-radius:8px; padding:9px 14px; font-size:14px; box-sizing:border-box; outline:none;"/>
+      </div>
+      <div>
+        <label style="font-size:13px; font-weight:500; color:#475569;">Código de barras</label>
+        <input type="text" placeholder="EAN-13 (13 dígitos)" style="margin-top:6px; width:100%; border:1px solid #e2e8f0; border-radius:8px; padding:9px 14px; font-size:14px; box-sizing:border-box; outline:none;"/>
+      </div>
+      <div>
+        <label style="font-size:13px; font-weight:500; color:#475569;">Unidade</label>
+        <select style="margin-top:6px; width:100%; border:1px solid #e2e8f0; border-radius:8px; padding:9px 14px; font-size:14px; outline:none;">
+          <option>UNIDADE</option><option>KG</option><option>LITRO</option><option>PACOTE</option><option>CAIXA</option><option>FARDO</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:13px; font-weight:500; color:#475569;">Categoria</label>
+        <select style="margin-top:6px; width:100%; border:1px solid #e2e8f0; border-radius:8px; padding:9px 14px; font-size:14px; outline:none;">
+          <option>— Selecione —</option><option>Farinhas</option><option>Gorduras</option><option>Açúcares</option><option>Laticínios</option><option>Ovos</option><option>Embalagens</option><option>Outros</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:13px; font-weight:500; color:#475569;">Estoque atual</label>
+        <input type="number" value="0" min="0" step="0.001" style="margin-top:6px; width:100%; border:1px solid #e2e8f0; border-radius:8px; padding:9px 14px; font-size:14px; box-sizing:border-box; outline:none;"/>
+      </div>
+      <div>
+        <label style="font-size:13px; font-weight:500; color:#475569;">Estoque mínimo</label>
+        <input type="number" value="0" min="0" step="0.001" style="margin-top:6px; width:100%; border:1px solid #e2e8f0; border-radius:8px; padding:9px 14px; font-size:14px; box-sizing:border-box; outline:none;"/>
+      </div>
+      <div>
+        <label style="font-size:13px; font-weight:500; color:#475569;">Custo unitário (R$)</label>
+        <input type="number" value="0" min="0" step="0.01" style="margin-top:6px; width:100%; border:1px solid #e2e8f0; border-radius:8px; padding:9px 14px; font-size:14px; box-sizing:border-box; outline:none;"/>
+      </div>
+      <div>
+        <label style="font-size:13px; font-weight:500; color:#475569;">Validade</label>
+        <input type="date" style="margin-top:6px; width:100%; border:1px solid #e2e8f0; border-radius:8px; padding:9px 14px; font-size:14px; box-sizing:border-box; outline:none;"/>
+      </div>
+      <div style="grid-column:1/-1; display:flex; gap:12px; margin-top:8px;">
+        <button onclick="salvarProdutoDemo()" class="btn" style="flex:1; padding:12px;">Salvar produto</button>
+        <button onclick="fecharModal('modal-produto')" style="flex:1; padding:12px; border:1px solid #e2e8f0; border-radius:8px; background:#fff; cursor:pointer; font-size:14px; color:#475569;">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL MOVIMENTAÇÃO ──────────────────────────────────── -->
+<div id="modal-mov" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100; align-items:center; justify-content:center; padding:16px;">
+  <div style="background:#fff; border-radius:16px; width:100%; max-width:440px; box-shadow:0 20px 60px rgba(0,0,0,.2);">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px; border-bottom:1px solid #f1f5f9;">
+      <h3 style="font-weight:700; color:#1e3a5f; font-size:17px; margin:0;">Registrar movimentação</h3>
+      <button onclick="fecharModal('modal-mov')" style="border:none; background:none; font-size:20px; cursor:pointer; color:#94a3b8;">✕</button>
+    </div>
+    <div style="padding:24px; display:flex; flex-direction:column; gap:16px;">
+      <div>
+        <label style="font-size:13px; font-weight:500; color:#475569;">Produto *</label>
+        <select style="margin-top:6px; width:100%; border:1px solid #e2e8f0; border-radius:8px; padding:9px 14px; font-size:14px; outline:none;">
+          <option>— Selecione o produto —</option>
+          <option>Farinha de trigo especial 50kg</option>
+          <option>Açúcar refinado 5kg</option>
+          <option>Manteiga sem sal 500g</option>
+          <option>Leite integral 1L</option>
+          <option>Ovos tipo A (bandeja 30un)</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:13px; font-weight:500; color:#475569;">Tipo *</label>
+        <select style="margin-top:6px; width:100%; border:1px solid #e2e8f0; border-radius:8px; padding:9px 14px; font-size:14px; outline:none;">
+          <option value="entrada">📥 Entrada — compra / recebimento</option>
+          <option value="saida">📤 Saída — uso na produção / venda</option>
+          <option value="ajuste">⚙️ Ajuste — correção de inventário</option>
+        </select>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div>
+          <label style="font-size:13px; font-weight:500; color:#475569;">Quantidade *</label>
+          <input type="number" min="0.001" step="0.001" placeholder="0.000" style="margin-top:6px; width:100%; border:1px solid #e2e8f0; border-radius:8px; padding:9px 14px; font-size:14px; box-sizing:border-box; outline:none;"/>
+        </div>
+        <div>
+          <label style="font-size:13px; font-weight:500; color:#475569;">Custo unit. (R$)</label>
+          <input type="number" min="0" step="0.01" value="0" style="margin-top:6px; width:100%; border:1px solid #e2e8f0; border-radius:8px; padding:9px 14px; font-size:14px; box-sizing:border-box; outline:none;"/>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:13px; font-weight:500; color:#475569;">Observação</label>
+        <input type="text" placeholder="Ex: Recebimento NF 4521, Uso produção..." style="margin-top:6px; width:100%; border:1px solid #e2e8f0; border-radius:8px; padding:9px 14px; font-size:14px; box-sizing:border-box; outline:none;"/>
+      </div>
+      <div style="display:flex; gap:12px; margin-top:4px;">
+        <button onclick="salvarMovDemo()" class="btn" style="flex:1; padding:12px;">Registrar</button>
+        <button onclick="fecharModal('modal-mov')" style="flex:1; padding:12px; border:1px solid #e2e8f0; border-radius:8px; background:#fff; cursor:pointer; font-size:14px; color:#475569;">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST ────────────────────────────────────────────────── -->
+<div id="toast" style="display:none; position:fixed; bottom:24px; right:24px; background:#1e3a5f; color:#fff; padding:14px 20px; border-radius:12px; font-size:14px; font-weight:500; box-shadow:0 8px 30px rgba(0,0,0,.15); z-index:200; animation:slideUp .3s ease;">
+</div>
+<style>
+@keyframes slideUp { from { transform:translateY(20px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+</style>
+
 <script>
 function pg(id, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -268,6 +380,40 @@ function pg(id, el) {
   document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
   el.classList.add('active');
 }
+
+function abrirModal(id) {
+  const m = document.getElementById(id);
+  m.style.display = 'flex';
+}
+
+function fecharModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+function toast(msg, cor) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = cor || '#1e3a5f';
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 3000);
+}
+
+function salvarProdutoDemo() {
+  fecharModal('modal-produto');
+  toast('✅ Produto salvo com sucesso!', '#16a34a');
+}
+
+function salvarMovDemo() {
+  fecharModal('modal-mov');
+  toast('✅ Movimentação registrada!', '#16a34a');
+}
+
+// Fechar modal clicando fora
+['modal-produto','modal-mov'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) {
+    if (e.target === this) fecharModal(id);
+  });
+});
 </script>
 </body>
 </html>
