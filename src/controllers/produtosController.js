@@ -72,10 +72,10 @@ exports.dashboard = async (req, res) => {
   const [[kpis]] = await db.query(`
     SELECT
       COUNT(*) AS total_produtos,
-      SUM(estoque_atual <= 0) AS zerados,
-      SUM(estoque_atual > 0 AND estoque_atual < estoque_minimo) AS abaixo_minimo,
-      SUM(validade IS NOT NULL AND validade <= DATE_ADD(CURDATE(), INTERVAL 10 DAY) AND estoque_atual > 0) AS vencendo,
-      SUM(estoque_atual * custo_unitario) AS valor_total_estoque
+      COALESCE(SUM(estoque_atual <= 0), 0) AS zerados,
+      COALESCE(SUM(estoque_atual > 0 AND estoque_atual < estoque_minimo), 0) AS abaixo_minimo,
+      COALESCE(SUM(validade IS NOT NULL AND validade <= DATE_ADD(CURDATE(), INTERVAL 10 DAY) AND estoque_atual > 0), 0) AS vencendo,
+      COALESCE(SUM(estoque_atual * custo_unitario), 0) AS valor_total_estoque
     FROM produtos WHERE padaria_id = ? AND ativo = 1`, [pid]);
 
   const [repor] = await db.query(`
