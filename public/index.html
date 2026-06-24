@@ -1485,11 +1485,11 @@ async function fecharScanner() {
 }
 
 async function processarCodigoBarras(codigo, ctx) {
-  // Toca feedback visual
+  // Mostra status de busca no scanner
   document.getElementById('scan-status').textContent = `🔍 Buscando ${codigo}...`;
-  document.getElementById('modal-scanner').classList.remove('hidden');
   document.getElementById('scanner-view').innerHTML = '';
 
+  // 1. Busca no ERP
   const r = await fetch(`${API}/produtos?busca=${encodeURIComponent(codigo)}`, {
     headers: { 'Authorization': `Bearer ${TOKEN}` }
   });
@@ -1498,36 +1498,64 @@ async function processarCodigoBarras(codigo, ctx) {
 
   await fecharScanner();
 
-  if (!prod) {
-    if (confirm(`⚠️ Código ${codigo} não encontrado.\nDeseja cadastrar este produto agora?`)) {
-      abrirModalProduto();
-      document.getElementById('prod-cod').value = codigo;
-      document.getElementById('prod-nome').focus();
-    }
-    return;
-  }
-
-  if (ctx === 'movimentacao') {
-    // Pré-preenche modal de movimentação
+  if (prod) {
+    // Produto existe → abre movimentação preenchida (sempre, independente do ctx)
     document.getElementById('form-mov').reset();
     const sel = document.getElementById('mov-produto');
     sel.innerHTML = '<option value="">— Selecione —</option>' +
       todosProds.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
     sel.value = prod.id;
     document.getElementById('mov-custo').value = prod.custo_unitario || 0;
-    document.getElementById('modal-mov').classList.remove('hidden');
-    // Banner com info do produto no topo do modal
     const info = document.getElementById('mov-produto-info');
     info.innerHTML = `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;">
       ✅ <strong>${prod.nome}</strong><br>
       <span style="color:#64748b;">Estoque atual: <strong>${prod.estoque_atual} ${prod.unidade}</strong> · Custo: R$ ${parseFloat(prod.custo_unitario).toFixed(2)}</span>
     </div>`;
     info.classList.remove('hidden');
+    document.getElementById('modal-mov').classList.remove('hidden');
     document.getElementById('mov-qtd').focus();
-  } else {
-    // Abre edição do produto com dados preenchidos
-    await editarProduto(prod.id);
+    return;
   }
+
+  // 2. Produto não está no ERP → busca no Open Food Facts
+  document.getElementById('scan-status').textContent = '🌐 Buscando na base pública...';
+  document.getElementById('modal-scanner').classList.remove('hidden');
+  document.getElementById('scanner-view').innerHTML = `<div style="padding:24px;text-align:center;color:#fff;font-size:14px;">🔍 Buscando produto na base global...</div>`;
+
+  let nomeSugerido = '', catSugerida = '';
+  try {
+    const off = await fetch(`https://world.openfoodfacts.org/api/v0/product/${codigo}.json`);
+    const offData = await off.json();
+    if (offData.status === 1 && offData.product) {
+      const p = offData.product;
+      nomeSugerido = p.product_name_pt || p.product_name || p.abbreviated_product_name || '';
+      catSugerida  = p.categories_tags?.[0]?.replace('en:','').replace(/-/g,' ') || '';
+    }
+  } catch(e) {}
+
+  await fecharScanner();
+
+  // 3. Abre modal de cadastro pré-preenchido
+  abrirModalProduto();
+  document.getElementById('prod-cod').value  = codigo;
+  document.getElementById('prod-nome').value = nomeSugerido;
+  if (nomeSugerido) {
+    document.getElementById('modal-titulo').textContent = '📦 Novo produto (dados sugeridos)';
+    document.getElementById('prod-qtd-inicial')?.focus?.() || document.getElementById('prod-saldo').focus();
+  } else {
+    document.getElementById('prod-nome').focus();
+  }
+  // Banner informando origem dos dados
+  const banner = document.createElement('div');
+  banner.id = 'banner-off';
+  banner.style.cssText = 'background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;';
+  banner.innerHTML = nomeSugerido
+    ? `🌐 Dados encontrados na base Open Food Facts.<br><span style="color:#64748b;">Confira e ajuste se necessário antes de salvar.</span>`
+    : `⚠️ Código <strong>${codigo}</strong> não encontrado na base pública.<br><span style="color:#64748b;">Preencha o nome do produto manualmente.</span>`;
+  const form = document.getElementById('form-produto');
+  const antigo = document.getElementById('banner-off');
+  if (antigo) antigo.remove();
+  form.prepend(banner);
 }
 </script>
 
