@@ -5,9 +5,16 @@ const db     = require('../database/connection');
 const SECRET = process.env.JWT_SECRET || 'panificapro_secret';
 
 exports.registrar = async (req, res) => {
-  const { nome, email, senha } = req.body;
+  const nome  = String(req.body.nome  || '').trim().slice(0, 120);
+  const email = String(req.body.email || '').trim().toLowerCase().slice(0, 120);
+  const senha = String(req.body.senha || '');
+
   if (!nome || !email || !senha)
     return res.status(400).json({ erro: 'Nome, email e senha são obrigatórios.' });
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    return res.status(400).json({ erro: 'Email inválido.' });
+  if (senha.length < 6)
+    return res.status(400).json({ erro: 'Senha deve ter pelo menos 6 caracteres.' });
 
   const [existe] = await db.query('SELECT id FROM padarias WHERE email = ?', [email]);
   if (existe.length) return res.status(409).json({ erro: 'Email já cadastrado.' });
@@ -29,7 +36,8 @@ exports.registrar = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-  const { email, senha } = req.body;
+  const email = String(req.body.email || '').trim().toLowerCase().slice(0, 120);
+  const senha = String(req.body.senha || '');
   if (!email || !senha) return res.status(400).json({ erro: 'Email e senha obrigatórios.' });
 
   const [rows] = await db.query('SELECT * FROM padarias WHERE email = ? AND ativo = 1', [email]);
