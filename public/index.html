@@ -1465,15 +1465,41 @@ async function carregarCompras() {
   if (!forn.length) {
     lf.innerHTML = '<p style="color:var(--slate-400);font-size:14px;">Nenhum fornecedor cadastrado ainda.</p>';
   } else {
-    lf.innerHTML = forn.map(f => `
-      <div class="repor-item">
-        <div>
+    lf.innerHTML = forn.map(f => {
+      const tel = (f.telefone || '').replace(/\D/g, '');
+      const waBtн = tel.length >= 10
+        ? `<button onclick="enviarPedidoWhatsApp('${tel}','${f.nome.replace(/'/g,"\\'")}',${f.id})" class="btn-secondary" style="font-size:12px;padding:6px 10px;white-space:nowrap;">📲 Enviar pedido</button>`
+        : '';
+      return `<div class="repor-item" style="flex-wrap:wrap;gap:8px;">
+        <div style="flex:1;min-width:0;">
           <div class="repor-item-name">${f.nome}</div>
-          <div class="repor-item-sub">${f.telefone || ''} ${f.email ? '· ' + f.email : ''}</div>
+          <div class="repor-item-sub">${f.telefone || '<em>Sem telefone</em>'} ${f.email ? '· ' + f.email : ''}</div>
         </div>
-        <button onclick="excluirFornecedor(${f.id})" class="btn-icon" style="color:#dc2626;">🗑️</button>
-      </div>`).join('');
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+          ${waBtн}
+          <button onclick="excluirFornecedor(${f.id})" class="btn-icon" style="color:#dc2626;">🗑️</button>
+        </div>
+      </div>`;
+    }).join('');
   }
+}
+
+async function enviarPedidoWhatsApp(tel, nomeForn) {
+  const prods = await api('/produtos?alerta=minimo') || [];
+  const zerados = await api('/produtos?alerta=zerado') || [];
+  const todos = [...zerados, ...prods.filter(p => !zerados.find(z => z.id === p.id))];
+  let msg = `📋 *PEDIDO — PanificaPro*\n${new Date().toLocaleDateString('pt-BR')}\n\nOlá, *${nomeForn}*! Segue nossa lista de compras:\n\n`;
+  if (todos.length) {
+    todos.forEach(p => {
+      const falta = Math.max(0, p.estoque_minimo - p.estoque_atual);
+      msg += `• ${p.nome}: *${parseFloat(falta).toFixed(2)} ${p.unidade}*\n`;
+    });
+  } else {
+    msg += '_Nenhum item crítico no momento._\n';
+  }
+  msg += '\nAguardamos confirmação. Obrigado!';
+  const numero = tel.startsWith('55') ? tel : '55' + tel;
+  window.open(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 async function gerarListaCompras() {
