@@ -1524,14 +1524,40 @@ async function processarCodigoBarras(codigo, ctx) {
 
   let nomeSugerido = '', catSugerida = '';
   try {
-    const off = await fetch(`https://world.openfoodfacts.org/api/v0/product/${codigo}.json`);
-    const offData = await off.json();
-    if (offData.status === 1 && offData.product) {
-      const p = offData.product;
-      nomeSugerido = p.product_name_pt || p.product_name || p.abbreviated_product_name || '';
+    // Tenta Open Food Facts Brasil
+    const r1 = await fetch(`https://br.openfoodfacts.org/api/v0/product/${codigo}.json`);
+    const d1 = await r1.json();
+    if (d1.status === 1 && d1.product) {
+      const p = d1.product;
+      nomeSugerido = p.product_name_pt || p.product_name || '';
       catSugerida  = p.categories_tags?.[0]?.replace('en:','').replace(/-/g,' ') || '';
     }
   } catch(e) {}
+
+  if (!nomeSugerido) {
+    try {
+      // Tenta Open Food Facts mundial
+      const r2 = await fetch(`https://world.openfoodfacts.org/api/v0/product/${codigo}.json`);
+      const d2 = await r2.json();
+      if (d2.status === 1 && d2.product) {
+        const p = d2.product;
+        nomeSugerido = p.product_name_pt || p.product_name || '';
+        catSugerida  = p.categories_tags?.[0]?.replace('en:','').replace(/-/g,' ') || '';
+      }
+    } catch(e) {}
+  }
+
+  if (!nomeSugerido) {
+    try {
+      // Tenta UPC Item DB
+      const r3 = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${codigo}`);
+      const d3 = await r3.json();
+      if (d3.code === 'OK' && d3.items?.length) {
+        nomeSugerido = d3.items[0].title || '';
+        catSugerida  = d3.items[0].category || '';
+      }
+    } catch(e) {}
+  }
 
   await fecharScanner();
 
