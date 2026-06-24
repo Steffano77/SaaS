@@ -1053,9 +1053,10 @@
           </div>
           <div class="form-group">
             <label>Categoria</label>
-            <select id="prod-categoria" class="form-control">
-              <option value="">— Sem categoria —</option>
-            </select>
+            <div style="display:flex;gap:8px;">
+              <select id="prod-categoria" class="form-control" style="flex:1;"></select>
+              <button type="button" onclick="criarCategoria()" class="btn-primary" style="white-space:nowrap;padding:0 14px;" title="Nova categoria">+ Nova</button>
+            </div>
           </div>
           <div class="form-group">
             <label>Estoque mínimo</label>
@@ -1297,6 +1298,20 @@ async function carregarCategorias() {
   if (!cats) return;
   sel.innerHTML = '<option value="">— Sem categoria —</option>' +
     cats.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+}
+
+async function criarCategoria() {
+  const nome = prompt('Nome da nova categoria:');
+  if (!nome || !nome.trim()) return;
+  const r = await fetch(`${API}/categorias`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nome: nome.trim() })
+  });
+  const d = await r.json();
+  if (!r.ok) return alert('Erro: ' + d.erro);
+  await carregarCategorias();
+  document.getElementById('prod-categoria').value = d.id;
 }
 
 function abrirModalProduto() {

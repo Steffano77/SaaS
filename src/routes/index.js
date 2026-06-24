@@ -41,4 +41,18 @@ router.get('/categorias', auth, async (req, res) => {
   res.json(rows);
 });
 
+router.post('/categorias', auth, async (req, res) => {
+  const db = require('../database/connection');
+  const { nome } = req.body;
+  if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório.' });
+  const [r] = await db.query('INSERT INTO categorias (padaria_id, nome) VALUES (?,?)', [req.padaria.id, nome]);
+  res.status(201).json({ id: r.insertId, nome });
+});
+
+router.delete('/categorias/:id', auth, async (req, res) => {
+  const db = require('../database/connection');
+  await db.query('DELETE FROM categorias WHERE id = ? AND padaria_id = ?', [req.params.id, req.padaria.id]);
+  res.json({ ok: true });
+});
+
 module.exports = router;
