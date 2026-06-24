@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Redefinir senha — PanificaPro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#152b47,#1e3a5f,#254873);padding:24px;}
+    .card{background:#fff;border-radius:20px;padding:40px;width:100%;max-width:420px;box-shadow:0 25px 60px rgba(0,0,0,0.25);}
+    .logo{text-align:center;margin-bottom:28px;}
+    .logo img{height:64px;margin-bottom:12px;}
+    h1{font-size:22px;font-weight:700;color:#1e3a5f;margin-bottom:6px;}
+    p{font-size:14px;color:#64748b;margin-bottom:20px;}
+    label{display:block;font-size:13px;font-weight:600;color:#334155;margin-bottom:6px;}
+    input{width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:11px 14px;font-size:14px;font-family:'Inter',sans-serif;outline:none;margin-bottom:16px;}
+    input:focus{border-color:#f97316;box-shadow:0 0 0 3px rgba(249,115,22,.12);}
+    button{width:100%;background:#f97316;color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;}
+    button:hover{background:#ea6c0a;}
+    .msg{font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:16px;display:none;}
+    .ok{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;}
+    .err{background:#fef2f2;color:#991b1b;border:1px solid #fecaca;}
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <img src="/img/logosem%20fundo.png" alt="PanificaPro"/>
+    <h1>Redefinir senha</h1>
+    <p>Digite sua nova senha abaixo.</p>
+  </div>
+  <div id="msg" class="msg"></div>
+  <div id="form-area">
+    <label>Nova senha</label>
+    <input type="password" id="senha" placeholder="Mínimo 6 caracteres"/>
+    <label>Confirmar senha</label>
+    <input type="password" id="confirma" placeholder="Repita a senha"/>
+    <button onclick="redefinir()">Salvar nova senha</button>
+  </div>
+</div>
+<script>
+  const token = new URLSearchParams(location.search).get('token');
+  if (!token) { document.getElementById('form-area').innerHTML = '<p style="color:#dc2626;text-align:center;">Link inválido.</p>'; }
+
+  async function redefinir() {
+    const senha    = document.getElementById('senha').value;
+    const confirma = document.getElementById('confirma').value;
+    const msg      = document.getElementById('msg');
+    if (senha.length < 6) { show(msg, 'Senha deve ter pelo menos 6 caracteres.', 'err'); return; }
+    if (senha !== confirma) { show(msg, 'As senhas não coincidem.', 'err'); return; }
+    const r = await fetch('/api/auth/redefinir-senha', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, senha })
+    });
+    const d = await r.json();
+    if (r.ok) {
+      show(msg, '✅ Senha redefinida com sucesso! Redirecionando...', 'ok');
+      setTimeout(() => location.href = '/', 2500);
+      document.getElementById('form-area').style.display = 'none';
+    } else {
+      show(msg, '❌ ' + (d.erro || 'Erro ao redefinir.'), 'err');
+    }
+  }
+
+  function show(el, txt, cls) {
+    el.textContent = txt; el.className = 'msg ' + cls; el.style.display = 'block';
+  }
+</script>
+</body>
+</html>
