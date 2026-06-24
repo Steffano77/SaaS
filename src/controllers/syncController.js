@@ -27,6 +27,10 @@ exports.importarSaurus = async (req, res) => {
 
     let atualizados = 0, criados = 0, ignorados = 0;
 
+    // Coluna de loja (Saurus exporta com codLoja ou cod_loja)
+    const colLoja = headers['codLoja'] || headers['cod_loja'] || headers['loja'] || headers['pro_codLoja'] || null;
+    const filtroLoja = req.body.loja ? String(req.body.loja).trim() : null;
+
     const rows = [];
     ws.eachRow((row, i) => { if (i > 1) rows.push(row); });
 
@@ -42,6 +46,11 @@ exports.importarSaurus = async (req, res) => {
       if (!nome) { ignorados++; continue; }
       // Só importa EAN-13
       if (!cod || !/^\d{13}$/.test(cod)) { ignorados++; continue; }
+      // Filtra por loja se solicitado
+      if (filtroLoja && colLoja) {
+        const lojaRow = String(row.getCell(colLoja).value || '').trim();
+        if (lojaRow !== filtroLoja) { ignorados++; continue; }
+      }
 
       // Busca categoria
       let [catRows] = await db.query(

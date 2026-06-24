@@ -181,6 +181,16 @@
 
     .btn-primary.full { width: 100%; padding: 13px 20px; font-size: 15px; }
 
+    .btn-danger {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #dc2626; color: #fff; border: none; border-radius: 10px;
+      padding: 11px 20px; font-size: 14px; font-weight: 600;
+      font-family: 'Inter', sans-serif; cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-danger:active { transform: translateY(1px); }
+
     .btn-ghost {
       display: inline-flex;
       align-items: center;
@@ -736,7 +746,7 @@
   <aside class="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-brand">
-        <img src="/img/logo.svg" alt="PanificaPro"/>
+        <img src="/img/logo-sidebar.svg" alt="PanificaPro"/>
         <div class="sidebar-brand-text">
           <span class="sidebar-brand-name">PanificaPro</span>
           <span class="sidebar-brand-tag">ERP</span>
@@ -874,9 +884,19 @@
           <p style="color: var(--slate-600); font-size: 14px; line-height: 1.7; margin-bottom: 20px;">
             Exporte o relatório de produtos no Saurus Retaguarda:<br>
             <strong>Relatórios → Produtos → Exportar Excel</strong><br>
-            Depois selecione o arquivo abaixo para sincronizar.
+            Depois selecione o arquivo e a loja abaixo para sincronizar.
           </p>
           <form onsubmit="sincronizarSaurus(event)">
+            <div class="form-group" style="margin-bottom:16px;">
+              <label style="font-size:13px;font-weight:600;color:var(--slate-700);display:block;margin-bottom:6px;">Filtrar por loja</label>
+              <select id="sync-loja" class="form-control" style="max-width:280px;">
+                <option value="">Todas as lojas</option>
+                <option value="1">1 - PADARIA DO JOTA I LTDA</option>
+                <option value="2" selected>2 - PADARIA DO JOTA LTDA</option>
+                <option value="3">3 - PADARIA DO JOTA II LTDA</option>
+              </select>
+              <small style="color:var(--slate-500);font-size:12px;">Somente produtos desta loja serão importados</small>
+            </div>
             <label class="upload-zone" for="arquivo-saurus">
               <div class="upload-icon">📂</div>
               <span id="nome-arquivo">Clique para selecionar o arquivo .xlsx</span>
@@ -886,6 +906,15 @@
             <div id="resultado-sync" class="hidden"></div>
             <button type="submit" class="btn-primary full">🔄 Sincronizar agora</button>
           </form>
+        </div>
+      </div>
+
+      <!-- Zona de perigo -->
+      <div class="card" style="margin-top:20px;border:1px solid #fee2e2;">
+        <div class="card-body">
+          <h3 style="color:#dc2626;font-size:15px;font-weight:700;margin:0 0 8px;">⚠️ Zona de perigo</h3>
+          <p style="color:var(--slate-600);font-size:14px;margin-bottom:16px;">Remove todos os produtos e movimentações do seu estoque. Esta ação não pode ser desfeita.</p>
+          <button class="btn-danger" onclick="limparTodosDados()">🗑️ Limpar todos os dados</button>
         </div>
       </div>
     </section>
@@ -1256,8 +1285,10 @@ async function sincronizarSaurus(e) {
   e.preventDefault();
   const file = document.getElementById('arquivo-saurus').files[0];
   if (!file) return alert('Selecione o arquivo .xlsx do Saurus.');
+  const loja = document.getElementById('sync-loja').value;
   const fd = new FormData();
   fd.append('arquivo', file);
+  if (loja) fd.append('loja', loja);
   const r = await fetch(`${API}/sync/saurus`, {
     method: 'POST', headers: { 'Authorization': `Bearer ${TOKEN}` }, body: fd
   });
@@ -1266,10 +1297,26 @@ async function sincronizarSaurus(e) {
   el.classList.remove('hidden');
   if (r.ok) {
     el.className = 'result-ok';
-    el.textContent = `✅ Sync concluído! ${d.atualizados} atualizados, ${d.criados} novos, ${d.ignorados} ignorados.`;
+    const lojaInfo = loja ? ` (loja ${loja})` : '';
+    el.textContent = `✅ Sync concluído${lojaInfo}! ${d.atualizados} atualizados, ${d.criados} novos, ${d.ignorados} ignorados.`;
   } else {
     el.className = 'result-err';
     el.textContent = `❌ Erro: ${d.erro}`;
+  }
+}
+
+async function limparTodosDados() {
+  if (!confirm('⚠️ Tem certeza? Isso apagará TODOS os produtos e movimentações do seu estoque. Esta ação não pode ser desfeita.')) return;
+  if (!confirm('Confirmação final: todos os dados serão removidos permanentemente. Continuar?')) return;
+  const r = await fetch(`${API}/dados/limpar`, {
+    method: 'DELETE', headers: { 'Authorization': `Bearer ${TOKEN}` }
+  });
+  const d = await r.json();
+  if (r.ok) {
+    alert(`✅ Dados removidos! ${d.produtos} produtos e ${d.movimentacoes} movimentações excluídos.`);
+    carregarDashboard();
+  } else {
+    alert(`❌ Erro: ${d.erro}`);
   }
 }
 

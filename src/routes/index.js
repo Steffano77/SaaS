@@ -7,6 +7,7 @@ const authCtrl  = require('../controllers/authController');
 const prodCtrl  = require('../controllers/produtosController');
 const movCtrl   = require('../controllers/movimentacoesController');
 const syncCtrl  = require('../controllers/syncController');
+const dadosCtrl = require('../controllers/dadosController');
 
 // Auth
 router.post('/auth/registrar', authCtrl.registrar);
@@ -29,6 +30,9 @@ router.post('/movimentacoes', auth, movCtrl.registrar);
 
 // Sync Saurus
 router.post('/sync/saurus', auth, upload.single('arquivo'), syncCtrl.importarSaurus);
+
+// Limpar todos os dados
+router.delete('/dados/limpar', auth, dadosCtrl.limparTudo);
 
 // Categorias
 router.get('/categorias', auth, async (req, res) => {
