@@ -864,9 +864,9 @@
         <span class="nav-icon">📦</span>
         <span class="nav-label">Estoque</span>
       </button>
-      <button class="sidebar-link" onclick="mostrarPagina('movimentacoes');fecharSidebar()">
-        <span class="nav-icon">↕️</span>
-        <span class="nav-label">Movimentações</span>
+      <button class="sidebar-link" onclick="mostrarPagina('compras');fecharSidebar()">
+        <span class="nav-icon">🛒</span>
+        <span class="nav-label">Compras</span>
       </button>
       <button class="sidebar-link" onclick="mostrarPagina('sync');fecharSidebar()">
         <span class="nav-icon">🔄</span>
@@ -949,30 +949,29 @@
       </div>
     </section>
 
-    <!-- MOVIMENTAÇÕES -->
-    <section id="pg-movimentacoes" class="hidden page-section">
+    <!-- COMPRAS -->
+    <section id="pg-compras" class="hidden page-section">
       <div class="page-header">
-        <h2 class="page-title">Movimentações</h2>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn-primary" onclick="abrirModalMovimento()">+ Registrar</button>
-          <button class="btn-primary" onclick="abrirScanner('movimentacao')" style="background:var(--navy);">📷 Escanear</button>
+        <h2 class="page-title">Compras</h2>
+        <button class="btn-primary" onclick="gerarListaCompras()">📋 Gerar lista de compras</button>
+      </div>
+
+      <!-- Cards de alertas de reposição -->
+      <div id="compras-alerta" class="card" style="margin-bottom:16px;">
+        <div class="card-body">
+          <h3 style="font-size:14px;font-weight:700;color:var(--slate-700);margin-bottom:12px;">🔴 Produtos para repor</h3>
+          <div id="lista-compras-repor"></div>
         </div>
       </div>
+
+      <!-- Fornecedores -->
       <div class="card">
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th class="left">Data</th>
-                <th class="left">Produto</th>
-                <th class="center">Tipo</th>
-                <th class="right">Quantidade</th>
-                <th class="right">Valor Total</th>
-                <th class="left">Observação</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-movs"></tbody>
-          </table>
+        <div class="card-body">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <h3 style="font-size:14px;font-weight:700;color:var(--slate-700);">🏭 Fornecedores</h3>
+            <button class="btn-primary" onclick="abrirModalFornecedor()" style="padding:8px 14px;font-size:13px;">+ Novo</button>
+          </div>
+          <div id="lista-fornecedores"></div>
         </div>
       </div>
     </section>
@@ -1198,7 +1197,7 @@ function sair() {
 }
 
 // ── Navegação ───────────────────────────────────────────────
-const paginas = ['dashboard','estoque','movimentacoes','sync'];
+const paginas = ['dashboard','estoque','compras','sync'];
 function mostrarPagina(pg) {
   paginas.forEach(p => {
     document.getElementById(`pg-${p}`).classList.toggle('hidden', p !== pg);
@@ -1208,7 +1207,7 @@ function mostrarPagina(pg) {
   });
   if (pg === 'dashboard')      carregarDashboard();
   if (pg === 'estoque')        { carregarCategorias(); carregarProdutos(); }
-  if (pg === 'movimentacoes')  carregarMovimentacoes();
+  if (pg === 'compras')        { carregarCompras(); }
 }
 
 // ── API helpers ──────────────────────────────────────────────
@@ -1276,11 +1275,102 @@ async function carregarProdutos() {
       <td class="right" style="font-weight:600">${valorTotal}</td>
       <td class="center" style="${p.validade ? 'color:var(--orange-600);font-weight:600' : 'color:var(--slate-400)'}">${validade}</td>
       <td class="center">${status}</td>
-      <td class="right">
+      <td class="right" style="white-space:nowrap;">
+        <button onclick="movRapido(${p.id},'entrada')" class="btn-icon" title="Entrada" style="color:#16a34a;font-size:16px;">➕</button>
+        <button onclick="movRapido(${p.id},'saida')" class="btn-icon" title="Saída" style="color:#dc2626;font-size:16px;">➖</button>
         <button onclick="editarProduto(${p.id})" class="btn-icon">✏️</button>
       </td>
     </tr>`;
   }).join('') || '<tr class="empty-row"><td colspan="9">Nenhum produto encontrado</td></tr>';
+}
+
+// ── Compras ───────────────────────────────────────────────
+async function carregarCompras() {
+  // Produtos para repor
+  const prods = await api('/produtos?alerta=minimo') || [];
+  const zerados = await api('/produtos?alerta=zerado') || [];
+  const todos = [...zerados, ...prods.filter(p => !zerados.find(z => z.id === p.id))];
+  const el = document.getElementById('lista-compras-repor');
+  if (!todos.length) {
+    el.innerHTML = '<p style="color:#16a34a;font-size:14px;">✅ Nenhum produto precisa de reposição agora!</p>';
+  } else {
+    el.innerHTML = todos.map(p => {
+      const falta = Math.max(0, p.estoque_minimo - p.estoque_atual);
+      const badge = p.estoque_atual <= 0
+        ? '<span class="badge badge-zero">🔴 Zerado</span>'
+        : '<span class="badge badge-min">⚠️ Baixo</span>';
+      return `<div class="repor-item">
+        <div>
+          <div class="repor-item-name">${p.nome}</div>
+          <div class="repor-item-sub">Atual: ${parseFloat(p.estoque_atual).toFixed(2)} ${p.unidade} · Falta: <b>${parseFloat(falta).toFixed(2)} ${p.unidade}</b></div>
+        </div>
+        ${badge}
+      </div>`;
+    }).join('');
+  }
+
+  // Fornecedores
+  const forn = await api('/fornecedores') || [];
+  const lf = document.getElementById('lista-fornecedores');
+  if (!forn.length) {
+    lf.innerHTML = '<p style="color:var(--slate-400);font-size:14px;">Nenhum fornecedor cadastrado ainda.</p>';
+  } else {
+    lf.innerHTML = forn.map(f => `
+      <div class="repor-item">
+        <div>
+          <div class="repor-item-name">${f.nome}</div>
+          <div class="repor-item-sub">${f.telefone || ''} ${f.email ? '· ' + f.email : ''}</div>
+        </div>
+        <button onclick="excluirFornecedor(${f.id})" class="btn-icon" style="color:#dc2626;">🗑️</button>
+      </div>`).join('');
+  }
+}
+
+async function gerarListaCompras() {
+  const prods = await api('/produtos?alerta=minimo') || [];
+  const zerados = await api('/produtos?alerta=zerado') || [];
+  const todos = [...zerados, ...prods.filter(p => !zerados.find(z => z.id === p.id))];
+  if (!todos.length) return alert('✅ Nenhum produto precisa de reposição!');
+  let txt = '📋 LISTA DE COMPRAS — PanificaPro\n';
+  txt += new Date().toLocaleDateString('pt-BR') + '\n\n';
+  todos.forEach(p => {
+    const falta = Math.max(0, p.estoque_minimo - p.estoque_atual);
+    txt += `• ${p.nome}: ${parseFloat(falta).toFixed(2)} ${p.unidade}\n`;
+  });
+  const blob = new Blob([txt], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'lista-compras.txt';
+  a.click();
+}
+
+function abrirModalFornecedor() {
+  document.getElementById('form-forn').reset();
+  document.getElementById('modal-forn').classList.remove('hidden');
+}
+
+async function salvarFornecedor(e) {
+  e.preventDefault();
+  const body = {
+    nome:     document.getElementById('forn-nome').value,
+    contato:  document.getElementById('forn-contato').value,
+    telefone: document.getElementById('forn-tel').value,
+    email:    document.getElementById('forn-email').value,
+  };
+  const r = await fetch(`${API}/fornecedores`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (r.ok) { fecharModal('modal-forn'); carregarCompras(); }
+}
+
+async function excluirFornecedor(id) {
+  if (!confirm('Excluir este fornecedor?')) return;
+  await fetch(`${API}/fornecedores/${id}`, {
+    method: 'DELETE', headers: { 'Authorization': `Bearer ${TOKEN}` }
+  });
+  carregarCompras();
 }
 
 function statusBadge(p) {
@@ -1372,6 +1462,32 @@ async function carregarMovimentacoes() {
       <td class="right">${parseFloat(m.valor_total||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
       <td style="color:var(--slate-500)">${m.observacao || '—'}</td>
     </tr>`).join('') || '<tr class="empty-row"><td colspan="6">Nenhuma movimentação</td></tr>';
+}
+
+// ── Movimento rápido direto da tabela ────────────────────
+function movRapido(prodId, tipo) {
+  document.getElementById('form-mov').reset();
+  document.getElementById('mov-produto-info').classList.add('hidden');
+  const sel = document.getElementById('mov-produto');
+  sel.innerHTML = '<option value="">— Selecione —</option>' +
+    todosProds.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+  sel.value = prodId;
+  document.getElementById('mov-tipo').value = tipo;
+  const prod = todosProds.find(p => p.id === prodId);
+  if (prod) {
+    document.getElementById('mov-custo').value = prod.custo_unitario || 0;
+    const info = document.getElementById('mov-produto-info');
+    const cor = tipo === 'entrada' ? '#f0fdf4' : '#fef2f2';
+    const borda = tipo === 'entrada' ? '#bbf7d0' : '#fecaca';
+    const icon = tipo === 'entrada' ? '➕' : '➖';
+    info.innerHTML = `<div style="background:${cor};border:1px solid ${borda};border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;">
+      ${icon} <strong>${prod.nome}</strong> — ${tipo === 'entrada' ? 'Entrada' : 'Saída'}<br>
+      <span style="color:#64748b;">Estoque atual: <strong>${prod.estoque_atual} ${prod.unidade}</strong></span>
+    </div>`;
+    info.classList.remove('hidden');
+  }
+  document.getElementById('modal-mov').classList.remove('hidden');
+  document.getElementById('mov-qtd').focus();
 }
 
 function abrirModalMovimento() {
@@ -1599,6 +1715,40 @@ async function processarCodigoBarras(codigo, ctx) {
   form.prepend(banner);
 }
 </script>
+
+<!-- ── MODAL FORNECEDOR ──────────────────────────────────── -->
+<div id="modal-forn" class="modal-overlay hidden">
+  <div class="modal-box sm">
+    <div class="modal-header">
+      <span class="modal-title">Novo fornecedor</span>
+      <button class="modal-close" onclick="fecharModal('modal-forn')">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-forn" onsubmit="salvarFornecedor(event)">
+        <div class="form-group">
+          <label>Nome *</label>
+          <input type="text" id="forn-nome" required placeholder="Distribuidora XYZ" class="form-control"/>
+        </div>
+        <div class="form-group">
+          <label>Contato</label>
+          <input type="text" id="forn-contato" placeholder="Nome do vendedor" class="form-control"/>
+        </div>
+        <div class="form-group">
+          <label>Telefone / WhatsApp</label>
+          <input type="text" id="forn-tel" placeholder="(11) 99999-9999" class="form-control"/>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="forn-email" placeholder="vendas@distribuidora.com" class="form-control"/>
+        </div>
+        <div class="modal-actions">
+          <button type="submit" class="btn-primary">Salvar</button>
+          <button type="button" class="btn-ghost" onclick="fecharModal('modal-forn')">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
 <!-- ── MODAL SCANNER ─────────────────────────────────────── -->
 <div id="modal-scanner" class="modal-overlay hidden">

@@ -31,6 +31,30 @@ router.post('/movimentacoes', auth, movCtrl.registrar);
 // Sync Saurus
 router.post('/sync/saurus', auth, upload.single('arquivo'), syncCtrl.importarSaurus);
 
+// Fornecedores
+router.get('/fornecedores', auth, async (req, res) => {
+  const db = require('../database/connection');
+  const [rows] = await db.query('SELECT * FROM fornecedores WHERE padaria_id = ? AND ativo = 1 ORDER BY nome', [req.padaria.id]);
+  res.json(rows);
+});
+
+router.post('/fornecedores', auth, async (req, res) => {
+  const db = require('../database/connection');
+  const { nome, contato, telefone, email } = req.body;
+  if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório.' });
+  const [r] = await db.query(
+    'INSERT INTO fornecedores (padaria_id, nome, contato, telefone, email) VALUES (?,?,?,?,?)',
+    [req.padaria.id, nome, contato || null, telefone || null, email || null]
+  );
+  res.status(201).json({ id: r.insertId, nome });
+});
+
+router.delete('/fornecedores/:id', auth, async (req, res) => {
+  const db = require('../database/connection');
+  await db.query('UPDATE fornecedores SET ativo = 0 WHERE id = ? AND padaria_id = ?', [req.params.id, req.padaria.id]);
+  res.json({ ok: true });
+});
+
 // Limpar todos os dados
 router.delete('/dados/limpar', auth, dadosCtrl.limparTudo);
 
