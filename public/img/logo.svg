@@ -1,31 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
 
-  <!-- Arco navy grande em forma de C, de cima-esquerda até baixo-direita -->
-  <path d="M 58 52 A 158 158 0 1 1 250 232"
-        fill="none" stroke="#1e2d6b" stroke-width="26" stroke-linecap="round"/>
+  <!-- Arco navy em C — de cima-esquerda até baixo-direita -->
+  <path d="M 55 48 A 158 158 0 1 1 248 238"
+        fill="none" stroke="#1e2d6b" stroke-width="24" stroke-linecap="round"/>
 
-  <!-- Caule do trigo -->
-  <line x1="118" y1="265" x2="118" y2="44"
-        stroke="#f7941d" stroke-width="8" stroke-linecap="round"/>
+  <!-- Caule -->
+  <line x1="115" y1="268" x2="115" y2="42"
+        stroke="#f7941d" stroke-width="9" stroke-linecap="round"/>
 
-  <!-- Ponta do trigo (grão topo) -->
-  <ellipse cx="118" cy="36" rx="13" ry="20" fill="#f7941d"/>
+  <!-- Ponta (grão do topo) -->
+  <ellipse cx="115" cy="31" rx="15" ry="24" fill="#f7941d"/>
 
-  <!-- Par 1 (mais alto) -->
-  <ellipse cx="94"  cy="68"  rx="22" ry="13" fill="#f7941d" transform="rotate(-38 94 68)"/>
-  <ellipse cx="142" cy="62"  rx="22" ry="13" fill="#f7941d" transform="rotate(38 142 62)"/>
+  <!-- Par 1 — alto -->
+  <ellipse cx="88"  cy="74"  rx="28" ry="15" fill="#f7941d" transform="rotate(-38 88 74)"/>
+  <ellipse cx="142" cy="67"  rx="28" ry="15" fill="#f7941d" transform="rotate(38 142 67)"/>
 
-  <!-- Par 2 -->
-  <ellipse cx="86"  cy="102" rx="24" ry="14" fill="#f7941d" transform="rotate(-40 86 102)"/>
-  <ellipse cx="150" cy="96"  rx="24" ry="14" fill="#f7941d" transform="rotate(40 150 96)"/>
+  <!-- Par 2 — meio -->
+  <ellipse cx="80"  cy="113" rx="30" ry="17" fill="#f7941d" transform="rotate(-40 80 113)"/>
+  <ellipse cx="150" cy="106" rx="30" ry="17" fill="#f7941d" transform="rotate(40 150 106)"/>
 
-  <!-- Par 3 (mais baixo) -->
-  <ellipse cx="82"  cy="138" rx="25" ry="15" fill="#f7941d" transform="rotate(-42 82 138)"/>
-  <ellipse cx="154" cy="132" rx="25" ry="15" fill="#f7941d" transform="rotate(42 154 132)"/>
+  <!-- Par 3 — baixo, maior -->
+  <ellipse cx="76"  cy="154" rx="32" ry="18" fill="#f7941d" transform="rotate(-42 76 154)"/>
+  <ellipse cx="154" cy="147" rx="32" ry="18" fill="#f7941d" transform="rotate(42 154 147)"/>
 
-  <!-- Gráfico de barras — 3 barras crescentes da esquerda para direita -->
-  <rect x="170" y="200" width="26" height="48"  rx="4" fill="#1e2d6b"/>
-  <rect x="202" y="168" width="26" height="80"  rx="4" fill="#1e2d6b"/>
-  <rect x="234" y="132" width="26" height="116" rx="4" fill="#1e2d6b"/>
+  <!-- Barras navy crescentes -->
+  <rect x="170" y="196" width="26" height="52"  rx="5" fill="#1e2d6b"/>
+  <rect x="202" y="164" width="26" height="84"  rx="5" fill="#1e2d6b"/>
+  <rect x="234" y="128" width="26" height="120" rx="5" fill="#1e2d6b"/>
 
 </svg>
