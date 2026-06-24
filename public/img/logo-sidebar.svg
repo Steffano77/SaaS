@@ -1,31 +1,31 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
-  <!-- Arc swoosh — branco no fundo escuro -->
-  <path d="M 28 158 A 82 82 0 1 1 178 112" fill="none" stroke="#ffffff" stroke-width="14" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
 
-  <!-- Bar chart - 3 bars growing — branco -->
-  <rect x="98" y="118" width="19" height="42" rx="3" fill="#ffffff"/>
-  <rect x="123" y="96" width="19" height="64" rx="3" fill="#ffffff"/>
-  <rect x="148" y="72" width="19" height="88" rx="3" fill="#ffffff"/>
+  <!-- Arco branco (fundo escuro da sidebar) -->
+  <path d="M 58 52 A 158 158 0 1 1 250 232"
+        fill="none" stroke="#ffffff" stroke-width="26" stroke-linecap="round"/>
 
-  <!-- Wheat stem -->
-  <line x1="70" y1="170" x2="70" y2="48" stroke="#f97316" stroke-width="5.5" stroke-linecap="round"/>
+  <!-- Caule do trigo -->
+  <line x1="118" y1="265" x2="118" y2="44"
+        stroke="#f7941d" stroke-width="8" stroke-linecap="round"/>
 
-  <!-- Grains left -->
-  <ellipse cx="53" cy="150" rx="14" ry="7.5" fill="#f97316" transform="rotate(-40 53 150)"/>
-  <ellipse cx="45" cy="128" rx="15" ry="8" fill="#f97316" transform="rotate(-44 45 128)"/>
-  <ellipse cx="41" cy="106" rx="14" ry="7.5" fill="#f97316" transform="rotate(-47 41 106)"/>
-  <ellipse cx="43" cy="84" rx="13" ry="7" fill="#f97316" transform="rotate(-49 43 84)"/>
-  <ellipse cx="49" cy="64" rx="12" ry="6.5" fill="#f97316" transform="rotate(-47 49 64)"/>
-  <ellipse cx="57" cy="48" rx="11" ry="6" fill="#f97316" transform="rotate(-44 57 48)"/>
+  <!-- Ponta do trigo -->
+  <ellipse cx="118" cy="36" rx="13" ry="20" fill="#f7941d"/>
 
-  <!-- Grains right -->
-  <ellipse cx="87" cy="147" rx="14" ry="7.5" fill="#f97316" transform="rotate(40 87 147)"/>
-  <ellipse cx="95" cy="125" rx="15" ry="8" fill="#f97316" transform="rotate(44 95 125)"/>
-  <ellipse cx="97" cy="103" rx="14" ry="7.5" fill="#f97316" transform="rotate(47 97 103)"/>
-  <ellipse cx="95" cy="81" rx="13" ry="7" fill="#f97316" transform="rotate(49 95 81)"/>
-  <ellipse cx="89" cy="61" rx="12" ry="6.5" fill="#f97316" transform="rotate(47 89 61)"/>
-  <ellipse cx="81" cy="46" rx="11" ry="6" fill="#f97316" transform="rotate(44 81 46)"/>
+  <!-- Par 1 -->
+  <ellipse cx="94"  cy="68"  rx="22" ry="13" fill="#f7941d" transform="rotate(-38 94 68)"/>
+  <ellipse cx="142" cy="62"  rx="22" ry="13" fill="#f7941d" transform="rotate(38 142 62)"/>
 
-  <!-- Wheat tip -->
-  <ellipse cx="70" cy="37" rx="7.5" ry="13" fill="#f97316"/>
+  <!-- Par 2 -->
+  <ellipse cx="86"  cy="102" rx="24" ry="14" fill="#f7941d" transform="rotate(-40 86 102)"/>
+  <ellipse cx="150" cy="96"  rx="24" ry="14" fill="#f7941d" transform="rotate(40 150 96)"/>
+
+  <!-- Par 3 -->
+  <ellipse cx="82"  cy="138" rx="25" ry="15" fill="#f7941d" transform="rotate(-42 82 138)"/>
+  <ellipse cx="154" cy="132" rx="25" ry="15" fill="#f7941d" transform="rotate(42 154 132)"/>
+
+  <!-- Barras brancas -->
+  <rect x="170" y="200" width="26" height="48"  rx="4" fill="#ffffff"/>
+  <rect x="202" y="168" width="26" height="80"  rx="4" fill="#ffffff"/>
+  <rect x="234" y="132" width="26" height="116" rx="4" fill="#ffffff"/>
+
 </svg>
