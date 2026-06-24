@@ -7,6 +7,7 @@
   <link rel="icon" type="image/png" href="/img/logosem%20fundo.png"/>
   <link rel="apple-touch-icon" href="/img/logosem%20fundo.png"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -910,7 +911,10 @@
     <section id="pg-estoque" class="hidden page-section">
       <div class="page-header">
         <h2 class="page-title">Estoque</h2>
-        <button class="btn-primary" onclick="abrirModalProduto()">+ Novo produto</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-primary" onclick="abrirModalProduto()">+ Novo produto</button>
+          <button class="btn-primary" onclick="abrirScanner('estoque')" style="background:var(--navy);">📷 Escanear</button>
+        </div>
       </div>
       <div class="card">
         <div class="filters-bar">
@@ -949,7 +953,10 @@
     <section id="pg-movimentacoes" class="hidden page-section">
       <div class="page-header">
         <h2 class="page-title">Movimentações</h2>
-        <button class="btn-primary" onclick="abrirModalMovimento()">+ Registrar</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-primary" onclick="abrirModalMovimento()">+ Registrar</button>
+          <button class="btn-primary" onclick="abrirScanner('movimentacao')" style="background:var(--navy);">📷 Escanear</button>
+        </div>
       </div>
       <div class="card">
         <div class="table-wrapper">
@@ -1441,6 +1448,90 @@ if (TOKEN) {
       if (d) { document.getElementById('sidebar-nome').textContent = d.nome; entrar(); }
     });
 }
+
+// ── Scanner de código de barras ──────────────────────────
+let scannerCtx = 'estoque'; // 'estoque' ou 'movimentacao'
+let html5Qr = null;
+
+function abrirScanner(ctx) {
+  scannerCtx = ctx;
+  document.getElementById('modal-scanner').classList.remove('hidden');
+  document.getElementById('scan-resultado').classList.add('hidden');
+  document.getElementById('scan-resultado').textContent = '';
+
+  html5Qr = new Html5Qrcode('scanner-view');
+  html5Qr.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: { width: 260, height: 120 } },
+    async (codigo) => {
+      await fecharScanner();
+      await processarCodigoBarras(codigo, scannerCtx);
+    },
+    () => {}
+  ).catch(err => {
+    document.getElementById('scan-resultado').textContent = '❌ Câmera não disponível: ' + err;
+    document.getElementById('scan-resultado').classList.remove('hidden');
+  });
+}
+
+async function fecharScanner() {
+  if (html5Qr) {
+    try { await html5Qr.stop(); } catch(e) {}
+    html5Qr = null;
+  }
+  document.getElementById('modal-scanner').classList.add('hidden');
+}
+
+async function processarCodigoBarras(codigo, ctx) {
+  const el = document.getElementById('scan-resultado');
+
+  // Busca o produto pelo código de barras
+  const r = await fetch(`${API}/produtos?busca=${encodeURIComponent(codigo)}`, {
+    headers: { 'Authorization': `Bearer ${TOKEN}` }
+  });
+  const lista = await r.json();
+  const prod = lista.find(p => p.codigo_barras === codigo);
+
+  if (ctx === 'movimentacao') {
+    abrirModalMovimento();
+    if (prod) {
+      const sel = document.getElementById('mov-produto');
+      sel.value = prod.id;
+      document.getElementById('mov-qtd').focus();
+      setTimeout(() => alert(`✅ Produto encontrado: ${prod.nome}\nPreencha a quantidade e confirme.`), 100);
+    } else {
+      alert(`⚠️ Código ${codigo} não encontrado.\nCadastre o produto primeiro.`);
+    }
+  } else {
+    // ctx === 'estoque'
+    if (prod) {
+      await editarProduto(prod.id);
+    } else {
+      abrirModalProduto();
+      document.getElementById('prod-barcode').value = codigo;
+      document.getElementById('prod-nome').focus();
+      setTimeout(() => alert(`⚠️ Código ${codigo} não cadastrado ainda.\nPreencha o nome e salve para cadastrar.`), 100);
+    }
+  }
+}
 </script>
+
+<!-- ── MODAL SCANNER ─────────────────────────────────────── -->
+<div id="modal-scanner" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="modal-header">
+      <span class="modal-title">📷 Escanear código de barras</span>
+      <button class="modal-close" onclick="fecharScanner()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:0;">
+      <div id="scanner-view" style="width:100%;border-radius:0 0 4px 4px;overflow:hidden;"></div>
+      <div id="scan-resultado" class="hidden" style="padding:16px;font-size:14px;color:#dc2626;"></div>
+      <p style="text-align:center;font-size:12px;color:#64748b;padding:12px;">
+        Aponte a câmera para o código de barras do produto
+      </p>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
