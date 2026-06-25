@@ -1313,7 +1313,6 @@ function sair() {
 // ── Navegação ───────────────────────────────────────────────
 const paginas = ['dashboard','estoque','compras','relatorios','sync'];
 function mostrarPagina(pg, pushHistory = true) {
-  _paginaAtual = pg;
   paginas.forEach(p => {
     document.getElementById(`pg-${p}`).classList.toggle('hidden', p !== pg);
   });
@@ -1327,20 +1326,15 @@ function mostrarPagina(pg, pushHistory = true) {
   if (pg === 'relatorios')     { carregarRelatorios(); }
 }
 
-// Rastreia a página atual para o botão voltar
-let _paginaAtual = 'dashboard';
-
 // Botão voltar do Android/browser
-window.addEventListener('popstate', e => {
-  const pg = e.state?.pg || 'dashboard';
-  if (_paginaAtual === 'dashboard' && TOKEN) {
-    // Está no dashboard → perguntar se quer sair
+window.addEventListener('popstate', () => {
+  const visivel = paginas.find(p => !document.getElementById(`pg-${p}`).classList.contains('hidden'));
+  if (visivel === 'dashboard' && TOKEN) {
     history.pushState({ pg: 'dashboard' }, '', '#dashboard');
     document.getElementById('modal-sair').classList.remove('hidden');
-    return;
+  } else {
+    mostrarPagina('dashboard', false);
   }
-  // Em qualquer outra página → vai para o dashboard
-  mostrarPagina('dashboard', false);
 });
 
 function confirmarSaida() {
