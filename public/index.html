@@ -1299,7 +1299,9 @@ function entrar() {
   document.getElementById('tela-auth').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   document.getElementById('app').classList.add('flex');
-  mostrarPagina('dashboard');
+  // Limpa histórico anterior e inicia com dashboard
+  history.replaceState({ pg: 'dashboard' }, '', '#dashboard');
+  mostrarPagina('dashboard', false);
 }
 
 function sair() {
@@ -1310,18 +1312,25 @@ function sair() {
 
 // ── Navegação ───────────────────────────────────────────────
 const paginas = ['dashboard','estoque','compras','relatorios','sync'];
-function mostrarPagina(pg) {
+function mostrarPagina(pg, pushHistory = true) {
   paginas.forEach(p => {
     document.getElementById(`pg-${p}`).classList.toggle('hidden', p !== pg);
   });
   document.querySelectorAll('.sidebar-link').forEach((el, i) => {
     el.classList.toggle('active', paginas[i] === pg);
   });
+  if (pushHistory) history.pushState({ pg }, '', `#${pg}`);
   if (pg === 'dashboard')      carregarDashboard();
   if (pg === 'estoque')        { carregarCategorias(); carregarProdutos(); }
   if (pg === 'compras')        { carregarCompras(); }
   if (pg === 'relatorios')     { carregarRelatorios(); }
 }
+
+// Botão voltar do Android/browser → vai para o dashboard
+window.addEventListener('popstate', e => {
+  const pg = e.state?.pg || 'dashboard';
+  mostrarPagina(pg, false);
+});
 
 // ── API helpers ──────────────────────────────────────────────
 async function api(path, opts = {}) {
