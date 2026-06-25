@@ -1326,11 +1326,30 @@ function mostrarPagina(pg, pushHistory = true) {
   if (pg === 'relatorios')     { carregarRelatorios(); }
 }
 
-// Botão voltar do Android/browser → vai para o dashboard
+// Botão voltar do Android/browser
 window.addEventListener('popstate', e => {
   const pg = e.state?.pg || 'dashboard';
+  if (pg === 'dashboard' && TOKEN) {
+    // Estava no dashboard e voltou → confirmar saída
+    history.pushState({ pg: 'dashboard' }, '', '#dashboard'); // reempurra para não sair ainda
+    document.getElementById('modal-sair').classList.remove('hidden');
+    return;
+  }
   mostrarPagina(pg, false);
 });
+
+function confirmarSaida() {
+  document.getElementById('modal-sair').classList.add('hidden');
+  document.getElementById('modal-obrigado').classList.remove('hidden');
+  setTimeout(() => {
+    document.getElementById('modal-obrigado').classList.add('hidden');
+    history.back(); // agora sim sai
+  }, 2000);
+}
+
+function cancelarSaida() {
+  document.getElementById('modal-sair').classList.add('hidden');
+}
 
 // ── API helpers ──────────────────────────────────────────────
 async function api(path, opts = {}) {
@@ -1991,6 +2010,28 @@ async function processarCodigoBarras(codigo, ctx) {
   form.prepend(banner);
 }
 </script>
+
+<!-- ── MODAL SAIR ─────────────────────────────────────────── -->
+<div id="modal-sair" class="modal-overlay hidden">
+  <div class="modal-box sm" style="text-align:center;padding:36px 28px;">
+    <div style="font-size:48px;margin-bottom:12px;">👋</div>
+    <h3 style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:8px;">Deseja sair?</h3>
+    <p style="font-size:14px;color:var(--slate-500);margin-bottom:24px;">Seus dados estão salvos e você pode voltar quando quiser.</p>
+    <div style="display:flex;gap:10px;justify-content:center;">
+      <button onclick="cancelarSaida()" class="btn-secondary" style="flex:1;">Cancelar</button>
+      <button onclick="confirmarSaida()" class="btn-primary" style="flex:1;">Sair</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL OBRIGADO ─────────────────────────────────────── -->
+<div id="modal-obrigado" class="modal-overlay hidden">
+  <div class="modal-box sm" style="text-align:center;padding:40px 28px;">
+    <div style="font-size:52px;margin-bottom:12px;">🥖</div>
+    <h3 style="font-size:20px;font-weight:700;color:var(--navy);margin-bottom:8px;">Obrigado e volte sempre!</h3>
+    <p style="font-size:14px;color:var(--slate-500);">Até a próxima!</p>
+  </div>
+</div>
 
 <!-- ── MODAL FORNECEDOR ──────────────────────────────────── -->
 <div id="modal-forn" class="modal-overlay hidden">
