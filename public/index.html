@@ -1074,11 +1074,13 @@
             <div id="pedido-itens-lista" style="border:1.5px solid var(--slate-200);border-radius:10px;overflow:hidden;"></div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
               <span id="pedido-total" style="font-size:14px;font-weight:700;color:var(--navy);"></span>
-              <button class="btn-primary" onclick="abrirModalFinalizar()" style="background:#f97316;">🛒 Finalizar pedido</button>
             </div>
           </div>
 
-          <div id="compra-msg" class="hidden" style="font-size:13px;padding:8px 12px;border-radius:8px;"></div>
+          <!-- Botão finalizar sempre visível -->
+          <button class="btn-primary" onclick="abrirModalFinalizar()" style="width:100%;margin-top:8px;background:#f97316;font-size:15px;padding:14px;">🛒 Finalizar pedido</button>
+
+          <div id="compra-msg" class="hidden" style="font-size:13px;padding:8px 12px;border-radius:8px;margin-top:8px;"></div>
         </div>
       </div>
 
@@ -1624,7 +1626,7 @@ async function carregarCompras() {
   // Popular select de fornecedores no formulário de compra
   const selF = document.getElementById('compra-fornecedor');
   selF.innerHTML = '<option value="">— Sem fornecedor —</option>' +
-    forn.map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
+    forn.map(f => `<option value="${f.id}" data-tel="${f.telefone||''}">${f.nome}</option>`).join('');
 
   // Histórico de compras (últimos 30 dias)
   const recentes = await api('/compras/recentes') || [];
@@ -1739,7 +1741,7 @@ function mostrarMsgCompra(txt, tipo) {
 }
 
 function abrirModalFinalizar() {
-  if (!_pedidoItens.length) return;
+  if (!_pedidoItens.length) { mostrarMsgCompra('⚠️ Adicione ao menos um item ao pedido.', 'err'); return; }
   // Copia fornecedor e data do formulário principal para o modal
   const selF = document.getElementById('compra-fornecedor');
   const mSelF = document.getElementById('final-fornecedor');
@@ -1774,11 +1776,12 @@ function renderizarFinalItens() {
     </div>`).join('');
 }
 
-async function registrarPedido() {
+async function registrarPedido(abrirWhats = false) {
   if (!_pedidoItens.length) return;
   const data = document.getElementById('final-data').value || new Date().toISOString().slice(0,10);
   const selF = document.getElementById('final-fornecedor');
   const fornecedorNome = selF.options[selF.selectedIndex]?.text || '';
+  const fornecedorTel = selF.options[selF.selectedIndex]?.dataset?.tel || '';
   const observacao = fornecedorNome && fornecedorNome !== '— Sem fornecedor —' ? fornecedorNome : null;
 
   const msgEl = document.getElementById('final-msg');
@@ -1812,6 +1815,24 @@ async function registrarPedido() {
       msgEl.textContent = `❌ Erro ao registrar "${item.nome}".`;
       return;
     }
+  }
+
+  // Abre WhatsApp se solicitado
+  if (abrirWhats) {
+    const total = _pedidoItens.reduce((s,i) => s + i.qtd * i.custo, 0);
+    const dataFmt = new Date(data + 'T12:00:00').toLocaleDateString('pt-BR');
+    let msg = `🛒 *Pedido de compra* — ${dataFmt}\n`;
+    if (observacao) msg += `🏭 Fornecedor: *${observacao}*\n`;
+    msg += `\n`;
+    _pedidoItens.forEach(i => {
+      msg += `• ${i.nome}: *${fmtQtd(i.qtd)} ${i.unidade}*`;
+      if (i.custo > 0) msg += ` — R$ ${i.custo.toFixed(2)}/un`;
+      msg += `\n`;
+    });
+    msg += `\n💰 *Total: R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}*`;
+    const tel = fornecedorTel.replace(/\D/g,'');
+    const url = tel ? `https://wa.me/55${tel}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
   }
 
   _pedidoItens = [];
@@ -2352,9 +2373,10 @@ async function processarCodigoBarras(codigo, ctx) {
 
       <div id="final-msg" class="hidden" style="font-size:13px;padding:8px 12px;border-radius:8px;margin-bottom:12px;"></div>
 
-      <div style="display:flex;gap:10px;">
-        <button onclick="fecharModalFinalizar()" class="btn-secondary" style="flex:1;">Cancelar</button>
-        <button onclick="registrarPedido()" class="btn-primary" style="flex:1;">✅ Confirmar compra</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button onclick="fecharModalFinalizar()" class="btn-secondary" style="flex:1;min-width:120px;">Cancelar</button>
+        <button onclick="registrarPedido(false)" class="btn-primary" style="flex:1;min-width:120px;">✅ Registrar</button>
+        <button onclick="registrarPedido(true)" class="btn-primary" style="flex:1;min-width:120px;background:#25d366;">📲 WhatsApp</button>
       </div>
     </div>
   </div>
