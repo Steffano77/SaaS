@@ -14,7 +14,7 @@ exports.listar = async (req, res) => {
 };
 
 exports.registrar = async (req, res) => {
-  const { produto_id, tipo, quantidade, custo_unit, observacao } = req.body;
+  const { produto_id, tipo, quantidade, custo_unit, observacao, data } = req.body;
   if (!produto_id || !tipo || !quantidade)
     return res.status(400).json({ erro: 'produto_id, tipo e quantidade são obrigatórios.' });
 
@@ -25,9 +25,10 @@ exports.registrar = async (req, res) => {
   if (!prod.length) return res.status(404).json({ erro: 'Produto não encontrado.' });
 
   const custo = custo_unit || prod[0].custo_unitario;
+  const dataMovimento = data || new Date().toISOString().slice(0, 10);
   await db.query(
-    'INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, custo_unit, observacao) VALUES (?,?,?,?,?,?)',
-    [req.padaria.id, produto_id, tipo, quantidade, custo, observacao || null]
+    'INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, custo_unit, observacao, data) VALUES (?,?,?,?,?,?,?)',
+    [req.padaria.id, produto_id, tipo, quantidade, custo, observacao || null, dataMovimento]
   );
 
   // Atualiza estoque

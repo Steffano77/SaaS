@@ -112,6 +112,23 @@ router.get('/relatorios/mes', auth, async (req, res) => {
   res.json({ ...kpis[0], movs });
 });
 
+// Compras recentes (últimos 30 dias)
+router.get('/compras/recentes', auth, async (req, res) => {
+  const db = require('../database/connection');
+  const [rows] = await db.query(`
+    SELECT m.id, m.quantidade, m.custo_unit, m.valor_total, m.data,
+           p.nome AS produto, p.unidade,
+           f.nome AS fornecedor
+    FROM movimentacoes m
+    JOIN produtos p ON p.id = m.produto_id
+    WHERE m.padaria_id = ?
+      AND m.tipo = 'entrada'
+      AND m.data >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+    ORDER BY m.data DESC, m.id DESC
+    LIMIT 100`, [req.padaria.id]);
+  res.json(rows);
+});
+
 // Limpar todos os dados
 router.delete('/dados/limpar', auth, dadosCtrl.limparTudo);
 

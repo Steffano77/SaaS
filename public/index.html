@@ -1017,23 +1017,19 @@
                 <option value="">— Sem fornecedor —</option>
               </select>
             </div>
-            <div class="form-group" style="margin:0;">
-              <label>Produto</label>
-              <select id="compra-produto" class="form-control" onchange="toggleNovoProduto()">
-                <option value="">Selecione...</option>
-                <option value="__novo__">➕ Cadastrar novo produto...</option>
-              </select>
+            <div class="form-group" style="margin:0;position:relative;">
+              <label>Produto <span style="font-size:11px;color:var(--slate-400)">(digite para buscar ou criar novo)</span></label>
+              <input type="text" id="compra-prod-texto" placeholder="Ex: Farinha de trigo..." class="form-control" autocomplete="off"
+                oninput="filtrarProdutosCompra()" onblur="setTimeout(()=>document.getElementById('compra-prod-lista').classList.add('hidden'),200)"/>
+              <input type="hidden" id="compra-produto"/>
+              <div id="compra-prod-lista" class="hidden" style="position:absolute;z-index:100;left:0;right:0;background:#fff;border:1.5px solid var(--slate-200);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:220px;overflow-y:auto;top:calc(100% + 4px);"></div>
             </div>
           </div>
 
           <!-- Novo produto inline -->
           <div id="novo-prod-inline" class="hidden" style="background:var(--slate-50);border:1.5px dashed var(--orange);border-radius:12px;padding:14px;margin-bottom:12px;">
-            <p style="font-size:12px;font-weight:600;color:var(--orange);margin-bottom:10px;">✨ Novo produto — será adicionado ao estoque</p>
-            <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;">
-              <div class="form-group" style="margin:0;">
-                <label>Nome do produto</label>
-                <input type="text" id="novo-prod-nome" placeholder="Ex: Farinha de trigo" class="form-control"/>
-              </div>
+            <p style="font-size:12px;font-weight:600;color:var(--orange);margin-bottom:10px;">✨ Novo produto — será adicionado ao estoque automaticamente</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
               <div class="form-group" style="margin:0;">
                 <label>Unidade</label>
                 <select id="novo-prod-unidade" class="form-control">
@@ -1080,6 +1076,26 @@
             <button class="btn-primary" onclick="abrirModalFornecedor()" style="padding:8px 14px;font-size:13px;">+ Novo</button>
           </div>
           <div id="lista-fornecedores"></div>
+        </div>
+      </div>
+    </section>
+
+      <!-- Histórico de compras (últimos 30 dias) -->
+      <div class="card" style="margin-top:16px;">
+        <div class="card-header"><span class="card-title">📦 Compras realizadas — últimos 30 dias</span></div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th class="left">Produto</th>
+                <th class="right">Qtd</th>
+                <th class="right">Custo unit.</th>
+                <th class="right">Total</th>
+                <th class="left">Data</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-compras-recentes"></tbody>
+          </table>
         </div>
       </div>
     </section>
@@ -1548,11 +1564,8 @@ async function carregarCompras() {
     }).join('');
   }
 
-  // Popular selects do formulário de compra
-  const todosP = await api('/produtos') || [];
-  const selP = document.getElementById('compra-produto');
-  selP.innerHTML = '<option value="">Selecione o produto...</option>' +
-    todosP.map(p => `<option value="${p.id}" data-unidade="${p.unidade}">${p.nome} (${p.unidade})</option>`).join('');
+  // Atualiza cache de produtos para autocomplete
+  _produtosCache = await api('/produtos') || [];
 
   // Data padrão = hoje
   const hoje = new Date().toISOString().split('T')[0];
@@ -1586,11 +1599,56 @@ async function carregarCompras() {
   const selF = document.getElementById('compra-fornecedor');
   selF.innerHTML = '<option value="">— Sem fornecedor —</option>' +
     forn.map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
+
+  // Histórico de compras (últimos 30 dias)
+  const recentes = await api('/compras/recentes') || [];
+  const tbody = document.getElementById('tabela-compras-recentes');
+  tbody.innerHTML = recentes.length
+    ? recentes.map(c => `<tr>
+        <td class="td-main">${c.produto} <span style="color:var(--slate-400);font-size:11px;">${c.unidade}</span></td>
+        <td class="right td-mono">${parseFloat(c.quantidade).toFixed(3)}</td>
+        <td class="right">R$ ${parseFloat(c.custo_unit||0).toFixed(2)}</td>
+        <td class="right" style="font-weight:600;">R$ ${parseFloat(c.valor_total||0).toFixed(2)}</td>
+        <td>${new Date(c.data).toLocaleDateString('pt-BR')}</td>
+      </tr>`).join('')
+    : '<tr class="empty-row"><td colspan="5">Nenhuma compra nos últimos 30 dias</td></tr>';
 }
 
-function toggleNovoProduto() {
-  const val = document.getElementById('compra-produto').value;
-  document.getElementById('novo-prod-inline').classList.toggle('hidden', val !== '__novo__');
+let _produtosCache = [];
+
+function filtrarProdutosCompra() {
+  const termo = document.getElementById('compra-prod-texto').value.trim().toLowerCase();
+  const lista = document.getElementById('compra-prod-lista');
+  if (!termo) { lista.classList.add('hidden'); document.getElementById('compra-produto').value = ''; document.getElementById('novo-prod-inline').classList.add('hidden'); return; }
+  const filtrados = _produtosCache.filter(p => p.nome.toLowerCase().includes(termo));
+  const itens = filtrados.slice(0, 8).map(p =>
+    `<div onclick="selecionarProdutoCompra(${p.id},'${p.nome.replace(/'/g,"\\'")}','${p.unidade}')"
+      style="padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--slate-100);"
+      onmouseover="this.style.background='var(--slate-50)'" onmouseout="this.style.background=''">${p.nome} <span style="color:var(--slate-400);font-size:12px;">${p.unidade}</span></div>`
+  );
+  // Opção de criar novo
+  const jaExiste = _produtosCache.some(p => p.nome.toLowerCase() === termo);
+  if (!jaExiste) {
+    itens.push(`<div onclick="selecionarNovoProdutoCompra('${document.getElementById('compra-prod-texto').value.trim().replace(/'/g,"\\'")}')"
+      style="padding:10px 14px;cursor:pointer;font-size:14px;color:var(--orange);font-weight:600;border-top:1px solid var(--slate-100);"
+      onmouseover="this.style.background='#fff7ed'" onmouseout="this.style.background=''">➕ Criar novo: "${document.getElementById('compra-prod-texto').value.trim()}"</div>`);
+  }
+  lista.innerHTML = itens.join('') || `<div style="padding:10px 14px;color:var(--slate-400);font-size:13px;">Nenhum produto encontrado</div>`;
+  lista.classList.remove('hidden');
+}
+
+function selecionarProdutoCompra(id, nome, unidade) {
+  document.getElementById('compra-prod-texto').value = nome;
+  document.getElementById('compra-produto').value = id;
+  document.getElementById('compra-prod-lista').classList.add('hidden');
+  document.getElementById('novo-prod-inline').classList.add('hidden');
+}
+
+function selecionarNovoProdutoCompra(nome) {
+  document.getElementById('compra-prod-texto').value = nome;
+  document.getElementById('compra-produto').value = '__novo__';
+  document.getElementById('compra-prod-lista').classList.add('hidden');
+  document.getElementById('novo-prod-inline').classList.remove('hidden');
 }
 
 async function registrarCompra() {
@@ -1607,7 +1665,7 @@ async function registrarCompra() {
 
   // Se for novo produto, criar primeiro
   if (prodId === '__novo__') {
-    const nome    = document.getElementById('novo-prod-nome').value.trim();
+    const nome    = document.getElementById('compra-prod-texto').value.trim();
     const unidade = document.getElementById('novo-prod-unidade').value;
     const minimo  = parseFloat(document.getElementById('novo-prod-minimo').value || 0);
     if (!nome) { erro('⚠️ Informe o nome do novo produto.'); return; }
@@ -1634,9 +1692,9 @@ async function registrarCompra() {
     msg.textContent = '✅ Compra registrada com sucesso!';
     msg.classList.remove('hidden');
     document.getElementById('compra-produto').value = '';
+    document.getElementById('compra-prod-texto').value = '';
     document.getElementById('compra-qtd').value = '';
     document.getElementById('compra-custo').value = '';
-    document.getElementById('novo-prod-nome').value = '';
     document.getElementById('novo-prod-inline').classList.add('hidden');
     setTimeout(() => msg.classList.add('hidden'), 3000);
     carregarCompras();
