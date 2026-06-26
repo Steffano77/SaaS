@@ -1978,7 +1978,7 @@ function movRapido(prodId, tipo) {
     const icon = tipo === 'entrada' ? '➕' : '➖';
     info.innerHTML = `<div style="background:${cor};border:1px solid ${borda};border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;">
       ${icon} <strong>${prod.nome}</strong> — ${tipo === 'entrada' ? 'Entrada' : 'Saída'}<br>
-      <span style="color:#64748b;">Estoque atual: <strong>${prod.estoque_atual} ${prod.unidade}</strong></span>
+      <span style="color:#64748b;">Estoque atual: <strong>${fmtQtd(prod.estoque_atual)} ${prod.unidade}</strong></span>
     </div>`;
     info.classList.remove('hidden');
   }
@@ -2183,7 +2183,7 @@ async function processarCodigoBarras(codigo, ctx) {
     const info = document.getElementById('mov-produto-info');
     info.innerHTML = `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;">
       ✅ <strong>${prod.nome}</strong><br>
-      <span style="color:#64748b;">Estoque atual: <strong>${prod.estoque_atual} ${prod.unidade}</strong> · Custo: R$ ${parseFloat(prod.custo_unitario).toFixed(2)}</span>
+      <span style="color:#64748b;">Estoque atual: <strong>${fmtQtd(prod.estoque_atual)} ${prod.unidade}</strong> · Custo: R$ ${parseFloat(prod.custo_unitario).toFixed(2)}</span>
     </div>`;
     info.classList.remove('hidden');
     document.getElementById('modal-mov').classList.remove('hidden');
