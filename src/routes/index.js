@@ -53,6 +53,17 @@ router.post('/fornecedores', auth, async (req, res) => {
   res.status(201).json({ id: r.insertId, nome });
 });
 
+router.put('/fornecedores/:id', auth, async (req, res) => {
+  const db = require('../database/connection');
+  const { nome, contato, telefone, email } = req.body;
+  if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório.' });
+  await db.query(
+    'UPDATE fornecedores SET nome=?, contato=?, telefone=?, email=? WHERE id=? AND padaria_id=?',
+    [nome, contato||null, telefone||null, email||null, req.params.id, req.padaria.id]
+  );
+  res.json({ ok: true });
+});
+
 router.delete('/fornecedores/:id', auth, async (req, res) => {
   const db = require('../database/connection');
   await db.query('UPDATE fornecedores SET ativo = 0 WHERE id = ? AND padaria_id = ?', [req.params.id, req.padaria.id]);
