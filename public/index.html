@@ -1548,19 +1548,20 @@ async function carregarProdutos() {
         <button onclick="movRapido(${p.id},'entrada')" class="btn-icon" title="Entrada" style="color:#16a34a;font-size:16px;">➕</button>
         <button onclick="movRapido(${p.id},'saida')" class="btn-icon" title="Saída" style="color:#dc2626;font-size:16px;">➖</button>
         <button onclick="editarProduto(${p.id})" class="btn-icon">✏️</button>
-        <button onclick="excluirProduto(${p.id},'${p.nome.replace(/'/g,"\\'")}')" class="btn-icon" title="Excluir" style="color:#dc2626;">🗑️</button>
+        <button onclick="excluirProduto(this,${p.id},'${p.nome.replace(/'/g,"\\'")}')" class="btn-icon" title="Excluir" style="color:#dc2626;">🗑️</button>
       </td>
     </tr>`;
   }).join('') || '<tr class="empty-row"><td colspan="9">Nenhum produto encontrado</td></tr>';
 }
 
-async function excluirProduto(id, nome) {
+async function excluirProduto(btn, id, nome) {
   if (!confirm(`Excluir "${nome}"? Esta ação não pode ser desfeita.`)) return;
+  const tr = btn.closest('tr');
   const r = await fetch(`${API}/produtos/${id}`, {
     method: 'DELETE',
     headers: { 'Authorization': `Bearer ${TOKEN}` }
   });
-  if (r.ok) carregarEstoque();
+  if (r.ok) tr.remove();
   else alert('Erro ao excluir produto.');
 }
 
