@@ -1074,7 +1074,7 @@
             <div id="pedido-itens-lista" style="border:1.5px solid var(--slate-200);border-radius:10px;overflow:hidden;"></div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
               <span id="pedido-total" style="font-size:14px;font-weight:700;color:var(--navy);"></span>
-              <button class="btn-primary" onclick="registrarPedido()">✅ Registrar pedido</button>
+              <button class="btn-primary" onclick="abrirModalFinalizar()" style="background:#f97316;">🛒 Finalizar pedido</button>
             </div>
           </div>
 
@@ -1738,13 +1738,53 @@ function mostrarMsgCompra(txt, tipo) {
   if (tipo === 'ok') setTimeout(() => msg.classList.add('hidden'), 3000);
 }
 
+function abrirModalFinalizar() {
+  if (!_pedidoItens.length) return;
+  // Copia fornecedor e data do formulário principal para o modal
+  const selF = document.getElementById('compra-fornecedor');
+  const mSelF = document.getElementById('final-fornecedor');
+  mSelF.innerHTML = selF.innerHTML;
+  mSelF.value = selF.value;
+  document.getElementById('final-data').value = document.getElementById('compra-data').value || new Date().toISOString().slice(0,10);
+  renderizarFinalItens();
+  document.getElementById('final-msg').classList.add('hidden');
+  document.getElementById('modal-finalizar').classList.remove('hidden');
+}
+
+function fecharModalFinalizar() {
+  document.getElementById('modal-finalizar').classList.add('hidden');
+}
+
+function renderizarFinalItens() {
+  const total = _pedidoItens.reduce((s,i) => s + i.qtd * i.custo, 0);
+  document.getElementById('final-total').textContent = `Total: R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+  document.getElementById('final-itens-lista').innerHTML = _pedidoItens.map(i => `
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--slate-100);font-size:14px;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;">${i.nome} ${i.isNovo ? '<span style="font-size:11px;background:#fff7ed;color:var(--orange);padding:2px 6px;border-radius:4px;margin-left:4px;">novo</span>' : ''}</div>
+        <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">
+          <input type="number" value="${i.qtd}" min="0.001" step="0.001" style="width:80px;padding:4px 8px;border:1.5px solid var(--slate-200);border-radius:6px;font-size:13px;" onchange="_pedidoItens.find(x=>x.id==${i.id}).qtd=parseFloat(this.value)||0;renderizarFinalItens()"/>
+          <span style="color:var(--slate-400);align-self:center;">${i.unidade}</span>
+          <span style="color:var(--slate-400);align-self:center;">×</span>
+          <input type="number" value="${i.custo}" min="0" step="0.01" style="width:80px;padding:4px 8px;border:1.5px solid var(--slate-200);border-radius:6px;font-size:13px;" onchange="_pedidoItens.find(x=>x.id==${i.id}).custo=parseFloat(this.value)||0;renderizarFinalItens()"/>
+          <span style="color:var(--slate-400);align-self:center;">= <b>R$ ${(i.qtd*i.custo).toLocaleString('pt-BR',{minimumFractionDigits:2})}</b></span>
+        </div>
+      </div>
+      <button onclick="_pedidoItens=_pedidoItens.filter(x=>x.id!=${i.id});renderizarPedido();if(!_pedidoItens.length)fecharModalFinalizar();else renderizarFinalItens();" class="btn-icon" style="color:#dc2626;flex-shrink:0;">🗑️</button>
+    </div>`).join('');
+}
+
 async function registrarPedido() {
   if (!_pedidoItens.length) return;
-  const data = document.getElementById('compra-data').value || new Date().toISOString().slice(0,10);
-  const selF = document.getElementById('compra-fornecedor');
+  const data = document.getElementById('final-data').value || new Date().toISOString().slice(0,10);
+  const selF = document.getElementById('final-fornecedor');
   const fornecedorNome = selF.options[selF.selectedIndex]?.text || '';
   const observacao = fornecedorNome && fornecedorNome !== '— Sem fornecedor —' ? fornecedorNome : null;
-  mostrarMsgCompra('Registrando...', 'ok');
+
+  const msgEl = document.getElementById('final-msg');
+  msgEl.style.cssText = 'font-size:13px;padding:8px 12px;border-radius:8px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;';
+  msgEl.textContent = 'Registrando...';
+  msgEl.classList.remove('hidden');
 
   for (const item of _pedidoItens) {
     let prodId = item.prodId;
@@ -1754,7 +1794,11 @@ async function registrarPedido() {
         headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ nome: item.nome, unidade: item.unidade, estoque_minimo: item.minimo, custo_unitario: item.custo })
       });
-      if (!rp.ok) { mostrarMsgCompra(`❌ Erro ao criar produto "${item.nome}".`, 'err'); return; }
+      if (!rp.ok) {
+        msgEl.style.cssText = 'font-size:13px;padding:8px 12px;border-radius:8px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;';
+        msgEl.textContent = `❌ Erro ao criar produto "${item.nome}".`;
+        return;
+      }
       const np = await rp.json();
       prodId = np.id;
     }
@@ -1763,11 +1807,16 @@ async function registrarPedido() {
       headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ produto_id: prodId, tipo: 'entrada', quantidade: item.qtd, custo_unit: item.custo, data, observacao })
     });
-    if (!r.ok) { mostrarMsgCompra(`❌ Erro ao registrar "${item.nome}".`, 'err'); return; }
+    if (!r.ok) {
+      msgEl.style.cssText = 'font-size:13px;padding:8px 12px;border-radius:8px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;';
+      msgEl.textContent = `❌ Erro ao registrar "${item.nome}".`;
+      return;
+    }
   }
 
   _pedidoItens = [];
   renderizarPedido();
+  fecharModalFinalizar();
   mostrarMsgCompra('✅ Pedido registrado com sucesso!', 'ok');
   carregarCompras();
 }
@@ -2272,6 +2321,45 @@ async function processarCodigoBarras(codigo, ctx) {
 </script>
 
 <!-- ── MODAL SAIR ─────────────────────────────────────────── -->
+<!-- Modal Finalizar Pedido -->
+<div id="modal-finalizar" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:480px;width:95%;">
+    <div class="modal-header">
+      <span class="modal-title">🛒 Finalizar pedido</span>
+      <button onclick="fecharModalFinalizar()" class="modal-close">✕</button>
+    </div>
+    <div style="padding:16px 20px 20px;">
+
+      <!-- Fornecedor -->
+      <div class="form-group">
+        <label>Fornecedor</label>
+        <select id="final-fornecedor" class="form-control"></select>
+      </div>
+
+      <!-- Data -->
+      <div class="form-group">
+        <label>Data da compra</label>
+        <input type="date" id="final-data" class="form-control"/>
+      </div>
+
+      <!-- Itens editáveis -->
+      <p style="font-size:12px;font-weight:700;color:var(--slate-500);margin-bottom:8px;">ITENS DO PEDIDO</p>
+      <div id="final-itens-lista" style="border:1.5px solid var(--slate-200);border-radius:10px;overflow:hidden;margin-bottom:14px;"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <span id="final-total" style="font-size:15px;font-weight:700;color:var(--navy);"></span>
+      </div>
+
+      <div id="final-msg" class="hidden" style="font-size:13px;padding:8px 12px;border-radius:8px;margin-bottom:12px;"></div>
+
+      <div style="display:flex;gap:10px;">
+        <button onclick="fecharModalFinalizar()" class="btn-secondary" style="flex:1;">Cancelar</button>
+        <button onclick="registrarPedido()" class="btn-primary" style="flex:1;">✅ Confirmar compra</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="modal-sair" class="modal-overlay hidden">
   <div class="modal-box sm" style="text-align:center;padding:36px 28px;">
     <div style="font-size:48px;margin-bottom:12px;">👋</div>
