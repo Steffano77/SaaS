@@ -118,7 +118,7 @@ router.get('/compras/recentes', auth, async (req, res) => {
   const [rows] = await db.query(`
     SELECT m.id, m.quantidade, m.custo_unit, m.valor_total, m.data,
            p.nome AS produto, p.unidade,
-           f.nome AS fornecedor
+           m.observacao AS fornecedor
     FROM movimentacoes m
     JOIN produtos p ON p.id = m.produto_id
     WHERE m.padaria_id = ?

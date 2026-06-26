@@ -1092,7 +1092,6 @@
           <div id="lista-fornecedores"></div>
         </div>
       </div>
-    </section>
 
       <!-- Histórico de compras (últimos 30 dias) -->
       <div class="card" style="margin-top:16px;">
@@ -1105,6 +1104,7 @@
                 <th class="right">Qtd</th>
                 <th class="right">Custo unit.</th>
                 <th class="right">Total</th>
+                <th class="left">Fornecedor</th>
                 <th class="left">Data</th>
               </tr>
             </thead>
@@ -1623,9 +1623,10 @@ async function carregarCompras() {
         <td class="right td-mono">${parseFloat(c.quantidade).toFixed(3)}</td>
         <td class="right">R$ ${parseFloat(c.custo_unit||0).toFixed(2)}</td>
         <td class="right" style="font-weight:600;">R$ ${parseFloat(c.valor_total||0).toFixed(2)}</td>
+        <td style="color:var(--slate-600);font-size:13px;">${c.fornecedor || '—'}</td>
         <td>${new Date(c.data).toLocaleDateString('pt-BR')}</td>
       </tr>`).join('')
-    : '<tr class="empty-row"><td colspan="5">Nenhuma compra nos últimos 30 dias</td></tr>';
+    : '<tr class="empty-row"><td colspan="6">Nenhuma compra nos últimos 30 dias</td></tr>';
 }
 
 let _produtosCache = [];
@@ -1726,6 +1727,9 @@ function mostrarMsgCompra(txt, tipo) {
 async function registrarPedido() {
   if (!_pedidoItens.length) return;
   const data = document.getElementById('compra-data').value || new Date().toISOString().slice(0,10);
+  const selF = document.getElementById('compra-fornecedor');
+  const fornecedorNome = selF.options[selF.selectedIndex]?.text || '';
+  const observacao = fornecedorNome && fornecedorNome !== '— Sem fornecedor —' ? fornecedorNome : null;
   mostrarMsgCompra('Registrando...', 'ok');
 
   for (const item of _pedidoItens) {
@@ -1743,14 +1747,14 @@ async function registrarPedido() {
     const r = await fetch(`${API}/movimentacoes`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ produto_id: prodId, tipo: 'entrada', quantidade: item.qtd, custo_unit: item.custo, data })
+      body: JSON.stringify({ produto_id: prodId, tipo: 'entrada', quantidade: item.qtd, custo_unit: item.custo, data, observacao })
     });
     if (!r.ok) { mostrarMsgCompra(`❌ Erro ao registrar "${item.nome}".`, 'err'); return; }
   }
 
   _pedidoItens = [];
   renderizarPedido();
-  mostrarMsgCompra(`✅ Pedido com ${_pedidoItens.length === 0 ? 'todos os itens' : ''} registrado com sucesso!`, 'ok');
+  mostrarMsgCompra('✅ Pedido registrado com sucesso!', 'ok');
   carregarCompras();
 }
 
