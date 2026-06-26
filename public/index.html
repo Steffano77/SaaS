@@ -761,9 +761,10 @@
       .sidebar-overlay.open { display: block; }
 
       main {
-        padding-top: 0 !important;
         width: 100% !important;
       }
+
+      .main-content { padding-top: 0; }
 
       .page-section { padding: 14px; }
       .form-row { grid-template-columns: 1fr; }
@@ -1012,7 +1013,7 @@
           <h3 style="font-size:14px;font-weight:700;color:var(--slate-700);margin-bottom:14px;">🛒 Montar pedido</h3>
 
           <!-- Fornecedor + Data (fixos para todo o pedido) -->
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px;">
+          <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:14px;">
             <div class="form-group" style="margin:0;">
               <label>Fornecedor</label>
               <select id="compra-fornecedor" class="form-control">
@@ -2372,10 +2373,10 @@ async function processarCodigoBarras(codigo, ctx) {
 
       <div id="final-msg" class="hidden" style="font-size:13px;padding:8px 12px;border-radius:8px;margin-bottom:12px;"></div>
 
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <button onclick="fecharModalFinalizar()" class="btn-secondary" style="flex:1;min-width:120px;">Cancelar</button>
-        <button onclick="registrarPedido(false)" class="btn-primary" style="flex:1;min-width:120px;">✅ Registrar</button>
-        <button onclick="registrarPedido(true)" class="btn-primary" style="flex:1;min-width:120px;background:#25d366;">📲 WhatsApp</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <button onclick="fecharModalFinalizar()" class="btn-secondary" style="padding:12px 8px;font-size:14px;">Cancelar</button>
+        <button onclick="registrarPedido(false)" class="btn-primary" style="padding:12px 8px;font-size:14px;">✅ Registrar</button>
+        <button onclick="registrarPedido(true)" class="btn-primary" style="padding:12px 8px;font-size:14px;background:#25d366;">📲 WhatsApp</button>
       </div>
     </div>
   </div>
