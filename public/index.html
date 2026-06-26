@@ -1681,13 +1681,15 @@ function selecionarNovoProdutoCompra(nome) {
 }
 
 function adicionarItemPedido() {
-  const prodId   = document.getElementById('compra-produto').value;
+  let prodId     = document.getElementById('compra-produto').value;
   const nome     = document.getElementById('compra-prod-texto').value.trim();
   const qtd      = parseFloat(document.getElementById('compra-qtd').value);
   const custo    = parseFloat(document.getElementById('compra-custo').value || 0);
   const msg      = document.getElementById('compra-msg');
+  // Se prodId vazio (usuário digitou mas não selecionou), trata como novo produto
+  if (!prodId) prodId = '__novo__';
   const isNovo   = prodId === '__novo__';
-  const unidade  = isNovo ? document.getElementById('novo-prod-unidade').value : (_produtosCache.find(p=>p.id==prodId)?.unidade || '');
+  const unidade  = isNovo ? (document.getElementById('novo-prod-unidade').value || 'un') : (_produtosCache.find(p=>p.id==prodId)?.unidade || 'un');
   const minimo   = isNovo ? parseFloat(document.getElementById('novo-prod-minimo').value || 0) : 0;
 
   if (!nome) { mostrarMsgCompra('⚠️ Selecione ou informe um produto.', 'err'); return; }
