@@ -1009,61 +1009,75 @@
       <!-- Registrar compra -->
       <div class="card" style="margin-bottom:16px;">
         <div class="card-body">
-          <h3 style="font-size:14px;font-weight:700;color:var(--slate-700);margin-bottom:14px;">🛒 Registrar compra</h3>
-          <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <h3 style="font-size:14px;font-weight:700;color:var(--slate-700);margin-bottom:14px;">🛒 Montar pedido</h3>
+
+          <!-- Fornecedor + Data (fixos para todo o pedido) -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
             <div class="form-group" style="margin:0;">
               <label>Fornecedor</label>
               <select id="compra-fornecedor" class="form-control">
                 <option value="">— Sem fornecedor —</option>
               </select>
             </div>
-            <div class="form-group" style="margin:0;position:relative;">
-              <label>Produto <span style="font-size:11px;color:var(--slate-400)">(digite para buscar ou criar novo)</span></label>
-              <input type="text" id="compra-prod-texto" placeholder="Ex: Farinha de trigo..." class="form-control" autocomplete="off"
+            <div class="form-group" style="margin:0;">
+              <label>Data da compra</label>
+              <input type="date" id="compra-data" class="form-control"/>
+            </div>
+          </div>
+
+          <!-- Linha para adicionar item -->
+          <div style="background:var(--slate-50);border-radius:10px;padding:12px;margin-bottom:12px;">
+            <p style="font-size:12px;font-weight:600;color:var(--slate-500);margin-bottom:10px;">ADICIONAR ITEM AO PEDIDO</p>
+            <div style="position:relative;margin-bottom:10px;">
+              <label style="font-size:12px;font-weight:600;color:var(--slate-700);display:block;margin-bottom:4px;">Produto <span style="font-weight:400;color:var(--slate-400)">(buscar ou criar novo)</span></label>
+              <input type="text" id="compra-prod-texto" placeholder="Digite o nome do produto..." class="form-control" autocomplete="off"
                 oninput="filtrarProdutosCompra()" onblur="setTimeout(()=>document.getElementById('compra-prod-lista').classList.add('hidden'),200)"/>
               <input type="hidden" id="compra-produto"/>
               <div id="compra-prod-lista" class="hidden" style="position:absolute;z-index:100;left:0;right:0;background:#fff;border:1.5px solid var(--slate-200);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:220px;overflow-y:auto;top:calc(100% + 4px);"></div>
             </div>
-          </div>
 
-          <!-- Novo produto inline -->
-          <div id="novo-prod-inline" class="hidden" style="background:var(--slate-50);border:1.5px dashed var(--orange);border-radius:12px;padding:14px;margin-bottom:12px;">
-            <p style="font-size:12px;font-weight:600;color:var(--orange);margin-bottom:10px;">✨ Novo produto — será adicionado ao estoque automaticamente</p>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-              <div class="form-group" style="margin:0;">
-                <label>Unidade</label>
-                <select id="novo-prod-unidade" class="form-control">
-                  <option value="kg">kg</option>
-                  <option value="g">g</option>
-                  <option value="L">L</option>
-                  <option value="ml">ml</option>
-                  <option value="un">un</option>
-                  <option value="cx">cx</option>
-                  <option value="pct">pct</option>
-                </select>
-              </div>
-              <div class="form-group" style="margin:0;">
-                <label>Estoque mínimo</label>
-                <input type="number" id="novo-prod-minimo" min="0" step="0.001" placeholder="0.000" class="form-control"/>
+            <!-- Novo produto inline -->
+            <div id="novo-prod-inline" class="hidden" style="background:#fff;border:1.5px dashed var(--orange);border-radius:10px;padding:12px;margin-bottom:10px;">
+              <p style="font-size:12px;font-weight:600;color:var(--orange);margin-bottom:8px;">✨ Será criado no estoque</p>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div class="form-group" style="margin:0;">
+                  <label>Unidade</label>
+                  <select id="novo-prod-unidade" class="form-control">
+                    <option value="kg">kg</option><option value="g">g</option>
+                    <option value="L">L</option><option value="ml">ml</option>
+                    <option value="un">un</option><option value="cx">cx</option><option value="pct">pct</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label>Estoque mínimo</label>
+                  <input type="number" id="novo-prod-minimo" min="0" step="0.001" placeholder="0.000" class="form-control"/>
+                </div>
               </div>
             </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:flex-end;">
+              <div class="form-group" style="margin:0;">
+                <label>Quantidade</label>
+                <input type="number" id="compra-qtd" min="0.001" step="0.001" placeholder="0.000" class="form-control"/>
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label>Custo unit. (R$)</label>
+                <input type="number" id="compra-custo" min="0" step="0.01" placeholder="0.00" class="form-control"/>
+              </div>
+              <button class="btn-secondary" onclick="adicionarItemPedido()" style="white-space:nowrap;">+ Item</button>
+            </div>
           </div>
 
-          <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:flex-end;margin-bottom:12px;">
-            <div class="form-group" style="margin:0;">
-              <label>Quantidade</label>
-              <input type="number" id="compra-qtd" min="0.001" step="0.001" placeholder="0.000" class="form-control"/>
+          <!-- Itens do pedido atual -->
+          <div id="pedido-itens-wrap" class="hidden" style="margin-bottom:12px;">
+            <p style="font-size:12px;font-weight:600;color:var(--slate-500);margin-bottom:8px;">ITENS DO PEDIDO</p>
+            <div id="pedido-itens-lista" style="border:1.5px solid var(--slate-200);border-radius:10px;overflow:hidden;"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+              <span id="pedido-total" style="font-size:14px;font-weight:700;color:var(--navy);"></span>
+              <button class="btn-primary" onclick="registrarPedido()">✅ Registrar pedido</button>
             </div>
-            <div class="form-group" style="margin:0;">
-              <label>Custo unit. (R$)</label>
-              <input type="number" id="compra-custo" min="0" step="0.01" placeholder="0.00" class="form-control"/>
-            </div>
-            <div class="form-group" style="margin:0;">
-              <label>Data</label>
-              <input type="date" id="compra-data" class="form-control"/>
-            </div>
-            <button class="btn-primary" onclick="registrarCompra()" style="white-space:nowrap;">+ Adicionar</button>
           </div>
+
           <div id="compra-msg" class="hidden" style="font-size:13px;padding:8px 12px;border-radius:8px;"></div>
         </div>
       </div>
@@ -1615,6 +1629,7 @@ async function carregarCompras() {
 }
 
 let _produtosCache = [];
+let _pedidoItens = []; // carrinho temporário
 
 function filtrarProdutosCompra() {
   const termo = document.getElementById('compra-prod-texto').value.trim().toLowerCase();
@@ -1626,7 +1641,6 @@ function filtrarProdutosCompra() {
       style="padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--slate-100);"
       onmouseover="this.style.background='var(--slate-50)'" onmouseout="this.style.background=''">${p.nome} <span style="color:var(--slate-400);font-size:12px;">${p.unidade}</span></div>`
   );
-  // Opção de criar novo
   const jaExiste = _produtosCache.some(p => p.nome.toLowerCase() === termo);
   if (!jaExiste) {
     itens.push(`<div onclick="selecionarNovoProdutoCompra('${document.getElementById('compra-prod-texto').value.trim().replace(/'/g,"\\'")}')"
@@ -1651,56 +1665,93 @@ function selecionarNovoProdutoCompra(nome) {
   document.getElementById('novo-prod-inline').classList.remove('hidden');
 }
 
-async function registrarCompra() {
-  let prodId   = document.getElementById('compra-produto').value;
-  const qtd    = parseFloat(document.getElementById('compra-qtd').value);
-  const custo  = parseFloat(document.getElementById('compra-custo').value || 0);
-  const data   = document.getElementById('compra-data').value;
-  const msg    = document.getElementById('compra-msg');
+function adicionarItemPedido() {
+  const prodId   = document.getElementById('compra-produto').value;
+  const nome     = document.getElementById('compra-prod-texto').value.trim();
+  const qtd      = parseFloat(document.getElementById('compra-qtd').value);
+  const custo    = parseFloat(document.getElementById('compra-custo').value || 0);
+  const msg      = document.getElementById('compra-msg');
+  const isNovo   = prodId === '__novo__';
+  const unidade  = isNovo ? document.getElementById('novo-prod-unidade').value : (_produtosCache.find(p=>p.id==prodId)?.unidade || '');
+  const minimo   = isNovo ? parseFloat(document.getElementById('novo-prod-minimo').value || 0) : 0;
 
-  const erro = (txt) => {
-    msg.style.cssText = 'font-size:13px;padding:8px 12px;border-radius:8px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;';
-    msg.textContent = txt; msg.classList.remove('hidden');
-  };
+  if (!nome) { mostrarMsgCompra('⚠️ Selecione ou informe um produto.', 'err'); return; }
+  if (!qtd || qtd <= 0) { mostrarMsgCompra('⚠️ Informe a quantidade.', 'err'); return; }
 
-  // Se for novo produto, criar primeiro
-  if (prodId === '__novo__') {
-    const nome    = document.getElementById('compra-prod-texto').value.trim();
-    const unidade = document.getElementById('novo-prod-unidade').value;
-    const minimo  = parseFloat(document.getElementById('novo-prod-minimo').value || 0);
-    if (!nome) { erro('⚠️ Informe o nome do novo produto.'); return; }
-    const rp = await fetch(`${API}/produtos`, {
+  _pedidoItens.push({ prodId, nome, unidade, qtd, custo, isNovo, minimo, id: Date.now() });
+  renderizarPedido();
+
+  // Limpa campos do item
+  document.getElementById('compra-prod-texto').value = '';
+  document.getElementById('compra-produto').value = '';
+  document.getElementById('compra-qtd').value = '';
+  document.getElementById('compra-custo').value = '';
+  document.getElementById('novo-prod-inline').classList.add('hidden');
+  document.getElementById('compra-prod-texto').focus();
+}
+
+function removerItemPedido(id) {
+  _pedidoItens = _pedidoItens.filter(i => i.id !== id);
+  renderizarPedido();
+}
+
+function renderizarPedido() {
+  const wrap = document.getElementById('pedido-itens-wrap');
+  if (!_pedidoItens.length) { wrap.classList.add('hidden'); return; }
+  wrap.classList.remove('hidden');
+  const total = _pedidoItens.reduce((s, i) => s + i.qtd * i.custo, 0);
+  document.getElementById('pedido-total').textContent = `Total: R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+  document.getElementById('pedido-itens-lista').innerHTML = _pedidoItens.map(i => `
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--slate-100);font-size:14px;">
+      <div style="flex:1;">
+        <span style="font-weight:600;">${i.nome}</span>
+        ${i.isNovo ? '<span style="font-size:11px;background:#fff7ed;color:var(--orange);padding:2px 6px;border-radius:4px;margin-left:4px;">novo</span>' : ''}
+        <span style="color:var(--slate-500);margin-left:6px;">${parseFloat(i.qtd).toFixed(3)} ${i.unidade}</span>
+        ${i.custo > 0 ? `<span style="color:var(--slate-400);margin-left:6px;">R$ ${i.custo.toFixed(2)}/un · <b>R$ ${(i.qtd*i.custo).toFixed(2)}</b></span>` : ''}
+      </div>
+      <button onclick="removerItemPedido(${i.id})" class="btn-icon" style="color:#dc2626;flex-shrink:0;">🗑️</button>
+    </div>`).join('');
+}
+
+function mostrarMsgCompra(txt, tipo) {
+  const msg = document.getElementById('compra-msg');
+  msg.style.cssText = tipo === 'ok'
+    ? 'font-size:13px;padding:8px 12px;border-radius:8px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;'
+    : 'font-size:13px;padding:8px 12px;border-radius:8px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;';
+  msg.textContent = txt;
+  msg.classList.remove('hidden');
+  if (tipo === 'ok') setTimeout(() => msg.classList.add('hidden'), 3000);
+}
+
+async function registrarPedido() {
+  if (!_pedidoItens.length) return;
+  const data = document.getElementById('compra-data').value || new Date().toISOString().slice(0,10);
+  mostrarMsgCompra('Registrando...', 'ok');
+
+  for (const item of _pedidoItens) {
+    let prodId = item.prodId;
+    if (item.isNovo) {
+      const rp = await fetch(`${API}/produtos`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome: item.nome, unidade: item.unidade, estoque_minimo: item.minimo, custo_unitario: item.custo })
+      });
+      if (!rp.ok) { mostrarMsgCompra(`❌ Erro ao criar produto "${item.nome}".`, 'err'); return; }
+      const np = await rp.json();
+      prodId = np.id;
+    }
+    const r = await fetch(`${API}/movimentacoes`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome, unidade, estoque_minimo: minimo, custo_unitario: custo })
+      body: JSON.stringify({ produto_id: prodId, tipo: 'entrada', quantidade: item.qtd, custo_unit: item.custo, data })
     });
-    if (!rp.ok) { erro('❌ Erro ao criar produto.'); return; }
-    const np = await rp.json();
-    prodId = np.id;
+    if (!r.ok) { mostrarMsgCompra(`❌ Erro ao registrar "${item.nome}".`, 'err'); return; }
   }
 
-  if (!prodId || !qtd || qtd <= 0) { erro('⚠️ Selecione um produto e informe a quantidade.'); return; }
-
-  const r = await fetch(`${API}/movimentacoes`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ produto_id: prodId, tipo: 'entrada', quantidade: qtd, custo_unit: custo, data })
-  });
-
-  if (r.ok) {
-    msg.style.cssText = 'font-size:13px;padding:8px 12px;border-radius:8px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;';
-    msg.textContent = '✅ Compra registrada com sucesso!';
-    msg.classList.remove('hidden');
-    document.getElementById('compra-produto').value = '';
-    document.getElementById('compra-prod-texto').value = '';
-    document.getElementById('compra-qtd').value = '';
-    document.getElementById('compra-custo').value = '';
-    document.getElementById('novo-prod-inline').classList.add('hidden');
-    setTimeout(() => msg.classList.add('hidden'), 3000);
-    carregarCompras();
-  } else {
-    erro('❌ Erro ao registrar compra.');
-  }
+  _pedidoItens = [];
+  renderizarPedido();
+  mostrarMsgCompra(`✅ Pedido com ${_pedidoItens.length === 0 ? 'todos os itens' : ''} registrado com sucesso!`, 'ok');
+  carregarCompras();
 }
 
 async function enviarPedidoWhatsApp(tel, nomeForn) {
