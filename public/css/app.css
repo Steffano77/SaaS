@@ -173,6 +173,28 @@
 
     .btn-primary.full { width: 100%; padding: 13px 20px; font-size: 15px; }
 
+    /* G) Consistent secondary button — same height/padding as btn-primary */
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--slate-100);
+      color: var(--slate-700);
+      border: 1.5px solid var(--slate-200);
+      border-radius: 10px;
+      padding: 11px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .btn-secondary:hover {
+      background: var(--slate-200);
+      border-color: var(--slate-300);
+    }
+
     .btn-danger {
       display: inline-flex; align-items: center; gap: 8px;
       background: #dc2626; color: #fff; border: none; border-radius: 10px;

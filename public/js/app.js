@@ -2,21 +2,6 @@ const API = '/api';
 let TOKEN = localStorage.getItem('pptoken') || '';
 let todosProds = [];
 
-// ── Toast ───────────────────────────────────────────────────
-let _toastTimer;
-function toast(msg, tipo = 'success', ms = 3000) {
-  let el = document.getElementById('toast');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'toast';
-    document.body.appendChild(el);
-  }
-  el.textContent = msg;
-  el.className = tipo + ' show';
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => el.classList.remove('show'), ms);
-}
-
 // ── Auth ────────────────────────────────────────────────────
 function mostrarTab(tab) {
   document.getElementById('form-login').classList.toggle('hidden', tab !== 'login');
@@ -100,7 +85,6 @@ function entrar() {
   document.getElementById('tela-auth').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   document.getElementById('app').classList.add('flex');
-  // Limpa histórico anterior e inicia com dashboard
   history.replaceState({ pg: 'dashboard' }, '', '#dashboard');
   mostrarPagina('dashboard', false);
 }
@@ -127,7 +111,6 @@ function mostrarPagina(pg, pushHistory = true) {
   if (pg === 'relatorios')     { carregarRelatorios(); }
 }
 
-// Botão voltar do Android/browser
 window.addEventListener('popstate', () => {
   const visivel = paginas.find(p => !document.getElementById(`pg-${p}`).classList.contains('hidden'));
   if (visivel === 'dashboard' && TOKEN) {
@@ -147,7 +130,29 @@ function cancelarSaida() {
   document.getElementById('modal-sair').classList.add('hidden');
 }
 
+// ── Toast helper ─────────────────────────────────────────────
+function mostrarToast(msg, tipo) {
+  let toast = document.getElementById('pp-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'pp-toast';
+    toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;font-family:Inter,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,0.18);transition:opacity 0.3s;pointer-events:none;';
+    document.body.appendChild(toast);
+  }
+  const cores = {
+    ok:   'background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;',
+    err:  'background:#fef2f2;color:#991b1b;border:1px solid #fecaca;',
+    info: 'background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;',
+  };
+  toast.style.cssText += cores[tipo] || cores.info;
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 3500);
+}
+
 // ── API helpers ──────────────────────────────────────────────
+// B) 401 -> remove token + reload; C) network error -> toast
 async function api(path, opts = {}) {
   opts.headers = { ...opts.headers, 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' };
   if (opts.body && typeof opts.body === 'object' && !(opts.body instanceof FormData)) {
@@ -157,15 +162,14 @@ async function api(path, opts = {}) {
   try {
     const r = await fetch(`${API}${path}`, opts);
     if (r.status === 401) {
+      localStorage.removeItem('panificapro_token');
       localStorage.removeItem('pptoken');
-      TOKEN = '';
-      toast('⚠️ Sessão expirada. Faça login novamente.', 'warn', 4000);
-      setTimeout(() => location.reload(), 1500);
+      location.reload();
       return null;
     }
     return r.json();
-  } catch (e) {
-    toast('📡 Sem conexão. Verifique sua internet.', 'error', 4000);
+  } catch (err) {
+    mostrarToast('Sem conexão. Verifique sua internet.', 'err');
     return null;
   }
 }
@@ -199,7 +203,6 @@ async function carregarDashboard() {
         </div>`).join('')
     : '<p style="color:var(--slate-400);font-size:14px">Nenhum produto vencendo em breve ✅</p>';
 
-  // Gráfico de movimentações dos últimos 7 dias
   try {
     const movData = await api('/relatorios/movs-semana');
     const ctxM = document.getElementById('chart-movs')?.getContext('2d');
@@ -219,7 +222,6 @@ async function carregarDashboard() {
     }
   } catch(e) {}
 
-  // Gráfico de valor por categoria
   try {
     const catData = await api('/relatorios/valor-categorias');
     const ctxC = document.getElementById('chart-cats')?.getContext('2d');
@@ -247,17 +249,18 @@ async function carregarProdutos() {
   const prods = await api(url);
   todosProds = prods || [];
   const tbody = document.getElementById('tabela-produtos');
+  // F) col-hide-mobile and col-hide-mobile classes for mobile hiding
   tbody.innerHTML = todosProds.map(p => {
     const status = statusBadge(p);
     const validade = p.validade ? new Date(p.validade).toLocaleDateString('pt-BR') : '—';
     const valorTotal = (p.estoque_atual * p.custo_unitario).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
     return `<tr>
       <td><div class="td-main">${p.nome}</div><div class="td-sub">${p.codigo_barras || '—'}</div></td>
-      <td class="col-hide-mobile" style="color:var(--slate-600)">${p.categoria || '—'}</td>
+      <td style="color:var(--slate-600)">${p.categoria || '—'}</td>
       <td class="right td-mono">${fmtQtd(p.estoque_atual)} ${p.unidade}</td>
-      <td class="right td-mono col-hide-mobile" style="color:var(--slate-500)">${fmtQtd(p.estoque_minimo)}</td>
+      <td class="right td-mono" style="color:var(--slate-500)">${fmtQtd(p.estoque_minimo)}</td>
       <td class="right col-hide-mobile">${parseFloat(p.custo_unitario).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
-      <td class="right col-hide-mobile" style="font-weight:600">${valorTotal}</td>
+      <td class="right" style="font-weight:600">${valorTotal}</td>
       <td class="center col-hide-mobile" style="${p.validade ? 'color:var(--orange-600);font-weight:600' : 'color:var(--slate-400)'}">${validade}</td>
       <td class="center">${status}</td>
       <td class="right" style="white-space:nowrap;">
@@ -277,13 +280,12 @@ async function excluirProduto(btn, id, nome) {
     method: 'DELETE',
     headers: { 'Authorization': `Bearer ${TOKEN}` }
   });
-  if (r.ok) { tr.remove(); toast(`🗑️ "${nome}" excluído.`, 'warn'); }
-  else toast('❌ Erro ao excluir produto.', 'error');
+  if (r.ok) tr.remove();
+  else alert('Erro ao excluir produto.');
 }
 
 // ── Compras ───────────────────────────────────────────────
 async function carregarCompras() {
-  // Produtos para repor
   const prods = await api('/produtos?alerta=minimo') || [];
   const zerados = await api('/produtos?alerta=zerado') || [];
   const todos = [...zerados, ...prods.filter(p => !zerados.find(z => z.id === p.id))];
@@ -306,14 +308,11 @@ async function carregarCompras() {
     }).join('');
   }
 
-  // Atualiza cache de produtos para autocomplete
   _produtosCache = await api('/produtos') || [];
 
-  // Data padrão = hoje
   const hoje = new Date().toISOString().split('T')[0];
   if (!document.getElementById('compra-data').value) document.getElementById('compra-data').value = hoje;
 
-  // Fornecedores
   const forn = await api('/fornecedores') || [];
   const lf = document.getElementById('lista-fornecedores');
   if (!forn.length) {
@@ -324,6 +323,7 @@ async function carregarCompras() {
       const waBtн = tel.length >= 10
         ? `<button onclick="enviarPedidoWhatsApp('${tel}','${f.nome.replace(/'/g,"\\'")}',${f.id})" class="btn-secondary" style="font-size:12px;padding:6px 10px;white-space:nowrap;">📲 Enviar pedido</button>`
         : '';
+      // E) Edit supplier button
       return `<div class="repor-item" style="flex-wrap:wrap;gap:8px;">
         <div style="flex:1;min-width:0;">
           <div class="repor-item-name">${f.nome}</div>
@@ -331,19 +331,17 @@ async function carregarCompras() {
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
           ${waBtн}
-          <button onclick="editarFornecedor(${f.id},'${f.nome.replace(/'/g,"\\'")}','${(f.contato||'').replace(/'/g,"\\'")}','${(f.telefone||'').replace(/'/g,"\\'")}','${(f.email||'').replace(/'/g,"\\'")}' )" class="btn-icon" title="Editar">✏️</button>
+          <button onclick="editarFornecedor(${f.id},'${f.nome.replace(/'/g,"\\'")}','${(f.telefone||'').replace(/'/g,"\\'")}','${(f.email||'').replace(/'/g,"\\'")}')" class="btn-icon" title="Editar">✏️</button>
           <button onclick="excluirFornecedor(${f.id})" class="btn-icon" style="color:#dc2626;">🗑️</button>
         </div>
       </div>`;
     }).join('');
   }
 
-  // Popular select de fornecedores no formulário de compra
   const selF = document.getElementById('compra-fornecedor');
   selF.innerHTML = '<option value="">— Sem fornecedor —</option>' +
     forn.map(f => `<option value="${f.id}" data-tel="${f.telefone||''}">${f.nome}</option>`).join('');
 
-  // Histórico de compras (últimos 30 dias)
   const recentes = await api('/compras/recentes') || [];
   const tbody = document.getElementById('tabela-compras-recentes');
   tbody.innerHTML = recentes.length
@@ -359,7 +357,7 @@ async function carregarCompras() {
 }
 
 let _produtosCache = [];
-let _pedidoItens = []; // carrinho temporário
+let _pedidoItens = [];
 
 function filtrarProdutosCompra() {
   const termo = document.getElementById('compra-prod-texto').value.trim().toLowerCase();
@@ -400,8 +398,6 @@ function adicionarItemPedido() {
   const nome     = document.getElementById('compra-prod-texto').value.trim();
   const qtd      = parseFloat(document.getElementById('compra-qtd').value);
   const custo    = parseFloat(document.getElementById('compra-custo').value || 0);
-  const msg      = document.getElementById('compra-msg');
-  // Se prodId vazio (usuário digitou mas não selecionou), trata como novo produto
   if (!prodId) prodId = '__novo__';
   const isNovo   = prodId === '__novo__';
   const unidade  = isNovo ? (document.getElementById('novo-prod-unidade').value || 'un') : (_produtosCache.find(p=>p.id==prodId)?.unidade || 'un');
@@ -413,7 +409,6 @@ function adicionarItemPedido() {
   _pedidoItens.push({ prodId, nome, unidade, qtd, custo, isNovo, minimo, id: Date.now() });
   renderizarPedido();
 
-  // Limpa campos do item
   document.getElementById('compra-prod-texto').value = '';
   document.getElementById('compra-produto').value = '';
   document.getElementById('compra-qtd').value = '';
@@ -459,7 +454,6 @@ function mostrarMsgCompra(txt, tipo) {
 
 function abrirModalFinalizar() {
   if (!_pedidoItens.length) { mostrarMsgCompra('⚠️ Adicione ao menos um item ao pedido.', 'err'); return; }
-  // Copia fornecedor e data do formulário principal para o modal
   const selF = document.getElementById('compra-fornecedor');
   const mSelF = document.getElementById('final-fornecedor');
   mSelF.innerHTML = selF.innerHTML;
@@ -534,16 +528,12 @@ async function registrarPedido(abrirWhats = false) {
     }
   }
 
-  // Abre WhatsApp se solicitado
   if (abrirWhats) {
-    const total = _pedidoItens.reduce((s,i) => s + i.qtd * i.custo, 0);
     const dataFmt = new Date(data + 'T12:00:00').toLocaleDateString('pt-BR');
     let msg = `🛒 *Pedido de compra* — ${dataFmt}\n`;
     if (observacao) msg += `🏭 Fornecedor: *${observacao}*\n`;
     msg += `\n`;
-    _pedidoItens.forEach(i => {
-      msg += `• ${i.nome}: *${fmtQtd(i.qtd)} ${i.unidade}*\n`;
-    });
+    _pedidoItens.forEach(i => { msg += `• ${i.nome}: *${fmtQtd(i.qtd)} ${i.unidade}*\n`; });
     const tel = fornecedorTel.replace(/\D/g,'');
     const url = tel ? `https://wa.me/55${tel}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');
@@ -618,37 +608,39 @@ async function excluirFornecedor(id) {
   await fetch(`${API}/fornecedores/${id}`, {
     method: 'DELETE', headers: { 'Authorization': `Bearer ${TOKEN}` }
   });
-  toast('🗑️ Fornecedor excluído.', 'warn');
   carregarCompras();
 }
 
-function editarFornecedor(id, nome, contato, tel, email) {
-  document.getElementById('editar-forn-id').value = id;
-  document.getElementById('editar-forn-nome').value = nome;
-  document.getElementById('editar-forn-contato').value = contato;
-  document.getElementById('editar-forn-tel').value = tel;
+// E) Edit supplier functions
+function editarFornecedor(id, nome, tel, email) {
+  document.getElementById('editar-forn-id').value    = id;
+  document.getElementById('editar-forn-nome').value  = nome;
+  document.getElementById('editar-forn-tel').value   = tel;
   document.getElementById('editar-forn-email').value = email;
   document.getElementById('modal-editar-forn').classList.remove('hidden');
 }
 
 async function salvarEdicaoFornecedor(e) {
-  e.preventDefault();
-  const id = document.getElementById('editar-forn-id').value;
-  const body = {
-    nome:     document.getElementById('editar-forn-nome').value,
-    contato:  document.getElementById('editar-forn-contato').value,
-    telefone: document.getElementById('editar-forn-tel').value,
-    email:    document.getElementById('editar-forn-email').value,
-  };
-  const r = await fetch(`${API}/fornecedores/${id}`, {
-    method: 'PUT',
-    headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  if (r.ok) {
-    fecharModal('modal-editar-forn');
-    toast('✅ Fornecedor atualizado!', 'success');
-    carregarCompras();
+  if (e) e.preventDefault();
+  const id    = document.getElementById('editar-forn-id').value;
+  const nome  = document.getElementById('editar-forn-nome').value.trim();
+  const tel   = document.getElementById('editar-forn-tel').value.trim();
+  const email = document.getElementById('editar-forn-email').value.trim();
+  if (!nome) { alert('Nome é obrigatório.'); return; }
+  try {
+    const r = await fetch(`${API}/fornecedores/${id}`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nome, telefone: tel, email })
+    });
+    if (r.ok) {
+      fecharModal('modal-editar-forn');
+      carregarCompras();
+    } else {
+      alert('Erro ao salvar fornecedor.');
+    }
+  } catch(err) {
+    mostrarToast('Sem conexão. Verifique sua internet.', 'err');
   }
 }
 
@@ -672,7 +664,6 @@ async function carregarRelatorios() {
   const data = await api(`/relatorios/mes?mes=${mes}`);
   if (!data) return;
 
-  // KPIs
   document.getElementById('rel-kpis').innerHTML = `
     <div class="kpi-card"><div class="kpi-label">Total entradas</div><div class="kpi-value" style="color:#16a34a;">R$ ${parseFloat(data.total_entradas||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>
     <div class="kpi-card"><div class="kpi-label">Total saídas (custo)</div><div class="kpi-value" style="color:#dc2626;">R$ ${parseFloat(data.total_saidas||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>
@@ -680,7 +671,6 @@ async function carregarRelatorios() {
     <div class="kpi-card"><div class="kpi-label">Produtos movimentados</div><div class="kpi-value">${data.prods_distintos||0}</div></div>
   `;
 
-  // Tabela
   const tipos = { entrada:'📥 Entrada', saida:'📤 Saída', ajuste:'⚙️ Ajuste', sync_saurus:'🔄 Saurus' };
   document.getElementById('tabela-rel-movs').innerHTML = data.movs?.length
     ? data.movs.map(m => `<tr>
@@ -752,6 +742,7 @@ async function editarProduto(id) {
   document.getElementById('modal-produto').classList.remove('hidden');
 }
 
+// D) Product edit feedback
 async function salvarProduto(e) {
   e.preventDefault();
   const id = document.getElementById('prod-id').value;
@@ -766,11 +757,23 @@ async function salvarProduto(e) {
     validade:      document.getElementById('prod-validade').value || null,
   };
   if (!id) body.estoque_atual = parseFloat(document.getElementById('prod-saldo').value) || 0;
-  const r = await api(id ? `/produtos/${id}` : '/produtos', { method: id ? 'PUT' : 'POST', body });
-  if (!r) return;
-  fecharModal('modal-produto');
-  toast(id ? '✅ Produto atualizado!' : '✅ Produto criado!', 'success');
-  carregarProdutos();
+  const res = await api(id ? `/produtos/${id}` : '/produtos', { method: id ? 'PUT' : 'POST', body });
+  if (id && res) {
+    // Show success message in modal before closing
+    const actions = document.querySelector('#form-produto .modal-actions');
+    const feedback = document.createElement('div');
+    feedback.style.cssText = 'font-size:13px;padding:8px 12px;border-radius:8px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;margin-bottom:8px;text-align:center;font-weight:600;';
+    feedback.textContent = '✅ Produto atualizado!';
+    actions.parentNode.insertBefore(feedback, actions);
+    setTimeout(() => {
+      fecharModal('modal-produto');
+      if (feedback.parentNode) feedback.parentNode.removeChild(feedback);
+      carregarProdutos();
+    }, 1000);
+  } else {
+    fecharModal('modal-produto');
+    carregarProdutos();
+  }
 }
 
 // ── Movimentações ────────────────────────────────────────────
@@ -837,7 +840,6 @@ async function salvarMovimento(e) {
     }
   });
   fecharModal('modal-mov');
-  toast('✅ Movimentação registrada!', 'success');
   carregarMovimentacoes();
   carregarDashboard();
 }
@@ -904,7 +906,6 @@ function fecharSidebar() {
   let startY = 0, pulling = false;
   const threshold = 72;
 
-  // Indicador visual
   const indicator = document.createElement('div');
   indicator.id = 'ptr-indicator';
   indicator.style.cssText = `
@@ -956,7 +957,7 @@ if (TOKEN) {
 }
 
 // ── Scanner de código de barras ──────────────────────────
-let scannerCtx = 'estoque'; // 'estoque' ou 'movimentacao'
+let scannerCtx = 'estoque';
 let html5Qr = null;
 
 function abrirScanner(ctx) {
@@ -989,11 +990,9 @@ async function fecharScanner() {
 }
 
 async function processarCodigoBarras(codigo, ctx) {
-  // Mostra status de busca no scanner
   document.getElementById('scan-status').textContent = `🔍 Buscando ${codigo}...`;
   document.getElementById('scanner-view').innerHTML = '';
 
-  // 1. Busca no ERP
   const r = await fetch(`${API}/produtos?busca=${encodeURIComponent(codigo)}`, {
     headers: { 'Authorization': `Bearer ${TOKEN}` }
   });
@@ -1003,7 +1002,6 @@ async function processarCodigoBarras(codigo, ctx) {
   await fecharScanner();
 
   if (prod) {
-    // Produto existe → abre movimentação preenchida (sempre, independente do ctx)
     document.getElementById('form-mov').reset();
     const sel = document.getElementById('mov-produto');
     sel.innerHTML = '<option value="">— Selecione —</option>' +
@@ -1021,14 +1019,12 @@ async function processarCodigoBarras(codigo, ctx) {
     return;
   }
 
-  // 2. Produto não está no ERP → busca no Open Food Facts
   document.getElementById('scan-status').textContent = '🌐 Buscando na base pública...';
   document.getElementById('modal-scanner').classList.remove('hidden');
   document.getElementById('scanner-view').innerHTML = `<div style="padding:24px;text-align:center;color:#fff;font-size:14px;">🔍 Buscando produto na base global...</div>`;
 
   let nomeSugerido = '', catSugerida = '';
   try {
-    // Tenta Open Food Facts Brasil
     const r1 = await fetch(`https://br.openfoodfacts.org/api/v0/product/${codigo}.json`);
     const d1 = await r1.json();
     if (d1.status === 1 && d1.product) {
@@ -1040,7 +1036,6 @@ async function processarCodigoBarras(codigo, ctx) {
 
   if (!nomeSugerido) {
     try {
-      // Tenta Open Food Facts mundial
       const r2 = await fetch(`https://world.openfoodfacts.org/api/v0/product/${codigo}.json`);
       const d2 = await r2.json();
       if (d2.status === 1 && d2.product) {
@@ -1053,7 +1048,6 @@ async function processarCodigoBarras(codigo, ctx) {
 
   if (!nomeSugerido) {
     try {
-      // Tenta UPC Item DB
       const r3 = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${codigo}`);
       const d3 = await r3.json();
       if (d3.code === 'OK' && d3.items?.length) {
@@ -1065,7 +1059,6 @@ async function processarCodigoBarras(codigo, ctx) {
 
   await fecharScanner();
 
-  // 3. Abre modal de cadastro pré-preenchido
   abrirModalProduto();
   document.getElementById('prod-cod').value  = codigo;
   document.getElementById('prod-nome').value = nomeSugerido;
@@ -1075,7 +1068,6 @@ async function processarCodigoBarras(codigo, ctx) {
   } else {
     document.getElementById('prod-nome').focus();
   }
-  // Banner informando origem dos dados
   const banner = document.createElement('div');
   banner.id = 'banner-off';
   banner.style.cssText = 'background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;';
