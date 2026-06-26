@@ -1469,7 +1469,7 @@ async function carregarDashboard() {
     ? d.repor.map(p => `
         <div class="repor-item">
           <div><div class="repor-item-name">${p.nome}</div>
-          <div class="repor-item-sub">Falta: <b>${parseFloat(p.falta).toFixed(3)} ${p.unidade}</b></div></div>
+          <div class="repor-item-sub">Falta: <b>${fmtQtd(p.falta)} ${p.unidade}</b></div></div>
           <span class="badge ${p.estoque_atual <= 0 ? 'badge-zero' : 'badge-min'}">${p.estoque_atual <= 0 ? '🔴 Zerado' : '⚠️ Baixo'}</span>
         </div>`).join('')
     : '<p style="color:var(--slate-400);font-size:14px">Nenhum produto para repor ✅</p>';
@@ -1538,8 +1538,8 @@ async function carregarProdutos() {
     return `<tr>
       <td><div class="td-main">${p.nome}</div><div class="td-sub">${p.codigo_barras || '—'}</div></td>
       <td style="color:var(--slate-600)">${p.categoria || '—'}</td>
-      <td class="right td-mono">${parseFloat(p.estoque_atual).toFixed(3)} ${p.unidade}</td>
-      <td class="right td-mono" style="color:var(--slate-500)">${parseFloat(p.estoque_minimo).toFixed(3)}</td>
+      <td class="right td-mono">${fmtQtd(p.estoque_atual)} ${p.unidade}</td>
+      <td class="right td-mono" style="color:var(--slate-500)">${fmtQtd(p.estoque_minimo)}</td>
       <td class="right">${parseFloat(p.custo_unitario).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
       <td class="right" style="font-weight:600">${valorTotal}</td>
       <td class="center" style="${p.validade ? 'color:var(--orange-600);font-weight:600' : 'color:var(--slate-400)'}">${validade}</td>
@@ -1571,7 +1571,7 @@ async function carregarCompras() {
       return `<div class="repor-item">
         <div>
           <div class="repor-item-name">${p.nome}</div>
-          <div class="repor-item-sub">Atual: ${parseFloat(p.estoque_atual).toFixed(2)} ${p.unidade} · Falta: <b>${parseFloat(falta).toFixed(2)} ${p.unidade}</b></div>
+          <div class="repor-item-sub">Atual: ${fmtQtd(p.estoque_atual)} ${p.unidade} · Falta: <b>${fmtQtd(falta)} ${p.unidade}</b></div>
         </div>
         ${badge}
       </div>`;
@@ -1620,7 +1620,7 @@ async function carregarCompras() {
   tbody.innerHTML = recentes.length
     ? recentes.map(c => `<tr>
         <td class="td-main">${c.produto} <span style="color:var(--slate-400);font-size:11px;">${c.unidade}</span></td>
-        <td class="right td-mono">${parseFloat(c.quantidade).toFixed(3)}</td>
+        <td class="right td-mono">${fmtQtd(c.quantidade)}</td>
         <td class="right">R$ ${parseFloat(c.custo_unit||0).toFixed(2)}</td>
         <td class="right" style="font-weight:600;">R$ ${parseFloat(c.valor_total||0).toFixed(2)}</td>
         <td style="color:var(--slate-600);font-size:13px;">${c.fornecedor || '—'}</td>
@@ -1714,6 +1714,8 @@ function renderizarPedido() {
     </div>`).join('');
 }
 
+function fmtQtd(v) { return parseFloat(parseFloat(v).toFixed(3)).toLocaleString('pt-BR'); }
+
 function mostrarMsgCompra(txt, tipo) {
   const msg = document.getElementById('compra-msg');
   msg.style.cssText = tipo === 'ok'
@@ -1766,7 +1768,7 @@ async function enviarPedidoWhatsApp(tel, nomeForn) {
   if (todos.length) {
     todos.forEach(p => {
       const falta = Math.max(0, p.estoque_minimo - p.estoque_atual);
-      msg += `• ${p.nome}: *${parseFloat(falta).toFixed(2)} ${p.unidade}*\n`;
+      msg += `• ${p.nome}: *${fmtQtd(falta)} ${p.unidade}*\n`;
     });
   } else {
     msg += '_Nenhum item crítico no momento._\n';
@@ -1785,7 +1787,7 @@ async function gerarListaCompras() {
   txt += new Date().toLocaleDateString('pt-BR') + '\n\n';
   todos.forEach(p => {
     const falta = Math.max(0, p.estoque_minimo - p.estoque_atual);
-    txt += `• ${p.nome}: ${parseFloat(falta).toFixed(2)} ${p.unidade}\n`;
+    txt += `• ${p.nome}: ${fmtQtd(falta)} ${p.unidade}\n`;
   });
   const blob = new Blob([txt], { type: 'text/plain' });
   const a = document.createElement('a');
@@ -1857,7 +1859,7 @@ async function carregarRelatorios() {
     ? data.movs.map(m => `<tr>
         <td class="td-main">${m.produto}</td>
         <td>${tipos[m.tipo]||m.tipo}</td>
-        <td class="right td-mono">${parseFloat(m.quantidade).toFixed(3)}</td>
+        <td class="right td-mono">${fmtQtd(m.quantidade)}</td>
         <td class="right">R$ ${parseFloat(m.custo_unit||0).toFixed(2)}</td>
         <td class="right" style="font-weight:600;">R$ ${parseFloat(m.valor_total||0).toFixed(2)}</td>
         <td>${new Date(m.data).toLocaleDateString('pt-BR')}</td>
@@ -1952,7 +1954,7 @@ async function carregarMovimentacoes() {
       <td style="color:var(--slate-600)">${new Date(m.data).toLocaleString('pt-BR')}</td>
       <td style="font-weight:600;color:var(--slate-800)">${m.produto}</td>
       <td class="center">${tipos[m.tipo] || m.tipo}</td>
-      <td class="right td-mono">${parseFloat(m.quantidade).toFixed(3)} ${m.unidade}</td>
+      <td class="right td-mono">${fmtQtd(m.quantidade)} ${m.unidade}</td>
       <td class="right">${parseFloat(m.valor_total||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
       <td style="color:var(--slate-500)">${m.observacao || '—'}</td>
     </tr>`).join('') || '<tr class="empty-row"><td colspan="6">Nenhuma movimentação</td></tr>';
