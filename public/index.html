@@ -1006,6 +1006,43 @@
         </div>
       </div>
 
+      <!-- Registrar compra -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-body">
+          <h3 style="font-size:14px;font-weight:700;color:var(--slate-700);margin-bottom:14px;">🛒 Registrar compra</h3>
+          <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div class="form-group" style="margin:0;">
+              <label>Fornecedor</label>
+              <select id="compra-fornecedor" class="form-control">
+                <option value="">— Sem fornecedor —</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label>Produto</label>
+              <select id="compra-produto" class="form-control">
+                <option value="">Selecione...</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:flex-end;margin-bottom:12px;">
+            <div class="form-group" style="margin:0;">
+              <label>Quantidade</label>
+              <input type="number" id="compra-qtd" min="0.001" step="0.001" placeholder="0.000" class="form-control"/>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label>Custo unit. (R$)</label>
+              <input type="number" id="compra-custo" min="0" step="0.01" placeholder="0.00" class="form-control"/>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label>Data</label>
+              <input type="date" id="compra-data" class="form-control"/>
+            </div>
+            <button class="btn-primary" onclick="registrarCompra()" style="white-space:nowrap;">+ Adicionar</button>
+          </div>
+          <div id="compra-msg" class="hidden" style="font-size:13px;padding:8px 12px;border-radius:8px;"></div>
+        </div>
+      </div>
+
       <!-- Fornecedores -->
       <div class="card">
         <div class="card-body">
@@ -1482,6 +1519,16 @@ async function carregarCompras() {
     }).join('');
   }
 
+  // Popular selects do formulário de compra
+  const todosP = await api('/produtos') || [];
+  const selP = document.getElementById('compra-produto');
+  selP.innerHTML = '<option value="">Selecione o produto...</option>' +
+    todosP.map(p => `<option value="${p.id}" data-unidade="${p.unidade}">${p.nome} (${p.unidade})</option>`).join('');
+
+  // Data padrão = hoje
+  const hoje = new Date().toISOString().split('T')[0];
+  if (!document.getElementById('compra-data').value) document.getElementById('compra-data').value = hoje;
+
   // Fornecedores
   const forn = await api('/fornecedores') || [];
   const lf = document.getElementById('lista-fornecedores');
@@ -1504,6 +1551,46 @@ async function carregarCompras() {
         </div>
       </div>`;
     }).join('');
+  }
+
+  // Popular select de fornecedores no formulário de compra
+  const selF = document.getElementById('compra-fornecedor');
+  selF.innerHTML = '<option value="">— Sem fornecedor —</option>' +
+    forn.map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
+}
+
+async function registrarCompra() {
+  const prodId = document.getElementById('compra-produto').value;
+  const qtd    = parseFloat(document.getElementById('compra-qtd').value);
+  const custo  = parseFloat(document.getElementById('compra-custo').value || 0);
+  const data   = document.getElementById('compra-data').value;
+  const msg    = document.getElementById('compra-msg');
+
+  if (!prodId || !qtd || qtd <= 0) {
+    msg.className = ''; msg.style.cssText = 'font-size:13px;padding:8px 12px;border-radius:8px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;';
+    msg.textContent = '⚠️ Selecione um produto e informe a quantidade.';
+    msg.classList.remove('hidden'); return;
+  }
+
+  const r = await fetch(`${API}/movimentacoes`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ produto_id: prodId, tipo: 'entrada', quantidade: qtd, custo_unit: custo, data })
+  });
+
+  if (r.ok) {
+    msg.style.cssText = 'font-size:13px;padding:8px 12px;border-radius:8px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;';
+    msg.textContent = '✅ Compra registrada com sucesso!';
+    msg.classList.remove('hidden');
+    document.getElementById('compra-produto').value = '';
+    document.getElementById('compra-qtd').value = '';
+    document.getElementById('compra-custo').value = '';
+    setTimeout(() => msg.classList.add('hidden'), 3000);
+    carregarCompras();
+  } else {
+    msg.style.cssText = 'font-size:13px;padding:8px 12px;border-radius:8px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;';
+    msg.textContent = '❌ Erro ao registrar compra.';
+    msg.classList.remove('hidden');
   }
 }
 
