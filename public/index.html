@@ -1825,11 +1825,8 @@ async function registrarPedido(abrirWhats = false) {
     if (observacao) msg += `🏭 Fornecedor: *${observacao}*\n`;
     msg += `\n`;
     _pedidoItens.forEach(i => {
-      msg += `• ${i.nome}: *${fmtQtd(i.qtd)} ${i.unidade}*`;
-      if (i.custo > 0) msg += ` — R$ ${i.custo.toFixed(2)}/un`;
-      msg += `\n`;
+      msg += `• ${i.nome}: *${fmtQtd(i.qtd)} ${i.unidade}*\n`;
     });
-    msg += `\n💰 *Total: R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}*`;
     const tel = fornecedorTel.replace(/\D/g,'');
     const url = tel ? `https://wa.me/55${tel}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');
