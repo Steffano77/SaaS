@@ -468,19 +468,25 @@ function fecharModalFinalizar() {
   document.getElementById('modal-finalizar').classList.add('hidden');
 }
 
+const UNIDADES = ['kg','g','L','ml','un','cx','pct','fardo'];
+
 function renderizarFinalItens() {
-  const total = _pedidoItens.reduce((s,i) => s + i.qtd * i.custo, 0);
-  document.getElementById('final-total').textContent = `Total: R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+  document.getElementById('final-total').textContent = '';
   document.getElementById('final-itens-lista').innerHTML = _pedidoItens.map(i => `
-    <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--slate-100);font-size:14px;">
+    <div style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--slate-100);font-size:14px;">
       <div style="flex:1;min-width:0;">
-        <div style="font-weight:600;">${i.nome} ${i.isNovo ? '<span style="font-size:11px;background:#fff7ed;color:var(--orange);padding:2px 6px;border-radius:4px;margin-left:4px;">novo</span>' : ''}</div>
-        <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">
-          <input type="number" value="${i.qtd}" min="0.001" step="0.001" style="width:80px;padding:4px 8px;border:1.5px solid var(--slate-200);border-radius:6px;font-size:13px;" onchange="_pedidoItens.find(x=>x.id==${i.id}).qtd=parseFloat(this.value)||0;renderizarFinalItens()"/>
-          <span style="color:var(--slate-400);align-self:center;">${i.unidade}</span>
-          <span style="color:var(--slate-400);align-self:center;">×</span>
-          <input type="number" value="${i.custo}" min="0" step="0.01" style="width:80px;padding:4px 8px;border:1.5px solid var(--slate-200);border-radius:6px;font-size:13px;" onchange="_pedidoItens.find(x=>x.id==${i.id}).custo=parseFloat(this.value)||0;renderizarFinalItens()"/>
-          <span style="color:var(--slate-400);align-self:center;">= <b>R$ ${(i.qtd*i.custo).toLocaleString('pt-BR',{minimumFractionDigits:2})}</b></span>
+        <div style="font-weight:600;margin-bottom:6px;">${i.nome} ${i.isNovo ? '<span style="font-size:11px;background:#fff7ed;color:var(--orange);padding:2px 6px;border-radius:4px;margin-left:4px;">novo</span>' : ''}</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <input type="number" value="${i.qtd}" min="0.001" step="0.001" placeholder="Qtd"
+            style="width:80px;padding:4px 8px;border:1.5px solid var(--slate-200);border-radius:6px;font-size:13px;"
+            onchange="_pedidoItens.find(x=>x.id==${i.id}).qtd=parseFloat(this.value)||0;renderizarFinalItens()"/>
+          ${i.isNovo
+            ? `<select style="padding:4px 8px;border:1.5px solid var(--orange);border-radius:6px;font-size:13px;color:var(--orange);font-weight:600;"
+                onchange="_pedidoItens.find(x=>x.id==${i.id}).unidade=this.value">
+                ${UNIDADES.map(u => `<option value="${u}" ${u===i.unidade?'selected':''}>${u}</option>`).join('')}
+               </select>`
+            : `<span style="color:var(--slate-500);font-size:13px;">${i.unidade}</span>`
+          }
         </div>
       </div>
       <button onclick="_pedidoItens=_pedidoItens.filter(x=>x.id!=${i.id});renderizarPedido();if(!_pedidoItens.length)fecharModalFinalizar();else renderizarFinalItens();" class="btn-icon" style="color:#dc2626;flex-shrink:0;">🗑️</button>
