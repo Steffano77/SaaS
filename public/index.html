@@ -121,6 +121,10 @@
         <span class="nav-icon">🛒</span>
         <span class="nav-label">Compras</span>
       </button>
+      <button class="sidebar-link" onclick="mostrarPagina('fornecedores');fecharSidebar()">
+        <span class="nav-icon">🏭</span>
+        <span class="nav-label">Fornecedores</span>
+      </button>
       <button class="sidebar-link" onclick="mostrarPagina('relatorios');fecharSidebar()">
         <span class="nav-icon">📈</span>
         <span class="nav-label">Relatórios</span>
@@ -315,17 +319,6 @@
         </div>
       </div>
 
-      <!-- Fornecedores -->
-      <div class="card">
-        <div class="card-body">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-            <h3 style="font-size:14px;font-weight:700;color:var(--slate-700);">Fornecedores</h3>
-            <button class="btn-primary" onclick="abrirModalFornecedor()" style="padding:8px 14px;font-size:13px;">+ Novo</button>
-          </div>
-          <div id="lista-fornecedores"></div>
-        </div>
-      </div>
-
       <!-- Histórico de compras (últimos 30 dias) -->
       <div class="card" style="margin-top:16px;">
         <div class="card-header"><span class="card-title">📦 Compras realizadas — últimos 30 dias</span></div>
@@ -343,6 +336,19 @@
             </thead>
             <tbody id="tabela-compras-recentes"></tbody>
           </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- FORNECEDORES -->
+    <section id="pg-fornecedores" class="hidden page-section">
+      <div class="page-header">
+        <h2 class="page-title">Fornecedores</h2>
+        <button class="btn-primary" onclick="abrirModalFornecedor()">+ Novo fornecedor</button>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div id="lista-fornecedores"></div>
         </div>
       </div>
     </section>

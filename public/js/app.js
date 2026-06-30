@@ -96,7 +96,7 @@ function sair() {
 }
 
 // ── Navegação ───────────────────────────────────────────────
-const paginas = ['dashboard','estoque','compras','relatorios','sync'];
+const paginas = ['dashboard','estoque','compras','fornecedores','relatorios','sync'];
 function mostrarPagina(pg, pushHistory = true) {
   paginas.forEach(p => {
     document.getElementById(`pg-${p}`).classList.toggle('hidden', p !== pg);
@@ -108,6 +108,7 @@ function mostrarPagina(pg, pushHistory = true) {
   if (pg === 'dashboard')      carregarDashboard();
   if (pg === 'estoque')        { carregarCategorias(); carregarProdutos(); }
   if (pg === 'compras')        { carregarCompras(); }
+  if (pg === 'fornecedores')   { carregarFornecedores(); }
   if (pg === 'relatorios')     { carregarRelatorios(); }
 }
 
@@ -313,31 +314,8 @@ async function carregarCompras() {
   const hoje = new Date().toISOString().split('T')[0];
   if (!document.getElementById('compra-data').value) document.getElementById('compra-data').value = hoje;
 
+  // Popula select de fornecedor no formulário de compra
   const forn = await api('/fornecedores') || [];
-  const lf = document.getElementById('lista-fornecedores');
-  if (!forn.length) {
-    lf.innerHTML = '<p style="color:var(--slate-400);font-size:14px;">Nenhum fornecedor cadastrado ainda.</p>';
-  } else {
-    lf.innerHTML = forn.map(f => {
-      const tel = (f.telefone || '').replace(/\D/g, '');
-      const waBtн = tel.length >= 10
-        ? `<button onclick="enviarPedidoWhatsApp('${tel}','${f.nome.replace(/'/g,"\\'")}',${f.id})" class="btn-secondary" style="font-size:12px;padding:6px 10px;white-space:nowrap;">📲 Enviar pedido</button>`
-        : '';
-      // E) Edit supplier button
-      return `<div class="repor-item" style="flex-wrap:wrap;gap:8px;">
-        <div style="flex:1;min-width:0;">
-          <div class="repor-item-name">${f.nome}</div>
-          <div class="repor-item-sub">${f.telefone || '<em>Sem telefone</em>'} ${f.email ? '· ' + f.email : ''}</div>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
-          ${waBtн}
-          <button onclick="editarFornecedor(${f.id},'${f.nome.replace(/'/g,"\\'")}','${(f.telefone||'').replace(/'/g,"\\'")}','${(f.email||'').replace(/'/g,"\\'")}')" class="btn-icon" title="Editar">✏️</button>
-          <button onclick="excluirFornecedor(${f.id})" class="btn-icon" style="color:#dc2626;">🗑️</button>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
   const selF = document.getElementById('compra-fornecedor');
   selF.innerHTML = '<option value="">— Sem fornecedor —</option>' +
     forn.map(f => `<option value="${f.id}" data-tel="${f.telefone||''}">${f.nome}</option>`).join('');
@@ -606,7 +584,34 @@ async function salvarFornecedor(e) {
     headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   });
-  if (r.ok) { fecharModal('modal-forn'); carregarCompras(); }
+  if (r.ok) { fecharModal('modal-forn'); carregarFornecedores(); carregarCompras(); }
+}
+
+async function carregarFornecedores() {
+  const forn = await api('/fornecedores') || [];
+  const lf = document.getElementById('lista-fornecedores');
+  if (!lf) return;
+  if (!forn.length) {
+    lf.innerHTML = '<p style="color:var(--slate-400);font-size:14px;padding:8px 0;">Nenhum fornecedor cadastrado ainda.</p>';
+  } else {
+    lf.innerHTML = forn.map(f => {
+      const tel = (f.telefone || '').replace(/\D/g, '');
+      const waBtn = tel.length >= 10
+        ? `<button onclick="enviarPedidoWhatsApp('${tel}','${f.nome.replace(/'/g,"\\'")}',${f.id})" class="btn-secondary" style="font-size:12px;padding:6px 10px;white-space:nowrap;">📲 WhatsApp</button>`
+        : '';
+      return `<div class="repor-item" style="flex-wrap:wrap;gap:8px;">
+        <div style="flex:1;min-width:0;">
+          <div class="repor-item-name">${f.nome}</div>
+          <div class="repor-item-sub">${f.telefone || '<em>Sem telefone</em>'} ${f.email ? '· ' + f.email : ''}</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+          ${waBtn}
+          <button onclick="editarFornecedor(${f.id},'${f.nome.replace(/'/g,"\\'")}','${(f.contato||'').replace(/'/g,"\\'")}','${(f.telefone||'').replace(/'/g,"\\'")}','${(f.email||'').replace(/'/g,"\\'")}')" class="btn-icon" title="Editar">✏️</button>
+          <button onclick="excluirFornecedor(${f.id})" class="btn-icon" style="color:#dc2626;" title="Excluir">🗑️</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
 }
 
 async function excluirFornecedor(id) {
@@ -614,39 +619,38 @@ async function excluirFornecedor(id) {
   await fetch(`${API}/fornecedores/${id}`, {
     method: 'DELETE', headers: { 'Authorization': `Bearer ${TOKEN}` }
   });
-  carregarCompras();
+  mostrarToast('🗑️ Fornecedor excluído.', 'info');
+  carregarFornecedores();
 }
 
-// E) Edit supplier functions
-function editarFornecedor(id, nome, tel, email) {
-  document.getElementById('editar-forn-id').value    = id;
-  document.getElementById('editar-forn-nome').value  = nome;
-  document.getElementById('editar-forn-tel').value   = tel;
-  document.getElementById('editar-forn-email').value = email;
+function editarFornecedor(id, nome, contato, tel, email) {
+  document.getElementById('editar-forn-id').value      = id;
+  document.getElementById('editar-forn-nome').value    = nome;
+  document.getElementById('editar-forn-contato').value = contato;
+  document.getElementById('editar-forn-tel').value     = tel;
+  document.getElementById('editar-forn-email').value   = email;
   document.getElementById('modal-editar-forn').classList.remove('hidden');
 }
 
 async function salvarEdicaoFornecedor(e) {
   if (e) e.preventDefault();
-  const id    = document.getElementById('editar-forn-id').value;
-  const nome  = document.getElementById('editar-forn-nome').value.trim();
-  const tel   = document.getElementById('editar-forn-tel').value.trim();
-  const email = document.getElementById('editar-forn-email').value.trim();
-  if (!nome) { alert('Nome é obrigatório.'); return; }
-  try {
-    const r = await fetch(`${API}/fornecedores/${id}`, {
-      method: 'PUT',
-      headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome, telefone: tel, email })
-    });
-    if (r.ok) {
-      fecharModal('modal-editar-forn');
-      carregarCompras();
-    } else {
-      alert('Erro ao salvar fornecedor.');
-    }
-  } catch(err) {
-    mostrarToast('Sem conexão. Verifique sua internet.', 'err');
+  const id = document.getElementById('editar-forn-id').value;
+  const body = {
+    nome:     document.getElementById('editar-forn-nome').value.trim(),
+    contato:  document.getElementById('editar-forn-contato').value.trim(),
+    telefone: document.getElementById('editar-forn-tel').value.trim(),
+    email:    document.getElementById('editar-forn-email').value.trim(),
+  };
+  if (!body.nome) { mostrarToast('Nome é obrigatório.', 'err'); return; }
+  const r = await fetch(`${API}/fornecedores/${id}`, {
+    method: 'PUT',
+    headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (r.ok) {
+    fecharModal('modal-editar-forn');
+    mostrarToast('✅ Fornecedor atualizado!', 'ok');
+    carregarFornecedores();
   }
 }
 
