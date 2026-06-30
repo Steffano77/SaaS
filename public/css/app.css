@@ -63,14 +63,19 @@
       margin-bottom: 28px;
     }
 
-    .auth-logo-full {
+    .auth-logo-clip {
       width: 100%;
       max-width: 340px;
-      height: auto;
-      display: block;
       margin: 0 auto;
       border-radius: 14px;
       overflow: hidden;
+      line-height: 0;
+    }
+
+    .auth-logo-full {
+      width: 100%;
+      height: auto;
+      display: block;
     }
 
     .tabs-auth {
