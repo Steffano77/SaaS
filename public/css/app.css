@@ -358,11 +358,15 @@
     }
 
     .sidebar-link .nav-icon {
-      font-size: 17px;
       flex-shrink: 0;
       width: 22px;
-      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.85;
     }
+    .sidebar-link.active .nav-icon,
+    .sidebar-link:hover .nav-icon { opacity: 1; }
 
     .sidebar-link .nav-label { flex: 1; }
 
