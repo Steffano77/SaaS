@@ -69,6 +69,8 @@
       height: auto;
       display: block;
       margin: 0 auto;
+      border-radius: 14px;
+      overflow: hidden;
     }
 
     .tabs-auth {
