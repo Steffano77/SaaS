@@ -2,6 +2,35 @@ const API = '/api';
 let TOKEN = localStorage.getItem('pptoken') || '';
 let todosProds = [];
 
+// ── Dark Mode ──────────────────────────────────────────────────
+(function() {
+  const saved = localStorage.getItem('pp-theme');
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    _setThemeIcons('dark');
+  }
+})();
+
+function _setThemeIcons(theme) {
+  const ids = ['sun-mobile','moon-mobile','sun-sidebar','moon-sidebar'];
+  ids.forEach(id => {
+    const el = document.getElementById('icon-' + id);
+    if (!el) return;
+    const isSun = id.includes('sun');
+    el.classList.toggle('hidden', theme === 'dark' ? isSun : !isSun);
+  });
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  if (next === 'dark') html.setAttribute('data-theme', 'dark');
+  else html.removeAttribute('data-theme');
+  localStorage.setItem('pp-theme', next);
+  _setThemeIcons(next);
+}
+
 // ── Auth ────────────────────────────────────────────────────
 function mostrarTab(tab) {
   document.getElementById('form-login').classList.toggle('hidden', tab !== 'login');
