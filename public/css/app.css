@@ -60,28 +60,15 @@
 
     .auth-logo {
       text-align: center;
-      margin-bottom: 32px;
+      margin-bottom: 28px;
     }
 
-    .auth-logo img {
-      height: 80px;
-      width: 80px;
-      object-fit: contain;
+    .auth-logo-full {
+      width: 100%;
+      max-width: 340px;
+      height: auto;
       display: block;
-      margin: 0 auto 12px;
-    }
-
-    .auth-logo h1 {
-      font-size: 24px;
-      font-weight: 800;
-      color: var(--navy);
-      letter-spacing: -0.5px;
-    }
-
-    .auth-logo p {
-      font-size: 14px;
-      color: var(--slate-500);
-      margin-top: 4px;
+      margin: 0 auto;
     }
 
     .tabs-auth {
