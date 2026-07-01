@@ -65,18 +65,12 @@
 
     .auth-logo-clip {
       width: 100%;
-      max-width: 340px;
+      max-width: 360px;
       margin: 0 auto;
-      line-height: 0;
-      border-radius: 40px;
-      overflow: hidden;
-      -webkit-mask-image: -webkit-radial-gradient(white, black);
-      -webkit-transform: translateZ(0);
-      transform: translateZ(0);
     }
 
     .auth-logo-full {
-      width: 101%;
+      width: 100%;
       height: auto;
       display: block;
     }
