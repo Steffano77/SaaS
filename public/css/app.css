@@ -834,7 +834,11 @@
   .theme-toggle-sidebar { display: flex; }
 }
 
-/* ── SVG Logo dark mode ── */
+/* ── SVG Logo colors ── */
+.cn { fill: #1F2544; }
+.co { fill: #FF8C02; }
+.cb { fill: #FEFEFE; }
+.cw { fill: #FDFDFD; }
 [data-theme="dark"] .cn { fill: #F1F5F9; }
 [data-theme="dark"] .co { fill: #FFAA55; }
 [data-theme="dark"] .cb { fill: transparent; }
