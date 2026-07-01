@@ -252,22 +252,13 @@
     }
 
     .sidebar-brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
       margin-bottom: 14px;
     }
 
-    .sidebar-brand img {
-      width: 44px;
-      height: 44px;
-      object-fit: contain;
-      flex-shrink: 0;
-    }
-
-    .sidebar-brand-text {
-      display: flex;
-      flex-direction: column;
+    .sidebar-brand-svg {
+      width: 100%;
+      height: auto;
+      display: block;
     }
 
     .sidebar-brand-name {
@@ -840,6 +831,11 @@
   .theme-toggle-sidebar { display: flex; }
 }
 
+
+/* ── Logo claro/escuro ── */
+.logo-dark { display: none; }
+[data-theme="dark"] .logo-light { display: none; }
+[data-theme="dark"] .logo-dark  { display: block; }
 
 /* ── Dark Mode ── */
 [data-theme="dark"] {
