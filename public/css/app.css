@@ -834,6 +834,12 @@
   .theme-toggle-sidebar { display: flex; }
 }
 
+/* ── SVG Logo dark mode ── */
+[data-theme="dark"] .cn { fill: #F1F5F9; }
+[data-theme="dark"] .co { fill: #FFAA55; }
+[data-theme="dark"] .cb { fill: transparent; }
+[data-theme="dark"] .cw { fill: #334155; }
+
 /* ── Dark Mode ── */
 [data-theme="dark"] {
   --bg: #0f172a;
