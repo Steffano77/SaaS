@@ -252,16 +252,22 @@
     }
 
     .sidebar-brand {
-      background: white;
-      border-radius: 10px;
-      padding: 8px 10px;
-      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
     }
 
-    .sidebar-brand-svg {
-      width: 100%;
-      height: auto;
-      display: block;
+    .sidebar-brand img {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+
+    .sidebar-brand-text {
+      display: flex;
+      flex-direction: column;
     }
 
     .sidebar-brand-name {
@@ -834,15 +840,6 @@
   .theme-toggle-sidebar { display: flex; }
 }
 
-/* ── SVG Logo colors ── */
-.cn { fill: #1F2544; }
-.co { fill: #FF8C02; }
-.cb { fill: #FEFEFE; }
-.cw { fill: #FDFDFD; }
-[data-theme="dark"] .cn { fill: #F1F5F9; }
-[data-theme="dark"] .co { fill: #FFAA55; }
-[data-theme="dark"] .cb { fill: transparent; }
-[data-theme="dark"] .cw { fill: #334155; }
 
 /* ── Dark Mode ── */
 [data-theme="dark"] {
