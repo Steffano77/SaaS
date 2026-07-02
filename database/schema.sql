@@ -5,13 +5,15 @@
 
 -- ── Padarias (tenants) ──────────────────────────────────────
 CREATE TABLE padarias (
-  id            INT AUTO_INCREMENT PRIMARY KEY,
-  nome          VARCHAR(120) NOT NULL,
-  email         VARCHAR(120) NOT NULL UNIQUE,
-  senha_hash    VARCHAR(255) NOT NULL,
-  plano         ENUM('trial','basico','pro') DEFAULT 'trial',
-  ativo         BOOLEAN DEFAULT TRUE,
-  criado_em     DATETIME DEFAULT CURRENT_TIMESTAMP
+  id             INT AUTO_INCREMENT PRIMARY KEY,
+  nome           VARCHAR(120) NOT NULL,
+  email          VARCHAR(120) NOT NULL UNIQUE,
+  senha_hash     VARCHAR(255) NOT NULL,
+  plano          ENUM('trial','basico','pro') DEFAULT 'trial',
+  ativo          BOOLEAN DEFAULT TRUE,
+  criado_em      DATETIME DEFAULT CURRENT_TIMESTAMP,
+  reset_token    TEXT DEFAULT NULL,
+  reset_expires  DATETIME DEFAULT NULL
 );
 
 -- ── Categorias de produto ───────────────────────────────────

@@ -15,8 +15,17 @@ fs.mkdirSync('/tmp/panificapro', { recursive: true });
 // Segurança: cabeçalhos HTTP
 app.use(helmet({ contentSecurityPolicy: false }));
 
-// CORS restrito
-app.use(cors({ origin: true, credentials: true }));
+// CORS restrito ao domínio de produção
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://panificapro-erp.onrender.com')
+  .split(',').map(o => o.trim());
+app.use(cors({
+  origin: (origin, cb) => {
+    // Permite requisições sem origin (apps nativos, curl, Postman)
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    cb(new Error('Origem não permitida pelo CORS'));
+  },
+  credentials: true
+}));
 
 // Rate limiting geral — 200 req/min por IP
 app.use('/api', rateLimit({
@@ -34,6 +43,15 @@ app.use('/api/auth/login', rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { erro: 'Muitas tentativas de login. Aguarde 15 minutos.' }
+}));
+
+// Rate limiting na recuperação de senha — 5 tentativas/hora por IP
+app.use('/api/auth/esqueci-senha', rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { erro: 'Muitas solicitações de recuperação. Aguarde 1 hora.' }
 }));
 
 app.use(express.json({ limit: '5mb' }));
