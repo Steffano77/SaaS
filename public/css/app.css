@@ -57,7 +57,23 @@
       padding: 40px;
       width: 100%;
       max-width: 440px;
+      position: relative;
     }
+    .theme-toggle-auth {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: rgba(30,58,95,0.08);
+      border: 1px solid rgba(30,58,95,0.15);
+      color: var(--navy);
+    }
+    .theme-toggle-auth:hover { background: rgba(30,58,95,0.15); }
+    [data-theme="dark"] .theme-toggle-auth {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.2);
+      color: #fff;
+    }
+    [data-theme="dark"] .theme-toggle-auth:hover { background: rgba(255,255,255,0.2); }
 
     .auth-logo {
       text-align: center;
