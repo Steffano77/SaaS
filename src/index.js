@@ -9,6 +9,9 @@ const fs        = require('fs');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// Necessário no Render (e qualquer proxy reverso) para o rate limit funcionar corretamente
+app.set('trust proxy', 1);
+
 // Garante pasta de upload
 fs.mkdirSync('/tmp/panificapro', { recursive: true });
 
