@@ -123,6 +123,21 @@ router.get('/relatorios/mes', auth, async (req, res) => {
   res.json({ ...kpis[0], movs });
 });
 
+// Saídas últimos 15 dias
+router.get('/saidas/recentes', auth, async (req, res) => {
+  const db = require('../database/connection');
+  const [rows] = await db.query(`
+    SELECT m.id, m.quantidade, m.custo_unit, m.valor_total, m.data, m.observacao,
+           p.nome AS produto, p.unidade
+    FROM movimentacoes m
+    JOIN produtos p ON p.id = m.produto_id
+    WHERE m.padaria_id = ? AND m.tipo = 'saida'
+      AND m.data >= DATE_SUB(CURDATE(), INTERVAL 15 DAY)
+    ORDER BY m.data DESC, m.id DESC
+    LIMIT 200`, [req.padaria.id]);
+  res.json(rows);
+});
+
 // Compras recentes (últimos 30 dias) — pedidos já recebidos
 router.get('/compras/recentes', auth, async (req, res) => {
   const db = require('../database/connection');

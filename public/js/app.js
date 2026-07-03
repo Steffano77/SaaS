@@ -283,6 +283,7 @@ async function carregarDashboard() {
     <div class="kpi-card"><div class="kpi-value" style="color:var(--navy)">${k.total_produtos}</div><div class="kpi-label">Total de produtos</div></div>
     <div class="kpi-card kpi-clickable" onclick="abrirModalEstoque('zerado')"><div class="kpi-value" style="color:var(--red-500)">${k.zerados}</div><div class="kpi-label">Sem estoque</div><div class="kpi-hint">Ver produtos →</div></div>
     <div class="kpi-card kpi-clickable" onclick="abrirModalEstoque('minimo')"><div class="kpi-value" style="color:var(--yellow-500)">${k.abaixo_minimo}</div><div class="kpi-label">Abaixo do mínimo</div><div class="kpi-hint">Ver produtos →</div></div>
+    <div class="kpi-card kpi-clickable" onclick="abrirTelaSaidas()"><div class="kpi-value" style="color:var(--red-500);font-size:22px">R$ ${parseFloat(k.total_saidas_15d||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div><div class="kpi-label">Saídas — 15 dias</div><div class="kpi-hint">Ver detalhes →</div></div>
     <div class="kpi-card"><div class="kpi-value" style="color:var(--orange);font-size:22px">${'R$ ' + parseFloat(k.valor_total_estoque||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div><div class="kpi-label">Valor em estoque</div></div>
   `;
   document.getElementById('lista-repor').innerHTML = d.repor.length
@@ -337,6 +338,45 @@ async function carregarDashboard() {
       });
     }
   } catch(e) {}
+}
+
+async function abrirTelaSaidas() {
+  const tela = document.getElementById('tela-saidas');
+  const lista = document.getElementById('saidas-lista');
+  lista.innerHTML = '<p style="padding:20px;color:var(--slate-400);text-align:center;">Carregando...</p>';
+  tela.classList.remove('hidden');
+
+  const rows = await api('/saidas/recentes') || [];
+  if (!rows.length) {
+    lista.innerHTML = '<p style="padding:32px;text-align:center;color:var(--slate-400);">Nenhuma saída nos últimos 15 dias.</p>';
+    return;
+  }
+
+  const total = rows.reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
+  lista.innerHTML = `
+    <div style="padding:12px 16px;background:var(--slate-50);border-bottom:2px solid var(--slate-200);display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:13px;color:var(--slate-500);">${rows.length} registros</span>
+      <span style="font-weight:700;color:var(--red-500);">Total: R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
+    </div>
+    ${rows.map(r => {
+      const data = new Date(r.data).toLocaleDateString('pt-BR');
+      const valor = parseFloat(r.valor_total || 0).toLocaleString('pt-BR',{minimumFractionDigits:2});
+      const custo = parseFloat(r.custo_unit || 0).toLocaleString('pt-BR',{minimumFractionDigits:2});
+      return `<div style="padding:14px 16px;border-bottom:1px solid var(--slate-100);display:flex;align-items:center;gap:12px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:14px;color:var(--navy);">${r.produto}</div>
+          <div style="font-size:12px;color:var(--slate-400);margin-top:2px;">${fmtQtd(r.quantidade)} ${r.unidade} × R$ ${custo}${r.observacao ? ' · ' + r.observacao : ''}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-weight:700;color:var(--red-500);">R$ ${valor}</div>
+          <div style="font-size:11px;color:var(--slate-400);margin-top:2px;">${data}</div>
+        </div>
+      </div>`;
+    }).join('')}`;
+}
+
+function fecharTelaSaidas() {
+  document.getElementById('tela-saidas').classList.add('hidden');
 }
 
 async function abrirModalEstoque(tipo) {
