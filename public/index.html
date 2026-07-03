@@ -87,6 +87,34 @@
   </div>
 </div>
 
+<!-- ── REDEFINIR SENHA ──────────────────────────────────── -->
+<div id="tela-redefinir" class="hidden">
+  <div class="auth-card">
+    <button class="theme-toggle theme-toggle-auth" onclick="toggleTheme()" aria-label="Alternar tema">
+      <svg id="icon-sun-redef" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      <svg id="icon-moon-redef" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+    </button>
+    <div class="auth-logo">
+      <div class="auth-logo-clip">
+        <img src="/img/logo-claro.svg" alt="PanificaPro Logo" class="auth-logo-full logo-light"/>
+        <img src="/img/logo-escuro.svg" alt="PanificaPro Logo" class="auth-logo-full logo-dark"/>
+      </div>
+    </div>
+    <h2 style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:6px;">Nova senha</h2>
+    <p style="font-size:13px;color:var(--slate-500);margin-bottom:20px;">Digite sua nova senha para acessar o sistema.</p>
+    <div class="form-group">
+      <label>Nova senha</label>
+      <input type="password" id="redef-senha" placeholder="Mínimo 6 caracteres" class="form-control"/>
+    </div>
+    <div class="form-group">
+      <label>Confirmar senha</label>
+      <input type="password" id="redef-confirma" placeholder="Repita a nova senha" class="form-control"/>
+    </div>
+    <div id="redef-msg" class="hidden" style="font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:14px;"></div>
+    <button onclick="confirmarRedefinicao()" class="btn-primary full">Salvar nova senha</button>
+  </div>
+</div>
+
 <!-- ── APP PRINCIPAL ────────────────────────────────────── -->
 <div id="app" class="hidden">
 

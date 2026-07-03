@@ -41,7 +41,7 @@
     }
 
     /* ── AUTH ── */
-    #tela-auth {
+    #tela-auth, #tela-redefinir {
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -897,6 +897,8 @@
 [data-theme="dark"] .badge-low { background: #422006; color: #fb923c; }
 [data-theme="dark"] .badge-out { background: #450a0a; color: #f87171; }
 [data-theme="dark"] .sidebar { background: var(--navy-dark); }
-[data-theme="dark"] #tela-auth .auth-card { background: #1e293b; }
-[data-theme="dark"] #tela-auth { background: linear-gradient(135deg, #0a1628 0%, #0f1f38 60%, #152b47 100%); }
+[data-theme="dark"] #tela-auth .auth-card,
+[data-theme="dark"] #tela-redefinir .auth-card { background: #1e293b; }
+[data-theme="dark"] #tela-auth,
+[data-theme="dark"] #tela-redefinir { background: linear-gradient(135deg, #0a1628 0%, #0f1f38 60%, #152b47 100%); }
 [data-theme="dark"] .section-header h2 { color: #f1f5f9; }

@@ -2,6 +2,17 @@ const API = '/api';
 let TOKEN = localStorage.getItem('pptoken') || '';
 let todosProds = [];
 
+// ── Redefinição de senha via link ───────────────────────────────
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const resetToken = params.get('token');
+  if (resetToken && window.location.pathname.includes('redefinir-senha')) {
+    document.getElementById('tela-auth').classList.add('hidden');
+    document.getElementById('tela-redefinir').classList.remove('hidden');
+    window._resetToken = resetToken;
+  }
+})();
+
 // ── Dark Mode ──────────────────────────────────────────────────
 (function() {
   const saved = localStorage.getItem('pp-theme');
@@ -12,7 +23,7 @@ let todosProds = [];
 })();
 
 function _setThemeIcons(theme) {
-  const ids = ['sun-auth','moon-auth','sun-mobile','moon-mobile','sun-sidebar','moon-sidebar'];
+  const ids = ['sun-auth','moon-auth','sun-redef','moon-redef','sun-mobile','moon-mobile','sun-sidebar','moon-sidebar'];
   ids.forEach(id => {
     const el = document.getElementById('icon-' + id);
     if (!el) return;
@@ -85,6 +96,43 @@ async function enviarRecuperacao() {
   } catch(e) {
     msg.style.cssText = 'font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:14px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;';
     msg.textContent = '❌ Sem conexão com o servidor. Tente novamente.';
+  }
+}
+
+async function confirmarRedefinicao() {
+  const senha    = document.getElementById('redef-senha').value;
+  const confirma = document.getElementById('redef-confirma').value;
+  const msg      = document.getElementById('redef-msg');
+
+  const mostrar = (texto, ok) => {
+    msg.style.cssText = ok
+      ? 'font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:14px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;'
+      : 'font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:14px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;';
+    msg.textContent = texto;
+    msg.classList.remove('hidden');
+  };
+
+  if (!senha) return mostrar('❌ Digite a nova senha.', false);
+  if (senha.length < 6) return mostrar('❌ A senha precisa ter pelo menos 6 caracteres.', false);
+  if (senha !== confirma) return mostrar('❌ As senhas não coincidem.', false);
+
+  try {
+    const r = await fetch(`${API}/auth/redefinir-senha`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: window._resetToken, senha })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok) {
+      mostrar('✅ Senha alterada com sucesso! Redirecionando...', true);
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 2000);
+    } else {
+      mostrar('❌ ' + (data.erro || 'Link inválido ou expirado. Solicite um novo.'), false);
+    }
+  } catch {
+    mostrar('❌ Sem conexão com o servidor. Tente novamente.', false);
   }
 }
 
