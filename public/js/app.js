@@ -586,7 +586,11 @@ function renderizarPedido() {
     </div>`).join('');
 }
 
-function fmtQtd(v) { return parseFloat(parseFloat(v).toFixed(3)).toLocaleString('pt-BR'); }
+function fmtQtd(v) {
+  const n = parseFloat(v) || 0;
+  // Mostra sem decimais se for número inteiro, senão até 3 casas sem zeros à direita
+  return Number.isInteger(n) ? n.toLocaleString('pt-BR') : parseFloat(n.toFixed(3)).toLocaleString('pt-BR');
+}
 
 function mostrarMsgCompra(txt, tipo) {
   const msg = document.getElementById('compra-msg');
@@ -978,9 +982,9 @@ async function editarProduto(id) {
   document.getElementById('prod-nome').value    = p.nome;
   document.getElementById('prod-cod').value     = p.codigo_barras || '';
   document.getElementById('prod-unidade').value = p.unidade;
-  document.getElementById('prod-minimo').value  = p.estoque_minimo;
-  document.getElementById('prod-custo').value   = p.custo_unitario;
-  document.getElementById('prod-venda').value   = p.preco_venda;
+  document.getElementById('prod-minimo').value  = Math.round(p.estoque_minimo || 0);
+  document.getElementById('prod-custo').value   = parseFloat(p.custo_unitario || 0).toFixed(2);
+  document.getElementById('prod-venda').value   = parseFloat(p.preco_venda || 0).toFixed(2);
   document.getElementById('prod-validade').value= p.validade ? p.validade.slice(0,10) : '';
   document.getElementById('prod-categoria').value = p.categoria_id || '';
   document.getElementById('wrap-saldo').classList.add('hidden');
