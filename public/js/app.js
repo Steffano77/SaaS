@@ -283,8 +283,8 @@ async function carregarDashboard() {
     <div class="kpi-card"><div class="kpi-value" style="color:var(--navy)">${k.total_produtos}</div><div class="kpi-label">Total de produtos</div></div>
     <div class="kpi-card kpi-clickable" onclick="abrirModalEstoque('zerado')"><div class="kpi-value" style="color:var(--red-500)">${k.zerados}</div><div class="kpi-label">Sem estoque</div><div class="kpi-hint">Ver produtos →</div></div>
     <div class="kpi-card kpi-clickable" onclick="abrirModalEstoque('minimo')"><div class="kpi-value" style="color:var(--yellow-500)">${k.abaixo_minimo}</div><div class="kpi-label">Abaixo do mínimo</div><div class="kpi-hint">Ver produtos →</div></div>
-    <div class="kpi-card kpi-clickable" onclick="abrirTelaSaidas()"><div class="kpi-value" style="color:var(--red-500);font-size:22px">R$ ${parseFloat(k.total_saidas_15d||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div><div class="kpi-label">Saídas — 15 dias</div><div class="kpi-hint">Ver detalhes →</div></div>
     <div class="kpi-card"><div class="kpi-value" style="color:var(--orange);font-size:22px">${'R$ ' + parseFloat(k.valor_total_estoque||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div><div class="kpi-label">Valor em estoque</div></div>
+    <div class="kpi-card kpi-clickable kpi-saidas" onclick="abrirTelaSaidas()"><div style="display:flex;align-items:center;justify-content:space-between;"><div><div class="kpi-value" style="color:var(--red-500);font-size:22px">R$ ${parseFloat(k.total_saidas_15d||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div><div class="kpi-label">Saídas — últimos 30 dias</div></div><div class="kpi-hint" style="font-size:13px;">Ver detalhes →</div></div></div>
   `;
   document.getElementById('lista-repor').innerHTML = d.repor.length
     ? d.repor.map(p => `
@@ -348,21 +348,31 @@ async function abrirTelaSaidas() {
 
   const rows = await api('/saidas/recentes') || [];
   if (!rows.length) {
-    lista.innerHTML = '<p style="padding:32px;text-align:center;color:var(--slate-400);">Nenhuma saída nos últimos 15 dias.</p>';
+    lista.innerHTML = '<p style="padding:32px;text-align:center;color:var(--slate-400);">Nenhuma saída nos últimos 30 dias.</p>';
     return;
   }
 
+  window._saidasRows = rows;
+  renderizarSaidas(rows);
+}
+
+function renderizarSaidas(rows) {
   const total = rows.reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
-  lista.innerHTML = `
-    <div style="padding:12px 16px;background:var(--slate-50);border-bottom:2px solid var(--slate-200);display:flex;justify-content:space-between;align-items:center;">
+  document.getElementById('saidas-lista').innerHTML = `
+    <div style="padding:12px 16px;background:var(--slate-50);border-bottom:2px solid var(--slate-200);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--slate-600);cursor:pointer;">
+        <input type="checkbox" id="saidas-select-all" onchange="toggleSelecionarTodasSaidas(this.checked)" style="width:16px;height:16px;accent-color:var(--navy);"/>
+        Selecionar todos
+      </label>
       <span style="font-size:13px;color:var(--slate-500);">${rows.length} registros</span>
       <span style="font-weight:700;color:var(--red-500);">Total: R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
     </div>
-    ${rows.map(r => {
+    ${rows.map((r, i) => {
       const data = new Date(r.data).toLocaleDateString('pt-BR');
       const valor = parseFloat(r.valor_total || 0).toLocaleString('pt-BR',{minimumFractionDigits:2});
       const custo = parseFloat(r.custo_unit || 0).toLocaleString('pt-BR',{minimumFractionDigits:2});
       return `<div style="padding:14px 16px;border-bottom:1px solid var(--slate-100);display:flex;align-items:center;gap:12px;">
+        <input type="checkbox" class="saida-check" data-idx="${i}" style="width:16px;height:16px;flex-shrink:0;accent-color:var(--navy);cursor:pointer;"/>
         <div style="flex:1;min-width:0;">
           <div style="font-weight:600;font-size:14px;color:var(--navy);">${r.produto}</div>
           <div style="font-size:12px;color:var(--slate-400);margin-top:2px;">${fmtQtd(r.quantidade)} ${r.unidade} × R$ ${custo}${r.observacao ? ' · ' + r.observacao : ''}</div>
@@ -373,6 +383,52 @@ async function abrirTelaSaidas() {
         </div>
       </div>`;
     }).join('')}`;
+}
+
+function toggleSelecionarTodasSaidas(checked) {
+  document.querySelectorAll('.saida-check').forEach(cb => cb.checked = checked);
+}
+
+function imprimirSaidas() {
+  const checks = [...document.querySelectorAll('.saida-check')];
+  const selecionados = checks.filter(c => c.checked).map(c => window._saidasRows[parseInt(c.dataset.idx)]);
+  const alvo = selecionados.length ? selecionados : window._saidasRows;
+
+  const total = alvo.reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
+  const linhas = alvo.map(r => `
+    <tr>
+      <td>${r.produto}</td>
+      <td>${fmtQtd(r.quantidade)} ${r.unidade}</td>
+      <td>R$ ${parseFloat(r.custo_unit||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td style="font-weight:700;color:#dc2626;">R$ ${parseFloat(r.valor_total||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td>${new Date(r.data).toLocaleDateString('pt-BR')}</td>
+    </tr>`).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
+    <title>Saídas — PanificaPro</title>
+    <style>
+      body { font-family: Arial, sans-serif; font-size: 13px; padding: 24px; }
+      h2 { color: #1e3a5f; margin-bottom: 4px; }
+      p { color: #64748b; margin-bottom: 16px; }
+      table { width: 100%; border-collapse: collapse; }
+      th { background: #1e3a5f; color: #fff; padding: 8px 10px; text-align: left; }
+      td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }
+      tr:nth-child(even) td { background: #f8fafc; }
+      .total { text-align: right; font-weight: 700; margin-top: 12px; font-size: 14px; color: #dc2626; }
+    </style></head><body>
+    <h2>PanificaPro — Saídas</h2>
+    <p>Impresso em ${new Date().toLocaleDateString('pt-BR')} · ${alvo.length} registros</p>
+    <table>
+      <thead><tr><th>Produto</th><th>Quantidade</th><th>Custo unit.</th><th>Total</th><th>Data</th></tr></thead>
+      <tbody>${linhas}</tbody>
+    </table>
+    <div class="total">Total geral: R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+    <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}<\/script>
+    </body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
 }
 
 function fecharTelaSaidas() {
@@ -963,14 +1019,18 @@ async function carregarRelatorios() {
 
   const tipos = { entrada:'📥 Entrada', saida:'📤 Saída', ajuste:'⚙️ Ajuste', sync_saurus:'🔄 Saurus' };
   document.getElementById('tabela-rel-movs').innerHTML = data.movs?.length
-    ? data.movs.map(m => `<tr>
-        <td class="td-main">${m.produto}</td>
-        <td>${tipos[m.tipo]||m.tipo}</td>
-        <td class="right td-mono">${fmtQtd(m.quantidade)}</td>
-        <td class="right">R$ ${parseFloat(m.custo_unit||0).toFixed(2)}</td>
-        <td class="right" style="font-weight:600;">R$ ${parseFloat(m.valor_total||0).toFixed(2)}</td>
-        <td>${new Date(m.data).toLocaleDateString('pt-BR')}</td>
-      </tr>`).join('')
+    ? data.movs.map(m => {
+        const isSaida = m.tipo === 'saida';
+        const cor = isSaida ? 'color:#dc2626;' : '';
+        return `<tr style="${isSaida ? 'color:#dc2626;' : ''}">
+          <td class="td-main">${m.produto}</td>
+          <td>${tipos[m.tipo]||m.tipo}</td>
+          <td class="right td-mono">${fmtQtd(m.quantidade)}</td>
+          <td class="right">R$ ${parseFloat(m.custo_unit||0).toFixed(2)}</td>
+          <td class="right" style="font-weight:600;${cor}">R$ ${parseFloat(m.valor_total||0).toFixed(2)}</td>
+          <td>${new Date(m.data).toLocaleDateString('pt-BR')}</td>
+        </tr>`;
+      }).join('')
     : '<tr class="empty-row"><td colspan="6">Nenhuma movimentação neste mês</td></tr>';
 }
 

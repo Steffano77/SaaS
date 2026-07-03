@@ -132,7 +132,7 @@ router.get('/saidas/recentes', auth, async (req, res) => {
     FROM movimentacoes m
     JOIN produtos p ON p.id = m.produto_id
     WHERE m.padaria_id = ? AND m.tipo = 'saida'
-      AND m.data >= DATE_SUB(CURDATE(), INTERVAL 15 DAY)
+      AND m.data >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
     ORDER BY m.data DESC, m.id DESC
     LIMIT 200`, [req.padaria.id]);
   res.json(rows);

@@ -111,7 +111,7 @@ exports.dashboard = async (req, res) => {
     SELECT COALESCE(SUM(valor_total), 0) AS total_saidas_15d
     FROM movimentacoes
     WHERE padaria_id = ? AND tipo = 'saida'
-      AND data >= DATE_SUB(CURDATE(), INTERVAL 15 DAY)`, [pid]);
+      AND data >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)`, [pid]);
 
   res.json({ kpis: { ...kpis, total_saidas_15d: parseFloat(saidas15d.total_saidas_15d || 0) }, repor, vencendo, movimentacoes_recentes: movs });
 };
