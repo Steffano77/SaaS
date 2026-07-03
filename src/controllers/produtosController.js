@@ -11,7 +11,7 @@ exports.listar = async (req, res) => {
 
   if (busca) { sql += ' AND (p.nome LIKE ? OR p.codigo_barras LIKE ?)'; params.push(`%${busca}%`, `%${busca}%`); }
   if (categoria_id) { sql += ' AND p.categoria_id = ?'; params.push(categoria_id); }
-  if (alerta === 'minimo')   sql += ' AND p.estoque_atual < p.estoque_minimo';
+  if (alerta === 'minimo')   sql += ' AND p.estoque_minimo > 0 AND p.estoque_atual > 0 AND p.estoque_atual < p.estoque_minimo';
   if (alerta === 'zerado')   sql += ' AND p.estoque_atual <= 0';
   if (alerta === 'validade') sql += ' AND p.validade IS NOT NULL AND p.validade <= DATE_ADD(CURDATE(), INTERVAL 10 DAY)';
 
@@ -73,7 +73,7 @@ exports.dashboard = async (req, res) => {
     SELECT
       COUNT(*) AS total_produtos,
       COALESCE(SUM(estoque_atual <= 0), 0) AS zerados,
-      COALESCE(SUM(estoque_atual > 0 AND estoque_atual < estoque_minimo), 0) AS abaixo_minimo,
+      COALESCE(SUM(estoque_atual > 0 AND estoque_minimo > 0 AND estoque_atual < estoque_minimo), 0) AS abaixo_minimo,
       COALESCE(SUM(validade IS NOT NULL AND validade <= DATE_ADD(CURDATE(), INTERVAL 10 DAY) AND estoque_atual > 0), 0) AS vencendo,
       COALESCE(SUM(estoque_atual * custo_unitario), 0) AS valor_total_estoque
     FROM produtos WHERE padaria_id = ? AND ativo = 1`, [pid]);

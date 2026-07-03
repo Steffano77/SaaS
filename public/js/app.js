@@ -936,7 +936,7 @@ function statusBadge(p) {
   const hoje = new Date(); hoje.setHours(0,0,0,0);
   const val  = p.validade ? new Date(p.validade) : null;
   if (p.estoque_atual <= 0) return '<span class="badge badge-zero">🔴 Sem estoque</span>';
-  if (p.estoque_atual < p.estoque_minimo) return '<span class="badge badge-min">⚠️ Abaixo mín.</span>';
+  if (p.estoque_minimo > 0 && p.estoque_atual < p.estoque_minimo) return '<span class="badge badge-min">⚠️ Abaixo mín.</span>';
   if (val && val <= new Date(hoje.getTime() + 10*86400000)) return '<span class="badge badge-validade">🟡 Vencendo</span>';
   return '<span class="badge badge-ok">✅ OK</span>';
 }
