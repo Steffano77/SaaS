@@ -32,6 +32,14 @@ function _setThemeIcons(theme) {
   });
 }
 
+function togglePass(inputId, btn) {
+  const input = document.getElementById(inputId);
+  const showing = input.type === 'text';
+  input.type = showing ? 'password' : 'text';
+  btn.querySelector('.eye-open').classList.toggle('hidden', !showing);
+  btn.querySelector('.eye-off').classList.toggle('hidden', showing);
+}
+
 function toggleTheme() {
   const html = document.documentElement;
   const isDark = html.getAttribute('data-theme') === 'dark';
