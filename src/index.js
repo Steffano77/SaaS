@@ -48,10 +48,10 @@ app.use('/api/auth/login', rateLimit({
   message: { erro: 'Muitas tentativas de login. Aguarde 15 minutos.' }
 }));
 
-// Rate limiting na recuperação de senha — 5 tentativas/hora por IP
+// Rate limiting na recuperação de senha — 20 tentativas/hora por IP
 app.use('/api/auth/esqueci-senha', rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 5,
+  max: 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: { erro: 'Muitas solicitações de recuperação. Aguarde 1 hora.' }

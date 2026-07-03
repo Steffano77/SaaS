@@ -55,22 +55,36 @@ function voltarLogin() {
 async function enviarRecuperacao() {
   const email = document.getElementById('esqueci-email').value.trim();
   const msg = document.getElementById('esqueci-msg');
-  if (!email) return;
+  if (!email) {
+    msg.style.cssText = 'font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:14px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;';
+    msg.textContent = '❌ Digite seu email antes de continuar.';
+    msg.classList.remove('hidden');
+    return;
+  }
   msg.className = '';
   msg.style.cssText = 'font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:14px;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;';
   msg.textContent = 'Enviando...';
   msg.classList.remove('hidden');
-  const r = await fetch(`${API}/auth/esqueci-senha`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email })
-  });
-  if (r.ok) {
-    msg.style.cssText = 'font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:14px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;';
-    msg.textContent = '✅ Se este email estiver cadastrado, você receberá o link em instantes.';
-  } else {
+  try {
+    const r = await fetch(`${API}/auth/esqueci-senha`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok) {
+      msg.style.cssText = 'font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:14px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;';
+      msg.textContent = '✅ Se este email estiver cadastrado, você receberá o link em instantes.';
+    } else if (r.status === 429) {
+      msg.style.cssText = 'font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:14px;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;';
+      msg.textContent = '⏳ Muitas tentativas. Aguarde 1 hora e tente novamente.';
+    } else {
+      msg.style.cssText = 'font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:14px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;';
+      msg.textContent = '❌ ' + (data.erro || 'Erro ao enviar. Tente novamente.');
+    }
+  } catch(e) {
     msg.style.cssText = 'font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:14px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;';
-    msg.textContent = '❌ Erro ao enviar. Tente novamente.';
+    msg.textContent = '❌ Sem conexão com o servidor. Tente novamente.';
   }
 }
 
