@@ -840,6 +840,19 @@
   flex-shrink: 0;
 }
 .theme-toggle:hover { background: rgba(255,255,255,0.25); }
+
+/* Auth card toggle — navy on white card */
+.theme-toggle.theme-toggle-auth {
+  background: #1e3a5f;
+  border-color: #1e3a5f;
+  color: #fff;
+}
+.theme-toggle.theme-toggle-auth:hover { background: #2a5080; border-color: #2a5080; }
+[data-theme="dark"] .theme-toggle.theme-toggle-auth {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.2);
+}
+[data-theme="dark"] .theme-toggle.theme-toggle-auth:hover { background: rgba(255,255,255,0.2); }
 .mobile-topbar .theme-toggle { margin-left: 0; }
 .theme-toggle-sidebar { margin: 4px 0 8px auto; display: none; }
 
