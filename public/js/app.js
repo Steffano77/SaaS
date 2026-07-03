@@ -643,7 +643,7 @@ async function registrarPedido(abrirWhats = false) {
     _pedidoItens.forEach(i => { msg += `• ${i.nome}: *${fmtQtd(i.qtd)} ${i.unidade}*\n`; });
     const tel = fornecedorTel.replace(/\D/g,'');
     const url = tel ? `https://wa.me/55${tel}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
-    window.location.href = url;
+    abrirWhatsAppComRetorno(url);
   }
 
   _pedidoItens = [];
@@ -727,7 +727,20 @@ async function enviarPedidoWhatsApp(tel, nomeForn) {
   }
   msg += '\nAguardamos confirmação. Obrigado!';
   const numero = tel.startsWith('55') ? tel : '55' + tel;
-  window.open(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`, '_blank');
+  abrirWhatsAppComRetorno(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`);
+}
+
+function abrirWhatsAppComRetorno(url) {
+  // Abre WhatsApp em nova aba para não sair do app
+  window.open(url, '_blank');
+  // Quando o usuário voltar para esta aba, recarrega a página de compras
+  const handler = () => {
+    if (document.visibilityState === 'visible') {
+      document.removeEventListener('visibilitychange', handler);
+      carregarCompras();
+    }
+  };
+  document.addEventListener('visibilitychange', handler);
 }
 
 async function gerarListaCompras() {
