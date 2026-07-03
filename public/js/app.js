@@ -281,8 +281,8 @@ async function carregarDashboard() {
   const k = d.kpis;
   document.getElementById('kpis').innerHTML = `
     <div class="kpi-card"><div class="kpi-value" style="color:var(--navy)">${k.total_produtos}</div><div class="kpi-label">Total de produtos</div></div>
-    <div class="kpi-card"><div class="kpi-value" style="color:var(--red-500)">${k.zerados}</div><div class="kpi-label">Sem estoque</div></div>
-    <div class="kpi-card"><div class="kpi-value" style="color:var(--yellow-500)">${k.abaixo_minimo}</div><div class="kpi-label">Abaixo do mínimo</div></div>
+    <div class="kpi-card kpi-clickable" onclick="abrirModalEstoque('zerado')"><div class="kpi-value" style="color:var(--red-500)">${k.zerados}</div><div class="kpi-label">Sem estoque</div><div class="kpi-hint">Ver produtos →</div></div>
+    <div class="kpi-card kpi-clickable" onclick="abrirModalEstoque('minimo')"><div class="kpi-value" style="color:var(--yellow-500)">${k.abaixo_minimo}</div><div class="kpi-label">Abaixo do mínimo</div><div class="kpi-hint">Ver produtos →</div></div>
     <div class="kpi-card"><div class="kpi-value" style="color:var(--orange);font-size:22px">${'R$ ' + parseFloat(k.valor_total_estoque||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div><div class="kpi-label">Valor em estoque</div></div>
   `;
   document.getElementById('lista-repor').innerHTML = d.repor.length
@@ -337,6 +337,47 @@ async function carregarDashboard() {
       });
     }
   } catch(e) {}
+}
+
+async function abrirModalEstoque(tipo) {
+  const prods = await api(`/produtos?alerta=${tipo}`) || [];
+  const titulo = tipo === 'zerado' ? '🔴 Produtos sem estoque' : '⚠️ Produtos abaixo do mínimo';
+
+  document.getElementById('modal-estoque-titulo').textContent = titulo;
+  document.getElementById('modal-estoque-lista').innerHTML = prods.length
+    ? `<table style="width:100%;border-collapse:collapse;font-size:14px;">
+        <thead>
+          <tr style="border-bottom:2px solid var(--slate-200);">
+            <th style="text-align:left;padding:8px 10px;color:var(--slate-500);font-weight:600;">Produto</th>
+            <th style="text-align:right;padding:8px 10px;color:var(--slate-500);font-weight:600;">Atual</th>
+            <th style="text-align:right;padding:8px 10px;color:var(--slate-500);font-weight:600;">Mínimo</th>
+            <th style="text-align:right;padding:8px 10px;color:var(--slate-500);font-weight:600;">Falta</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${prods.map(p => {
+            const falta = Math.max(0, (p.estoque_minimo || 0) - (p.estoque_atual || 0));
+            return `<tr style="border-bottom:1px solid var(--slate-100);">
+              <td style="padding:10px 10px;">${p.nome}</td>
+              <td style="text-align:right;padding:10px;color:${p.estoque_atual <= 0 ? 'var(--red-500)' : 'var(--yellow-500)'};font-weight:600;">${fmtQtd(p.estoque_atual)} ${p.unidade}</td>
+              <td style="text-align:right;padding:10px;color:var(--slate-400);">${fmtQtd(p.estoque_minimo || 0)} ${p.unidade}</td>
+              <td style="text-align:right;padding:10px;font-weight:700;color:var(--navy);">${fmtQtd(falta)} ${p.unidade}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`
+    : `<p style="text-align:center;padding:24px;color:var(--slate-400);">✅ Nenhum produto nesta situação!</p>`;
+
+  document.getElementById('modal-estoque').classList.remove('hidden');
+}
+
+function fecharModalEstoque() {
+  document.getElementById('modal-estoque').classList.add('hidden');
+}
+
+function irParaCompras() {
+  fecharModalEstoque();
+  navegarPara('compras');
 }
 
 // ── Produtos ─────────────────────────────────────────────────
