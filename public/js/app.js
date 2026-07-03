@@ -438,6 +438,7 @@ async function carregarCompras() {
           ${p.total > 0 ? `<div class="pedido-pendente-total">Total: R$ ${parseFloat(p.total).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>` : ''}
         </div>
         <div class="pedido-pendente-acoes">
+          <button class="btn-editar-pedido" onclick="reabrirPedido(${p.id})">✏️ Editar</button>
           <button class="btn-receber" onclick="confirmarRecebimentoPedido(${p.id})">✅ Recebi</button>
           <button class="btn-cancelar-pedido" onclick="cancelarPedido(${p.id})">✕</button>
         </div>
@@ -674,6 +675,41 @@ async function cancelarPedido(id) {
     headers: { 'Authorization': `Bearer ${TOKEN}` }
   });
   carregarCompras();
+}
+
+async function reabrirPedido(id) {
+  // Busca os dados do pedido pendente
+  const pendentes = await api('/compras/pedidos') || [];
+  const pedido = pendentes.find(p => p.id === id);
+  if (!pedido) return;
+
+  // Cancela o pedido no backend para poder recriá-lo com as alterações
+  await fetch(`${API}/compras/pedidos/${id}/cancelar`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${TOKEN}` }
+  });
+
+  // Restaura os itens no carrinho
+  _pedidoItens = pedido.itens.map(i => ({
+    id: Date.now() + Math.random(),
+    prodId: i.produto_id,
+    nome: i.produto,
+    unidade: i.unidade,
+    qtd: parseFloat(i.quantidade),
+    custo: parseFloat(i.custo_unitario || 0),
+    isNovo: false,
+    minimo: 0
+  }));
+
+  // Preenche fornecedor e data no modal
+  await carregarCompras();
+  renderizarPedido();
+
+  const selF = document.getElementById('compra-fornecedor');
+  if (pedido.fornecedor_id) selF.value = pedido.fornecedor_id;
+
+  abrirModalFinalizar();
+  mostrarMsgCompra('📝 Pedido reaberto — adicione itens e registre novamente.', 'ok');
 }
 
 async function enviarPedidoWhatsApp(tel, nomeForn) {

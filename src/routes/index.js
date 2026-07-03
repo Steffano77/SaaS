@@ -148,7 +148,7 @@ router.get('/compras/recentes', auth, async (req, res) => {
 router.get('/compras/pedidos', auth, async (req, res) => {
   const db = require('../database/connection');
   const [pedidos] = await db.query(`
-    SELECT pc.id, pc.criado_em, pc.observacao, pc.total,
+    SELECT pc.id, pc.criado_em, pc.observacao, pc.total, pc.fornecedor_id,
            COALESCE(f.nome, pc.observacao) AS fornecedor,
            f.telefone AS fornecedor_tel
     FROM pedidos_compra pc
@@ -160,7 +160,7 @@ router.get('/compras/pedidos', auth, async (req, res) => {
   if (!ids.length) return res.json([]);
 
   const [itens] = await db.query(`
-    SELECT ip.pedido_id, ip.quantidade, ip.custo_unitario,
+    SELECT ip.pedido_id, ip.produto_id, ip.quantidade, ip.custo_unitario,
            p.nome AS produto, p.unidade
     FROM itens_pedido ip
     JOIN produtos p ON p.id = ip.produto_id

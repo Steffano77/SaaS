@@ -862,6 +862,11 @@
   padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
 }
 .btn-receber:hover { background: #15803d; }
+.btn-editar-pedido {
+  background: none; border: 1.5px solid var(--slate-300); color: var(--navy);
+  border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.btn-editar-pedido:hover { background: var(--slate-50); border-color: var(--navy); }
 .btn-cancelar-pedido {
   background: none; border: 1.5px solid var(--slate-200); color: var(--slate-400);
   border-radius: 8px; padding: 8px 10px; font-size: 13px; cursor: pointer;
