@@ -643,7 +643,7 @@ async function registrarPedido(abrirWhats = false) {
     _pedidoItens.forEach(i => { msg += `• ${i.nome}: *${fmtQtd(i.qtd)} ${i.unidade}*\n`; });
     const tel = fornecedorTel.replace(/\D/g,'');
     const url = tel ? `https://wa.me/55${tel}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
-    window.open(url, '_blank');
+    window.location.href = url;
   }
 
   _pedidoItens = [];
