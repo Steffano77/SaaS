@@ -17,8 +17,18 @@ exports.listar = async (req, res) => {
 
   sql += ' ORDER BY p.estoque_atual <= 0 DESC, p.estoque_atual < p.estoque_minimo DESC, p.nome';
   const [rows] = await db.query(sql, params);
-  res.json(rows);
+  res.json(rows.map(formatarProduto));
 };
+
+function formatarProduto(p) {
+  return {
+    ...p,
+    estoque_atual:  parseFloat(p.estoque_atual  || 0),
+    estoque_minimo: Math.round(parseFloat(p.estoque_minimo || 0)),
+    custo_unitario: parseFloat(parseFloat(p.custo_unitario || 0).toFixed(2)),
+    preco_venda:    parseFloat(parseFloat(p.preco_venda    || 0).toFixed(2)),
+  };
+}
 
 exports.buscar = async (req, res) => {
   const [rows] = await db.query(
@@ -28,7 +38,7 @@ exports.buscar = async (req, res) => {
     [req.params.id, req.padaria.id]
   );
   if (!rows.length) return res.status(404).json({ erro: 'Produto não encontrado.' });
-  res.json(rows[0]);
+  res.json(formatarProduto(rows[0]));
 };
 
 exports.criar = async (req, res) => {
