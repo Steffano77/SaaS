@@ -76,7 +76,7 @@ CREATE TABLE pedidos_compra (
   id             INT AUTO_INCREMENT PRIMARY KEY,
   padaria_id     INT NOT NULL,
   fornecedor_id  INT,
-  status         ENUM('rascunho','enviado','recebido','cancelado') DEFAULT 'rascunho',
+  status         ENUM('rascunho','enviado','pendente','recebido','cancelado') DEFAULT 'pendente',
   total          DECIMAL(10,2) DEFAULT 0,
   observacao     TEXT,
   criado_em      DATETIME DEFAULT CURRENT_TIMESTAMP,

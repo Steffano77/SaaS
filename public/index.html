@@ -396,19 +396,26 @@
         </div>
       </div>
 
-      <!-- Histórico de compras (últimos 30 dias) -->
+      <!-- Pedidos aguardando recebimento -->
+      <div id="secao-pedidos-pendentes" class="card hidden" style="margin-top:16px;border:2px solid #f97316;">
+        <div class="card-header">
+          <span class="card-title">🚚 Aguardando recebimento</span>
+          <span style="font-size:12px;color:var(--slate-500);">Confirme quando a mercadoria chegar para atualizar o estoque</span>
+        </div>
+        <div id="lista-pedidos-pendentes" style="padding:8px 0;"></div>
+      </div>
+
+      <!-- Histórico de compras recebidas (últimos 30 dias) -->
       <div class="card" style="margin-top:16px;">
-        <div class="card-header"><span class="card-title">📦 Compras realizadas — últimos 30 dias</span></div>
+        <div class="card-header"><span class="card-title">📦 Compras recebidas — últimos 30 dias</span></div>
         <div class="table-wrapper">
           <table>
             <thead>
               <tr>
-                <th class="left">Produto</th>
-                <th class="right">Qtd</th>
-                <th class="right">Custo unit.</th>
-                <th class="right">Total</th>
+                <th class="left">Itens</th>
                 <th class="left">Fornecedor</th>
-                <th class="left">Data</th>
+                <th class="right">Total</th>
+                <th class="left">Recebido em</th>
               </tr>
             </thead>
             <tbody id="tabela-compras-recentes"></tbody>

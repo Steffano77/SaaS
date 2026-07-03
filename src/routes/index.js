@@ -123,21 +123,169 @@ router.get('/relatorios/mes', auth, async (req, res) => {
   res.json({ ...kpis[0], movs });
 });
 
-// Compras recentes (últimos 30 dias)
+// Compras recentes (últimos 30 dias) — pedidos já recebidos
 router.get('/compras/recentes', auth, async (req, res) => {
   const db = require('../database/connection');
   const [rows] = await db.query(`
-    SELECT m.id, m.quantidade, m.custo_unit, m.valor_total, m.data,
-           p.nome AS produto, p.unidade,
-           m.observacao AS fornecedor
-    FROM movimentacoes m
-    JOIN produtos p ON p.id = m.produto_id
-    WHERE m.padaria_id = ?
-      AND m.tipo = 'entrada'
-      AND m.data >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-    ORDER BY m.data DESC, m.id DESC
-    LIMIT 100`, [req.padaria.id]);
+    SELECT pc.id AS pedido_id, pc.recebido_em AS data,
+           COALESCE(f.nome, pc.observacao) AS fornecedor,
+           pc.total,
+           GROUP_CONCAT(p.nome ORDER BY p.nome SEPARATOR ', ') AS produtos
+    FROM pedidos_compra pc
+    LEFT JOIN fornecedores f ON f.id = pc.fornecedor_id
+    JOIN itens_pedido ip ON ip.pedido_id = pc.id
+    JOIN produtos p ON p.id = ip.produto_id
+    WHERE pc.padaria_id = ?
+      AND pc.status = 'recebido'
+      AND pc.recebido_em >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+    GROUP BY pc.id
+    ORDER BY pc.recebido_em DESC
+    LIMIT 50`, [req.padaria.id]);
   res.json(rows);
+});
+
+// Pedidos pendentes de recebimento
+router.get('/compras/pedidos', auth, async (req, res) => {
+  const db = require('../database/connection');
+  const [pedidos] = await db.query(`
+    SELECT pc.id, pc.criado_em, pc.observacao, pc.total,
+           COALESCE(f.nome, pc.observacao) AS fornecedor,
+           f.telefone AS fornecedor_tel
+    FROM pedidos_compra pc
+    LEFT JOIN fornecedores f ON f.id = pc.fornecedor_id
+    WHERE pc.padaria_id = ? AND pc.status = 'pendente'
+    ORDER BY pc.criado_em DESC`, [req.padaria.id]);
+
+  const ids = pedidos.map(p => p.id);
+  if (!ids.length) return res.json([]);
+
+  const [itens] = await db.query(`
+    SELECT ip.pedido_id, ip.quantidade, ip.custo_unitario,
+           p.nome AS produto, p.unidade
+    FROM itens_pedido ip
+    JOIN produtos p ON p.id = ip.produto_id
+    WHERE ip.pedido_id IN (${ids.map(() => '?').join(',')})`, ids);
+
+  const mapa = {};
+  pedidos.forEach(p => { mapa[p.id] = { ...p, itens: [] }; });
+  itens.forEach(i => { if (mapa[i.pedido_id]) mapa[i.pedido_id].itens.push(i); });
+
+  res.json(Object.values(mapa));
+});
+
+// Criar pedido de compra (sem atualizar estoque)
+router.post('/compras/pedidos', auth, async (req, res) => {
+  const db = require('../database/connection');
+  const { fornecedor_id, observacao, data, itens } = req.body;
+  if (!itens || !itens.length) return res.status(400).json({ erro: 'Informe ao menos um item.' });
+
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    // Criar produtos novos se necessário
+    const itensResolvidos = [];
+    for (const item of itens) {
+      let prodId = item.produto_id;
+      if (item.isNovo) {
+        const [r] = await conn.query(
+          'INSERT INTO produtos (padaria_id, nome, unidade, estoque_minimo, custo_unitario) VALUES (?,?,?,?,?)',
+          [req.padaria.id, item.nome, item.unidade || 'un', item.minimo || 0, item.custo || 0]
+        );
+        prodId = r.insertId;
+      }
+      itensResolvidos.push({ ...item, produto_id: prodId });
+    }
+
+    const total = itensResolvidos.reduce((s, i) => s + (i.quantidade * (i.custo || 0)), 0);
+
+    const [rp] = await conn.query(
+      `INSERT INTO pedidos_compra (padaria_id, fornecedor_id, status, total, observacao, criado_em)
+       VALUES (?, ?, 'pendente', ?, ?, ?)`,
+      [req.padaria.id, fornecedor_id || null, total, observacao || null, data || new Date().toISOString().slice(0, 10)]
+    );
+    const pedidoId = rp.insertId;
+
+    for (const item of itensResolvidos) {
+      await conn.query(
+        'INSERT INTO itens_pedido (pedido_id, produto_id, quantidade, custo_unitario) VALUES (?,?,?,?)',
+        [pedidoId, item.produto_id, item.quantidade, item.custo || 0]
+      );
+    }
+
+    await conn.commit();
+    res.status(201).json({ id: pedidoId });
+  } catch (e) {
+    await conn.rollback();
+    console.error('Erro ao criar pedido:', e);
+    res.status(500).json({ erro: 'Erro ao criar pedido.' });
+  } finally {
+    conn.release();
+  }
+});
+
+// Confirmar recebimento — só aqui atualiza o estoque
+router.post('/compras/pedidos/:id/receber', auth, async (req, res) => {
+  const db = require('../database/connection');
+  const pedidoId = req.params.id;
+
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [[pedido]] = await conn.query(
+      `SELECT id FROM pedidos_compra WHERE id = ? AND padaria_id = ? AND status = 'pendente'`,
+      [pedidoId, req.padaria.id]
+    );
+    if (!pedido) { await conn.rollback(); conn.release(); return res.status(404).json({ erro: 'Pedido não encontrado ou já recebido.' }); }
+
+    const [itens] = await conn.query(
+      'SELECT ip.produto_id, ip.quantidade, ip.custo_unitario FROM itens_pedido ip WHERE ip.pedido_id = ?',
+      [pedidoId]
+    );
+
+    for (const item of itens) {
+      // Atualiza estoque
+      await conn.query(
+        `UPDATE produtos SET
+           estoque_atual = estoque_atual + ?,
+           custo_unitario = IF(? > 0, ?, custo_unitario)
+         WHERE id = ? AND padaria_id = ?`,
+        [item.quantidade, item.custo_unitario, item.custo_unitario, item.produto_id, req.padaria.id]
+      );
+      // Registra movimentação para histórico
+      await conn.query(
+        `INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, custo_unit, observacao, data)
+         VALUES (?, ?, 'entrada', ?, ?, ?, NOW())`,
+        [req.padaria.id, item.produto_id, item.quantidade, item.custo_unitario,
+         `Pedido #${pedidoId}`]
+      );
+    }
+
+    await conn.query(
+      `UPDATE pedidos_compra SET status = 'recebido', recebido_em = NOW() WHERE id = ?`,
+      [pedidoId]
+    );
+
+    await conn.commit();
+    res.json({ ok: true });
+  } catch (e) {
+    await conn.rollback();
+    console.error('Erro ao confirmar recebimento:', e);
+    res.status(500).json({ erro: 'Erro ao confirmar recebimento.' });
+  } finally {
+    conn.release();
+  }
+});
+
+// Cancelar pedido pendente
+router.post('/compras/pedidos/:id/cancelar', auth, async (req, res) => {
+  const db = require('../database/connection');
+  await db.query(
+    `UPDATE pedidos_compra SET status = 'cancelado' WHERE id = ? AND padaria_id = ? AND status = 'pendente'`,
+    [req.params.id, req.padaria.id]
+  );
+  res.json({ ok: true });
 });
 
 // Limpar todos os dados

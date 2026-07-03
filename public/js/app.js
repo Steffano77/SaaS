@@ -419,18 +419,45 @@ async function carregarCompras() {
   selF.innerHTML = '<option value="">— Sem fornecedor —</option>' +
     forn.map(f => `<option value="${f.id}" data-tel="${f.telefone||''}">${f.nome}</option>`).join('');
 
+  // Pedidos pendentes de recebimento
+  const pendentes = await api('/compras/pedidos') || [];
+  const secPend = document.getElementById('secao-pedidos-pendentes');
+  const listaPend = document.getElementById('lista-pedidos-pendentes');
+  if (pendentes.length) {
+    secPend.classList.remove('hidden');
+    listaPend.innerHTML = pendentes.map(p => {
+      const dataPedido = new Date(p.criado_em).toLocaleDateString('pt-BR');
+      const itensTexto = p.itens.map(i => `${i.produto} (${fmtQtd(i.quantidade)} ${i.unidade})`).join(', ');
+      return `<div class="pedido-pendente-card">
+        <div class="pedido-pendente-info">
+          <div class="pedido-pendente-header">
+            <span class="pedido-pendente-forn">${p.fornecedor || 'Sem fornecedor'}</span>
+            <span class="pedido-pendente-data">${dataPedido}</span>
+          </div>
+          <div class="pedido-pendente-itens">${itensTexto}</div>
+          ${p.total > 0 ? `<div class="pedido-pendente-total">Total: R$ ${parseFloat(p.total).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>` : ''}
+        </div>
+        <div class="pedido-pendente-acoes">
+          <button class="btn-receber" onclick="confirmarRecebimentoPedido(${p.id})">✅ Recebi</button>
+          <button class="btn-cancelar-pedido" onclick="cancelarPedido(${p.id})">✕</button>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    secPend.classList.add('hidden');
+  }
+
+  // Histórico de compras recebidas
   const recentes = await api('/compras/recentes') || [];
   const tbody = document.getElementById('tabela-compras-recentes');
   tbody.innerHTML = recentes.length
     ? recentes.map(c => `<tr>
-        <td class="td-main">${c.produto} <span style="color:var(--slate-400);font-size:11px;">${c.unidade}</span></td>
-        <td class="right td-mono">${fmtQtd(c.quantidade)}</td>
-        <td class="right">R$ ${parseFloat(c.custo_unit||0).toFixed(2)}</td>
-        <td class="right" style="font-weight:600;">R$ ${parseFloat(c.valor_total||0).toFixed(2)}</td>
+        <td class="td-main">${c.produtos}</td>
         <td style="color:var(--slate-600);font-size:13px;">${c.fornecedor || '—'}</td>
-        <td>${new Date(c.data).toLocaleDateString('pt-BR')}</td>
+        <td class="right" style="font-weight:600;">R$ ${parseFloat(c.total||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+        <td>${c.data ? new Date(c.data).toLocaleDateString('pt-BR') : '—'}</td>
       </tr>`).join('')
-    : '<tr class="empty-row"><td colspan="6">Nenhuma compra nos últimos 30 dias</td></tr>';
+    : '<tr class="empty-row"><td colspan="4">Nenhuma compra recebida nos últimos 30 dias</td></tr>';
 }
 
 let _produtosCache = [];
@@ -574,41 +601,37 @@ async function registrarPedido(abrirWhats = false) {
   if (!_pedidoItens.length) return;
   const data = document.getElementById('final-data').value || new Date().toISOString().slice(0,10);
   const selF = document.getElementById('final-fornecedor');
+  const fornecedorId = selF.value || null;
   const fornecedorNome = selF.options[selF.selectedIndex]?.text || '';
   const fornecedorTel = selF.options[selF.selectedIndex]?.dataset?.tel || '';
   const observacao = fornecedorNome && fornecedorNome !== '— Sem fornecedor —' ? fornecedorNome : null;
 
   const msgEl = document.getElementById('final-msg');
   msgEl.style.cssText = 'font-size:13px;padding:8px 12px;border-radius:8px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;';
-  msgEl.textContent = 'Registrando...';
+  msgEl.textContent = 'Registrando pedido...';
   msgEl.classList.remove('hidden');
 
-  for (const item of _pedidoItens) {
-    let prodId = item.prodId;
-    if (item.isNovo) {
-      const rp = await fetch(`${API}/produtos`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome: item.nome, unidade: item.unidade, estoque_minimo: item.minimo, custo_unitario: item.custo })
-      });
-      if (!rp.ok) {
-        msgEl.style.cssText = 'font-size:13px;padding:8px 12px;border-radius:8px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;';
-        msgEl.textContent = `❌ Erro ao criar produto "${item.nome}".`;
-        return;
-      }
-      const np = await rp.json();
-      prodId = np.id;
-    }
-    const r = await fetch(`${API}/movimentacoes`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ produto_id: prodId, tipo: 'entrada', quantidade: item.qtd, custo_unit: item.custo, data, observacao })
-    });
-    if (!r.ok) {
-      msgEl.style.cssText = 'font-size:13px;padding:8px 12px;border-radius:8px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;';
-      msgEl.textContent = `❌ Erro ao registrar "${item.nome}".`;
-      return;
-    }
+  const itensPayload = _pedidoItens.map(i => ({
+    produto_id: i.isNovo ? null : i.prodId,
+    nome: i.nome,
+    unidade: i.unidade,
+    quantidade: i.qtd,
+    custo: i.custo,
+    minimo: i.minimo,
+    isNovo: i.isNovo
+  }));
+
+  const r = await fetch(`${API}/compras/pedidos`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fornecedor_id: fornecedorId, observacao, data, itens: itensPayload })
+  });
+
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    msgEl.style.cssText = 'font-size:13px;padding:8px 12px;border-radius:8px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;';
+    msgEl.textContent = `❌ ${err.erro || 'Erro ao registrar pedido.'}`;
+    return;
   }
 
   if (abrirWhats) {
@@ -625,7 +648,31 @@ async function registrarPedido(abrirWhats = false) {
   _pedidoItens = [];
   renderizarPedido();
   fecharModalFinalizar();
-  mostrarMsgCompra('✅ Pedido registrado com sucesso!', 'ok');
+  mostrarMsgCompra('✅ Pedido registrado! Confirme o recebimento quando a mercadoria chegar.', 'ok');
+  carregarCompras();
+}
+
+async function confirmarRecebimentoPedido(id) {
+  if (!confirm('Confirmar recebimento? O estoque será atualizado agora.')) return;
+  const r = await fetch(`${API}/compras/pedidos/${id}/receber`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${TOKEN}` }
+  });
+  if (r.ok) {
+    mostrarMsgCompra('✅ Recebimento confirmado! Estoque atualizado.', 'ok');
+    carregarCompras();
+  } else {
+    const err = await r.json().catch(() => ({}));
+    mostrarMsgCompra(`❌ ${err.erro || 'Erro ao confirmar recebimento.'}`, 'err');
+  }
+}
+
+async function cancelarPedido(id) {
+  if (!confirm('Cancelar este pedido?')) return;
+  await fetch(`${API}/compras/pedidos/${id}/cancelar`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${TOKEN}` }
+  });
   carregarCompras();
 }
 
