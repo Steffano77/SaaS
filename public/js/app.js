@@ -1022,12 +1022,12 @@ async function carregarRelatorios() {
     ? data.movs.map(m => {
         const isSaida = m.tipo === 'saida';
         const cor = isSaida ? 'color:#dc2626;' : '';
-        return `<tr style="${isSaida ? 'color:#dc2626;' : ''}">
+        return `<tr class="${isSaida ? 'tr-saida' : ''}">
           <td class="td-main">${m.produto}</td>
           <td>${tipos[m.tipo]||m.tipo}</td>
           <td class="right td-mono">${fmtQtd(m.quantidade)}</td>
           <td class="right">R$ ${parseFloat(m.custo_unit||0).toFixed(2)}</td>
-          <td class="right" style="font-weight:600;${cor}">R$ ${parseFloat(m.valor_total||0).toFixed(2)}</td>
+          <td class="right" style="font-weight:600;">R$ ${parseFloat(m.valor_total||0).toFixed(2)}</td>
           <td>${new Date(m.data).toLocaleDateString('pt-BR')}</td>
         </tr>`;
       }).join('')

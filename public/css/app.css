@@ -899,6 +899,9 @@
   color: var(--slate-400);
 }
 
+/* Linha de saída na tabela de relatórios */
+tr.tr-saida td { color: #dc2626 !important; }
+
 .saida-item {
   padding: 14px 16px;
   border-bottom: 1px solid var(--slate-100);
