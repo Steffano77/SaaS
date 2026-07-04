@@ -304,37 +304,106 @@ async function carregarDashboard() {
         </div>`).join('')
     : '<p style="color:var(--slate-400);font-size:14px">Nenhum produto vencendo em breve ✅</p>';
 
+  const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
+  const gridColor  = () => isDark() ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+  const tickColor  = () => isDark() ? '#94a3b8' : '#64748b';
+  const labelColor = () => isDark() ? '#cbd5e1' : '#334155';
+
   try {
     const movData = await api('/relatorios/movs-semana');
     const ctxM = document.getElementById('chart-movs')?.getContext('2d');
     if (ctxM && movData) {
       if (window._chartMovs) window._chartMovs.destroy();
       window._chartMovs = new Chart(ctxM, {
-        type: 'bar',
+        type: 'line',
         data: {
           labels: movData.map(r => r.dia),
           datasets: [
-            { label: 'Entradas', data: movData.map(r => r.entradas), backgroundColor: '#22c55e', borderRadius: 6 },
-            { label: 'Saídas',   data: movData.map(r => r.saidas),   backgroundColor: '#f97316', borderRadius: 6 }
+            {
+              label: 'Entradas',
+              data: movData.map(r => r.entradas),
+              borderColor: '#22c55e',
+              backgroundColor: 'rgba(34,197,94,0.15)',
+              borderWidth: 2.5,
+              pointBackgroundColor: '#22c55e',
+              pointRadius: 4,
+              tension: 0.4,
+              fill: true
+            },
+            {
+              label: 'Saídas',
+              data: movData.map(r => r.saidas),
+              borderColor: '#f97316',
+              backgroundColor: 'rgba(249,115,22,0.12)',
+              borderWidth: 2.5,
+              pointBackgroundColor: '#f97316',
+              pointRadius: 4,
+              tension: 0.4,
+              fill: true
+            }
           ]
         },
-        options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: labelColor(), boxWidth: 12, padding: 16, font: { family: "'Plus Jakarta Sans', sans-serif", size: 12 } } }
+          },
+          scales: {
+            x: { grid: { color: gridColor() }, ticks: { color: tickColor(), font: { family: "'Plus Jakarta Sans', sans-serif" } } },
+            y: { beginAtZero: true, grid: { color: gridColor() }, ticks: { color: tickColor(), font: { family: "'Plus Jakarta Sans', sans-serif" } } }
+          }
+        }
       });
     }
   } catch(e) {}
 
   try {
-    const catData = await api('/relatorios/valor-categorias');
+    const topData = await api('/relatorios/top-produtos');
     const ctxC = document.getElementById('chart-cats')?.getContext('2d');
-    if (ctxC && catData && catData.length) {
+    if (ctxC && topData && topData.length) {
       if (window._chartCats) window._chartCats.destroy();
       window._chartCats = new Chart(ctxC, {
-        type: 'doughnut',
+        type: 'bar',
         data: {
-          labels: catData.map(r => r.categoria || 'Sem categoria'),
-          datasets: [{ data: catData.map(r => parseFloat(r.valor)), backgroundColor: ['#1e3a5f','#f97316','#22c55e','#3b82f6','#a855f7','#ec4899','#eab308','#64748b'] }]
+          labels: topData.map(r => r.nome),
+          datasets: [{
+            label: 'Valor em estoque (R$)',
+            data: topData.map(r => parseFloat(r.valor)),
+            backgroundColor: [
+              'rgba(249,115,22,0.85)',
+              'rgba(249,115,22,0.70)',
+              'rgba(249,115,22,0.55)',
+              'rgba(249,115,22,0.40)',
+              'rgba(249,115,22,0.28)'
+            ],
+            borderColor: '#f97316',
+            borderWidth: 1.5,
+            borderRadius: 6
+          }]
         },
-        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => ` R$ ${ctx.parsed.x.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              grid: { color: gridColor() },
+              ticks: { color: tickColor(), font: { family: "'Plus Jakarta Sans', sans-serif" }, callback: v => 'R$ ' + v.toLocaleString('pt-BR') }
+            },
+            y: {
+              grid: { display: false },
+              ticks: { color: labelColor(), font: { family: "'Plus Jakarta Sans', sans-serif", weight: '600' } }
+            }
+          }
+        }
       });
     }
   } catch(e) {}

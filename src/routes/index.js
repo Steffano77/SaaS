@@ -91,6 +91,17 @@ router.get('/relatorios/movs-semana', auth, async (req, res) => {
   res.json(rows);
 });
 
+router.get('/relatorios/top-produtos', auth, async (req, res) => {
+  const db = require('../database/connection');
+  const [rows] = await db.query(`
+    SELECT nome, ROUND(estoque_atual * custo_unitario, 2) AS valor
+    FROM produtos
+    WHERE padaria_id = ? AND ativo = 1 AND estoque_atual > 0 AND custo_unitario > 0
+    ORDER BY valor DESC
+    LIMIT 5`, [req.padaria.id]);
+  res.json(rows);
+});
+
 router.get('/relatorios/valor-categorias', auth, async (req, res) => {
   const db = require('../database/connection');
   const [rows] = await db.query(`
