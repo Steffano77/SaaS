@@ -6,8 +6,9 @@ const upload = multer({ dest: '/tmp/panificapro/' });
 const authCtrl  = require('../controllers/authController');
 const prodCtrl  = require('../controllers/produtosController');
 const movCtrl   = require('../controllers/movimentacoesController');
-const syncCtrl  = require('../controllers/syncController');
-const dadosCtrl = require('../controllers/dadosController');
+const syncCtrl   = require('../controllers/syncController');
+const importCtrl = require('../controllers/importController');
+const dadosCtrl  = require('../controllers/dadosController');
 
 const senhaCtrl = require('../controllers/senhaController');
 
@@ -34,6 +35,10 @@ router.post('/movimentacoes', auth, movCtrl.registrar);
 
 // Sync Saurus
 router.post('/sync/saurus', auth, upload.single('arquivo'), syncCtrl.importarSaurus);
+
+// Importação genérica
+router.post('/sync/preview',   auth, upload.single('arquivo'), importCtrl.preview);
+router.post('/sync/generico',  auth, upload.single('arquivo'), importCtrl.importarGenerico);
 
 // Fornecedores
 router.get('/fornecedores', auth, async (req, res) => {

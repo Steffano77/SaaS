@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260703e"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260704a"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -475,35 +475,83 @@
     <!-- SYNC SAURUS -->
     <section id="pg-sync" class="hidden page-section">
       <div class="page-header">
-        <h2 class="page-title">Sincronizar com Saurus</h2>
+        <h2 class="page-title">Sincronizar / Importar</h2>
       </div>
-      <div class="card sync-panel">
-        <div class="card-body">
-          <p style="color: var(--slate-600); font-size: 14px; line-height: 1.7; margin-bottom: 20px;">
-            Exporte o relatório de produtos no Saurus Retaguarda:<br>
-            <strong>Relatórios → Produtos → Exportar Excel</strong><br>
-            Depois selecione o arquivo e a loja abaixo para sincronizar.
-          </p>
-          <form onsubmit="sincronizarSaurus(event)">
-            <div class="form-group" style="margin-bottom:16px;">
-              <label style="font-size:13px;font-weight:600;color:var(--slate-700);display:block;margin-bottom:6px;">Filtrar por loja</label>
-              <select id="sync-loja" class="form-control" style="max-width:280px;">
-                <option value="">Todas as lojas</option>
-                <option value="1">1 - PADARIA DO JOTA I LTDA</option>
-                <option value="2" selected>2 - PADARIA DO JOTA LTDA</option>
-                <option value="3">3 - PADARIA DO JOTA II LTDA</option>
-              </select>
-              <small style="color:var(--slate-500);font-size:12px;">Somente produtos desta loja serão importados</small>
+
+      <!-- Abas -->
+      <div class="tabs-auth" style="margin-bottom:20px;">
+        <button class="tab-btn active" id="tab-sync-saurus" onclick="mostrarTabSync('saurus')">Saurus</button>
+        <button class="tab-btn" id="tab-sync-generico" onclick="mostrarTabSync('generico')">Importação Genérica</button>
+      </div>
+
+      <!-- Aba Saurus -->
+      <div id="sync-painel-saurus">
+        <div class="card sync-panel">
+          <div class="card-body">
+            <p style="color: var(--slate-600); font-size: 14px; line-height: 1.7; margin-bottom: 20px;">
+              Exporte o relatório de produtos no Saurus Retaguarda:<br>
+              <strong>Relatórios → Produtos → Exportar Excel</strong><br>
+              Depois selecione o arquivo e a loja abaixo para sincronizar.
+            </p>
+            <form onsubmit="sincronizarSaurus(event)">
+              <div class="form-group" style="margin-bottom:16px;">
+                <label style="font-size:13px;font-weight:600;color:var(--slate-700);display:block;margin-bottom:6px;">Filtrar por loja</label>
+                <select id="sync-loja" class="form-control" style="max-width:280px;">
+                  <option value="">Todas as lojas</option>
+                  <option value="1">1 - PADARIA DO JOTA I LTDA</option>
+                  <option value="2" selected>2 - PADARIA DO JOTA LTDA</option>
+                  <option value="3">3 - PADARIA DO JOTA II LTDA</option>
+                </select>
+                <small style="color:var(--slate-500);font-size:12px;">Somente produtos desta loja serão importados</small>
+              </div>
+              <label class="upload-zone" for="arquivo-saurus">
+                <div class="upload-icon">📂</div>
+                <span id="nome-arquivo">Clique para selecionar o arquivo .xlsx</span>
+                <input type="file" id="arquivo-saurus" accept=".xlsx" style="display:none"
+                  onchange="document.getElementById('nome-arquivo').textContent = this.files[0]?.name || 'Clique para selecionar'"/>
+              </label>
+              <div id="resultado-sync" class="hidden"></div>
+              <button type="submit" class="btn-primary full">🔄 Sincronizar agora</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Aba Importação Genérica -->
+      <div id="sync-painel-generico" class="hidden">
+        <div class="card sync-panel">
+          <div class="card-body">
+            <p style="color:var(--slate-600);font-size:14px;line-height:1.7;margin-bottom:20px;">
+              Importe produtos de <strong>qualquer sistema</strong> que exporte para Excel (.xlsx) ou CSV.<br>
+              Você vai escolher quais colunas do seu arquivo correspondem a cada campo.
+            </p>
+
+            <!-- Passo 1: upload -->
+            <div id="import-passo1">
+              <label class="upload-zone" for="arquivo-generico">
+                <div class="upload-icon">📂</div>
+                <span id="nome-arquivo-gen">Clique para selecionar o arquivo (.xlsx ou .csv)</span>
+                <input type="file" id="arquivo-generico" accept=".xlsx,.csv,.txt" style="display:none"
+                  onchange="document.getElementById('nome-arquivo-gen').textContent = this.files[0]?.name || 'Clique para selecionar'"/>
+              </label>
+              <div id="resultado-import-preview" class="hidden"></div>
+              <button class="btn-primary full" style="margin-top:12px;" onclick="previewImportacao()">📋 Carregar colunas</button>
             </div>
-            <label class="upload-zone" for="arquivo-saurus">
-              <div class="upload-icon">📂</div>
-              <span id="nome-arquivo">Clique para selecionar o arquivo .xlsx</span>
-              <input type="file" id="arquivo-saurus" accept=".xlsx" style="display:none"
-                onchange="document.getElementById('nome-arquivo').textContent = this.files[0]?.name || 'Clique para selecionar'"/>
-            </label>
-            <div id="resultado-sync" class="hidden"></div>
-            <button type="submit" class="btn-primary full">🔄 Sincronizar agora</button>
-          </form>
+
+            <!-- Passo 2: mapeamento -->
+            <div id="import-passo2" class="hidden">
+              <p style="font-size:13px;color:var(--slate-600);margin-bottom:16px;">
+                Selecione qual coluna do seu arquivo corresponde a cada campo abaixo.<br>
+                <strong>Apenas "Nome" é obrigatório.</strong> Os outros são opcionais.
+              </p>
+              <div id="import-mapeamento-campos"></div>
+              <div id="resultado-import" class="hidden" style="margin-top:12px;"></div>
+              <div style="display:flex;gap:10px;margin-top:16px;">
+                <button class="btn-secondary" style="flex:1;" onclick="voltarImportPasso1()">← Voltar</button>
+                <button class="btn-primary" style="flex:2;" onclick="confirmarImportacao()">✅ Importar agora</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -630,7 +678,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260703e"></script>
+<script src="/js/app.js?v=20260704a"></script>
 
 <!-- Tela Saídas 30 dias -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

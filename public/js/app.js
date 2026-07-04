@@ -1194,6 +1194,108 @@ async function salvarMovimento(e) {
   carregarDashboard();
 }
 
+// ── Abas de Sync ─────────────────────────────────────────────
+function mostrarTabSync(aba) {
+  document.getElementById('sync-painel-saurus').classList.toggle('hidden', aba !== 'saurus');
+  document.getElementById('sync-painel-generico').classList.toggle('hidden', aba !== 'generico');
+  document.getElementById('tab-sync-saurus').classList.toggle('active', aba === 'saurus');
+  document.getElementById('tab-sync-generico').classList.toggle('active', aba === 'generico');
+}
+
+// ── Importação Genérica ───────────────────────────────────────
+const CAMPOS_IMPORT = [
+  { key: 'nome',           label: 'Nome do produto',   obrigatorio: true  },
+  { key: 'codigo_barras',  label: 'Código de barras',  obrigatorio: false },
+  { key: 'estoque_atual',  label: 'Estoque atual',     obrigatorio: false },
+  { key: 'custo_unitario', label: 'Custo unitário',    obrigatorio: false },
+  { key: 'preco_venda',    label: 'Preço de venda',    obrigatorio: false },
+  { key: 'unidade',        label: 'Unidade (kg, un…)', obrigatorio: false },
+  { key: 'categoria',      label: 'Categoria',         obrigatorio: false },
+  { key: 'estoque_minimo', label: 'Estoque mínimo',    obrigatorio: false },
+];
+
+let _importColunas = [];
+
+async function previewImportacao() {
+  const file = document.getElementById('arquivo-generico').files[0];
+  if (!file) return alert('Selecione um arquivo .xlsx ou .csv.');
+  const el = document.getElementById('resultado-import-preview');
+  el.className = ''; el.textContent = '⏳ Lendo colunas…'; el.classList.remove('hidden');
+
+  const fd = new FormData();
+  fd.append('arquivo', file);
+  const r = await fetch(`${API}/sync/preview`, {
+    method: 'POST', headers: { Authorization: `Bearer ${TOKEN}` }, body: fd
+  });
+  const d = await r.json();
+  if (!r.ok) { el.className = 'result-err'; el.textContent = `❌ ${d.erro}`; return; }
+
+  _importColunas = d.colunas;
+  el.classList.add('hidden');
+
+  // Monta os selects de mapeamento
+  const container = document.getElementById('import-mapeamento-campos');
+  container.innerHTML = '';
+  for (const campo of CAMPOS_IMPORT) {
+    const opts = ['<option value="">(não importar)</option>',
+      ..._importColunas.map(c => `<option value="${c}">${c}</option>`)].join('');
+    // Tentativa de auto-match por similaridade
+    const autoMatch = _importColunas.find(c =>
+      c.toLowerCase().includes(campo.key.replace('_',' ').toLowerCase()) ||
+      c.toLowerCase().replace(/[^a-z]/g,'').includes(campo.key.replace(/_/g,'').toLowerCase())
+    ) || '';
+    container.innerHTML += `
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-size:13px;font-weight:600;color:var(--slate-700);display:block;margin-bottom:4px;">
+          ${campo.label}${campo.obrigatorio ? ' <span style="color:#dc2626">*</span>' : ''}
+        </label>
+        <select id="map-${campo.key}" class="form-control">
+          ${opts}
+        </select>
+      </div>`;
+    if (autoMatch) document.getElementById(`map-${campo.key}`).value = autoMatch;
+  }
+
+  document.getElementById('import-passo1').classList.add('hidden');
+  document.getElementById('import-passo2').classList.remove('hidden');
+}
+
+function voltarImportPasso1() {
+  document.getElementById('import-passo2').classList.add('hidden');
+  document.getElementById('import-passo1').classList.remove('hidden');
+  document.getElementById('resultado-import').classList.add('hidden');
+}
+
+async function confirmarImportacao() {
+  const file = document.getElementById('arquivo-generico').files[0];
+  if (!file) { voltarImportPasso1(); return; }
+
+  const mapeamento = {};
+  for (const campo of CAMPOS_IMPORT) {
+    const val = document.getElementById(`map-${campo.key}`).value;
+    if (val) mapeamento[campo.key] = val;
+  }
+  if (!mapeamento.nome) return alert('Selecione a coluna correspondente ao "Nome do produto".');
+
+  const el = document.getElementById('resultado-import');
+  el.className = ''; el.textContent = '⏳ Importando…'; el.classList.remove('hidden');
+
+  const fd = new FormData();
+  fd.append('arquivo', file);
+  fd.append('mapeamento', JSON.stringify(mapeamento));
+  const r = await fetch(`${API}/sync/generico`, {
+    method: 'POST', headers: { Authorization: `Bearer ${TOKEN}` }, body: fd
+  });
+  const d = await r.json();
+  if (r.ok) {
+    el.className = 'result-ok';
+    el.textContent = `✅ Importação concluída! ${d.atualizados} atualizados, ${d.criados} novos, ${d.ignorados} ignorados.`;
+  } else {
+    el.className = 'result-err';
+    el.textContent = `❌ Erro: ${d.erro}`;
+  }
+}
+
 // ── Sync Saurus ──────────────────────────────────────────────
 async function sincronizarSaurus(e) {
   e.preventDefault();
