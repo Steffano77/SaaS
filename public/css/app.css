@@ -124,6 +124,7 @@
       box-shadow: 0 1px 4px rgba(0,0,0,0.12);
       font-weight: 600;
     }
+    [data-theme="dark"] .tab-btn.active { background: #334155; color: #f1f5f9; }
 
     .form-group {
       margin-bottom: 18px;
@@ -312,7 +313,7 @@
     #sidebar-nome {
       font-size: 13px;
       font-weight: 600;
-      color: var(--white);
+      color: #ffffff;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -402,6 +403,7 @@
       color: var(--navy);
       letter-spacing: -0.4px;
     }
+    [data-theme="dark"] .page-title { color: #f1f5f9; }
 
     /* ── KPI CARDS ── */
     #kpis {
@@ -603,6 +605,7 @@
       font-weight: 700;
       color: var(--navy);
     }
+    [data-theme="dark"] .modal-title { color: #f1f5f9; }
 
     .modal-close {
       background: none;
@@ -924,10 +927,10 @@ tr.tr-saida td { color: #dc2626 !important; }
 .pedido-pendente-card:last-child { border-bottom: none; }
 .pedido-pendente-info { flex: 1; min-width: 0; }
 .pedido-pendente-header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; flex-wrap: wrap; }
-.pedido-pendente-forn { font-weight: 700; font-size: 14px; color: var(--navy); }
+.pedido-pendente-forn { font-weight: 700; font-size: 14px; color: var(--slate-800); }
 .pedido-pendente-data { font-size: 12px; color: var(--slate-400); }
 .pedido-pendente-itens { font-size: 13px; color: var(--slate-600); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pedido-pendente-total { font-size: 13px; font-weight: 600; color: var(--navy); margin-top: 4px; }
+.pedido-pendente-total { font-size: 13px; font-weight: 600; color: var(--slate-800); margin-top: 4px; }
 .pedido-pendente-acoes { display: flex; gap: 6px; flex-shrink: 0; }
 .btn-receber {
   background: #16a34a; color: #fff; border: none; border-radius: 8px;
@@ -935,10 +938,10 @@ tr.tr-saida td { color: #dc2626 !important; }
 }
 .btn-receber:hover { background: #15803d; }
 .btn-editar-pedido {
-  background: none; border: 1.5px solid var(--slate-300); color: var(--navy);
+  background: none; border: 1.5px solid var(--slate-300); color: var(--slate-700);
   border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
 }
-.btn-editar-pedido:hover { background: var(--slate-50); border-color: var(--navy); }
+.btn-editar-pedido:hover { background: var(--slate-100); border-color: var(--slate-500); }
 .btn-cancelar-pedido {
   background: none; border: 1.5px solid var(--slate-200); color: var(--slate-400);
   border-radius: 8px; padding: 8px 10px; font-size: 13px; cursor: pointer;
@@ -1043,3 +1046,9 @@ tr.tr-saida td { color: #dc2626 !important; }
 [data-theme="dark"] #tela-auth,
 [data-theme="dark"] #tela-redefinir { background: linear-gradient(135deg, #0a1628 0%, #0f1f38 60%, #152b47 100%); }
 [data-theme="dark"] .section-header h2 { color: #f1f5f9; }
+[data-theme="dark"] .btn-icon:hover { color: #f1f5f9; background: #334155; }
+[data-theme="dark"] .btn-show-pass:hover { color: #f1f5f9; }
+[data-theme="dark"] .sidebar-user-label { color: rgba(255,255,255,0.5); }
+[data-theme="dark"] .btn-primary { color: #ffffff; }
+[data-theme="dark"] .btn-danger  { color: #ffffff; }
+[data-theme="dark"] .sidebar-link.active { color: #ffffff; }
