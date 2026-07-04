@@ -371,15 +371,15 @@ function renderizarSaidas(rows) {
       const data = new Date(r.data).toLocaleDateString('pt-BR');
       const valor = parseFloat(r.valor_total || 0).toLocaleString('pt-BR',{minimumFractionDigits:2});
       const custo = parseFloat(r.custo_unit || 0).toLocaleString('pt-BR',{minimumFractionDigits:2});
-      return `<div style="padding:14px 16px;border-bottom:1px solid var(--slate-100);display:flex;align-items:center;gap:12px;">
+      return `<div class="saida-item">
         <input type="checkbox" class="saida-check" data-idx="${i}" style="width:16px;height:16px;flex-shrink:0;accent-color:var(--navy);cursor:pointer;"/>
         <div style="flex:1;min-width:0;">
-          <div style="font-weight:600;font-size:14px;color:var(--navy);">${r.produto}</div>
-          <div style="font-size:12px;color:var(--slate-400);margin-top:2px;">${fmtQtd(r.quantidade)} ${r.unidade} × R$ ${custo}${r.observacao ? ' · ' + r.observacao : ''}</div>
+          <div class="saida-item-nome">${r.produto}</div>
+          <div class="saida-item-sub">${fmtQtd(r.quantidade)} ${r.unidade} × R$ ${custo}${r.observacao ? ' · ' + r.observacao : ''}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-weight:700;color:var(--red-500);">R$ ${valor}</div>
-          <div style="font-size:11px;color:var(--slate-400);margin-top:2px;">${data}</div>
+          <div class="saida-item-data">${data}</div>
         </div>
       </div>`;
     }).join('')}`;

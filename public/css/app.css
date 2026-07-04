@@ -862,6 +862,54 @@
 }
 .theme-toggle:hover { background: rgba(255,255,255,0.25); }
 
+/* Tela fullscreen (ex: saídas) */
+.tela-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+.tela-fullscreen-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--slate-200);
+  background: var(--white);
+  flex-shrink: 0;
+}
+.tela-fullscreen-back {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--slate-800);
+  font-size: 20px;
+  line-height: 1;
+  padding: 4px;
+}
+.tela-fullscreen-titulo {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--slate-800);
+}
+.tela-fullscreen-sub {
+  font-size: 12px;
+  color: var(--slate-400);
+}
+
+.saida-item {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--slate-100);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.saida-item-nome { font-weight: 600; font-size: 14px; color: var(--slate-800); }
+.saida-item-sub  { font-size: 12px; color: var(--slate-400); margin-top: 2px; }
+.saida-item-data { font-size: 11px; color: var(--slate-400); margin-top: 2px; }
+
 /* Pedidos pendentes de recebimento */
 .pedido-pendente-card {
   display: flex;

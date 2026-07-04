@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260703c"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260703d"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -630,15 +630,15 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260703c"></script>
+<script src="/js/app.js?v=20260703d"></script>
 
-<!-- Tela Saídas 15 dias -->
-<div id="tela-saidas" class="hidden" style="position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;flex-direction:column;">
-  <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--slate-200);background:var(--white);flex-shrink:0;">
-    <button onclick="fecharTelaSaidas()" style="background:none;border:none;cursor:pointer;color:var(--navy);font-size:20px;line-height:1;padding:4px;">←</button>
+<!-- Tela Saídas 30 dias -->
+<div id="tela-saidas" class="hidden tela-fullscreen">
+  <div class="tela-fullscreen-header">
+    <button onclick="fecharTelaSaidas()" class="tela-fullscreen-back">←</button>
     <div style="flex:1;">
-      <div style="font-weight:700;font-size:16px;color:var(--navy);">Saídas — últimos 30 dias</div>
-      <div style="font-size:12px;color:var(--slate-400);">Do mais recente ao mais antigo</div>
+      <div class="tela-fullscreen-titulo">Saídas — últimos 30 dias</div>
+      <div class="tela-fullscreen-sub">Do mais recente ao mais antigo</div>
     </div>
     <button onclick="imprimirSaidas()" class="btn-primary" style="padding:8px 16px;font-size:13px;display:flex;align-items:center;gap:6px;">
       🖨️ Imprimir
