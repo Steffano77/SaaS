@@ -471,6 +471,7 @@ function imprimirSaidas() {
       <td>R$ ${parseFloat(r.custo_unit||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
       <td style="font-weight:700;color:#dc2626;">R$ ${parseFloat(r.valor_total||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
       <td>${new Date(r.data).toLocaleDateString('pt-BR')}</td>
+      <td class="obs">${r.observacao || ''}</td>
     </tr>`).join('');
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
@@ -483,12 +484,13 @@ function imprimirSaidas() {
       th { background: #1e3a5f; color: #fff; padding: 8px 10px; text-align: left; }
       td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }
       tr:nth-child(even) td { background: #f8fafc; }
+      td.obs { color: #64748b; font-style: italic; font-size: 12px; }
       .total { text-align: right; font-weight: 700; margin-top: 12px; font-size: 14px; color: #dc2626; }
     </style></head><body>
     <h2>PanificaPro — Saídas</h2>
     <p>Impresso em ${new Date().toLocaleDateString('pt-BR')} · ${alvo.length} registros</p>
     <table>
-      <thead><tr><th>Produto</th><th>Quantidade</th><th>Custo unit.</th><th>Total</th><th>Data</th></tr></thead>
+      <thead><tr><th>Produto</th><th>Quantidade</th><th>Custo unit.</th><th>Total</th><th>Data</th><th>Observação</th></tr></thead>
       <tbody>${linhas}</tbody>
     </table>
     <div class="total">Total geral: R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
