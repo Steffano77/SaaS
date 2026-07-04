@@ -264,6 +264,8 @@
       flex-direction: column;
       height: 100vh;
       overflow: hidden;
+      -webkit-text-size-adjust: none;
+      text-size-adjust: none;
     }
 
     .sidebar-header {
