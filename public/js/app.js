@@ -1392,9 +1392,27 @@ async function sincronizarSaurus(e) {
   }
 }
 
-async function limparTodosDados() {
-  if (!confirm('⚠️ Tem certeza? Isso apagará TODOS os produtos e movimentações do seu estoque. Esta ação não pode ser desfeita.')) return;
-  if (!confirm('Confirmação final: todos os dados serão removidos permanentemente. Continuar?')) return;
+function abrirModalLimpar() {
+  document.getElementById('input-confirmar-apagar').value = '';
+  verificarSenhaApagar('');
+  document.getElementById('modal-limpar').classList.remove('hidden');
+  setTimeout(() => document.getElementById('input-confirmar-apagar').focus(), 100);
+}
+
+function fecharModalLimpar() {
+  document.getElementById('modal-limpar').classList.add('hidden');
+}
+
+function verificarSenhaApagar(val) {
+  const btn = document.getElementById('btn-confirmar-apagar');
+  const ok = val.trim() === 'APAGAR TUDO';
+  btn.disabled = !ok;
+  btn.style.opacity = ok ? '1' : '0.4';
+  btn.style.cursor  = ok ? 'pointer' : 'not-allowed';
+}
+
+async function executarLimparDados() {
+  fecharModalLimpar();
   const r = await fetch(`${API}/dados/limpar`, {
     method: 'DELETE', headers: { 'Authorization': `Bearer ${TOKEN}` }
   });

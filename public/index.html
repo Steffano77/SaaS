@@ -560,10 +560,37 @@
         <div class="card-body">
           <h3 style="color:#dc2626;font-size:15px;font-weight:700;margin:0 0 8px;">⚠️ Zona de perigo</h3>
           <p style="color:var(--slate-600);font-size:14px;margin-bottom:16px;">Remove todos os produtos e movimentações do seu estoque. Esta ação não pode ser desfeita.</p>
-          <button class="btn-danger" onclick="limparTodosDados()">🗑️ Limpar todos os dados</button>
+          <button class="btn-danger" onclick="abrirModalLimpar()">🗑️ Limpar todos os dados</button>
         </div>
       </div>
     </section>
+
+    <!-- Modal confirmação limpar dados -->
+    <div id="modal-limpar" class="modal-overlay hidden" onclick="if(event.target===this)fecharModalLimpar()">
+      <div class="modal-content" style="max-width:420px;">
+        <div class="modal-header">
+          <span class="modal-title" style="color:#dc2626;">⚠️ Limpar todos os dados</span>
+          <button class="modal-close" onclick="fecharModalLimpar()">✕</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:14px;color:var(--slate-600);line-height:1.7;margin-bottom:20px;">
+            Esta ação é <strong>irreversível</strong>. Todos os produtos, movimentações e histórico serão apagados permanentemente.<br><br>
+            Para confirmar, digite exatamente:<br>
+            <strong style="font-size:15px;color:#dc2626;letter-spacing:1px;">APAGAR TUDO</strong>
+          </p>
+          <div class="form-group" style="margin-bottom:20px;">
+            <input type="text" id="input-confirmar-apagar" class="form-control"
+              placeholder="Digite APAGAR TUDO"
+              oninput="verificarSenhaApagar(this.value)"
+              autocomplete="off" spellcheck="false"/>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn-secondary" style="flex:1;" onclick="fecharModalLimpar()">Cancelar</button>
+            <button id="btn-confirmar-apagar" class="btn-danger" style="flex:1;opacity:0.4;cursor:not-allowed;" disabled onclick="executarLimparDados()">🗑️ Apagar tudo</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
   </main>
 </div>
@@ -678,7 +705,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260704e"></script>
+<script src="/js/app.js?v=20260704f"></script>
 
 <!-- Tela Saídas 30 dias -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
