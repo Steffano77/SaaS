@@ -3,7 +3,8 @@ const bcrypt = require('bcryptjs');
 const db     = require('../database/connection');
 
 function getSecret() {
-  return process.env.JWT_SECRET || 'panificapro_secret';
+  if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET não configurado.');
+  return process.env.JWT_SECRET;
 }
 
 // Verifica se as colunas de reset já existem no banco

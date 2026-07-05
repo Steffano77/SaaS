@@ -62,7 +62,7 @@ function mostrarEsqueciSenha(e) {
   e.preventDefault();
   document.getElementById('form-login').classList.add('hidden');
   document.getElementById('form-esqueci').classList.remove('hidden');
-  document.getElementById('tabs-auth') && document.querySelector('.tabs-auth').classList.add('hidden');
+  document.querySelector('.tabs-auth')?.classList.add('hidden');
 }
 
 function voltarLogin() {
@@ -563,7 +563,7 @@ function fecharModalEstoque() {
 
 function irParaCompras() {
   fecharModalEstoque();
-  navegarPara('compras');
+  mostrarPagina('compras');
 }
 
 // ── Produtos ─────────────────────────────────────────────────
@@ -1290,20 +1290,28 @@ async function salvarMovimento(e) {
   if (custo < 0) return alert('Custo não pode ser negativo.');
   const movBtn = e.submitter || document.querySelector('#modal-mov button[type=submit]');
   setBtnLoading(movBtn, true);
-  await api('/movimentacoes', {
-    method: 'POST',
-    body: {
-      produto_id: parseInt(document.getElementById('mov-produto').value),
-      tipo:       document.getElementById('mov-tipo').value,
-      quantidade: parseFloat(document.getElementById('mov-qtd').value),
-      custo_unit: parseFloat(document.getElementById('mov-custo').value) || 0,
-      observacao: document.getElementById('mov-obs').value || null,
-    }
-  });
-  setBtnLoading(movBtn, false);
-  fecharModal('modal-mov');
-  carregarMovimentacoes();
-  carregarDashboard();
+  try {
+    const r = await fetch(`${API}/movimentacoes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
+      body: JSON.stringify({
+        produto_id: parseInt(document.getElementById('mov-produto').value),
+        tipo:       document.getElementById('mov-tipo').value,
+        quantidade: parseFloat(document.getElementById('mov-qtd').value),
+        custo_unit: parseFloat(document.getElementById('mov-custo').value) || 0,
+        observacao: document.getElementById('mov-obs').value || null,
+      })
+    });
+    const d = await r.json();
+    if (!r.ok) { alert(`Erro ao registrar: ${d.erro || 'Tente novamente.'}`); return; }
+    fecharModal('modal-mov');
+    carregarMovimentacoes();
+    carregarDashboard();
+  } catch(e) {
+    alert('Erro de conexão. Verifique sua internet e tente novamente.');
+  } finally {
+    setBtnLoading(movBtn, false);
+  }
 }
 
 // ── Abas de Sync ─────────────────────────────────────────────

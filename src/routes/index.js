@@ -3,6 +3,12 @@ const auth   = require('../middleware/auth');
 const multer = require('multer');
 const upload = multer({ dest: '/tmp/panificapro/' });
 
+// Wrapper para capturar erros em rotas async inline
+const wrap = fn => async (req, res, next) => {
+  try { await fn(req, res, next); }
+  catch (e) { console.error(e); res.status(500).json({ erro: 'Erro interno do servidor.' }); }
+};
+
 const authCtrl  = require('../controllers/authController');
 const prodCtrl  = require('../controllers/produtosController');
 const movCtrl   = require('../controllers/movimentacoesController');
@@ -19,13 +25,13 @@ router.get('/auth/perfil',         auth, authCtrl.perfil);
 router.post('/auth/esqueci-senha', senhaCtrl.esqueceuSenha);
 router.post('/auth/redefinir-senha', senhaCtrl.redefinirSenha);
 
-router.put('/auth/padaria', auth, async (req, res) => {
+router.put('/auth/padaria', auth, wrap(async (req, res) => {
   const db = require('../database/connection');
   const { nome } = req.body;
   if (!nome || nome.trim().length < 2) return res.status(400).json({ erro: 'Nome muito curto.' });
   await db.query('UPDATE padarias SET nome = ? WHERE id = ?', [nome.trim(), req.padaria.id]);
   res.json({ ok: true, nome: nome.trim() });
-});
+}));
 
 // Dashboard
 router.get('/dashboard', auth, prodCtrl.dashboard);
@@ -49,13 +55,13 @@ router.post('/sync/preview',   auth, upload.single('arquivo'), importCtrl.previe
 router.post('/sync/generico',  auth, upload.single('arquivo'), importCtrl.importarGenerico);
 
 // Fornecedores
-router.get('/fornecedores', auth, async (req, res) => {
+router.get('/fornecedores', auth, wrap(async (req, res) => {
   const db = require('../database/connection');
   const [rows] = await db.query('SELECT * FROM fornecedores WHERE padaria_id = ? AND ativo = 1 ORDER BY nome', [req.padaria.id]);
   res.json(rows);
-});
+}));
 
-router.post('/fornecedores', auth, async (req, res) => {
+router.post('/fornecedores', auth, wrap(async (req, res) => {
   const db = require('../database/connection');
   const { nome, contato, telefone, email } = req.body;
   if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório.' });
@@ -64,9 +70,9 @@ router.post('/fornecedores', auth, async (req, res) => {
     [req.padaria.id, nome, contato || null, telefone || null, email || null]
   );
   res.status(201).json({ id: r.insertId, nome });
-});
+}));
 
-router.put('/fornecedores/:id', auth, async (req, res) => {
+router.put('/fornecedores/:id', auth, wrap(async (req, res) => {
   const db = require('../database/connection');
   const { nome, contato, telefone, email } = req.body;
   if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório.' });
@@ -75,16 +81,16 @@ router.put('/fornecedores/:id', auth, async (req, res) => {
     [nome, contato||null, telefone||null, email||null, req.params.id, req.padaria.id]
   );
   res.json({ ok: true });
-});
+}));
 
-router.delete('/fornecedores/:id', auth, async (req, res) => {
+router.delete('/fornecedores/:id', auth, wrap(async (req, res) => {
   const db = require('../database/connection');
   await db.query('UPDATE fornecedores SET ativo = 0 WHERE id = ? AND padaria_id = ?', [req.params.id, req.padaria.id]);
   res.json({ ok: true });
-});
+}));
 
 // Relatórios
-router.get('/relatorios/movs-semana', auth, async (req, res) => {
+router.get('/relatorios/movs-semana', auth, wrap(async (req, res) => {
   const db = require('../database/connection');
   const [rows] = await db.query(`
     SELECT
@@ -97,9 +103,9 @@ router.get('/relatorios/movs-semana', auth, async (req, res) => {
     GROUP BY DATE(data), DATE_FORMAT(data, '%d/%m')
     ORDER BY DATE(data)`, [req.padaria.id]);
   res.json(rows);
-});
+}));
 
-router.get('/relatorios/top-produtos', auth, async (req, res) => {
+router.get('/relatorios/top-produtos', auth, wrap(async (req, res) => {
   const db = require('../database/connection');
   const [rows] = await db.query(`
     SELECT nome, ROUND(estoque_atual * custo_unitario, 2) AS valor
@@ -108,9 +114,9 @@ router.get('/relatorios/top-produtos', auth, async (req, res) => {
     ORDER BY valor DESC
     LIMIT 5`, [req.padaria.id]);
   res.json(rows);
-});
+}));
 
-router.get('/relatorios/valor-categorias', auth, async (req, res) => {
+router.get('/relatorios/valor-categorias', auth, wrap(async (req, res) => {
   const db = require('../database/connection');
   const [rows] = await db.query(`
     SELECT COALESCE(c.nome, 'Sem categoria') AS categoria,
@@ -122,9 +128,9 @@ router.get('/relatorios/valor-categorias', auth, async (req, res) => {
     ORDER BY valor DESC
     LIMIT 8`, [req.padaria.id]);
   res.json(rows);
-});
+}));
 
-router.get('/relatorios/mes', auth, async (req, res) => {
+router.get('/relatorios/mes', auth, wrap(async (req, res) => {
   const db = require('../database/connection');
   const mes = req.query.mes || new Date().toISOString().slice(0, 7);
   const [kpis] = await db.query(`
@@ -145,10 +151,10 @@ router.get('/relatorios/mes', auth, async (req, res) => {
     LIMIT 200`, [req.padaria.id, mes]);
 
   res.json({ ...kpis[0], movs });
-});
+}));
 
-// Saídas últimos 15 dias
-router.get('/saidas/recentes', auth, async (req, res) => {
+// Saídas últimos 30 dias
+router.get('/saidas/recentes', auth, wrap(async (req, res) => {
   const db = require('../database/connection');
   const [rows] = await db.query(`
     SELECT m.id, m.quantidade, m.custo_unit, m.valor_total, m.data, m.observacao,
@@ -160,10 +166,10 @@ router.get('/saidas/recentes', auth, async (req, res) => {
     ORDER BY m.data DESC, m.id DESC
     LIMIT 200`, [req.padaria.id]);
   res.json(rows);
-});
+}));
 
 // Compras recentes (últimos 30 dias) — pedidos já recebidos
-router.get('/compras/recentes', auth, async (req, res) => {
+router.get('/compras/recentes', auth, wrap(async (req, res) => {
   const db = require('../database/connection');
   const [rows] = await db.query(`
     SELECT pc.id AS pedido_id, pc.recebido_em AS data,
@@ -181,10 +187,10 @@ router.get('/compras/recentes', auth, async (req, res) => {
     ORDER BY pc.recebido_em DESC
     LIMIT 50`, [req.padaria.id]);
   res.json(rows);
-});
+}));
 
 // Pedidos pendentes de recebimento
-router.get('/compras/pedidos', auth, async (req, res) => {
+router.get('/compras/pedidos', auth, wrap(async (req, res) => {
   const db = require('../database/connection');
   const [pedidos] = await db.query(`
     SELECT pc.id, pc.criado_em, pc.observacao, pc.total, pc.fornecedor_id,
@@ -210,7 +216,7 @@ router.get('/compras/pedidos', auth, async (req, res) => {
   itens.forEach(i => { if (mapa[i.pedido_id]) mapa[i.pedido_id].itens.push(i); });
 
   res.json(Object.values(mapa));
-});
+}));
 
 // Criar pedido de compra (sem atualizar estoque)
 router.post('/compras/pedidos', auth, async (req, res) => {
@@ -318,37 +324,37 @@ router.post('/compras/pedidos/:id/receber', auth, async (req, res) => {
 });
 
 // Cancelar pedido pendente
-router.post('/compras/pedidos/:id/cancelar', auth, async (req, res) => {
+router.post('/compras/pedidos/:id/cancelar', auth, wrap(async (req, res) => {
   const db = require('../database/connection');
   await db.query(
     `UPDATE pedidos_compra SET status = 'cancelado' WHERE id = ? AND padaria_id = ? AND status = 'pendente'`,
     [req.params.id, req.padaria.id]
   );
   res.json({ ok: true });
-});
+}));
 
 // Limpar todos os dados
 router.delete('/dados/limpar', auth, dadosCtrl.limparTudo);
 
 // Categorias
-router.get('/categorias', auth, async (req, res) => {
+router.get('/categorias', auth, wrap(async (req, res) => {
   const db = require('../database/connection');
   const [rows] = await db.query('SELECT * FROM categorias WHERE padaria_id = ? ORDER BY nome', [req.padaria.id]);
   res.json(rows);
-});
+}));
 
-router.post('/categorias', auth, async (req, res) => {
+router.post('/categorias', auth, wrap(async (req, res) => {
   const db = require('../database/connection');
   const { nome } = req.body;
   if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório.' });
   const [r] = await db.query('INSERT INTO categorias (padaria_id, nome) VALUES (?,?)', [req.padaria.id, nome]);
   res.status(201).json({ id: r.insertId, nome });
-});
+}));
 
-router.delete('/categorias/:id', auth, async (req, res) => {
+router.delete('/categorias/:id', auth, wrap(async (req, res) => {
   const db = require('../database/connection');
   await db.query('DELETE FROM categorias WHERE id = ? AND padaria_id = ?', [req.params.id, req.padaria.id]);
   res.json({ ok: true });
-});
+}));
 
 module.exports = router;
