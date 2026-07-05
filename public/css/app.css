@@ -1084,8 +1084,7 @@ tr.tr-saida td { color: #dc2626 !important; }
   height: 130px;
   width: 130px;
   object-fit: contain;
-  opacity: 0.22;
-  filter: brightness(0) invert(1);
+  opacity: 0.75;
 }
 .onboarding-titulo {
   font-size: 22px;
