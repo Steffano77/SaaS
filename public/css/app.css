@@ -1073,18 +1073,19 @@ tr.tr-saida td { color: #dc2626 !important; }
   background: rgba(255,255,255,0.04);
   border-radius: 50%;
 }
-.onboarding-logo {
-  margin-bottom: 28px;
-  position: relative; z-index: 1;
+.onboarding-deco-logo {
+  position: absolute;
+  top: -24px;
+  right: -24px;
+  z-index: 2;
+  pointer-events: none;
 }
-.onboarding-logo img {
-  height: 88px;
-  width: 88px;
+.onboarding-deco-logo img {
+  height: 130px;
+  width: 130px;
   object-fit: contain;
-  background: #ffffff;
-  border-radius: 50%;
-  padding: 10px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  opacity: 0.22;
+  filter: brightness(0) invert(1);
 }
 .onboarding-titulo {
   font-size: 22px;
