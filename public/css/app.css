@@ -582,7 +582,7 @@
       padding: 20px;
     }
 
-    .modal-box {
+    .modal-box, .modal-content {
       background: var(--white);
       border-radius: 18px;
       width: 100%;
