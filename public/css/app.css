@@ -1078,13 +1078,14 @@ tr.tr-saida td { color: #dc2626 !important; }
   position: relative; z-index: 1;
 }
 .onboarding-logo img {
-  height: 52px;
-  width: auto;
+  height: 88px;
+  width: 88px;
+  object-fit: contain;
+  background: #ffffff;
+  border-radius: 50%;
+  padding: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
 }
-.onb-logo-light { display: block; margin: 0 auto; }
-.onb-logo-dark  { display: none; margin: 0 auto; }
-[data-theme="dark"] .onb-logo-light { display: none; }
-[data-theme="dark"] .onb-logo-dark  { display: block; }
 .onboarding-titulo {
   font-size: 22px;
   font-weight: 800;
