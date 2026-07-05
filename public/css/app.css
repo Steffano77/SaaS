@@ -1075,20 +1075,20 @@ tr.tr-saida td { color: #dc2626 !important; }
 }
 .onboarding-deco-logo {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  top: -30px;
+  right: -30px;
   z-index: 0;
   pointer-events: none;
 }
 .onboarding-deco-logo img {
-  height: 220px;
-  width: 220px;
+  height: 160px;
+  width: 160px;
   object-fit: contain;
-  opacity: 0.10;
+  opacity: 1;
 }
 @media (max-width: 600px) {
-  .onboarding-deco-logo img { height: 160px; width: 160px; }
+  .onboarding-deco-logo img { height: 100px; width: 100px; }
+  .onboarding-deco-logo { top: -16px; right: -16px; }
 }
 .onboarding-titulo {
   font-size: 22px;
