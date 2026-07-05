@@ -1047,6 +1047,66 @@ tr.tr-saida td { color: #dc2626 !important; }
 [data-theme="dark"] #tela-redefinir .auth-card { background: #1e293b; }
 [data-theme="dark"] #tela-auth,
 [data-theme="dark"] #tela-redefinir { background: linear-gradient(135deg, #0a1628 0%, #0f1f38 60%, #152b47 100%); }
+/* ── Onboarding ── */
+.onboarding-card {
+  background: linear-gradient(135deg, #1e3a5f 0%, #254873 60%, #1e3a5f 100%);
+  border-radius: 20px;
+  padding: 56px 32px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(30,58,95,0.25);
+  overflow: hidden;
+  position: relative;
+}
+.onboarding-card::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 220px; height: 220px;
+  background: rgba(249,115,22,0.12);
+  border-radius: 50%;
+}
+.onboarding-card::after {
+  content: '';
+  position: absolute;
+  bottom: -80px; left: -40px;
+  width: 280px; height: 280px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 50%;
+}
+.onboarding-logo {
+  margin-bottom: 28px;
+  position: relative; z-index: 1;
+}
+.onboarding-logo img {
+  height: 52px;
+  width: auto;
+}
+.onb-logo-light { display: block; margin: 0 auto; }
+.onb-logo-dark  { display: none; margin: 0 auto; }
+[data-theme="dark"] .onb-logo-light { display: none; }
+[data-theme="dark"] .onb-logo-dark  { display: block; }
+.onboarding-titulo {
+  font-size: 22px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 10px;
+  position: relative; z-index: 1;
+}
+.onboarding-sub {
+  font-size: 14px;
+  color: rgba(255,255,255,0.72);
+  margin-bottom: 28px;
+  max-width: 380px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.6;
+  position: relative; z-index: 1;
+}
+.onboarding-card .btn-primary {
+  position: relative; z-index: 1;
+  box-shadow: 0 4px 20px rgba(249,115,22,0.45);
+}
+
 [data-theme="dark"] .section-header h2 { color: #f1f5f9; }
 [data-theme="dark"] .btn-icon:hover { color: #f1f5f9; background: #334155; }
 [data-theme="dark"] .btn-show-pass:hover { color: #f1f5f9; }

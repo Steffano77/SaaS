@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260704i"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260705a"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -233,11 +233,14 @@
       <div class="page-header">
         <h2 class="page-title">Dashboard</h2>
       </div>
-      <div id="onboarding-vazio" class="hidden card" style="text-align:center;padding:40px 24px;margin-bottom:24px;">
-        <div style="font-size:48px;margin-bottom:12px;">🥐</div>
-        <h3 style="font-size:18px;font-weight:700;color:var(--slate-800);margin-bottom:8px;">Bem-vindo ao PanificaPro!</h3>
-        <p style="color:var(--slate-500);font-size:14px;margin-bottom:20px;">Comece cadastrando seus produtos no estoque para usar todos os recursos.</p>
-        <button class="btn-primary" onclick="mostrarPagina('estoque');fecharSidebar()">📦 Ir para o Estoque</button>
+      <div id="onboarding-vazio" class="hidden onboarding-card" style="margin-bottom:24px;">
+        <div class="onboarding-logo">
+          <img src="/img/logo-claro.svg" alt="PanificaPro" class="onb-logo-light"/>
+          <img src="/img/logo-escuro.svg" alt="PanificaPro" class="onb-logo-dark hidden"/>
+        </div>
+        <h3 class="onboarding-titulo">Bem-vindo ao PanificaPro!</h3>
+        <p class="onboarding-sub">Comece cadastrando seus produtos no estoque para usar todos os recursos do sistema.</p>
+        <button class="btn-primary" style="padding:13px 32px;font-size:15px;" onclick="mostrarPagina('estoque');fecharSidebar()">📦 Ir para o Estoque</button>
       </div>
       <div id="kpis"></div>
       <div class="dashboard-grid">
