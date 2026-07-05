@@ -19,6 +19,14 @@ router.get('/auth/perfil',         auth, authCtrl.perfil);
 router.post('/auth/esqueci-senha', senhaCtrl.esqueceuSenha);
 router.post('/auth/redefinir-senha', senhaCtrl.redefinirSenha);
 
+router.put('/auth/padaria', auth, async (req, res) => {
+  const db = require('../database/connection');
+  const { nome } = req.body;
+  if (!nome || nome.trim().length < 2) return res.status(400).json({ erro: 'Nome muito curto.' });
+  await db.query('UPDATE padarias SET nome = ? WHERE id = ?', [nome.trim(), req.padaria.id]);
+  res.json({ ok: true, nome: nome.trim() });
+});
+
 // Dashboard
 router.get('/dashboard', auth, prodCtrl.dashboard);
 

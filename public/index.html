@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260704h"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260704i"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -167,7 +167,12 @@
       </button>
       <div class="sidebar-user">
         <div class="sidebar-user-label">Logado como</div>
-        <div id="sidebar-nome"></div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span id="sidebar-nome"></span>
+          <button onclick="abrirEditarPadaria()" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.5);padding:2px;line-height:1;" title="Editar nome">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -227,6 +232,12 @@
     <section id="pg-dashboard" class="page-section">
       <div class="page-header">
         <h2 class="page-title">Dashboard</h2>
+      </div>
+      <div id="onboarding-vazio" class="hidden card" style="text-align:center;padding:40px 24px;margin-bottom:24px;">
+        <div style="font-size:48px;margin-bottom:12px;">🥐</div>
+        <h3 style="font-size:18px;font-weight:700;color:var(--slate-800);margin-bottom:8px;">Bem-vindo ao PanificaPro!</h3>
+        <p style="color:var(--slate-500);font-size:14px;margin-bottom:20px;">Comece cadastrando seus produtos no estoque para usar todos os recursos.</p>
+        <button class="btn-primary" onclick="mostrarPagina('estoque');fecharSidebar()">📦 Ir para o Estoque</button>
       </div>
       <div id="kpis"></div>
       <div class="dashboard-grid">
@@ -592,7 +603,34 @@
       </div>
     </div>
 
+    <section id="pg-404" class="hidden page-section" style="text-align:center;padding:80px 24px;">
+      <div style="font-size:64px;margin-bottom:16px;">🍞</div>
+      <h2 style="font-size:28px;font-weight:800;color:var(--slate-800);margin-bottom:8px;">Página não encontrada</h2>
+      <p style="color:var(--slate-500);font-size:15px;margin-bottom:24px;">Esta página não existe ou foi removida.</p>
+      <button class="btn-primary" onclick="mostrarPagina('dashboard')">🏠 Voltar ao Painel</button>
+    </section>
+
   </main>
+</div>
+
+<!-- ── MODAL EDITAR PADARIA ───────────────────────────────── -->
+<div id="modal-editar-padaria" class="modal-overlay hidden" onclick="if(event.target===this)fecharModalPadaria()">
+  <div class="modal-content" style="max-width:380px;">
+    <div class="modal-header">
+      <span class="modal-title">Editar nome da padaria</span>
+      <button class="modal-close" onclick="fecharModalPadaria()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:20px;">
+        <label style="font-size:13px;font-weight:600;color:var(--slate-700);display:block;margin-bottom:6px;">Nome da padaria</label>
+        <input type="text" id="input-nome-padaria" class="form-control" placeholder="Nome da sua padaria"/>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-secondary" style="flex:1;" onclick="fecharModalPadaria()">Cancelar</button>
+        <button class="btn-primary" style="flex:2;" onclick="salvarNomePadaria()">Salvar</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ── MODAL PRODUTO ──────────────────────────────────────── -->
@@ -705,7 +743,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260704f"></script>
+<script src="/js/app.js?v=20260704j"></script>
 
 <!-- Tela Saídas 30 dias -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

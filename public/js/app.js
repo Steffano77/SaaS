@@ -195,8 +195,9 @@ function sair() {
 }
 
 // ── Navegação ───────────────────────────────────────────────
-const paginas = ['dashboard','estoque','compras','fornecedores','relatorios','sync'];
+const paginas = ['dashboard','estoque','compras','fornecedores','relatorios','sync','404'];
 function mostrarPagina(pg, pushHistory = true) {
+  if (!paginas.includes(pg)) { mostrarPagina('404'); return; }
   paginas.forEach(p => {
     document.getElementById(`pg-${p}`).classList.toggle('hidden', p !== pg);
   });
@@ -274,6 +275,21 @@ async function api(path, opts = {}) {
   }
 }
 
+// ── Botão loading ────────────────────────────────────────────
+function setBtnLoading(btn, loading, textoOriginal) {
+  if (!btn) return;
+  if (loading) {
+    btn.disabled = true;
+    btn.dataset.textoOriginal = btn.textContent;
+    btn.textContent = 'Aguarde...';
+    btn.style.opacity = '0.7';
+  } else {
+    btn.disabled = false;
+    btn.textContent = textoOriginal || btn.dataset.textoOriginal || btn.textContent;
+    btn.style.opacity = '';
+  }
+}
+
 // ── Dashboard ────────────────────────────────────────────────
 async function carregarDashboard() {
   const d = await api('/dashboard');
@@ -286,6 +302,9 @@ async function carregarDashboard() {
     <div class="kpi-card"><div class="kpi-value" style="color:var(--orange);font-size:22px">${'R$ ' + parseFloat(k.valor_total_estoque||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div><div class="kpi-label">Valor em estoque</div></div>
     <div class="kpi-card kpi-clickable kpi-saidas" onclick="abrirTelaSaidas()"><div style="display:flex;align-items:center;justify-content:space-between;"><div><div class="kpi-value" style="color:var(--red-500);font-size:22px">R$ ${parseFloat(k.total_saidas_15d||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div><div class="kpi-label">Saídas — últimos 30 dias</div></div><div class="kpi-hint" style="font-size:13px;">Ver detalhes →</div></div></div>
   `;
+  const onb = document.getElementById('onboarding-vazio');
+  if (onb) onb.classList.toggle('hidden', k.total_produtos > 0);
+
   document.getElementById('lista-repor').innerHTML = d.repor.length
     ? d.repor.map(p => `
         <div class="repor-item">
@@ -819,6 +838,8 @@ async function registrarPedido(abrirWhats = false) {
   const fornecedorTel = selF.options[selF.selectedIndex]?.dataset?.tel || '';
   const observacao = fornecedorNome && fornecedorNome !== '— Sem fornecedor —' ? fornecedorNome : null;
 
+  const registrarBtn = document.querySelector('#modal-finalizar button.btn-primary') || document.querySelector('#modal-finalizar .btn-primary');
+  setBtnLoading(registrarBtn, true);
   const msgEl = document.getElementById('final-msg');
   msgEl.style.cssText = 'font-size:13px;padding:8px 12px;border-radius:8px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;';
   msgEl.textContent = 'Registrando pedido...';
@@ -840,6 +861,7 @@ async function registrarPedido(abrirWhats = false) {
     body: JSON.stringify({ fornecedor_id: fornecedorId, observacao, data, itens: itensPayload })
   });
 
+  setBtnLoading(registrarBtn, false);
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));
     msgEl.style.cssText = 'font-size:13px;padding:8px 12px;border-radius:8px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;';
@@ -867,10 +889,13 @@ async function registrarPedido(abrirWhats = false) {
 
 async function confirmarRecebimentoPedido(id) {
   if (!confirm('Confirmar recebimento? O estoque será atualizado agora.')) return;
+  const receberBtn = document.querySelector(`.btn-receber[onclick*="${id}"]`);
+  setBtnLoading(receberBtn, true);
   const r = await fetch(`${API}/compras/pedidos/${id}/receber`, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${TOKEN}` }
   });
+  setBtnLoading(receberBtn, false);
   if (r.ok) {
     mostrarMsgCompra('✅ Recebimento confirmado! Estoque atualizado.', 'ok');
     carregarCompras();
@@ -1166,6 +1191,14 @@ async function editarProduto(id) {
 // D) Product edit feedback
 async function salvarProduto(e) {
   e.preventDefault();
+  const custo = parseFloat(document.getElementById('prod-custo').value || 0);
+  const preco = parseFloat(document.getElementById('prod-venda').value || 0);
+  const estMin = parseFloat(document.getElementById('prod-minimo').value || 0);
+  if (custo < 0 || preco < 0 || estMin < 0) {
+    return alert('Valores não podem ser negativos.');
+  }
+  const submitBtn = e.submitter || document.querySelector('#modal-produto button[type=submit]');
+  setBtnLoading(submitBtn, true);
   const id = document.getElementById('prod-id').value;
   const body = {
     nome:          document.getElementById('prod-nome').value,
@@ -1179,6 +1212,7 @@ async function salvarProduto(e) {
   };
   if (!id) body.estoque_atual = parseFloat(document.getElementById('prod-saldo').value) || 0;
   const res = await api(id ? `/produtos/${id}` : '/produtos', { method: id ? 'PUT' : 'POST', body });
+  setBtnLoading(submitBtn, false);
   if (id && res) {
     // Show success message in modal before closing
     const actions = document.querySelector('#form-produto .modal-actions');
@@ -1250,6 +1284,12 @@ function abrirModalMovimento() {
 
 async function salvarMovimento(e) {
   e.preventDefault();
+  const qtd = parseFloat(document.getElementById('mov-qtd').value || 0);
+  const custo = parseFloat(document.getElementById('mov-custo').value || 0);
+  if (qtd <= 0) return alert('Quantidade deve ser maior que zero.');
+  if (custo < 0) return alert('Custo não pode ser negativo.');
+  const movBtn = e.submitter || document.querySelector('#modal-mov button[type=submit]');
+  setBtnLoading(movBtn, true);
   await api('/movimentacoes', {
     method: 'POST',
     body: {
@@ -1260,6 +1300,7 @@ async function salvarMovimento(e) {
       observacao: document.getElementById('mov-obs').value || null,
     }
   });
+  setBtnLoading(movBtn, false);
   fecharModal('modal-mov');
   carregarMovimentacoes();
   carregarDashboard();
@@ -1619,4 +1660,25 @@ async function processarCodigoBarras(codigo, ctx) {
   const antigo = document.getElementById('banner-off');
   if (antigo) antigo.remove();
   form.prepend(banner);
+}
+
+// ── Editar nome da padaria ────────────────────────────────────
+function abrirEditarPadaria() {
+  document.getElementById('input-nome-padaria').value = document.getElementById('sidebar-nome').textContent;
+  document.getElementById('modal-editar-padaria').classList.remove('hidden');
+  setTimeout(() => document.getElementById('input-nome-padaria').focus(), 100);
+}
+
+function fecharModalPadaria() {
+  document.getElementById('modal-editar-padaria').classList.add('hidden');
+}
+
+async function salvarNomePadaria() {
+  const nome = document.getElementById('input-nome-padaria').value.trim();
+  if (!nome) return alert('Digite o nome da padaria.');
+  const r = await api('/auth/padaria', { method: 'PUT', body: JSON.stringify({ nome }) });
+  if (r && r.ok) {
+    document.getElementById('sidebar-nome').textContent = r.nome;
+    fecharModalPadaria();
+  }
 }
