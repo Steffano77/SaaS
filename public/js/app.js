@@ -1596,6 +1596,7 @@ if (TOKEN) {
 // ── Scanner de código de barras ──────────────────────────
 let scannerCtx = 'estoque';
 let html5Qr = null;
+let _scanProduto = null;
 
 function abrirScanner(ctx) {
   scannerCtx = ctx;
@@ -1626,6 +1627,57 @@ async function fecharScanner() {
   document.getElementById('modal-scanner').classList.add('hidden');
 }
 
+function scanAcaoSaida() {
+  if (!_scanProduto) return;
+  fecharModal('modal-acao-scan');
+  const p = _scanProduto;
+  document.getElementById('saida-rapida-info').innerHTML =
+    `<strong>${p.nome}</strong><br>
+     <span style="color:var(--slate-500);">Saldo atual: <strong>${fmtQtd(p.estoque_atual)} ${p.unidade}</strong></span>`;
+  document.getElementById('saida-rapida-qtd').value = '';
+  document.getElementById('saida-rapida-obs').value = '';
+  document.getElementById('modal-saida-rapida').classList.remove('hidden');
+  setTimeout(() => document.getElementById('saida-rapida-qtd').focus(), 100);
+}
+
+function scanAcaoEditar() {
+  if (!_scanProduto) return;
+  fecharModal('modal-acao-scan');
+  editarProduto(_scanProduto.id);
+}
+
+async function confirmarSaidaRapida() {
+  if (!_scanProduto) return;
+  const qtd = parseFloat(document.getElementById('saida-rapida-qtd').value);
+  if (!qtd || qtd <= 0) { alert('Informe a quantidade.'); return; }
+  const obs = document.getElementById('saida-rapida-obs').value.trim();
+
+  const btn = document.querySelector('#modal-saida-rapida .btn-danger');
+  setBtnLoading(btn, true);
+  try {
+    const r = await fetch(`${API}/movimentacoes`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        produto_id: _scanProduto.id,
+        tipo: 'saida',
+        quantidade: qtd,
+        custo_unit: _scanProduto.custo_unitario,
+        observacao: obs || null,
+      })
+    });
+    const d = await r.json();
+    if (!r.ok) { alert('Erro: ' + d.erro); return; }
+    fecharModal('modal-saida-rapida');
+    _scanProduto = null;
+    carregarProdutos();
+  } catch(e) {
+    alert('Erro ao registrar saída.');
+  } finally {
+    setBtnLoading(btn, false);
+  }
+}
+
 async function processarCodigoBarras(codigo, ctx) {
   document.getElementById('scan-status').textContent = `🔍 Buscando ${codigo}...`;
   document.getElementById('scanner-view').innerHTML = '';
@@ -1639,20 +1691,11 @@ async function processarCodigoBarras(codigo, ctx) {
   await fecharScanner();
 
   if (prod) {
-    document.getElementById('form-mov').reset();
-    const sel = document.getElementById('mov-produto');
-    sel.innerHTML = '<option value="">— Selecione —</option>' +
-      todosProds.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
-    sel.value = prod.id;
-    document.getElementById('mov-custo').value = prod.custo_unitario || 0;
-    const info = document.getElementById('mov-produto-info');
-    info.innerHTML = `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;">
-      ✅ <strong>${prod.nome}</strong><br>
-      <span style="color:#64748b;">Estoque atual: <strong>${fmtQtd(prod.estoque_atual)} ${prod.unidade}</strong> · Custo: R$ ${parseFloat(prod.custo_unitario).toFixed(2)}</span>
-    </div>`;
-    info.classList.remove('hidden');
-    document.getElementById('modal-mov').classList.remove('hidden');
-    document.getElementById('mov-qtd').focus();
+    _scanProduto = prod;
+    document.getElementById('scan-acao-info').innerHTML =
+      `<strong>${prod.nome}</strong><br>
+       <span style="color:var(--slate-500);">Saldo: <strong>${fmtQtd(prod.estoque_atual)} ${prod.unidade}</strong> · Custo: R$ ${parseFloat(prod.custo_unitario).toFixed(2)}</span>`;
+    document.getElementById('modal-acao-scan').classList.remove('hidden');
     return;
   }
 
