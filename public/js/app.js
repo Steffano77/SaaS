@@ -572,58 +572,43 @@ async function carregarFiltroFornecedor() {
   const sel = document.getElementById('filtro-fornecedor');
   if (!sel) return;
 
-  // Busca pedidos recebidos para montar mapa produto_id → fornecedor
-  const [pedidosRecentes, fornecedores] = await Promise.all([
-    api('/compras/recentes'),
-    api('/fornecedores')
+  // Popula select com todos os fornecedores cadastrados
+  const [fornecedores, pedidos] = await Promise.all([
+    api('/fornecedores'),
+    api('/compras/pedidos')
   ]);
 
-  // Monta mapa produto_id → fornecedor_nome usando histórico de itens de compra
-  const comprasPendentes = await api('/compras/pedidos') || [];
-  const todos = [...(pedidosRecentes || [])];
-
-  // Busca todos os pedidos recebidos com itens para montar o mapa
+  // Monta mapa produto_id → fornecedor_id a partir dos pedidos pendentes
   _prodFornecedorMap = {};
-  const fornMap = {};
-  (fornecedores || []).forEach(f => { fornMap[f.id] = f.nome; });
-
-  // Usa o histórico de movimentações (entrada) com observação "Pedido #X"
-  // Abordagem mais simples: busca fornecedores dos pedidos recentes e usa o nome
-  // O mapa será preenchido via endpoint de pedidos com itens
-  const pedidosFull = await api('/compras/pedidos') || [];
-
-  // Para pedidos recebidos precisamos de outra fonte — usamos os itens já disponíveis
-  // Monta mapa a partir dos pedidos pendentes (que têm itens detalhados)
-  pedidosFull.forEach(p => {
-    const nomeForn = p.fornecedor || '—';
+  (pedidos || []).forEach(p => {
+    if (!p.fornecedor_id) return;
     (p.itens || []).forEach(i => {
       if (!_prodFornecedorMap[i.produto_id]) {
-        _prodFornecedorMap[i.produto_id] = nomeForn;
+        _prodFornecedorMap[i.produto_id] = String(p.fornecedor_id);
       }
     });
   });
 
-  // Coleta fornecedores únicos dos produtos em estoque
-  const nomesUnicos = [...new Set(Object.values(_prodFornecedorMap))].sort();
-
   const atual = sel.value;
   sel.innerHTML = '<option value="">Todos fornecedores</option>' +
-    nomesUnicos.map(n => `<option value="${n}" ${n === atual ? 'selected' : ''}>${n}</option>`).join('');
+    (fornecedores || []).map(f =>
+      `<option value="${f.id}" ${String(f.id) === atual ? 'selected' : ''}>${f.nome}</option>`
+    ).join('');
 }
 
 function filtrarPorFornecedor() {
-  const fornecedor = document.getElementById('filtro-fornecedor')?.value;
+  const fornecedorId = document.getElementById('filtro-fornecedor')?.value;
   const tbody = document.getElementById('tabela-produtos');
   if (!tbody) return;
 
   const rows = tbody.querySelectorAll('tr');
   rows.forEach(tr => {
     const prodId = tr.dataset.prodId;
-    if (!fornecedor) {
+    if (!fornecedorId) {
       tr.style.display = '';
     } else {
       const forn = _prodFornecedorMap[prodId] || '';
-      tr.style.display = forn === fornecedor ? '' : 'none';
+      tr.style.display = forn === fornecedorId ? '' : 'none';
     }
   });
 }
