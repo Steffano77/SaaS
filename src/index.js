@@ -60,6 +60,30 @@ app.use('/api/auth/esqueci-senha', rateLimit({
 app.use(express.json({ limit: '5mb' }));
 app.use(express.static(path.join(__dirname, '../public')));
 
+// Auto-migrate: adiciona colunas novas sem quebrar instâncias existentes
+(async () => {
+  try {
+    const db = require('./database/connection');
+    await db.query(`
+      ALTER TABLE produtos
+        ADD COLUMN IF NOT EXISTS fornecedor_id INT NULL,
+        ADD COLUMN IF NOT EXISTS reset_token VARCHAR(512) NULL,
+        ADD COLUMN IF NOT EXISTS reset_expires DATETIME NULL
+    `).catch(() => {
+      // MySQL < 8 não suporta IF NOT EXISTS no ALTER — tenta coluna por coluna
+      const cols = [
+        'ALTER TABLE produtos ADD COLUMN fornecedor_id INT NULL',
+        'ALTER TABLE padarias ADD COLUMN reset_token VARCHAR(512) NULL',
+        'ALTER TABLE padarias ADD COLUMN reset_expires DATETIME NULL',
+      ];
+      return Promise.all(cols.map(sql => db.query(sql).catch(() => {})));
+    });
+    console.log('✅ Migrations verificadas.');
+  } catch (e) {
+    console.error('Erro na migration automática:', e.message);
+  }
+})();
+
 app.use('/api', require('./routes'));
 
 app.get('/api/health', (_, res) => res.json({ ok: true, versao: '1.0.0' }));

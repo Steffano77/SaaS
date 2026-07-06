@@ -571,27 +571,10 @@ function irParaCompras() {
 async function carregarFiltroFornecedor() {
   const sel = document.getElementById('filtro-fornecedor');
   if (!sel) return;
-
-  // Popula select com todos os fornecedores cadastrados
-  const [fornecedores, pedidos] = await Promise.all([
-    api('/fornecedores'),
-    api('/compras/pedidos')
-  ]);
-
-  // Monta mapa produto_id → fornecedor_id a partir dos pedidos pendentes
-  _prodFornecedorMap = {};
-  (pedidos || []).forEach(p => {
-    if (!p.fornecedor_id) return;
-    (p.itens || []).forEach(i => {
-      if (!_prodFornecedorMap[i.produto_id]) {
-        _prodFornecedorMap[i.produto_id] = String(p.fornecedor_id);
-      }
-    });
-  });
-
+  const fornecedores = await api('/fornecedores') || [];
   const atual = sel.value;
   sel.innerHTML = '<option value="">Todos fornecedores</option>' +
-    (fornecedores || []).map(f =>
+    fornecedores.map(f =>
       `<option value="${f.id}" ${String(f.id) === atual ? 'selected' : ''}>${f.nome}</option>`
     ).join('');
 }
@@ -601,14 +584,13 @@ function filtrarPorFornecedor() {
   const tbody = document.getElementById('tabela-produtos');
   if (!tbody) return;
 
-  const rows = tbody.querySelectorAll('tr');
+  const rows = tbody.querySelectorAll('tr[data-prod-id]');
   rows.forEach(tr => {
-    const prodId = tr.dataset.prodId;
     if (!fornecedorId) {
       tr.style.display = '';
     } else {
-      const forn = _prodFornecedorMap[prodId] || '';
-      tr.style.display = forn === fornecedorId ? '' : 'none';
+      const prod = todosProds.find(p => String(p.id) === tr.dataset.prodId);
+      tr.style.display = String(prod?.fornecedor_id || '') === fornecedorId ? '' : 'none';
     }
   });
 }
@@ -1199,11 +1181,17 @@ function statusBadge(p) {
 }
 
 async function carregarCategorias() {
-  const cats = await api('/categorias');
-  const sel  = document.getElementById('prod-categoria');
-  if (!cats) return;
-  sel.innerHTML = '<option value="">— Sem categoria —</option>' +
-    cats.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+  const [cats, forns] = await Promise.all([api('/categorias'), api('/fornecedores')]);
+  const selCat = document.getElementById('prod-categoria');
+  if (cats && selCat) {
+    selCat.innerHTML = '<option value="">— Sem categoria —</option>' +
+      cats.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+  }
+  const selForn = document.getElementById('prod-fornecedor');
+  if (forns && selForn) {
+    selForn.innerHTML = '<option value="">— Sem fornecedor —</option>' +
+      forns.map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
+  }
 }
 
 async function criarCategoria() {
@@ -1239,7 +1227,8 @@ async function editarProduto(id) {
   document.getElementById('prod-custo').value   = parseFloat(p.custo_unitario || 0).toFixed(2);
   document.getElementById('prod-venda').value   = parseFloat(p.preco_venda || 0).toFixed(2);
   document.getElementById('prod-validade').value= p.validade ? p.validade.slice(0,10) : '';
-  document.getElementById('prod-categoria').value = p.categoria_id || '';
+  document.getElementById('prod-categoria').value  = p.categoria_id || '';
+  document.getElementById('prod-fornecedor').value = p.fornecedor_id || '';
   document.getElementById('wrap-saldo').classList.add('hidden');
   document.getElementById('modal-titulo').textContent = 'Editar produto';
   document.getElementById('modal-produto').classList.remove('hidden');
@@ -1262,6 +1251,7 @@ async function salvarProduto(e) {
     codigo_barras: document.getElementById('prod-cod').value || null,
     unidade:       document.getElementById('prod-unidade').value,
     categoria_id:  document.getElementById('prod-categoria').value || null,
+    fornecedor_id: document.getElementById('prod-fornecedor').value || null,
     estoque_minimo:parseFloat(document.getElementById('prod-minimo').value) || 0,
     custo_unitario:parseFloat(document.getElementById('prod-custo').value) || 0,
     preco_venda:   parseFloat(document.getElementById('prod-venda').value) || 0,
