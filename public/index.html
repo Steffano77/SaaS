@@ -14,7 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260706b"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260706c"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -385,7 +385,21 @@
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;align-items:flex-end;">
               <div class="form-group" style="margin:0;">
                 <label>Quantidade</label>
-                <input type="number" id="compra-qtd" min="0.001" step="0.001" placeholder="0" class="form-control"/>
+                <div style="display:flex;gap:6px;">
+                  <input type="number" id="compra-qtd" min="0.001" step="0.001" placeholder="0" class="form-control" style="flex:1;min-width:0;"/>
+                  <select id="compra-unidade" class="form-control" style="width:90px;flex-shrink:0;">
+                    <option value="un">un</option>
+                    <option value="kg">kg</option>
+                    <option value="g">g</option>
+                    <option value="L">L</option>
+                    <option value="ml">ml</option>
+                    <option value="cx">cx</option>
+                    <option value="pct">pct</option>
+                    <option value="fardo">fardo</option>
+                    <option value="sc">sc</option>
+                    <option value="bd">bd</option>
+                  </select>
+                </div>
               </div>
               <div class="form-group" style="margin:0;">
                 <label>Custo unit. (R$)</label>
@@ -747,7 +761,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260704j"></script>
+<script src="/js/app.js?v=20260706c"></script>
 
 <!-- Tela Saídas 30 dias -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

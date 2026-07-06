@@ -545,10 +545,10 @@
       white-space: nowrap;
     }
 
-    .badge-ok { background: var(--green-100); color: var(--green-700); }
-    .badge-min { background: var(--yellow-100); color: var(--yellow-700); }
-    .badge-zero { background: var(--red-100); color: var(--red-700); }
-    .badge-validade { background: var(--orange-100); color: var(--orange-700); }
+    .badge-ok       { background: #dcfce7; color: #166534; }
+    .badge-min      { background: #fef9c3; color: #854d0e; }
+    .badge-zero     { background: #fee2e2; color: #991b1b; }
+    .badge-validade { background: #ffedd5; color: #9a3412; }
 
     /* ── FILTERS BAR ── */
     .filters-bar {
@@ -1039,9 +1039,10 @@ tr.tr-saida td { color: #dc2626 !important; }
 [data-theme="dark"] .modal-content { background: #1e293b; }
 [data-theme="dark"] .modal-header { background: #152b47; }
 [data-theme="dark"] .stat-card { background: #1e293b; border-color: #334155; }
-[data-theme="dark"] .badge-ok  { background: #052e16; color: #4ade80; }
-[data-theme="dark"] .badge-low { background: #422006; color: #fb923c; }
-[data-theme="dark"] .badge-out { background: #450a0a; color: #f87171; }
+[data-theme="dark"] .badge-ok       { background: #052e16; color: #4ade80; }
+[data-theme="dark"] .badge-min      { background: #422006; color: #fbbf24; }
+[data-theme="dark"] .badge-zero     { background: #450a0a; color: #fca5a5; }
+[data-theme="dark"] .badge-validade { background: #431407; color: #fdba74; }
 [data-theme="dark"] .sidebar { background: var(--navy-dark); }
 [data-theme="dark"] #tela-auth .auth-card,
 [data-theme="dark"] #tela-redefinir .auth-card { background: #1e293b; }
