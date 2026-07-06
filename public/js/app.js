@@ -1,6 +1,7 @@
 const API = '/api';
 let TOKEN = localStorage.getItem('pptoken') || '';
 let todosProds = [];
+let _prodFornecedorMap = {}; // produto_id → nome do fornecedor
 
 // ── Redefinição de senha via link ───────────────────────────────
 (function() {
@@ -206,7 +207,7 @@ function mostrarPagina(pg, pushHistory = true) {
   });
   if (pushHistory) history.pushState({ pg }, '', `#${pg}`);
   if (pg === 'dashboard')      carregarDashboard();
-  if (pg === 'estoque')        { carregarCategorias(); carregarProdutos(); }
+  if (pg === 'estoque')        { carregarCategorias(); carregarProdutos(); carregarFiltroFornecedor(); }
   if (pg === 'compras')        { carregarCompras(); }
   if (pg === 'fornecedores')   { carregarFornecedores(); }
   if (pg === 'relatorios')     { carregarRelatorios(); }
@@ -567,6 +568,66 @@ function irParaCompras() {
 }
 
 // ── Produtos ─────────────────────────────────────────────────
+async function carregarFiltroFornecedor() {
+  const sel = document.getElementById('filtro-fornecedor');
+  if (!sel) return;
+
+  // Busca pedidos recebidos para montar mapa produto_id → fornecedor
+  const [pedidosRecentes, fornecedores] = await Promise.all([
+    api('/compras/recentes'),
+    api('/fornecedores')
+  ]);
+
+  // Monta mapa produto_id → fornecedor_nome usando histórico de itens de compra
+  const comprasPendentes = await api('/compras/pedidos') || [];
+  const todos = [...(pedidosRecentes || [])];
+
+  // Busca todos os pedidos recebidos com itens para montar o mapa
+  _prodFornecedorMap = {};
+  const fornMap = {};
+  (fornecedores || []).forEach(f => { fornMap[f.id] = f.nome; });
+
+  // Usa o histórico de movimentações (entrada) com observação "Pedido #X"
+  // Abordagem mais simples: busca fornecedores dos pedidos recentes e usa o nome
+  // O mapa será preenchido via endpoint de pedidos com itens
+  const pedidosFull = await api('/compras/pedidos') || [];
+
+  // Para pedidos recebidos precisamos de outra fonte — usamos os itens já disponíveis
+  // Monta mapa a partir dos pedidos pendentes (que têm itens detalhados)
+  pedidosFull.forEach(p => {
+    const nomeForn = p.fornecedor || '—';
+    (p.itens || []).forEach(i => {
+      if (!_prodFornecedorMap[i.produto_id]) {
+        _prodFornecedorMap[i.produto_id] = nomeForn;
+      }
+    });
+  });
+
+  // Coleta fornecedores únicos dos produtos em estoque
+  const nomesUnicos = [...new Set(Object.values(_prodFornecedorMap))].sort();
+
+  const atual = sel.value;
+  sel.innerHTML = '<option value="">Todos fornecedores</option>' +
+    nomesUnicos.map(n => `<option value="${n}" ${n === atual ? 'selected' : ''}>${n}</option>`).join('');
+}
+
+function filtrarPorFornecedor() {
+  const fornecedor = document.getElementById('filtro-fornecedor')?.value;
+  const tbody = document.getElementById('tabela-produtos');
+  if (!tbody) return;
+
+  const rows = tbody.querySelectorAll('tr');
+  rows.forEach(tr => {
+    const prodId = tr.dataset.prodId;
+    if (!fornecedor) {
+      tr.style.display = '';
+    } else {
+      const forn = _prodFornecedorMap[prodId] || '';
+      tr.style.display = forn === fornecedor ? '' : 'none';
+    }
+  });
+}
+
 async function carregarProdutos() {
   const busca  = document.getElementById('busca-produto').value;
   const alerta = document.getElementById('filtro-alerta').value;
@@ -581,7 +642,7 @@ async function carregarProdutos() {
     const status = statusBadge(p);
     const validade = p.validade ? new Date(p.validade).toLocaleDateString('pt-BR') : '—';
     const valorTotal = (p.estoque_atual * p.custo_unitario).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-    return `<tr>
+    return `<tr data-prod-id="${p.id}">
       <td><div class="td-main">${p.nome}</div><div class="td-sub">${p.codigo_barras || '—'}</div></td>
       <td style="color:var(--slate-600)">${p.categoria || '—'}</td>
       <td class="right td-mono">${fmtQtd(p.estoque_atual)} ${p.unidade}</td>
@@ -598,6 +659,9 @@ async function carregarProdutos() {
       </td>
     </tr>`;
   }).join('') || '<tr class="empty-row"><td colspan="9">Nenhum produto encontrado</td></tr>';
+
+  // Reaplica filtro de fornecedor se ativo
+  filtrarPorFornecedor();
 }
 
 async function excluirProduto(btn, id, nome) {
