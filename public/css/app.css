@@ -1050,7 +1050,7 @@ tr.tr-saida td { color: #dc2626 !important; }
 /* ── Onboarding ── */
 /* Onboarding card — tema claro */
 .onboarding-card {
-  background: linear-gradient(135deg, #e8f0fe 0%, #dbeafe 60%, #e0e7ff 100%);
+  background: linear-gradient(135deg, #bfd0f7 0%, #bdd7f5 60%, #c4cff7 100%);
   border-radius: 20px;
   padding: 48px 32px;
   text-align: center;
