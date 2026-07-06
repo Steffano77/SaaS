@@ -1048,12 +1048,13 @@ tr.tr-saida td { color: #dc2626 !important; }
 [data-theme="dark"] #tela-auth,
 [data-theme="dark"] #tela-redefinir { background: linear-gradient(135deg, #0a1628 0%, #0f1f38 60%, #152b47 100%); }
 /* ── Onboarding ── */
+/* Onboarding card — tema claro */
 .onboarding-card {
-  background: linear-gradient(135deg, #1e3a5f 0%, #2d5080 60%, #1e3a5f 100%);
+  background: linear-gradient(135deg, #e8f0fe 0%, #dbeafe 60%, #e0e7ff 100%);
   border-radius: 20px;
   padding: 48px 32px;
   text-align: center;
-  box-shadow: 0 4px 20px rgba(30,58,95,0.18);
+  box-shadow: 0 4px 20px rgba(30,58,95,0.10);
   overflow: hidden;
   position: relative;
 }
@@ -1062,7 +1063,7 @@ tr.tr-saida td { color: #dc2626 !important; }
   position: absolute;
   top: -60px; right: -60px;
   width: 220px; height: 220px;
-  background: rgba(249,115,22,0.08);
+  background: rgba(249,115,22,0.10);
   border-radius: 50%;
 }
 .onboarding-card::after {
@@ -1070,7 +1071,7 @@ tr.tr-saida td { color: #dc2626 !important; }
   position: absolute;
   bottom: -80px; left: -40px;
   width: 280px; height: 280px;
-  background: rgba(255,255,255,0.03);
+  background: rgba(30,58,95,0.04);
   border-radius: 50%;
 }
 .onboarding-deco-logo {
@@ -1084,7 +1085,7 @@ tr.tr-saida td { color: #dc2626 !important; }
   height: 320px;
   width: 320px;
   object-fit: contain;
-  opacity: 0.18;
+  opacity: 0.12;
 }
 @media (max-width: 600px) {
   .onboarding-deco-logo img { height: 200px; width: 200px; }
@@ -1093,13 +1094,13 @@ tr.tr-saida td { color: #dc2626 !important; }
 .onboarding-titulo {
   font-size: 22px;
   font-weight: 800;
-  color: #ffffff;
+  color: #1e3a5f;
   margin-bottom: 10px;
   position: relative; z-index: 1;
 }
 .onboarding-sub {
   font-size: 14px;
-  color: rgba(255,255,255,0.75);
+  color: #475569;
   margin-bottom: 28px;
   max-width: 380px;
   margin-left: auto;
@@ -1109,7 +1110,28 @@ tr.tr-saida td { color: #dc2626 !important; }
 }
 .onboarding-card .btn-primary {
   position: relative; z-index: 1;
-  box-shadow: 0 4px 20px rgba(249,115,22,0.45);
+  box-shadow: 0 4px 20px rgba(249,115,22,0.35);
+}
+
+/* Onboarding card — tema escuro */
+[data-theme="dark"] .onboarding-card {
+  background: linear-gradient(135deg, #1e3a5f 0%, #2d5080 60%, #1e3a5f 100%);
+  box-shadow: 0 4px 20px rgba(30,58,95,0.35);
+}
+[data-theme="dark"] .onboarding-card::before {
+  background: rgba(249,115,22,0.08);
+}
+[data-theme="dark"] .onboarding-card::after {
+  background: rgba(255,255,255,0.03);
+}
+[data-theme="dark"] .onboarding-deco-logo img {
+  opacity: 0.18;
+}
+[data-theme="dark"] .onboarding-titulo {
+  color: #ffffff;
+}
+[data-theme="dark"] .onboarding-sub {
+  color: rgba(255,255,255,0.75);
 }
 
 [data-theme="dark"] .section-header h2 { color: #f1f5f9; }
