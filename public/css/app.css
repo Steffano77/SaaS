@@ -825,7 +825,7 @@
 
 /* ── Melhorias mobile tabela estoque ── */
 @media (max-width: 768px) {
-  .col-hide-mobile { display: none !important; }
+  .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }
 
 /* ── Toast de notificação ── */
