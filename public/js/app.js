@@ -197,11 +197,10 @@ function sair() {
   localStorage.removeItem('pptoken');
   document.getElementById('app').classList.add('hidden');
   document.getElementById('tela-auth').classList.remove('hidden');
-  // Limpa após o browser ter chance de autopreencher, então apaga
-  setTimeout(() => {
-    document.getElementById('login-email').value = '';
-    document.getElementById('login-senha').value = '';
-  }, 100);
+  const em = document.getElementById('login-email');
+  const pw = document.getElementById('login-senha');
+  em.value = ''; em.setAttribute('readonly', '');
+  pw.value = ''; pw.setAttribute('readonly', '');
 }
 
 // ── Navegação ───────────────────────────────────────────────
