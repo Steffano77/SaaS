@@ -159,6 +159,7 @@ async function fazerLogin(e) {
     TOKEN = d.token;
     localStorage.setItem('pptoken', TOKEN);
     document.getElementById('sidebar-nome').textContent = d.padaria.nome;
+    if (d.padaria.role === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
     entrar();
   } catch { el.textContent = 'Erro de conexão.'; el.classList.remove('hidden'); }
 }
@@ -177,6 +178,7 @@ async function fazerRegistro(e) {
     TOKEN = d.token;
     localStorage.setItem('pptoken', TOKEN);
     document.getElementById('sidebar-nome').textContent = d.padaria.nome;
+    if (d.padaria.role === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
     entrar();
   } catch { el.textContent = 'Erro de conexão.'; el.classList.remove('hidden'); }
 }
@@ -1780,4 +1782,50 @@ async function salvarNomePadaria() {
     document.getElementById('sidebar-nome').textContent = r.nome;
     fecharModalPadaria();
   }
+}
+
+// ── Admin ──────────────────────────────────────────────────────────────────
+async function abrirTelaAdmin() {
+  document.getElementById('tela-admin').classList.remove('hidden');
+  const lista = document.getElementById('admin-lista');
+  lista.innerHTML = '<p style="color:var(--slate-500)">Carregando...</p>';
+  const rows = await api('/admin/padarias');
+  if (!rows) { lista.innerHTML = '<p style="color:red">Erro ao carregar.</p>'; return; }
+  lista.innerHTML = rows.map(p => `
+    <div style="background:var(--white);border-radius:12px;padding:16px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.08);display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:15px;">${p.nome}</div>
+        <div style="font-size:13px;color:var(--slate-500);">${p.email}</div>
+        <div style="font-size:12px;color:var(--slate-400);margin-top:2px;">${p.total_produtos} produto(s) · Cadastro: ${new Date(p.criado_em).toLocaleDateString('pt-BR')} · Role: ${p.role}</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0;">
+        ${p.role !== 'admin' ? `
+          <button onclick="adminToggleAtivo(${p.id}, ${p.ativo ? 0 : 1})" class="btn-secondary" style="font-size:13px;padding:7px 12px;">
+            ${p.ativo ? '🔒 Desativar' : '✅ Reativar'}
+          </button>
+          <button onclick="adminApagarPadaria(${p.id}, '${p.nome.replace(/'/g,"\\'")}' )" class="btn-danger" style="font-size:13px;padding:7px 12px;">
+            🗑️ Apagar
+          </button>
+        ` : '<span style="font-size:13px;color:var(--slate-400);">— Admin —</span>'}
+      </div>
+    </div>
+  `).join('');
+}
+
+function fecharTelaAdmin() {
+  document.getElementById('tela-admin').classList.add('hidden');
+}
+
+async function adminToggleAtivo(id, novoAtivo) {
+  const acao = novoAtivo ? 'reativar' : 'desativar';
+  if (!confirm(`Deseja ${acao} esta padaria?`)) return;
+  const r = await api(`/admin/padarias/${id}/ativo`, { method: 'PATCH', body: { ativo: novoAtivo } });
+  if (r) abrirTelaAdmin();
+}
+
+async function adminApagarPadaria(id, nome) {
+  if (!confirm(`⚠️ Apagar "${nome}" permanentemente? Todos os dados serão perdidos!`)) return;
+  if (!confirm(`Confirma a exclusão definitiva de "${nome}"?`)) return;
+  const r = await api(`/admin/padarias/${id}`, { method: 'DELETE' });
+  if (r) abrirTelaAdmin();
 }

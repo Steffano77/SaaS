@@ -75,9 +75,15 @@ app.use(express.static(path.join(__dirname, '../public')));
         'ALTER TABLE produtos ADD COLUMN fornecedor_id INT NULL',
         'ALTER TABLE padarias ADD COLUMN reset_token VARCHAR(512) NULL',
         'ALTER TABLE padarias ADD COLUMN reset_expires DATETIME NULL',
+        "ALTER TABLE padarias ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user'",
       ];
       return Promise.all(cols.map(sql => db.query(sql).catch(() => {})));
     });
+    // Define admin pelo email configurado
+    const adminEmail = process.env.ADMIN_EMAIL;
+    if (adminEmail) {
+      await db.query("UPDATE padarias SET role = 'admin' WHERE email = ?", [adminEmail]).catch(() => {});
+    }
     console.log('✅ Migrations verificadas.');
   } catch (e) {
     console.error('Erro na migration automática:', e.message);

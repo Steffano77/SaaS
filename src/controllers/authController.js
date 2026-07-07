@@ -54,11 +54,11 @@ exports.login = async (req, res) => {
     if (!ok) return res.status(401).json({ erro: 'Credenciais inválidas.' });
 
     const token = jwt.sign(
-      { id: padaria.id, nome: padaria.nome, email: padaria.email },
+      { id: padaria.id, nome: padaria.nome, email: padaria.email, role: padaria.role || 'user' },
       SECRET,
       { expiresIn: '30d' }
     );
-    res.json({ token, padaria: { id: padaria.id, nome: padaria.nome, email: padaria.email, plano: padaria.plano } });
+    res.json({ token, padaria: { id: padaria.id, nome: padaria.nome, email: padaria.email, plano: padaria.plano, role: padaria.role || 'user' } });
   } catch (e) {
     console.error('Erro ao fazer login:', e);
     res.status(500).json({ erro: 'Erro interno ao fazer login.' });
