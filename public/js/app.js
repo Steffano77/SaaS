@@ -194,6 +194,8 @@ function entrar() {
 function sair() {
   TOKEN = '';
   localStorage.removeItem('pptoken');
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-senha').value = '';
   location.reload();
 }
 
