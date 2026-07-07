@@ -61,6 +61,7 @@ function mostrarTab(tab) {
 
 function mostrarEsqueciSenha(e) {
   e.preventDefault();
+  document.getElementById('esqueci-email').value = '';
   document.getElementById('form-login').classList.add('hidden');
   document.getElementById('form-esqueci').classList.remove('hidden');
   document.querySelector('.tabs-auth')?.classList.add('hidden');
