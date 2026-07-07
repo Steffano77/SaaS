@@ -826,6 +826,34 @@
 /* ── Melhorias mobile tabela estoque ── */
 @media (max-width: 768px) {
   .col-hide-mobile { display: none !important; }
+
+  /* Converte tabela de estoque em cards no mobile */
+  .table-wrapper { overflow-x: hidden; }
+  #tabela-estoque thead { display: none; }
+  #tabela-estoque tbody { display: block; }
+  #tabela-estoque tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--slate-100);
+    gap: 6px;
+  }
+  #tabela-estoque tbody tr td { border: none; padding: 0; }
+  #tabela-estoque tbody tr td.td-nome {
+    flex: 1 1 60%;
+    min-width: 0;
+  }
+  #tabela-estoque tbody tr td.td-saldo {
+    text-align: right;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  #tabela-estoque tbody tr td.td-status { flex-shrink: 0; }
+  #tabela-estoque tbody tr td.td-acoes {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
 }
 
 /* ── Toast de notificação ── */
