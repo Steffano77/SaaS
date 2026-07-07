@@ -611,11 +611,11 @@ async function carregarProdutos() {
     const valorTotal = (p.estoque_atual * p.custo_unitario).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
     return `<tr data-prod-id="${p.id}">
       <td><div class="td-main">${p.nome}</div><div class="td-sub">${p.codigo_barras || '—'}</div></td>
-      <td style="color:var(--slate-600)">${p.categoria || '—'}</td>
+      <td class="col-hide-mobile" style="color:var(--slate-600)">${p.categoria || '—'}</td>
       <td class="right td-mono">${fmtQtd(p.estoque_atual)} ${p.unidade}</td>
-      <td class="right td-mono" style="color:var(--slate-500)">${fmtQtd(p.estoque_minimo)}</td>
+      <td class="right td-mono col-hide-mobile" style="color:var(--slate-500)">${fmtQtd(p.estoque_minimo)}</td>
       <td class="right col-hide-mobile">${parseFloat(p.custo_unitario).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
-      <td class="right" style="font-weight:600">${valorTotal}</td>
+      <td class="right col-hide-mobile" style="font-weight:600">${valorTotal}</td>
       <td class="center col-hide-mobile" style="${p.validade ? 'color:var(--orange-600);font-weight:600' : 'color:var(--slate-400)'}">${validade}</td>
       <td class="center">${status}</td>
       <td class="right" style="white-space:nowrap;">
