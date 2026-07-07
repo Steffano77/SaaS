@@ -527,19 +527,12 @@
             <p style="color: var(--slate-600); font-size: 14px; line-height: 1.7; margin-bottom: 20px;">
               Exporte o relatório de produtos no Saurus Retaguarda:<br>
               <strong>Relatórios → Produtos → Exportar Excel</strong><br>
-              Depois selecione o arquivo e a loja abaixo para sincronizar.
+              Depois selecione o arquivo abaixo para sincronizar.
             </p>
             <form onsubmit="sincronizarSaurus(event)">
-              <div class="form-group" style="margin-bottom:16px;">
-                <label style="font-size:13px;font-weight:600;color:var(--slate-700);display:block;margin-bottom:6px;">Filtrar por loja</label>
-                <select id="sync-loja" class="form-control" style="max-width:280px;">
-                  <option value="">Todas as lojas</option>
-                  <option value="1">1 - PADARIA DO JOTA I LTDA</option>
-                  <option value="2" selected>2 - PADARIA DO JOTA LTDA</option>
-                  <option value="3">3 - PADARIA DO JOTA II LTDA</option>
-                </select>
-                <small style="color:var(--slate-500);font-size:12px;">Somente produtos desta loja serão importados</small>
-              </div>
+              <select id="sync-loja" style="display:none;">
+                <option value="" selected>Todas as lojas</option>
+              </select>
               <label class="upload-zone" for="arquivo-saurus">
                 <div class="upload-icon">📂</div>
                 <span id="nome-arquivo">Clique para selecionar o arquivo .xlsx</span>
@@ -774,7 +767,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260707b"></script>
+<script src="/js/app.js?v=20260707c"></script>
 
 <!-- Tela Saídas 30 dias -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
