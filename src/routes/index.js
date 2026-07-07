@@ -357,4 +357,34 @@ router.delete('/categorias/:id', auth, wrap(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// ── Admin ──────────────────────────────────────────────────────────────────
+const authAdmin = (req, res, next) => {
+  if (req.padaria.role !== 'admin') return res.status(403).json({ erro: 'Acesso restrito.' });
+  next();
+};
+
+router.get('/admin/padarias', auth, authAdmin, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const [rows] = await db.query(`
+    SELECT id, nome, email, plano, role, ativo, criado_em,
+      (SELECT COUNT(*) FROM produtos WHERE padaria_id = padarias.id) AS total_produtos
+    FROM padarias ORDER BY criado_em DESC`);
+  res.json(rows);
+}));
+
+router.patch('/admin/padarias/:id/ativo', auth, authAdmin, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const { ativo } = req.body;
+  if (Number(req.params.id) === req.padaria.id) return res.status(400).json({ erro: 'Não pode alterar a si mesmo.' });
+  await db.query('UPDATE padarias SET ativo = ? WHERE id = ?', [ativo ? 1 : 0, req.params.id]);
+  res.json({ ok: true });
+}));
+
+router.delete('/admin/padarias/:id', auth, authAdmin, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  if (Number(req.params.id) === req.padaria.id) return res.status(400).json({ erro: 'Não pode apagar a si mesmo.' });
+  await db.query('DELETE FROM padarias WHERE id = ?', [req.params.id]);
+  res.json({ ok: true });
+}));
+
 module.exports = router;

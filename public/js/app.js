@@ -159,6 +159,7 @@ async function fazerLogin(e) {
     TOKEN = d.token;
     localStorage.setItem('pptoken', TOKEN);
     document.getElementById('sidebar-nome').textContent = d.padaria.nome;
+    if (d.padaria.role === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
     entrar();
   } catch { el.textContent = 'Erro de conexão.'; el.classList.remove('hidden'); }
 }
@@ -177,6 +178,7 @@ async function fazerRegistro(e) {
     TOKEN = d.token;
     localStorage.setItem('pptoken', TOKEN);
     document.getElementById('sidebar-nome').textContent = d.padaria.nome;
+    if (d.padaria.role === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
     entrar();
   } catch { el.textContent = 'Erro de conexão.'; el.classList.remove('hidden'); }
 }
@@ -192,7 +194,13 @@ function entrar() {
 function sair() {
   TOKEN = '';
   localStorage.removeItem('pptoken');
-  location.reload();
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('tela-auth').classList.remove('hidden');
+  // Limpa após o browser ter chance de autopreencher, então apaga
+  setTimeout(() => {
+    document.getElementById('login-email').value = '';
+    document.getElementById('login-senha').value = '';
+  }, 100);
 }
 
 // ── Navegação ───────────────────────────────────────────────
@@ -301,7 +309,7 @@ async function carregarDashboard() {
     <div class="kpi-card kpi-clickable" onclick="abrirModalEstoque('zerado')"><div class="kpi-value" style="color:var(--red-500)">${k.zerados}</div><div class="kpi-label">Sem estoque</div><div class="kpi-hint">Ver produtos →</div></div>
     <div class="kpi-card kpi-clickable" onclick="abrirModalEstoque('minimo')"><div class="kpi-value" style="color:var(--yellow-500)">${k.abaixo_minimo}</div><div class="kpi-label">Abaixo do mínimo</div><div class="kpi-hint">Ver produtos →</div></div>
     <div class="kpi-card"><div class="kpi-value" style="color:var(--orange);font-size:22px">${'R$ ' + parseFloat(k.valor_total_estoque||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div><div class="kpi-label">Valor em estoque</div></div>
-    <div class="kpi-card kpi-clickable kpi-saidas" onclick="abrirTelaSaidas()"><div style="display:flex;align-items:center;justify-content:space-between;"><div><div class="kpi-value" style="color:var(--red-500);font-size:22px">R$ ${parseFloat(k.total_saidas_15d||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div><div class="kpi-label">Saídas — últimos 30 dias</div></div><div class="kpi-hint" style="font-size:13px;">Ver detalhes →</div></div></div>
+    <div class="kpi-card kpi-clickable kpi-saidas" onclick="abrirTelaSaidas()"><div style="display:flex;align-items:center;justify-content:space-between;"><div><div class="kpi-value" style="color:var(--red-500);font-size:22px">${parseInt(k.qtd_saidas_30d||0)} saídas</div><div class="kpi-label">Saídas — últimos 30 dias</div></div><div class="kpi-hint" style="font-size:13px;">Ver detalhes →</div></div></div>
   `;
   const onb = document.getElementById('onboarding-vazio');
   if (onb) onb.classList.toggle('hidden', k.total_produtos > 0);
@@ -614,9 +622,9 @@ async function carregarProdutos() {
       <td style="color:var(--slate-600)">${p.categoria || '—'}</td>
       <td class="right td-mono">${fmtQtd(p.estoque_atual)} ${p.unidade}</td>
       <td class="right td-mono" style="color:var(--slate-500)">${fmtQtd(p.estoque_minimo)}</td>
-      <td class="right col-hide-mobile">${parseFloat(p.custo_unitario).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
+      <td class="right">${parseFloat(p.custo_unitario).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
       <td class="right" style="font-weight:600">${valorTotal}</td>
-      <td class="center col-hide-mobile" style="${p.validade ? 'color:var(--orange-600);font-weight:600' : 'color:var(--slate-400)'}">${validade}</td>
+      <td class="center" style="${p.validade ? 'color:var(--orange-600);font-weight:600' : 'color:var(--slate-400)'}">${validade}</td>
       <td class="center">${status}</td>
       <td class="right" style="white-space:nowrap;">
         <button onclick="movRapido(${p.id},'entrada')" class="btn-icon" title="Entrada" style="color:#16a34a;font-size:16px;">➕</button>
@@ -1229,7 +1237,8 @@ async function editarProduto(id) {
   document.getElementById('prod-validade').value= p.validade ? p.validade.slice(0,10) : '';
   document.getElementById('prod-categoria').value  = p.categoria_id || '';
   document.getElementById('prod-fornecedor').value = p.fornecedor_id || '';
-  document.getElementById('wrap-saldo').classList.add('hidden');
+  document.getElementById('prod-saldo').value   = parseFloat(p.estoque_atual || 0);
+  document.getElementById('wrap-saldo').classList.remove('hidden');
   document.getElementById('modal-titulo').textContent = 'Editar produto';
   document.getElementById('modal-produto').classList.remove('hidden');
 }
@@ -1257,7 +1266,7 @@ async function salvarProduto(e) {
     preco_venda:   parseFloat(document.getElementById('prod-venda').value) || 0,
     validade:      document.getElementById('prod-validade').value || null,
   };
-  if (!id) body.estoque_atual = parseFloat(document.getElementById('prod-saldo').value) || 0;
+  body.estoque_atual = parseFloat(document.getElementById('prod-saldo').value) || 0;
   const res = await api(id ? `/produtos/${id}` : '/produtos', { method: id ? 'PUT' : 'POST', body });
   setBtnLoading(submitBtn, false);
   if (id && res) {
@@ -1779,4 +1788,50 @@ async function salvarNomePadaria() {
     document.getElementById('sidebar-nome').textContent = r.nome;
     fecharModalPadaria();
   }
+}
+
+// ── Admin ──────────────────────────────────────────────────────────────────
+async function abrirTelaAdmin() {
+  document.getElementById('tela-admin').classList.remove('hidden');
+  const lista = document.getElementById('admin-lista');
+  lista.innerHTML = '<p style="color:var(--slate-500)">Carregando...</p>';
+  const rows = await api('/admin/padarias');
+  if (!rows) { lista.innerHTML = '<p style="color:red">Erro ao carregar.</p>'; return; }
+  lista.innerHTML = rows.map(p => `
+    <div style="background:var(--white);border-radius:12px;padding:16px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.08);display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:15px;">${p.nome}</div>
+        <div style="font-size:13px;color:var(--slate-500);">${p.email}</div>
+        <div style="font-size:12px;color:var(--slate-400);margin-top:2px;">${p.total_produtos} produto(s) · Cadastro: ${new Date(p.criado_em).toLocaleDateString('pt-BR')} · Role: ${p.role}</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0;">
+        ${p.role !== 'admin' ? `
+          <button onclick="adminToggleAtivo(${p.id}, ${p.ativo ? 0 : 1})" class="btn-secondary" style="font-size:13px;padding:7px 12px;">
+            ${p.ativo ? '🔒 Desativar' : '✅ Reativar'}
+          </button>
+          <button onclick="adminApagarPadaria(${p.id}, '${p.nome.replace(/'/g,"\\'")}' )" class="btn-danger" style="font-size:13px;padding:7px 12px;">
+            🗑️ Apagar
+          </button>
+        ` : '<span style="font-size:13px;color:var(--slate-400);">— Admin —</span>'}
+      </div>
+    </div>
+  `).join('');
+}
+
+function fecharTelaAdmin() {
+  document.getElementById('tela-admin').classList.add('hidden');
+}
+
+async function adminToggleAtivo(id, novoAtivo) {
+  const acao = novoAtivo ? 'reativar' : 'desativar';
+  if (!confirm(`Deseja ${acao} esta padaria?`)) return;
+  const r = await api(`/admin/padarias/${id}/ativo`, { method: 'PATCH', body: { ativo: novoAtivo } });
+  if (r) abrirTelaAdmin();
+}
+
+async function adminApagarPadaria(id, nome) {
+  if (!confirm(`⚠️ Apagar "${nome}" permanentemente? Todos os dados serão perdidos!`)) return;
+  if (!confirm(`Confirma a exclusão definitiva de "${nome}"?`)) return;
+  const r = await api(`/admin/padarias/${id}`, { method: 'DELETE' });
+  if (r) abrirTelaAdmin();
 }

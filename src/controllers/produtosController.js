@@ -77,7 +77,7 @@ exports.criar = async (req, res) => {
 exports.atualizar = async (req, res) => {
   try {
     const campos = ['codigo_barras','nome','unidade','categoria_id','fornecedor_id',
-                    'custo_unitario','preco_venda','estoque_minimo','validade'];
+                    'custo_unitario','preco_venda','estoque_atual','estoque_minimo','validade'];
     const sets = []; const vals = [];
     for (const c of campos) {
       if (req.body[c] !== undefined) { sets.push(`${c} = ?`); vals.push(req.body[c]); }
@@ -135,12 +135,13 @@ exports.dashboard = async (req, res) => {
       WHERE m.padaria_id = ? ORDER BY m.data DESC LIMIT 10`, [pid]);
 
     const [[saidas15d]] = await db.query(`
-      SELECT COALESCE(SUM(valor_total), 0) AS total_saidas_15d
+      SELECT COALESCE(SUM(valor_total), 0) AS total_saidas_15d,
+             COUNT(*) AS qtd_saidas_30d
       FROM movimentacoes
       WHERE padaria_id = ? AND tipo = 'saida'
         AND data >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)`, [pid]);
 
-    res.json({ kpis: { ...kpis, total_saidas_15d: parseFloat(saidas15d.total_saidas_15d || 0) }, repor, vencendo, movimentacoes_recentes: movs });
+    res.json({ kpis: { ...kpis, total_saidas_15d: parseFloat(saidas15d.total_saidas_15d || 0), qtd_saidas_30d: parseInt(saidas15d.qtd_saidas_30d || 0) }, repor, vencendo, movimentacoes_recentes: movs });
   } catch (e) {
     console.error('Erro ao carregar dashboard:', e);
     res.status(500).json({ erro: 'Erro interno ao carregar painel.' });
