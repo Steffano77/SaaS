@@ -1142,3 +1142,24 @@ tr.tr-saida td { color: #dc2626 !important; }
 [data-theme="dark"] .btn-primary { color: #ffffff; }
 [data-theme="dark"] .btn-danger  { color: #ffffff; }
 [data-theme="dark"] .sidebar-link.active { color: #ffffff; }
+
+/* ── Fixes mobile ── */
+@media (max-width: 600px) {
+  /* Login não transbordar */
+  #tela-auth, #tela-redefinir {
+    align-items: flex-start;
+    overflow-y: auto;
+    padding: 16px;
+  }
+  .auth-card { padding: 24px 20px; }
+
+  /* Input number visível no Safari iOS */
+  input[type="number"] {
+    -webkit-text-fill-color: var(--slate-800);
+    color: var(--slate-800);
+  }
+  [data-theme="dark"] input[type="number"] {
+    -webkit-text-fill-color: #e2e8f0;
+    color: #e2e8f0;
+  }
+}
