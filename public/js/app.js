@@ -1229,7 +1229,8 @@ async function editarProduto(id) {
   document.getElementById('prod-validade').value= p.validade ? p.validade.slice(0,10) : '';
   document.getElementById('prod-categoria').value  = p.categoria_id || '';
   document.getElementById('prod-fornecedor').value = p.fornecedor_id || '';
-  document.getElementById('wrap-saldo').classList.add('hidden');
+  document.getElementById('prod-saldo').value   = parseFloat(p.estoque_atual || 0);
+  document.getElementById('wrap-saldo').classList.remove('hidden');
   document.getElementById('modal-titulo').textContent = 'Editar produto';
   document.getElementById('modal-produto').classList.remove('hidden');
 }
@@ -1257,7 +1258,7 @@ async function salvarProduto(e) {
     preco_venda:   parseFloat(document.getElementById('prod-venda').value) || 0,
     validade:      document.getElementById('prod-validade').value || null,
   };
-  if (!id) body.estoque_atual = parseFloat(document.getElementById('prod-saldo').value) || 0;
+  body.estoque_atual = parseFloat(document.getElementById('prod-saldo').value) || 0;
   const res = await api(id ? `/produtos/${id}` : '/produtos', { method: id ? 'PUT' : 'POST', body });
   setBtnLoading(submitBtn, false);
   if (id && res) {
