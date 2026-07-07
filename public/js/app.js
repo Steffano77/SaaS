@@ -1,5 +1,5 @@
 const API = '/api';
-let TOKEN = localStorage.getItem('pptoken') || '';
+let TOKEN = localStorage.getItem('pptoken') || sessionStorage.getItem('pptoken') || '';
 let todosProds = [];
 let _prodFornecedorMap = {}; // produto_id → nome do fornecedor
 
@@ -158,7 +158,9 @@ async function fazerLogin(e) {
     const d = await r.json();
     if (!r.ok) { el.textContent = d.erro; el.classList.remove('hidden'); return; }
     TOKEN = d.token;
-    localStorage.setItem('pptoken', TOKEN);
+    const manter = document.getElementById('manter-logado')?.checked !== false;
+    if (manter) localStorage.setItem('pptoken', TOKEN);
+    else { localStorage.removeItem('pptoken'); sessionStorage.setItem('pptoken', TOKEN); }
     document.getElementById('sidebar-nome').textContent = d.padaria.nome;
     if (d.padaria.role === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
     entrar();
@@ -195,6 +197,7 @@ function entrar() {
 function sair() {
   TOKEN = '';
   localStorage.removeItem('pptoken');
+  sessionStorage.removeItem('pptoken');
   document.getElementById('app').classList.add('hidden');
   document.getElementById('tela-auth').classList.remove('hidden');
   const em = document.getElementById('login-email');
