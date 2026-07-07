@@ -1771,6 +1771,7 @@ async function processarCodigoBarras(codigo, ctx) {
 
 // ── Editar nome da padaria ────────────────────────────────────
 function abrirEditarPadaria() {
+  fecharSidebar();
   document.getElementById('input-nome-padaria').value = document.getElementById('sidebar-nome').textContent;
   document.getElementById('modal-editar-padaria').classList.remove('hidden');
   setTimeout(() => document.getElementById('input-nome-padaria').focus(), 100);
