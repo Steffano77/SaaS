@@ -1,0 +1,8 @@
+#!/bin/sh
+echo "🔍 Verificando sintaxe do JavaScript..."
+node --check public/js/app.js
+if [ $? -ne 0 ]; then
+  echo "❌ Erro de sintaxe em app.js — commit bloqueado."
+  exit 1
+fi
+echo "✅ JavaScript OK."

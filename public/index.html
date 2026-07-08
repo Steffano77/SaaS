@@ -36,10 +36,13 @@
       <button class="tab-btn" id="tab-registro" onclick="mostrarTab('registro')">Criar conta</button>
     </div>
 
-    <form id="form-login" onsubmit="fazerLogin(event)">
+    <form id="form-login" onsubmit="fazerLogin(event)" autocomplete="off">
+      <!-- Campos isca: enganam o gerenciador de senhas do browser -->
+      <input type="text" name="fake-user" style="display:none;" tabindex="-1" aria-hidden="true"/>
+      <input type="password" name="fake-pass" style="display:none;" tabindex="-1" aria-hidden="true"/>
       <div class="form-group">
         <label>Email</label>
-        <input type="email" id="login-email" required placeholder="sua@padaria.com.br" class="form-control" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')"/>
+        <input type="text" id="login-email" required placeholder="sua@padaria.com.br" class="form-control" autocomplete="off" inputmode="email" readonly onfocus="this.removeAttribute('readonly')"/>
       </div>
       <div class="form-group">
         <label>Senha</label>
@@ -757,7 +760,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260707j"></script>
+<script src="/js/app.js?v=20260707k"></script>
 
 <!-- Tela Saídas 30 dias -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
