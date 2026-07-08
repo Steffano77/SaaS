@@ -784,7 +784,7 @@ function adicionarItemPedido() {
   if (!prodId) prodId = '__novo__';
   const isNovo   = prodId === '__novo__';
   const unidadeSelect = document.getElementById('compra-unidade')?.value || 'un';
-  const unidade  = isNovo ? (document.getElementById('novo-prod-unidade').value || unidadeSelect) : (unidadeSelect || _produtosCache.find(p=>p.id==prodId)?.unidade || 'un');
+  const unidade  = unidadeSelect || (isNovo ? 'un' : (_produtosCache.find(p=>p.id==prodId)?.unidade || 'un'));
   const minimo   = isNovo ? parseFloat(document.getElementById('novo-prod-minimo').value || 0) : 0;
 
   if (!nome) { mostrarMsgCompra('⚠️ Selecione ou informe um produto.', 'err'); return; }
