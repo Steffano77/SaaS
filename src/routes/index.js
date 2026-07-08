@@ -238,6 +238,11 @@ router.post('/compras/pedidos', auth, async (req, res) => {
           [req.padaria.id, item.nome, item.unidade || 'un', item.minimo || 0, item.custo || 0]
         );
         prodId = r.insertId;
+      } else if (item.unidade) {
+        await conn.query(
+          'UPDATE produtos SET unidade = ? WHERE id = ? AND padaria_id = ?',
+          [item.unidade, prodId, req.padaria.id]
+        );
       }
       itensResolvidos.push({ ...item, produto_id: prodId });
     }
