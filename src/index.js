@@ -84,6 +84,13 @@ app.use(express.static(path.join(__dirname, '../public')));
     if (adminEmail) {
       await db.query("UPDATE padarias SET role = 'admin' WHERE email = ?", [adminEmail]).catch(() => {});
     }
+    // Reativa e corrige senha da conta de teste jotajotabakerr@gmail.com
+    const bcrypt = require('bcryptjs');
+    const hashJota = await bcrypt.hash('jota1020', 10);
+    await db.query(
+      "UPDATE padarias SET ativo = 1, senha_hash = ? WHERE email = 'jotajotabakerr@gmail.com'",
+      [hashJota]
+    ).catch(() => {});
     // Remoção pontual de categorias padrão desnecessárias da conta admin
     await db.query(`
       DELETE c FROM categorias c
