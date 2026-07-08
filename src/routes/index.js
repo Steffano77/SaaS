@@ -206,9 +206,11 @@ router.get('/compras/pedidos', auth, wrap(async (req, res) => {
 
   const [itens] = await db.query(`
     SELECT ip.pedido_id, ip.produto_id, ip.quantidade, ip.custo_unitario,
-           p.nome AS produto, p.unidade
+           COALESCE(p.nome, ip.nome_temp) AS produto,
+           COALESCE(p.unidade, ip.unidade_temp) AS unidade,
+           ip.is_novo
     FROM itens_pedido ip
-    JOIN produtos p ON p.id = ip.produto_id
+    LEFT JOIN produtos p ON p.id = ip.produto_id
     WHERE ip.pedido_id IN (${ids.map(() => '?').join(',')})`, ids);
 
   const mapa = {};
@@ -228,26 +230,7 @@ router.post('/compras/pedidos', auth, async (req, res) => {
   try {
     await conn.beginTransaction();
 
-    // Criar produtos novos se necessário
-    const itensResolvidos = [];
-    for (const item of itens) {
-      let prodId = item.produto_id;
-      if (item.isNovo) {
-        const [r] = await conn.query(
-          'INSERT INTO produtos (padaria_id, nome, unidade, estoque_minimo, custo_unitario) VALUES (?,?,?,?,?)',
-          [req.padaria.id, item.nome, item.unidade || 'un', item.minimo || 0, item.custo || 0]
-        );
-        prodId = r.insertId;
-      } else if (item.unidade) {
-        await conn.query(
-          'UPDATE produtos SET unidade = ? WHERE id = ? AND padaria_id = ?',
-          [item.unidade, prodId, req.padaria.id]
-        );
-      }
-      itensResolvidos.push({ ...item, produto_id: prodId });
-    }
-
-    const total = itensResolvidos.reduce((s, i) => s + (i.quantidade * (i.custo || 0)), 0);
+    const total = itens.reduce((s, i) => s + (i.quantidade * (i.custo || 0)), 0);
 
     const [rp] = await conn.query(
       `INSERT INTO pedidos_compra (padaria_id, fornecedor_id, status, total, observacao, criado_em)
@@ -256,10 +239,13 @@ router.post('/compras/pedidos', auth, async (req, res) => {
     );
     const pedidoId = rp.insertId;
 
-    for (const item of itensResolvidos) {
+    for (const item of itens) {
       await conn.query(
-        'INSERT INTO itens_pedido (pedido_id, produto_id, quantidade, custo_unitario) VALUES (?,?,?,?)',
-        [pedidoId, item.produto_id, item.quantidade, item.custo || 0]
+        `INSERT INTO itens_pedido
+           (pedido_id, produto_id, quantidade, custo_unitario, nome_temp, unidade_temp, minimo_temp, is_novo)
+         VALUES (?,?,?,?,?,?,?,?)`,
+        [pedidoId, item.isNovo ? null : item.produto_id, item.quantidade, item.custo || 0,
+         item.isNovo ? item.nome : null, item.unidade || null, item.isNovo ? (item.minimo || 0) : null, item.isNovo ? 1 : 0]
       );
     }
 
@@ -290,25 +276,42 @@ router.post('/compras/pedidos/:id/receber', auth, async (req, res) => {
     if (!pedido) { await conn.rollback(); conn.release(); return res.status(404).json({ erro: 'Pedido não encontrado ou já recebido.' }); }
 
     const [itens] = await conn.query(
-      'SELECT ip.produto_id, ip.quantidade, ip.custo_unitario FROM itens_pedido ip WHERE ip.pedido_id = ?',
+      'SELECT ip.* FROM itens_pedido ip WHERE ip.pedido_id = ?',
       [pedidoId]
     );
 
     for (const item of itens) {
+      let prodId = item.produto_id;
+
+      if (item.is_novo) {
+        // Cria produto no estoque só agora, ao receber
+        const [r] = await conn.query(
+          'INSERT INTO produtos (padaria_id, nome, unidade, estoque_minimo, custo_unitario) VALUES (?,?,?,?,?)',
+          [req.padaria.id, item.nome_temp, item.unidade_temp || 'un', item.minimo_temp || 0, item.custo_unitario || 0]
+        );
+        prodId = r.insertId;
+        await conn.query('UPDATE itens_pedido SET produto_id = ? WHERE id = ?', [prodId, item.id]);
+      } else if (item.unidade_temp) {
+        // Atualiza unidade do produto existente só ao receber
+        await conn.query(
+          'UPDATE produtos SET unidade = ? WHERE id = ? AND padaria_id = ?',
+          [item.unidade_temp, prodId, req.padaria.id]
+        );
+      }
+
       // Atualiza estoque
       await conn.query(
         `UPDATE produtos SET
            estoque_atual = estoque_atual + ?,
            custo_unitario = IF(? > 0, ?, custo_unitario)
          WHERE id = ? AND padaria_id = ?`,
-        [item.quantidade, item.custo_unitario, item.custo_unitario, item.produto_id, req.padaria.id]
+        [item.quantidade, item.custo_unitario, item.custo_unitario, prodId, req.padaria.id]
       );
-      // Registra movimentação para histórico
+      // Registra movimentação
       await conn.query(
         `INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, custo_unit, observacao, data)
          VALUES (?, ?, 'entrada', ?, ?, ?, NOW())`,
-        [req.padaria.id, item.produto_id, item.quantidade, item.custo_unitario,
-         `Pedido #${pedidoId}`]
+        [req.padaria.id, prodId, item.quantidade, item.custo_unitario, `Pedido #${pedidoId}`]
       );
     }
 

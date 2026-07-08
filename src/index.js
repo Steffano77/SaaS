@@ -76,6 +76,10 @@ app.use(express.static(path.join(__dirname, '../public')));
         'ALTER TABLE padarias ADD COLUMN reset_token VARCHAR(512) NULL',
         'ALTER TABLE padarias ADD COLUMN reset_expires DATETIME NULL',
         "ALTER TABLE padarias ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user'",
+        'ALTER TABLE itens_pedido ADD COLUMN nome_temp VARCHAR(200) NULL',
+        'ALTER TABLE itens_pedido ADD COLUMN unidade_temp VARCHAR(20) NULL',
+        'ALTER TABLE itens_pedido ADD COLUMN minimo_temp FLOAT NULL',
+        'ALTER TABLE itens_pedido ADD COLUMN is_novo TINYINT(1) DEFAULT 0',
       ];
       return Promise.all(cols.map(sql => db.query(sql).catch(() => {})));
     });
