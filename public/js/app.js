@@ -693,17 +693,41 @@ async function carregarCompras() {
     secPend.classList.add('hidden');
   }
 
-  // Histórico de compras recebidas
+  // Histórico de compras recebidas — agrupado por fornecedor
   const recentes = await api('/compras/recentes') || [];
-  const tbody = document.getElementById('tabela-compras-recentes');
-  tbody.innerHTML = recentes.length
-    ? recentes.map(c => `<tr>
-        <td class="td-main">${c.produtos}</td>
-        <td style="color:var(--slate-600);font-size:13px;">${c.fornecedor || '—'}</td>
-        <td class="right" style="font-weight:600;">R$ ${parseFloat(c.total||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
-        <td>${c.data ? new Date(c.data).toLocaleDateString('pt-BR') : '—'}</td>
-      </tr>`).join('')
-    : '<tr class="empty-row"><td colspan="4">Nenhuma compra recebida nos últimos 30 dias</td></tr>';
+  const el = document.getElementById('tabela-compras-recentes');
+  if (!recentes.length) {
+    el.innerHTML = '<p style="padding:20px;text-align:center;color:var(--slate-400);font-size:14px;">Nenhuma compra recebida nos últimos 30 dias.</p>';
+  } else {
+    const grupos = {};
+    recentes.forEach(c => {
+      const forn = c.fornecedor || '— Sem fornecedor —';
+      if (!grupos[forn]) grupos[forn] = [];
+      grupos[forn].push(c);
+    });
+    el.innerHTML = Object.entries(grupos).map(([forn, compras]) => {
+      const totalForn = compras.reduce((s, c) => s + parseFloat(c.total || 0), 0);
+      const linhas = compras.map(c => {
+        const prods = (c.produtos || '').split(',').map(p => p.trim()).filter(Boolean);
+        return `<div style="padding:10px 16px;border-bottom:1px solid var(--slate-100);">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div style="font-size:13px;color:var(--slate-500);">${c.data ? new Date(c.data).toLocaleDateString('pt-BR') : '—'}</div>
+            <div style="font-size:13px;font-weight:700;color:var(--navy);">R$ ${parseFloat(c.total||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+          </div>
+          <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;">
+            ${prods.map(p => `<span style="font-size:12px;background:var(--slate-100);color:var(--slate-700);padding:2px 8px;border-radius:20px;">${p}</span>`).join('')}
+          </div>
+        </div>`;
+      }).join('');
+      return `<div style="border-bottom:2px solid var(--slate-200);margin-bottom:4px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--slate-50);">
+          <span style="font-size:13px;font-weight:700;color:var(--navy);">🏭 ${forn}</span>
+          <span style="font-size:12px;color:var(--slate-500);">${compras.length} pedido${compras.length>1?'s':''} · R$ ${totalForn.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
+        </div>
+        ${linhas}
+      </div>`;
+    }).join('');
+  }
 }
 
 let _produtosCache = [];
