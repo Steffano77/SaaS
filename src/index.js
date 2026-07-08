@@ -64,25 +64,18 @@ app.use(express.static(path.join(__dirname, '../public')));
 (async () => {
   try {
     const db = require('./database/connection');
-    await db.query(`
-      ALTER TABLE produtos
-        ADD COLUMN IF NOT EXISTS fornecedor_id INT NULL,
-        ADD COLUMN IF NOT EXISTS reset_token VARCHAR(512) NULL,
-        ADD COLUMN IF NOT EXISTS reset_expires DATETIME NULL
-    `).catch(() => {
-      // MySQL < 8 não suporta IF NOT EXISTS no ALTER — tenta coluna por coluna
-      const cols = [
-        'ALTER TABLE produtos ADD COLUMN fornecedor_id INT NULL',
-        'ALTER TABLE padarias ADD COLUMN reset_token VARCHAR(512) NULL',
-        'ALTER TABLE padarias ADD COLUMN reset_expires DATETIME NULL',
-        "ALTER TABLE padarias ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user'",
-        'ALTER TABLE itens_pedido ADD COLUMN nome_temp VARCHAR(200) NULL',
-        'ALTER TABLE itens_pedido ADD COLUMN unidade_temp VARCHAR(20) NULL',
-        'ALTER TABLE itens_pedido ADD COLUMN minimo_temp FLOAT NULL',
-        'ALTER TABLE itens_pedido ADD COLUMN is_novo TINYINT(1) DEFAULT 0',
-      ];
-      return Promise.all(cols.map(sql => db.query(sql).catch(() => {})));
-    });
+    // Cada coluna individualmente — ignora erro se já existir
+    const migrations = [
+      'ALTER TABLE produtos ADD COLUMN fornecedor_id INT NULL',
+      'ALTER TABLE padarias ADD COLUMN reset_token VARCHAR(512) NULL',
+      'ALTER TABLE padarias ADD COLUMN reset_expires DATETIME NULL',
+      "ALTER TABLE padarias ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user'",
+      'ALTER TABLE itens_pedido ADD COLUMN nome_temp VARCHAR(200) NULL',
+      'ALTER TABLE itens_pedido ADD COLUMN unidade_temp VARCHAR(20) NULL',
+      'ALTER TABLE itens_pedido ADD COLUMN minimo_temp FLOAT NULL',
+      'ALTER TABLE itens_pedido ADD COLUMN is_novo TINYINT(1) DEFAULT 0',
+    ];
+    await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
     // Define admin pelo email configurado
     const adminEmail = process.env.ADMIN_EMAIL;
     if (adminEmail) {
