@@ -27,11 +27,6 @@ exports.registrar = async (req, res) => {
       [nome, email, hash]
     );
 
-    const cats = ['Farinhas','Gorduras','Açúcares','Laticínios','Ovos','Embalagens','Outros'];
-    for (const c of cats) {
-      await db.query('INSERT INTO categorias (padaria_id, nome) VALUES (?, ?)', [result.insertId, c]);
-    }
-
     const token = jwt.sign({ id: result.insertId, nome, email }, SECRET, { expiresIn: '30d' });
     res.status(201).json({ token, padaria: { id: result.insertId, nome, email } });
   } catch (e) {
