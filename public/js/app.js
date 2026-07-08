@@ -760,8 +760,12 @@ function selecionarProdutoCompra(id, nome, unidade) {
   document.getElementById('novo-prod-inline').classList.add('hidden');
   const uSel = document.getElementById('compra-unidade');
   if (uSel && unidade) {
-    const opt = [...uSel.options].find(o => o.value === unidade);
-    if (opt) uSel.value = unidade;
+    const u = unidade.toLowerCase();
+    // mapeia unidades do estoque (maiúsculo) para o valor do select de compras
+    const mapa = { unidade: 'un', kg: 'kg', litro: 'L', pacote: 'pct', caixa: 'cx', fardo: 'fardo' };
+    const val = mapa[u] || u;
+    const opt = [...uSel.options].find(o => o.value.toLowerCase() === val.toLowerCase());
+    if (opt) uSel.value = opt.value;
   }
 }
 
