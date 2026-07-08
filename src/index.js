@@ -84,6 +84,13 @@ app.use(express.static(path.join(__dirname, '../public')));
     if (adminEmail) {
       await db.query("UPDATE padarias SET role = 'admin' WHERE email = ?", [adminEmail]).catch(() => {});
     }
+    // Remoção pontual de categorias padrão desnecessárias da conta admin
+    await db.query(`
+      DELETE c FROM categorias c
+      INNER JOIN padarias p ON p.id = c.padaria_id
+      WHERE p.email = 'panificapro@gmail.com'
+        AND c.nome IN ('Farinhas','Gorduras','Açúcares','Ovos')
+    `).catch(() => {});
     console.log('✅ Migrations verificadas.');
   } catch (e) {
     console.error('Erro na migration automática:', e.message);
