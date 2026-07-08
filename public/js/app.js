@@ -695,9 +695,9 @@ async function carregarCompras() {
 
   // Histórico de compras recebidas — agrupado por fornecedor
   const recentes = await api('/compras/recentes') || [];
-  const el = document.getElementById('tabela-compras-recentes');
+  const elRecentes = document.getElementById('tabela-compras-recentes');
   if (!recentes.length) {
-    el.innerHTML = '<p style="padding:20px;text-align:center;color:var(--slate-400);font-size:14px;">Nenhuma compra recebida nos últimos 30 dias.</p>';
+    elRecentes.innerHTML = '<p style="padding:20px;text-align:center;color:var(--slate-400);font-size:14px;">Nenhuma compra recebida nos últimos 30 dias.</p>';
   } else {
     const grupos = {};
     recentes.forEach(c => {
@@ -705,7 +705,7 @@ async function carregarCompras() {
       if (!grupos[forn]) grupos[forn] = [];
       grupos[forn].push(c);
     });
-    el.innerHTML = Object.entries(grupos).map(([forn, compras]) => {
+    elRecentes.innerHTML = Object.entries(grupos).map(([forn, compras]) => {
       const totalForn = compras.reduce((s, c) => s + parseFloat(c.total || 0), 0);
       const linhas = compras.map(c => {
         const prods = (c.produtos || '').split(',').map(p => p.trim()).filter(Boolean);
