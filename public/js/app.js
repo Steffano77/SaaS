@@ -518,7 +518,7 @@ function imprimirSaidas() {
       td.obs { color: #64748b; font-style: italic; font-size: 12px; }
       .total { text-align: right; font-weight: 700; margin-top: 12px; font-size: 14px; color: #dc2626; }
     </style></head><body>
-    <h2>PanificaPro — Saídas</h2>
+    <h2>${document.getElementById('sidebar-nome').textContent} — Saídas</h2>
     <p>Impresso em ${new Date().toLocaleDateString('pt-BR')} · ${alvo.length} registros</p>
     <table>
       <thead><tr><th>Produto</th><th>Quantidade</th><th>Custo unit.</th><th>Total</th><th>Data</th><th>Observação</th></tr></thead>
@@ -1003,7 +1003,8 @@ async function enviarPedidoWhatsApp(tel, nomeForn) {
   const prods = await api('/produtos?alerta=minimo') || [];
   const zerados = await api('/produtos?alerta=zerado') || [];
   const todos = [...zerados, ...prods.filter(p => !zerados.find(z => z.id === p.id))];
-  let msg = `📋 *PEDIDO — PanificaPro*\n${new Date().toLocaleDateString('pt-BR')}\n\nOlá, *${nomeForn}*! Segue nossa lista de compras:\n\n`;
+  const nomePadaria = document.getElementById('sidebar-nome').textContent;
+  let msg = `📋 *PEDIDO — ${nomePadaria}*\n${new Date().toLocaleDateString('pt-BR')}\n\nOlá, *${nomeForn}*! Segue nossa lista de compras:\n\n`;
   if (todos.length) {
     todos.forEach(p => {
       const falta = Math.max(0, p.estoque_minimo - p.estoque_atual);
@@ -1035,7 +1036,7 @@ async function gerarListaCompras() {
   const zerados = await api('/produtos?alerta=zerado') || [];
   const todos = [...zerados, ...prods.filter(p => !zerados.find(z => z.id === p.id))];
   if (!todos.length) return alert('✅ Nenhum produto precisa de reposição!');
-  let txt = '📋 LISTA DE COMPRAS — PanificaPro\n';
+  let txt = `📋 LISTA DE COMPRAS — ${document.getElementById('sidebar-nome').textContent}\n`;
   txt += new Date().toLocaleDateString('pt-BR') + '\n\n';
   todos.forEach(p => {
     const falta = Math.max(0, p.estoque_minimo - p.estoque_atual);
@@ -1180,7 +1181,11 @@ async function carregarRelatorios() {
     : '<tr class="empty-row"><td colspan="6">Nenhuma movimentação neste mês</td></tr>';
 }
 
-function imprimirRelatorio() { window.print(); }
+function imprimirRelatorio() {
+  document.title = document.getElementById('sidebar-nome').textContent + ' — Relatório';
+  window.print();
+  document.title = 'PanificaPro';
+}
 
 function statusBadge(p) {
   const hoje = new Date(); hoje.setHours(0,0,0,0);
