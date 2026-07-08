@@ -341,50 +341,26 @@ async function carregarDashboard() {
   const labelColor = () => isDark() ? '#cbd5e1' : '#334155';
 
   try {
-    const movData = await api('/relatorios/movs-semana');
-    const ctxM = document.getElementById('chart-movs')?.getContext('2d');
-    if (ctxM && movData) {
-      if (window._chartMovs) window._chartMovs.destroy();
-      window._chartMovs = new Chart(ctxM, {
-        type: 'line',
-        data: {
-          labels: movData.map(r => r.dia),
-          datasets: [
-            {
-              label: 'Entradas',
-              data: movData.map(r => r.entradas),
-              borderColor: '#22c55e',
-              backgroundColor: 'rgba(34,197,94,0.15)',
-              borderWidth: 2.5,
-              pointBackgroundColor: '#22c55e',
-              pointRadius: 4,
-              tension: 0.4,
-              fill: true
-            },
-            {
-              label: 'Saídas',
-              data: movData.map(r => r.saidas),
-              borderColor: '#f97316',
-              backgroundColor: 'rgba(249,115,22,0.12)',
-              borderWidth: 2.5,
-              pointBackgroundColor: '#f97316',
-              pointRadius: 4,
-              tension: 0.4,
-              fill: true
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: { position: 'bottom', labels: { color: labelColor(), boxWidth: 12, padding: 16, font: { family: "'Plus Jakarta Sans', sans-serif", size: 12 } } }
-          },
-          scales: {
-            x: { grid: { color: gridColor() }, ticks: { color: tickColor(), font: { family: "'Plus Jakarta Sans', sans-serif" } } },
-            y: { beginAtZero: true, grid: { color: gridColor() }, ticks: { color: tickColor(), font: { family: "'Plus Jakarta Sans', sans-serif" } } }
-          }
-        }
-      });
+    const movRecentes = await api('/movimentacoes?limit=10');
+    const elMovs = document.getElementById('lista-movs-recentes');
+    if (elMovs && movRecentes?.length) {
+      elMovs.innerHTML = movRecentes.map(m => {
+        const isEntrada = m.tipo === 'entrada';
+        const isAjuste = m.tipo === 'ajuste';
+        const icon = isEntrada ? '📥' : isAjuste ? '⚙️' : '📤';
+        const cor = isEntrada ? '#16a34a' : isAjuste ? '#2563eb' : '#dc2626';
+        const data = new Date(m.data).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' });
+        return `<div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--slate-100);">
+          <span style="font-size:18px;">${icon}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:600;color:var(--slate-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.produto || '—'}</div>
+            <div style="font-size:12px;color:var(--slate-500);">${data} · ${m.observacao || m.tipo}</div>
+          </div>
+          <div style="font-size:13px;font-weight:700;color:${cor};white-space:nowrap;">${isEntrada ? '+' : isAjuste ? '~' : '−'}${fmtQtd(m.quantidade)} ${m.unidade||''}</div>
+        </div>`;
+      }).join('');
+    } else if (elMovs) {
+      elMovs.innerHTML = '<p style="padding:24px;text-align:center;color:var(--slate-400);font-size:14px;">Nenhuma movimentação ainda.</p>';
     }
   } catch(e) {}
 

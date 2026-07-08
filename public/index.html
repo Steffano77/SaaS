@@ -270,10 +270,8 @@
       <!-- Gráficos -->
       <div class="dashboard-grid" style="margin-top:0;">
         <div class="card">
-          <div class="card-header"><span class="card-title">📈 Movimentações — últimos 7 dias</span></div>
-          <div class="card-body" style="padding:16px;">
-            <canvas id="chart-movs" height="180"></canvas>
-          </div>
+          <div class="card-header"><span class="card-title">🕐 Últimas movimentações</span></div>
+          <div id="lista-movs-recentes" style="max-height:260px;overflow-y:auto;"></div>
         </div>
         <div class="card">
           <div class="card-header"><span class="card-title">🏆 Top 5 — Maior valor em estoque</span></div>
@@ -771,7 +769,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260707f"></script>
+<script src="/js/app.js?v=20260707g"></script>
 
 <!-- Tela Saídas 30 dias -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
