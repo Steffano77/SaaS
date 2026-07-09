@@ -514,6 +514,8 @@
       transition: background 0.15s;
     }
 
+    tbody tr:nth-child(even) { background: rgba(100, 116, 139, 0.05); }
+
     tbody tr:hover { background: var(--slate-50); }
 
     tbody td {
@@ -1035,6 +1037,7 @@ tr.tr-saida td { color: #dc2626 !important; }
 [data-theme="dark"] .form-control::placeholder, [data-theme="dark"] input::placeholder { color: #64748b; }
 [data-theme="dark"] table th { background: #1e293b; color: #94a3b8; }
 [data-theme="dark"] table td { border-color: #334155; color: #e2e8f0; }
+[data-theme="dark"] table tbody tr:nth-child(even) { background: rgba(255, 255, 255, 0.045); }
 [data-theme="dark"] table tbody tr:hover { background: #334155; }
 [data-theme="dark"] .modal-content { background: #1e293b; }
 [data-theme="dark"] .modal-header { background: #152b47; }
