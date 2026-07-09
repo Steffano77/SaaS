@@ -27,7 +27,7 @@ exports.registrar = async (req, res) => {
       [nome, email, hash]
     );
 
-    const token = jwt.sign({ id: result.insertId, nome, email }, SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ id: result.insertId, nome, email }, SECRET, { expiresIn: '7d' });
     res.status(201).json({ token, padaria: { id: result.insertId, nome, email } });
   } catch (e) {
     console.error('Erro ao registrar:', e);
@@ -51,7 +51,7 @@ exports.login = async (req, res) => {
     const token = jwt.sign(
       { id: padaria.id, nome: padaria.nome, email: padaria.email, role: padaria.role || 'user' },
       SECRET,
-      { expiresIn: '30d' }
+      { expiresIn: '7d' }
     );
     res.json({ token, padaria: { id: padaria.id, nome: padaria.nome, email: padaria.email, plano: padaria.plano, role: padaria.role || 'user' } });
   } catch (e) {
