@@ -210,6 +210,7 @@ function sair() {
 const paginas = ['dashboard','estoque','compras','fornecedores','relatorios','sync','404'];
 function mostrarPagina(pg, pushHistory = true) {
   if (!paginas.includes(pg)) { mostrarPagina('404'); return; }
+  fecharSidebar();
   paginas.forEach(p => {
     document.getElementById(`pg-${p}`).classList.toggle('hidden', p !== pg);
   });
@@ -225,18 +226,13 @@ function mostrarPagina(pg, pushHistory = true) {
 }
 
 window.addEventListener('popstate', () => {
-  const visivel = paginas.find(p => !document.getElementById(`pg-${p}`).classList.contains('hidden'));
-  if (visivel === 'dashboard' && TOKEN) {
-    history.pushState({ pg: 'dashboard' }, '', '#dashboard');
-    document.getElementById('modal-sair').classList.remove('hidden');
-  } else {
-    mostrarPagina('dashboard', false);
-  }
+  // Swipe back sempre vai para o dashboard, nunca abre modal-sair
+  mostrarPagina('dashboard', false);
 });
 
 function confirmarSaida() {
   document.getElementById('modal-sair').classList.add('hidden');
-  history.back();
+  sair();
 }
 
 function cancelarSaida() {
