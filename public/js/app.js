@@ -217,7 +217,8 @@ function mostrarPagina(pg, pushHistory = true) {
   document.querySelectorAll('.sidebar-link').forEach((el, i) => {
     el.classList.toggle('active', paginas[i] === pg);
   });
-  if (pushHistory) history.pushState({ pg }, '', `#${pg}`);
+  // Sempre replaceState para não empilhar histórico e evitar gesto nativo do browser
+  history.replaceState({ pg }, '', `#${pg}`);
   if (pg === 'dashboard')      carregarDashboard();
   if (pg === 'estoque')        { carregarCategorias(); carregarProdutos(); carregarFiltroFornecedor(); }
   if (pg === 'compras')        { carregarCompras(); }
