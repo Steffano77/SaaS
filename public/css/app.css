@@ -1,5 +1,14 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :focus-visible {
+      outline: 2px solid var(--orange);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+    .form-control:focus-visible {
+      outline: none;
+    }
+
     :root {
       color-scheme: light dark;
       --navy: #1e3a5f;
@@ -612,12 +621,15 @@
     [data-theme="dark"] .modal-title { color: #f1f5f9; }
 
     .modal-close {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       background: none;
       border: none;
       color: var(--slate-400);
       font-size: 20px;
       cursor: pointer;
-      padding: 2px 6px;
+      padding: 6px;
       border-radius: 6px;
       line-height: 1;
       transition: color 0.2s, background 0.2s;
@@ -669,7 +681,8 @@
       cursor: pointer;
     }
 
-    .upload-icon { font-size: 36px; margin-bottom: 10px; }
+    .upload-icon { font-size: 36px; margin-bottom: 10px; color: var(--slate-400); }
+    .upload-zone:hover .upload-icon { color: var(--orange); }
 
     #nome-arquivo {
       font-size: 14px;

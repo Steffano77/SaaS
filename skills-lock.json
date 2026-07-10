@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "saas-ui-master": {
+      "source": "shovonsheikh/saas-ui-master",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "3382db877942bdea09f182a47e69a003bc10c986a843bcca8465c06b6aa8ca12"
+    }
+  }
+}
