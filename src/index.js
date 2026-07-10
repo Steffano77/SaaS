@@ -82,24 +82,6 @@ app.use(express.static(path.join(__dirname, '../public')));
     if (adminEmail) {
       await db.query("UPDATE padarias SET role = 'admin' WHERE email = ?", [adminEmail]).catch(() => {});
     }
-    // Garante conta de teste jotajotabakerr@gmail.com ativa com senha correta
-    const bcrypt = require('bcryptjs');
-    const hashJota = await bcrypt.hash('jota1020', 10);
-    const [jotaRows] = await db.query("SELECT id FROM padarias WHERE email = 'jotajotabakerr@gmail.com'").catch(() => [[]]);
-    if (jotaRows.length) {
-      await db.query("UPDATE padarias SET ativo = 1, senha_hash = ? WHERE email = 'jotajotabakerr@gmail.com'", [hashJota]).catch(() => {});
-      console.log('✅ Conta jotajotabakerr reativada e senha redefinida.');
-    } else {
-      await db.query("INSERT INTO padarias (nome, email, senha_hash, ativo) VALUES ('JotaJota Bakery', 'jotajotabakerr@gmail.com', ?, 1)", [hashJota]).catch(() => {});
-      console.log('✅ Conta jotajotabakerr criada.');
-    }
-    // Remoção pontual de categorias padrão desnecessárias da conta admin
-    await db.query(`
-      DELETE c FROM categorias c
-      INNER JOIN padarias p ON p.id = c.padaria_id
-      WHERE p.email = 'panificapro@gmail.com'
-        AND c.nome IN ('Farinhas','Gorduras','Açúcares','Ovos')
-    `).catch(() => {});
     console.log('✅ Migrations verificadas.');
   } catch (e) {
     console.error('Erro na migration automática:', e.message);
