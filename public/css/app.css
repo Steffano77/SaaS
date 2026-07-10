@@ -393,7 +393,7 @@
     }
     .page-section {
       padding: 28px 28px 40px;
-      animation: fadeSlideIn 0.22s ease both;
+      animation: fadeSlideIn 0.22s ease both
     }
 
     @keyframes fadeSlideIn {
@@ -601,13 +601,12 @@
       align-items: center;
       justify-content: center;
       padding: 20px;
-      animation: fadeIn 0.18s ease both;
     }
 
     @keyframes fadeIn {
       from { opacity: 0; }
       to   { opacity: 1; }
-    }
+   
     }
 
     .modal-box, .modal-content {
