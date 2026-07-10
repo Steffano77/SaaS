@@ -431,21 +431,23 @@ async function abrirTelaSaidas() {
 
 function renderizarSaidas(rows) {
   const total = rows.reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
-  document.getElementById('saidas-lista').innerHTML = `
-    <div style="padding:12px 16px;background:var(--slate-50);border-bottom:2px solid var(--slate-200);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--slate-600);cursor:pointer;">
-        <input type="checkbox" id="saidas-select-all" onchange="toggleSelecionarTodasSaidas(this.checked)" style="width:16px;height:16px;accent-color:var(--navy);"/>
-        Selecionar todos
-      </label>
-      <span style="font-size:13px;color:var(--slate-500);">${rows.length} registros</span>
-      <span style="font-weight:700;color:var(--red-500);">Total: R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
-    </div>
-    ${rows.map((r, i) => {
+
+  // Agrupar por fornecedor
+  const grupos = {};
+  rows.forEach((r, i) => {
+    const forn = r.fornecedor || 'Sem fornecedor';
+    if (!grupos[forn]) grupos[forn] = [];
+    grupos[forn].push({ ...r, _idx: i });
+  });
+
+  const gruposHtml = Object.entries(grupos).map(([forn, itens]) => {
+    const subtotal = itens.reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
+    const itensHtml = itens.map(r => {
       const data = new Date(r.data).toLocaleDateString('pt-BR');
       const valor = parseFloat(r.valor_total || 0).toLocaleString('pt-BR',{minimumFractionDigits:2});
       const custo = parseFloat(r.custo_unit || 0).toLocaleString('pt-BR',{minimumFractionDigits:2});
       return `<div class="saida-item">
-        <input type="checkbox" class="saida-check" data-idx="${i}" style="width:16px;height:16px;flex-shrink:0;accent-color:var(--navy);cursor:pointer;"/>
+        <input type="checkbox" class="saida-check" data-idx="${r._idx}" style="width:16px;height:16px;flex-shrink:0;accent-color:var(--navy);cursor:pointer;"/>
         <div style="flex:1;min-width:0;">
           <div class="saida-item-nome">${r.produto}</div>
           <div class="saida-item-sub">${fmtQtd(r.quantidade)} ${r.unidade} × R$ ${custo}${r.observacao ? ' · ' + r.observacao : ''}</div>
@@ -455,7 +457,25 @@ function renderizarSaidas(rows) {
           <div class="saida-item-data">${data}</div>
         </div>
       </div>`;
-    }).join('')}`;
+    }).join('');
+    return `
+      <div style="padding:10px 16px;background:var(--navy);color:#fff;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-weight:700;font-size:13px;">${forn}</span>
+        <span style="font-size:12px;color:rgba(255,255,255,0.75);">Subtotal: R$ ${subtotal.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
+      </div>
+      ${itensHtml}`;
+  }).join('');
+
+  document.getElementById('saidas-lista').innerHTML = `
+    <div style="padding:12px 16px;background:var(--slate-50);border-bottom:2px solid var(--slate-200);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--slate-600);cursor:pointer;">
+        <input type="checkbox" id="saidas-select-all" onchange="toggleSelecionarTodasSaidas(this.checked)" style="width:16px;height:16px;accent-color:var(--navy);"/>
+        Selecionar todos
+      </label>
+      <span style="font-size:13px;color:var(--slate-500);">${rows.length} registros</span>
+      <span style="font-weight:700;color:var(--red-500);">Total: R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
+    </div>
+    ${gruposHtml}`;
 }
 
 function toggleSelecionarTodasSaidas(checked) {
@@ -468,15 +488,30 @@ function imprimirSaidas() {
   const alvo = selecionados.length ? selecionados : window._saidasRows;
 
   const total = alvo.reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
-  const linhas = alvo.map(r => `
-    <tr>
-      <td>${r.produto}</td>
-      <td>${fmtQtd(r.quantidade)} ${r.unidade}</td>
-      <td>R$ ${parseFloat(r.custo_unit||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
-      <td style="font-weight:700;color:#dc2626;">R$ ${parseFloat(r.valor_total||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
-      <td>${new Date(r.data).toLocaleDateString('pt-BR')}</td>
-      <td class="obs">${r.observacao || ''}</td>
-    </tr>`).join('');
+
+  // Agrupar por fornecedor para impressão
+  const grupos = {};
+  alvo.forEach(r => {
+    const forn = r.fornecedor || 'Sem fornecedor';
+    if (!grupos[forn]) grupos[forn] = [];
+    grupos[forn].push(r);
+  });
+
+  const blocos = Object.entries(grupos).map(([forn, itens]) => {
+    const subtotal = itens.reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
+    const linhas = itens.map(r => `
+      <tr>
+        <td>${r.produto}</td>
+        <td>${fmtQtd(r.quantidade)} ${r.unidade}</td>
+        <td>R$ ${parseFloat(r.custo_unit||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+        <td style="font-weight:700;color:#dc2626;">R$ ${parseFloat(r.valor_total||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+        <td>${new Date(r.data).toLocaleDateString('pt-BR')}</td>
+        <td class="obs">${r.observacao || ''}</td>
+      </tr>`).join('');
+    return `
+      <tr class="grupo-header"><td colspan="6">${forn} <span style="float:right;font-weight:400;">Subtotal: R$ ${subtotal.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></td></tr>
+      ${linhas}`;
+  }).join('');
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
     <title>Saídas — PanificaPro</title>
@@ -489,13 +524,14 @@ function imprimirSaidas() {
       td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }
       tr:nth-child(even) td { background: #f8fafc; }
       td.obs { color: #64748b; font-style: italic; font-size: 12px; }
+      tr.grupo-header td { background: #1e3a5f; color: #fff; font-weight: 700; padding: 6px 10px; }
       .total { text-align: right; font-weight: 700; margin-top: 12px; font-size: 14px; color: #dc2626; }
     </style></head><body>
     <h2>${document.getElementById('sidebar-nome').textContent} — Saídas</h2>
     <p>Impresso em ${new Date().toLocaleDateString('pt-BR')} · ${alvo.length} registros</p>
     <table>
       <thead><tr><th>Produto</th><th>Quantidade</th><th>Custo unit.</th><th>Total</th><th>Data</th><th>Observação</th></tr></thead>
-      <tbody>${linhas}</tbody>
+      <tbody>${blocos}</tbody>
     </table>
     <div class="total">Total geral: R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
     <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}<\/script>
