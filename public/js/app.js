@@ -1555,6 +1555,41 @@ function fecharSidebar() {
   document.getElementById('btn-hamburger').classList.remove('open');
 }
 
+// ── Swipe lateral (borda esquerda) ───────────────────────
+(function() {
+  let startX = 0, startY = 0, ativo = false;
+  const BORDA = 30; // px da borda esquerda para iniciar o gesto
+  const THRESHOLD = 60; // px mínimos para acionar
+
+  function paginaAtual() {
+    return paginas.find(p => !document.getElementById(`pg-${p}`).classList.contains('hidden'));
+  }
+
+  document.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    ativo = startX <= BORDA;
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    if (!ativo) return;
+    ativo = false;
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = Math.abs(e.changedTouches[0].clientY - startY);
+    if (dx < THRESHOLD || dy > dx) return; // movimento muito pequeno ou vertical
+
+    const pg = paginaAtual();
+    if (pg === 'dashboard') {
+      // No painel: abre sidebar com animação
+      const sb = document.getElementById('sidebar');
+      if (!sb.classList.contains('open')) toggleSidebar();
+    } else {
+      // Em qualquer outra página: volta para o painel
+      mostrarPagina('dashboard');
+    }
+  }, { passive: true });
+})();
+
 // ── Pull to refresh (mobile) ─────────────────────────────
 (function() {
   let startY = 0, pulling = false;
