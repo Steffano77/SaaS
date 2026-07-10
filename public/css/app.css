@@ -1,13 +1,6 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    :focus-visible {
-      outline: 2px solid var(--orange);
-      outline-offset: 2px;
-      border-radius: 4px;
-    }
-    .form-control:focus-visible {
-      outline: none;
-    }
+    
 
     :root {
       color-scheme: light dark;
@@ -184,11 +177,13 @@
       transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
       box-shadow: 0 2px 8px rgba(249,115,22,0.25);
     }
-
     .btn-primary:hover {
       background: var(--orange-dark);
-      box-shadow: 0 4px 14px rgba(249,115,22,0.35);
+      box-shadow: 0 6px 18px rgba(249,115,22,0.38);
+      transform: translateY(-1px);
     }
+
+   
 
     .btn-primary:active { transform: translateY(1px); }
 
@@ -396,10 +391,16 @@
       overflow-y: auto;
       background: var(--bg);
     }
-
     .page-section {
       padding: 28px 28px 40px;
+      animation: fadeSlideIn 0.22s ease both;
     }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+   
 
     .page-header {
       display: flex;
