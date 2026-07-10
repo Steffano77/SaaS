@@ -851,7 +851,7 @@
       .page-actions .btn-primary { width: 100%; justify-content: center; }
       .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
       .modal-box { width: 95vw; max-height: 90vh; overflow-y: auto; }
-      .auth-card { padding: 24px 18px; }
+      .auth-card { padding: 24px 18px; border-radius: 0; max-width: 100%; min-height: 100vh; box-shadow: none; }
     }
 
 /* ── Melhorias mobile tabela estoque ── */
