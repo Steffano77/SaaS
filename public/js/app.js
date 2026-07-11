@@ -543,9 +543,9 @@ function imprimirSaidas() {
       .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
       .page-header-left h2 { color: #1e3a5f; margin: 0 0 4px; font-size: 20px; }
       .page-header-left p { color: #475569; margin: 0; font-size: 12px; }
-      .page-header-right { text-align: center; }
-      .page-header-right img { width: 90px; height: 90px; opacity: 0.75; display: block; margin: 0 auto 4px; }
-      .page-header-right span { font-size: 12px; font-weight: 700; color: #1e3a5f; letter-spacing: 1px; }
+      .page-header-right { text-align: center; flex-shrink: 0; }
+      .page-header-right img { width: 90px; height: 90px; opacity: 0.75; display: block; margin: 0 auto 0px; }
+      .page-header-right span { font-size: 12px; font-weight: 700; color: #1e3a5f; letter-spacing: 1px; display: block; margin-top: -4px; }
       table { width: 100%; border-collapse: collapse; }
       th { background: #1e3a5f; color: #fff; padding: 8px 10px; text-align: left; font-size: 12px; }
       td { padding: 8px 10px; border-bottom: 1px solid #cbd5e1; color: #1e293b; }
