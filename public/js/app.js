@@ -496,7 +496,7 @@ function imprimirSaidas() {
 
   function extrairLoja(obs) {
     const m = (obs || '').match(/loja\s*([123])/i);
-    return m ? 'Loja ' + m[1] : 'Sem loja';
+    return m ? 'Loja ' + m[1] : 'Uso interno';
   }
 
   // Agrupar por loja → fornecedor
@@ -509,7 +509,7 @@ function imprimirSaidas() {
     porLoja[loja][forn].push(r);
   });
 
-  const ordemLojas = ['Loja 1', 'Loja 2', 'Loja 3', 'Sem loja'];
+  const ordemLojas = ['Loja 1', 'Loja 2', 'Loja 3', 'Uso interno'];
   const lojasOrdenadas = ordemLojas.filter(l => porLoja[l]);
 
   const blocos = lojasOrdenadas.map(loja => {
