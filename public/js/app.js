@@ -514,7 +514,9 @@ function imprimirSaidas() {
 
   const blocos = lojasOrdenadas.map(loja => {
     const totalLoja = Object.values(porLoja[loja]).flat().reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
-    const fornBlocks = Object.entries(porLoja[loja]).map(([forn, itens]) => {
+    const fornEntries = Object.entries(porLoja[loja]);
+    const muitosForn = fornEntries.length > 1;
+    const fornBlocks = fornEntries.map(([forn, itens]) => {
       const subtotal = itens.reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
       const linhas = itens.map(r => `
         <tr>
@@ -525,8 +527,11 @@ function imprimirSaidas() {
           <td>${new Date(r.data).toLocaleDateString('pt-BR')}</td>
           <td class="obs">${r.observacao || ''}</td>
         </tr>`).join('');
+      const subtotalHtml = muitosForn
+        ? `<span style="float:right;font-weight:400;">Subtotal: R$ ${subtotal.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>`
+        : '';
       return `
-        <tr class="forn-header"><td colspan="6">${forn} <span style="float:right;font-weight:400;">Subtotal: R$ ${subtotal.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></td></tr>
+        <tr class="forn-header"><td colspan="6">${forn}${subtotalHtml}</td></tr>
         ${linhas}`;
     }).join('');
     return `
