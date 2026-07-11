@@ -479,7 +479,12 @@ function renderizarSaidas(rows) {
 }
 
 function toggleSelecionarTodasSaidas(checked) {
-  document.querySelectorAll('.saida-check').forEach(cb => cb.checked = checked);
+  document.querySelectorAll('.saida-check').forEach(cb => {
+    if (!checked) { cb.checked = false; return; }
+    const r = window._saidasRows[parseInt(cb.dataset.idx)];
+    const temLoja = /loja\s*\d+/i.test(r?.observacao || '');
+    cb.checked = temLoja;
+  });
 }
 
 function imprimirSaidas() {
@@ -489,46 +494,86 @@ function imprimirSaidas() {
 
   const total = alvo.reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
 
-  // Agrupar por fornecedor para impressão
-  const grupos = {};
+  function extrairLoja(obs) {
+    const m = (obs || '').match(/loja\s*(\d+)/i);
+    return m ? 'Loja ' + m[1] : 'Uso interno';
+  }
+
+  // Agrupar por loja → fornecedor
+  const porLoja = {};
   alvo.forEach(r => {
+    const loja = extrairLoja(r.observacao);
     const forn = r.fornecedor || 'Sem fornecedor';
-    if (!grupos[forn]) grupos[forn] = [];
-    grupos[forn].push(r);
+    if (!porLoja[loja]) porLoja[loja] = {};
+    if (!porLoja[loja][forn]) porLoja[loja][forn] = [];
+    porLoja[loja][forn].push(r);
   });
 
-  const blocos = Object.entries(grupos).map(([forn, itens]) => {
-    const subtotal = itens.reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
-    const linhas = itens.map(r => `
-      <tr>
-        <td>${r.produto}</td>
-        <td>${fmtQtd(r.quantidade)} ${r.unidade}</td>
-        <td>R$ ${parseFloat(r.custo_unit||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
-        <td style="font-weight:700;color:#dc2626;">R$ ${parseFloat(r.valor_total||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
-        <td>${new Date(r.data).toLocaleDateString('pt-BR')}</td>
-        <td class="obs">${r.observacao || ''}</td>
-      </tr>`).join('');
+  const lojasDetectadas = Object.keys(porLoja).filter(l => l !== 'Uso interno').sort((a, b) => {
+    const na = parseInt(a.replace('Loja ', '')) || 0;
+    const nb = parseInt(b.replace('Loja ', '')) || 0;
+    return na - nb;
+  });
+  const lojasOrdenadas = [...lojasDetectadas, ...(porLoja['Uso interno'] ? ['Uso interno'] : [])];
+
+  const blocos = lojasOrdenadas.map(loja => {
+    const totalLoja = Object.values(porLoja[loja]).flat().reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
+    const fornEntries = Object.entries(porLoja[loja]);
+    const muitosForn = fornEntries.length > 1;
+    const fornBlocks = fornEntries.map(([forn, itens]) => {
+      const subtotal = itens.reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
+      const linhas = itens.map(r => `
+        <tr>
+          <td>${r.produto}</td>
+          <td>${fmtQtd(r.quantidade)} ${r.unidade}</td>
+          <td>R$ ${parseFloat(r.custo_unit||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+          <td style="font-weight:700;color:#dc2626;">R$ ${parseFloat(r.valor_total||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+          <td>${new Date(r.data).toLocaleDateString('pt-BR')}</td>
+          <td class="obs">${r.observacao || ''}</td>
+        </tr>`).join('');
+      const subtotalHtml = muitosForn
+        ? `<span style="float:right;font-weight:400;">Subtotal: R$ ${subtotal.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>`
+        : '';
+      return `
+        <tr class="forn-header"><td colspan="6">${forn}${subtotalHtml}</td></tr>
+        ${linhas}`;
+    }).join('');
     return `
-      <tr class="grupo-header"><td colspan="6">${forn} <span style="float:right;font-weight:400;">Subtotal: R$ ${subtotal.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></td></tr>
-      ${linhas}`;
+      <tr class="loja-header"><td colspan="6">${loja} <span style="float:right;">Total: R$ ${totalLoja.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></td></tr>
+      ${fornBlocks}`;
   }).join('');
 
+  const logoUrl = window.location.origin + '/img/favicon-192.png';
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
-    <title>Saídas — PanificaPro</title>
+    <title> </title>
     <style>
-      body { font-family: Arial, sans-serif; font-size: 13px; padding: 24px; }
-      h2 { color: #1e3a5f; margin-bottom: 4px; }
-      p { color: #64748b; margin-bottom: 16px; }
+      @page { margin: 0.4cm 1cm 0.4cm 1cm; }
+      body { font-family: Arial, sans-serif; font-size: 13px; padding: 20px; color: #000; }
+      .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+      .page-header-left h2 { color: #1e3a5f; margin: 0 0 4px; font-size: 20px; }
+      .page-header-left p { color: #1e3a5f; margin: 0; font-size: 12px; font-weight: 600; }
+      .page-header-right { text-align: center; flex-shrink: 0; }
+      .page-header-right img { width: 90px; height: 90px; opacity: 0.75; display: block; margin: 0 auto 0px; }
+      .page-header-right span { font-size: 12px; font-weight: 700; color: #1e3a5f; letter-spacing: 1px; display: block; margin-top: -4px; }
       table { width: 100%; border-collapse: collapse; }
-      th { background: #1e3a5f; color: #fff; padding: 8px 10px; text-align: left; }
-      td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }
-      tr:nth-child(even) td { background: #f8fafc; }
-      td.obs { color: #64748b; font-style: italic; font-size: 12px; }
-      tr.grupo-header td { background: #1e3a5f; color: #fff; font-weight: 700; padding: 6px 10px; }
+      th { background: #fff; color: #1e3a5f; padding: 8px 10px; text-align: left; font-size: 12px; font-weight: 700; border-bottom: 2px solid #1e3a5f; }
+      td { padding: 8px 10px; border-bottom: 1px solid #cbd5e1; color: #000; }
+      tr:nth-child(even) td { background: #f1f5f9; }
+      td.obs { color: #1e3a5f; font-style: italic; font-size: 12px; font-weight: 600; }
+      tr.loja-header td { background: #fff; color: #1e3a5f; font-weight: 700; font-size: 14px; padding: 8px 10px; border-top: 2px solid #1e3a5f; border-bottom: 1px solid #1e3a5f; }
+      tr.forn-header td { background: #fff; color: #1e3a5f; font-weight: 700; padding: 6px 10px 6px 24px; font-size: 12px; border-bottom: 1px solid #cbd5e1; }
       .total { text-align: right; font-weight: 700; margin-top: 12px; font-size: 14px; color: #dc2626; }
     </style></head><body>
-    <h2>${document.getElementById('sidebar-nome').textContent} — Saídas</h2>
-    <p>Impresso em ${new Date().toLocaleDateString('pt-BR')} · ${alvo.length} registros</p>
+    <div class="page-header">
+      <div class="page-header-left">
+        <h2>${document.getElementById('sidebar-nome').textContent} — Saídas</h2>
+        <p>Impresso em ${new Date().toLocaleDateString('pt-BR')} · ${alvo.length} registros</p>
+      </div>
+      <div class="page-header-right">
+        <img src="${logoUrl}" alt="logo"/>
+        <span>PanificaPro</span>
+      </div>
+    </div>
     <table>
       <thead><tr><th>Produto</th><th>Quantidade</th><th>Custo unit.</th><th>Total</th><th>Data</th><th>Observação</th></tr></thead>
       <tbody>${blocos}</tbody>
