@@ -538,20 +538,21 @@ function imprimirSaidas() {
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
     <title> </title>
     <style>
-      body { font-family: Arial, sans-serif; font-size: 13px; padding: 24px; color: #1e293b; }
-      .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+      @page { margin: 0.4cm 1cm 0.4cm 1cm; }
+      body { font-family: Arial, sans-serif; font-size: 13px; padding: 20px; color: #1e293b; }
+      .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
       .page-header-left h2 { color: #1e3a5f; margin: 0 0 4px; font-size: 20px; }
       .page-header-left p { color: #475569; margin: 0; font-size: 12px; }
       .page-header-right { text-align: center; }
-      .page-header-right img { width: 64px; height: 64px; opacity: 0.18; display: block; margin: 0 auto 4px; }
-      .page-header-right span { font-size: 11px; font-weight: 700; color: #1e3a5f; opacity: 0.35; letter-spacing: 1px; }
+      .page-header-right img { width: 90px; height: 90px; opacity: 0.75; display: block; margin: 0 auto 4px; }
+      .page-header-right span { font-size: 12px; font-weight: 700; color: #1e3a5f; letter-spacing: 1px; }
       table { width: 100%; border-collapse: collapse; }
       th { background: #1e3a5f; color: #fff; padding: 8px 10px; text-align: left; font-size: 12px; }
       td { padding: 8px 10px; border-bottom: 1px solid #cbd5e1; color: #1e293b; }
       tr:nth-child(even) td { background: #f1f5f9; }
       td.obs { color: #334155; font-style: italic; font-size: 12px; }
       tr.loja-header td { background: #1e3a5f; color: #fff; font-weight: 700; font-size: 14px; padding: 8px 10px; }
-      tr.forn-header td { background: #334e6e; color: #f1f5f9; font-weight: 600; padding: 6px 10px 6px 24px; font-size: 12px; }
+      tr.forn-header td { background: #334e6e; color: #ffffff; font-weight: 700; padding: 6px 10px 6px 24px; font-size: 12px; }
       .total { text-align: right; font-weight: 700; margin-top: 12px; font-size: 14px; color: #dc2626; }
     </style></head><body>
     <div class="page-header">
