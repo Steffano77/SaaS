@@ -489,28 +489,44 @@ function imprimirSaidas() {
 
   const total = alvo.reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
 
-  // Agrupar por fornecedor para impressão
-  const grupos = {};
+  function extrairLoja(obs) {
+    const m = (obs || '').match(/loja\s*([123])/i);
+    return m ? 'Loja ' + m[1] : 'Sem loja';
+  }
+
+  // Agrupar por loja → fornecedor
+  const porLoja = {};
   alvo.forEach(r => {
+    const loja = extrairLoja(r.observacao);
     const forn = r.fornecedor || 'Sem fornecedor';
-    if (!grupos[forn]) grupos[forn] = [];
-    grupos[forn].push(r);
+    if (!porLoja[loja]) porLoja[loja] = {};
+    if (!porLoja[loja][forn]) porLoja[loja][forn] = [];
+    porLoja[loja][forn].push(r);
   });
 
-  const blocos = Object.entries(grupos).map(([forn, itens]) => {
-    const subtotal = itens.reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
-    const linhas = itens.map(r => `
-      <tr>
-        <td>${r.produto}</td>
-        <td>${fmtQtd(r.quantidade)} ${r.unidade}</td>
-        <td>R$ ${parseFloat(r.custo_unit||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
-        <td style="font-weight:700;color:#dc2626;">R$ ${parseFloat(r.valor_total||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
-        <td>${new Date(r.data).toLocaleDateString('pt-BR')}</td>
-        <td class="obs">${r.observacao || ''}</td>
-      </tr>`).join('');
+  const ordemLojas = ['Loja 1', 'Loja 2', 'Loja 3', 'Sem loja'];
+  const lojasOrdenadas = ordemLojas.filter(l => porLoja[l]);
+
+  const blocos = lojasOrdenadas.map(loja => {
+    const totalLoja = Object.values(porLoja[loja]).flat().reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
+    const fornBlocks = Object.entries(porLoja[loja]).map(([forn, itens]) => {
+      const subtotal = itens.reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
+      const linhas = itens.map(r => `
+        <tr>
+          <td>${r.produto}</td>
+          <td>${fmtQtd(r.quantidade)} ${r.unidade}</td>
+          <td>R$ ${parseFloat(r.custo_unit||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+          <td style="font-weight:700;color:#dc2626;">R$ ${parseFloat(r.valor_total||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+          <td>${new Date(r.data).toLocaleDateString('pt-BR')}</td>
+          <td class="obs">${r.observacao || ''}</td>
+        </tr>`).join('');
+      return `
+        <tr class="forn-header"><td colspan="6">${forn} <span style="float:right;font-weight:400;">Subtotal: R$ ${subtotal.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></td></tr>
+        ${linhas}`;
+    }).join('');
     return `
-      <tr class="grupo-header"><td colspan="6">${forn} <span style="float:right;font-weight:400;">Subtotal: R$ ${subtotal.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></td></tr>
-      ${linhas}`;
+      <tr class="loja-header"><td colspan="6">${loja} <span style="float:right;">Total: R$ ${totalLoja.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></td></tr>
+      ${fornBlocks}`;
   }).join('');
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
@@ -524,7 +540,8 @@ function imprimirSaidas() {
       td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }
       tr:nth-child(even) td { background: #f8fafc; }
       td.obs { color: #64748b; font-style: italic; font-size: 12px; }
-      tr.grupo-header td { background: #1e3a5f; color: #fff; font-weight: 700; padding: 6px 10px; }
+      tr.loja-header td { background: #1e3a5f; color: #fff; font-weight: 700; font-size: 14px; padding: 8px 10px; }
+      tr.forn-header td { background: #334e6e; color: #e2e8f0; font-weight: 600; padding: 6px 10px 6px 24px; }
       .total { text-align: right; font-weight: 700; margin-top: 12px; font-size: 14px; color: #dc2626; }
     </style></head><body>
     <h2>${document.getElementById('sidebar-nome').textContent} — Saídas</h2>
