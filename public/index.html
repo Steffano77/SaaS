@@ -226,7 +226,9 @@
 
     <div class="sidebar-footer">
       <button id="nav-admin" class="sidebar-link hidden" onclick="abrirTelaAdmin();fecharSidebar()">
-        <span class="nav-icon">⚙️</span>
+        <span class="nav-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </span>
         <span class="nav-label" translate="no">Admin</span>
       </button>
       <button class="sidebar-link" onclick="fecharSidebar(); setTimeout(() => document.getElementById('modal-sair').classList.remove('hidden'), 280)">
@@ -252,19 +254,19 @@
         </div>
         <h3 class="onboarding-titulo">Gestão que transforma. Resultados que ficam.</h3>
         <p class="onboarding-sub">Organize, controle e faça sua padaria crescer com dados, eficiência e lucratividade.</p>
-        <button class="btn-primary" style="padding:13px 32px;font-size:15px;" onclick="mostrarPagina('estoque');fecharSidebar()">📦 Ir para o Estoque</button>
+        <button class="btn-primary" style="padding:13px 32px;font-size:15px;" onclick="mostrarPagina('estoque');fecharSidebar()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> Ir para o Estoque</button>
       </div>
       <div id="kpis"></div>
       <div class="dashboard-grid">
         <div class="card">
           <div class="card-body">
-            <div class="card-title">⚠️ Precisa repor</div>
+            <div class="card-title" style="display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> Precisa repor</div>
             <div id="lista-repor"></div>
           </div>
         </div>
         <div class="card">
           <div class="card-body">
-            <div class="card-title">🟡 Vencendo em até 10 dias</div>
+            <div class="card-title" style="display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Vencendo em até 10 dias</div>
             <div id="lista-vencendo"></div>
           </div>
         </div>
@@ -273,11 +275,11 @@
       <!-- Gráficos -->
       <div class="dashboard-grid" style="margin-top:0;">
         <div class="card">
-          <div class="card-header"><span class="card-title">🕐 Últimas movimentações</span></div>
+          <div class="card-header"><span class="card-title" style="display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Últimas movimentações</span></div>
           <div id="lista-movs-recentes" style="max-height:260px;overflow-y:auto;"></div>
         </div>
         <div class="card">
-          <div class="card-header"><span class="card-title">🏆 Top 5 — Maior valor em estoque</span></div>
+          <div class="card-header"><span class="card-title" style="display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg> Top 5 — Maior valor em estoque</span></div>
           <div class="card-body" style="padding:16px;">
             <canvas id="chart-cats" height="180"></canvas>
           </div>
@@ -291,7 +293,7 @@
         <h2 class="page-title">Estoque</h2>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn-primary" onclick="abrirModalProduto()">+ Novo produto</button>
-          <button class="btn-primary" onclick="abrirScanner('estoque')" style="background:var(--navy);">📷 Escanear</button>
+          <button class="btn-primary" onclick="abrirScanner('estoque')" style="background:var(--navy);"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Escanear</button>
         </div>
       </div>
       <div class="card">
@@ -301,9 +303,9 @@
             class="form-control search-input"/>
           <select id="filtro-alerta" onchange="carregarProdutos()" class="form-control">
             <option value="">Todos</option>
-            <option value="zerado">🔴 Sem estoque</option>
-            <option value="minimo">⚠️ Abaixo do mínimo</option>
-            <option value="validade">🟡 Vencendo</option>
+            <option value="zerado">Sem estoque</option>
+            <option value="minimo">Abaixo do mínimo</option>
+            <option value="validade">Vencendo</option>
           </select>
           <select id="filtro-fornecedor" onchange="filtrarPorFornecedor()" class="form-control">
             <option value="">Todos fornecedores</option>
@@ -334,13 +336,13 @@
     <section id="pg-compras" class="hidden page-section">
       <div class="page-header">
         <h2 class="page-title">Compras</h2>
-        <button class="btn-primary" onclick="gerarListaCompras()">📋 Gerar lista de compras</button>
+        <button class="btn-primary" onclick="gerarListaCompras()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg> Gerar lista de compras</button>
       </div>
 
       <!-- Cards de alertas de reposição -->
       <div id="compras-alerta" class="card" style="margin-bottom:16px;">
         <div class="card-body">
-          <h3 style="font-size:14px;font-weight:700;color:var(--slate-700);margin-bottom:12px;">🔴 Produtos para reposição</h3>
+          <h3 style="font-size:14px;font-weight:700;color:var(--slate-700);margin-bottom:12px;display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> Produtos para reposição</h3>
           <div id="lista-compras-repor" style="max-height:260px;overflow-y:auto;"></div>
         </div>
       </div>
@@ -348,7 +350,7 @@
       <!-- Registrar compra -->
       <div class="card" style="margin-bottom:16px;">
         <div class="card-body">
-          <h3 style="font-size:14px;font-weight:700;color:var(--slate-700);margin-bottom:14px;">🛒 Montar pedido</h3>
+          <h3 style="font-size:14px;font-weight:700;color:var(--slate-700);margin-bottom:14px;display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg> Montar pedido</h3>
 
           <!-- Fornecedor + Data (fixos para todo o pedido) -->
           <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:14px;">
@@ -377,7 +379,7 @@
 
             <!-- Novo produto inline -->
             <div id="novo-prod-inline" class="hidden" style="background:#fff;border:1.5px dashed var(--orange);border-radius:10px;padding:12px;margin-bottom:10px;">
-              <p style="font-size:12px;font-weight:600;color:var(--orange);margin-bottom:8px;">✨ Será criado no estoque</p>
+              <p style="font-size:12px;font-weight:600;color:var(--orange);margin-bottom:8px;display:flex;align-items:center;gap:5px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/></svg> Será criado no estoque</p>
               <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;">
                 <div class="form-group" style="margin:0;">
                   <label>Unidade</label>
@@ -431,7 +433,7 @@
           </div>
 
           <!-- Botão finalizar sempre visível -->
-          <button class="btn-primary" onclick="abrirModalFinalizar()" style="width:100%;margin-top:8px;background:#f97316;font-size:15px;padding:14px;">🛒 Finalizar pedido</button>
+          <button class="btn-primary" onclick="abrirModalFinalizar()" style="width:100%;margin-top:8px;background:#f97316;font-size:15px;padding:14px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg> Finalizar pedido</button>
 
           <div id="compra-msg" class="hidden" style="font-size:13px;padding:8px 12px;border-radius:8px;margin-top:8px;"></div>
         </div>
@@ -440,7 +442,7 @@
       <!-- Pedidos aguardando recebimento -->
       <div id="secao-pedidos-pendentes" class="card hidden" style="margin-top:16px;border:2px solid #f97316;">
         <div class="card-header">
-          <span class="card-title">🚚 Aguardando recebimento</span>
+          <span class="card-title" style="display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.628l-3.126-3.907A1 1 0 0 0 18 8.5h-3"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg> Aguardando recebimento</span>
           <span style="font-size:12px;color:var(--slate-500);">Confirme quando a mercadoria chegar para atualizar o estoque</span>
         </div>
         <div id="lista-pedidos-pendentes" style="padding:8px 0;"></div>
@@ -448,7 +450,7 @@
 
       <!-- Histórico de compras recebidas (últimos 30 dias) -->
       <div class="card" style="margin-top:16px;">
-        <div class="card-header"><span class="card-title">📦 Compras recebidas — últimos 30 dias</span></div>
+        <div class="card-header"><span class="card-title" style="display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> Compras recebidas — últimos 30 dias</span></div>
         <div id="tabela-compras-recentes" style="padding:8px 0;"></div>
       </div>
     </section>
@@ -473,7 +475,7 @@
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <select id="rel-mes" class="form-control" style="width:auto;" onchange="carregarRelatorios()">
           </select>
-          <button class="btn-primary" onclick="imprimirRelatorio()">🖨️ Imprimir</button>
+          <button class="btn-primary" onclick="imprimirRelatorio()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Imprimir</button>
         </div>
       </div>
 
@@ -482,7 +484,7 @@
 
       <!-- Tabela de movimentações do mês -->
       <div class="card">
-        <div class="card-header"><span class="card-title">📋 Movimentações do mês</span></div>
+        <div class="card-header"><span class="card-title" style="display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg> Movimentações do mês</span></div>
         <div class="table-wrapper">
           <table>
             <thead>
@@ -527,13 +529,13 @@
                 <option value="" selected>Todas as lojas</option>
               </select>
               <label class="upload-zone" for="arquivo-saurus">
-                <div class="upload-icon">📂</div>
+                <div class="upload-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
                 <span id="nome-arquivo">Clique para selecionar o arquivo .xlsx</span>
                 <input type="file" id="arquivo-saurus" accept=".xlsx" style="display:none"
                   onchange="document.getElementById('nome-arquivo').textContent = this.files[0]?.name || 'Clique para selecionar'"/>
               </label>
               <div id="resultado-sync" class="hidden"></div>
-              <button type="submit" class="btn-primary full">🔄 Sincronizar agora</button>
+              <button type="submit" class="btn-primary full"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg> Sincronizar agora</button>
             </form>
           </div>
         </div>
@@ -551,13 +553,13 @@
             <!-- Passo 1: upload -->
             <div id="import-passo1">
               <label class="upload-zone" for="arquivo-generico">
-                <div class="upload-icon">📂</div>
+                <div class="upload-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
                 <span id="nome-arquivo-gen">Clique para selecionar o arquivo (.xlsx ou .csv)</span>
                 <input type="file" id="arquivo-generico" accept=".xlsx,.csv,.txt" style="display:none"
                   onchange="document.getElementById('nome-arquivo-gen').textContent = this.files[0]?.name || 'Clique para selecionar'"/>
               </label>
               <div id="resultado-import-preview" class="hidden"></div>
-              <button class="btn-primary full" style="margin-top:12px;" onclick="previewImportacao()">📋 Carregar colunas</button>
+              <button class="btn-primary full" style="margin-top:12px;" onclick="previewImportacao()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg> Carregar colunas</button>
             </div>
 
             <!-- Passo 2: mapeamento -->
@@ -570,7 +572,7 @@
               <div id="resultado-import" class="hidden" style="margin-top:12px;"></div>
               <div style="display:flex;gap:10px;margin-top:16px;">
                 <button class="btn-secondary" style="flex:1;" onclick="voltarImportPasso1()">← Voltar</button>
-                <button class="btn-primary" style="flex:2;" onclick="confirmarImportacao()">✅ Importar agora</button>
+                <button class="btn-primary" style="flex:2;" onclick="confirmarImportacao()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Importar agora</button>
               </div>
             </div>
           </div>
@@ -580,9 +582,9 @@
       <!-- Zona de perigo -->
       <div class="card" style="margin-top:20px;border:1px solid #fee2e2;">
         <div class="card-body">
-          <h3 style="color:#dc2626;font-size:15px;font-weight:700;margin:0 0 8px;">⚠️ Zona de perigo</h3>
+          <h3 style="color:#dc2626;font-size:15px;font-weight:700;margin:0 0 8px;display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> Zona de perigo</h3>
           <p style="color:var(--slate-600);font-size:14px;margin-bottom:16px;">Remove todos os produtos e movimentações do seu estoque. Esta ação não pode ser desfeita.</p>
-          <button class="btn-danger" onclick="abrirModalLimpar()">🗑️ Limpar todos os dados</button>
+          <button class="btn-danger" onclick="abrirModalLimpar()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Limpar todos os dados</button>
         </div>
       </div>
     </section>
@@ -591,8 +593,8 @@
     <div id="modal-limpar" class="modal-overlay hidden" onclick="if(event.target===this)fecharModalLimpar()">
       <div class="modal-content" style="max-width:420px;">
         <div class="modal-header">
-          <span class="modal-title" style="color:#dc2626;">⚠️ Limpar todos os dados</span>
-          <button class="modal-close" onclick="fecharModalLimpar()">✕</button>
+          <span class="modal-title" style="color:#dc2626;display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> Limpar todos os dados</span>
+          <button class="modal-close" onclick="fecharModalLimpar()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
         </div>
         <div class="modal-body">
           <p style="font-size:14px;color:var(--slate-600);line-height:1.7;margin-bottom:20px;">
@@ -608,7 +610,7 @@
           </div>
           <div style="display:flex;gap:10px;">
             <button class="btn-secondary" style="flex:1;" onclick="fecharModalLimpar()">Cancelar</button>
-            <button id="btn-confirmar-apagar" class="btn-danger" style="flex:1;opacity:0.4;cursor:not-allowed;" disabled onclick="executarLimparDados()">🗑️ Apagar tudo</button>
+            <button id="btn-confirmar-apagar" class="btn-danger" style="flex:1;opacity:0.4;cursor:not-allowed;" disabled onclick="executarLimparDados()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Apagar tudo</button>
           </div>
         </div>
       </div>
@@ -618,7 +620,7 @@
       <div style="font-size:64px;margin-bottom:16px;">🍞</div>
       <h2 style="font-size:28px;font-weight:800;color:var(--slate-800);margin-bottom:8px;">Página não encontrada</h2>
       <p style="color:var(--slate-500);font-size:15px;margin-bottom:24px;">Esta página não existe ou foi removida.</p>
-      <button class="btn-primary" onclick="mostrarPagina('dashboard')">🏠 Voltar ao Painel</button>
+      <button class="btn-primary" onclick="mostrarPagina('dashboard')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Voltar ao Painel</button>
     </section>
 
   </main>
@@ -629,7 +631,7 @@
   <div class="modal-content" style="max-width:380px;">
     <div class="modal-header">
       <span class="modal-title">Editar nome da padaria</span>
-      <button class="modal-close" onclick="fecharModalPadaria()">✕</button>
+      <button class="modal-close" onclick="fecharModalPadaria()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
     </div>
     <div class="modal-body">
       <div class="form-group" style="margin-bottom:20px;">
@@ -649,7 +651,7 @@
   <div class="modal-box">
     <div class="modal-header">
       <span id="modal-titulo" class="modal-title">Novo produto</span>
-      <button class="modal-close" onclick="fecharModal('modal-produto')">✕</button>
+      <button class="modal-close" onclick="fecharModal('modal-produto')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
     </div>
     <div class="modal-body">
       <form id="form-produto" onsubmit="salvarProduto(event)">
@@ -718,7 +720,7 @@
   <div class="modal-box sm">
     <div class="modal-header">
       <span class="modal-title">Registrar movimentação</span>
-      <button class="modal-close" onclick="fecharModal('modal-mov')">✕</button>
+      <button class="modal-close" onclick="fecharModal('modal-mov')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
     </div>
     <div class="modal-body">
       <form id="form-mov" onsubmit="salvarMovimento(event)">
@@ -732,9 +734,9 @@
         <div class="form-group">
           <label>Tipo *</label>
           <select id="mov-tipo" required class="form-control">
-            <option value="entrada">📥 Entrada (compra/recebimento)</option>
-            <option value="saida">📤 Saída (uso/venda)</option>
-            <option value="ajuste">⚙️ Ajuste de inventário</option>
+            <option value="entrada">Entrada (compra/recebimento)</option>
+            <option value="saida">Saída (uso/venda)</option>
+            <option value="ajuste">Ajuste de inventário</option>
           </select>
         </div>
         <div class="form-row">
@@ -771,7 +773,7 @@
       <div class="tela-fullscreen-sub">Do mais recente ao mais antigo</div>
     </div>
     <button onclick="imprimirSaidas()" class="btn-primary" style="padding:8px 16px;font-size:13px;display:flex;align-items:center;gap:6px;">
-      🖨️ Imprimir
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Imprimir
     </button>
   </div>
   <div id="saidas-lista" style="flex:1;overflow-y:auto;"></div>
@@ -782,13 +784,13 @@
   <div class="modal-box" style="max-width:520px;width:95%;">
     <div class="modal-header">
       <span id="modal-estoque-titulo" class="modal-title"></span>
-      <button onclick="fecharModalEstoque()" class="modal-close">✕</button>
+      <button onclick="fecharModalEstoque()" class="modal-close"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
     </div>
     <div style="padding:0 4px 4px;max-height:60vh;overflow-y:auto;">
       <div id="modal-estoque-lista"></div>
     </div>
     <div style="padding:16px 20px;border-top:1px solid var(--slate-100);">
-      <button onclick="irParaCompras()" class="btn-primary full">🛒 Ir para Compras</button>
+      <button onclick="irParaCompras()" class="btn-primary full"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg> Ir para Compras</button>
     </div>
   </div>
 </div>
@@ -797,8 +799,8 @@
 <div id="modal-finalizar" class="modal-overlay hidden">
   <div class="modal-box" style="max-width:480px;width:95%;">
     <div class="modal-header">
-      <span class="modal-title">🛒 Finalizar pedido</span>
-      <button onclick="fecharModalFinalizar()" class="modal-close">✕</button>
+      <span class="modal-title" style="display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg> Finalizar pedido</span>
+      <button onclick="fecharModalFinalizar()" class="modal-close"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
     </div>
     <div style="padding:16px 20px 20px;">
 
@@ -824,8 +826,8 @@
 
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
         <button onclick="fecharModalFinalizar()" class="btn-secondary" style="padding:12px 8px;font-size:13px;">← Adicionar mais</button>
-        <button onclick="registrarPedido(false)" class="btn-primary" style="padding:12px 8px;font-size:14px;">✅ Registrar</button>
-        <button onclick="registrarPedido(true)" class="btn-primary" style="padding:12px 8px;font-size:14px;background:#25d366;">📲 WhatsApp</button>
+        <button onclick="registrarPedido(false)" class="btn-primary" style="padding:12px 8px;font-size:14px;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Registrar</button>
+        <button onclick="registrarPedido(true)" class="btn-primary" style="padding:12px 8px;font-size:14px;background:#25d366;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.46 1.32 4.96L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m0 1.67c2.2 0 4.26.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.82c0 4.54-3.7 8.23-8.24 8.23a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.19-.31a8.17 8.17 0 0 1-1.26-4.37c0-4.54 3.7-8.24 8.24-8.24m-4.72 4.15c-.16 0-.43.06-.66.31-.22.25-.86.84-.86 2.05s.88 2.38 1 2.55c.13.16 1.71 2.61 4.14 3.65.58.25 1.03.4 1.38.51.58.19 1.11.16 1.53.1.46-.07 1.44-.59 1.65-1.16.2-.57.2-1.06.14-1.16-.06-.1-.23-.16-.48-.29-.25-.13-1.44-.71-1.67-.79-.22-.08-.38-.13-.55.13-.16.25-.63.79-.77.95-.14.16-.28.18-.53.06-.25-.13-1.05-.39-2-1.23-.74-.66-1.24-1.48-1.39-1.73-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.14.16-.25.24-.41.08-.16.04-.31-.02-.43-.06-.13-.55-1.34-.76-1.83-.2-.48-.4-.42-.55-.42h-.47"/></svg> WhatsApp</button>
       </div>
     </div>
   </div>
@@ -848,7 +850,7 @@
   <div class="modal-box sm">
     <div class="modal-header">
       <span class="modal-title">Novo fornecedor</span>
-      <button class="modal-close" onclick="fecharModal('modal-forn')">✕</button>
+      <button class="modal-close" onclick="fecharModal('modal-forn')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
     </div>
     <div class="modal-body">
       <form id="form-forn" onsubmit="salvarFornecedor(event)">
@@ -882,7 +884,7 @@
   <div class="modal-box sm">
     <div class="modal-header">
       <span class="modal-title">Editar fornecedor</span>
-      <button class="modal-close" onclick="fecharModal('modal-editar-forn')">✕</button>
+      <button class="modal-close" onclick="fecharModal('modal-editar-forn')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
     </div>
     <div class="modal-body">
       <form id="form-editar-forn" onsubmit="salvarEdicaoFornecedor(event)">
@@ -916,14 +918,14 @@
 <div id="modal-scanner" class="modal-overlay hidden">
   <div class="modal-box" style="max-width:400px;">
     <div class="modal-header">
-      <span class="modal-title">📷 Escanear código de barras</span>
-      <button class="modal-close" onclick="fecharScanner()">✕</button>
+      <span class="modal-title" style="display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Escanear código de barras</span>
+      <button class="modal-close" onclick="fecharScanner()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
     </div>
     <div class="modal-body" style="padding:0;">
       <div id="scanner-view" style="width:100%;overflow:hidden;background:#000;min-height:200px;"></div>
       <div style="padding:14px 16px;">
-        <p id="scan-status" style="text-align:center;font-size:13px;color:#64748b;margin:0 0 8px;">
-          📦 Aponte a câmera para o código de barras EAN-13
+        <p id="scan-status" style="text-align:center;font-size:13px;color:#64748b;margin:0 0 8px;display:flex;align-items:center;justify-content:center;gap:6px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> Aponte a câmera para o código de barras EAN-13
         </p>
         <div id="scan-resultado" class="hidden" style="font-size:13px;color:#dc2626;text-align:center;"></div>
       </div>
@@ -935,14 +937,14 @@
 <div id="modal-acao-scan" class="modal-overlay hidden">
   <div class="modal-box" style="max-width:360px;">
     <div class="modal-header">
-      <span class="modal-title">📦 Produto encontrado</span>
-      <button class="modal-close" onclick="fecharModal('modal-acao-scan')">✕</button>
+      <span class="modal-title" style="display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg> Produto encontrado</span>
+      <button class="modal-close" onclick="fecharModal('modal-acao-scan')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
     </div>
     <div class="modal-body">
       <div id="scan-acao-info" style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:10px;padding:12px 16px;margin-bottom:20px;font-size:14px;"></div>
       <div style="display:flex;flex-direction:column;gap:10px;">
-        <button class="btn-primary" style="font-size:15px;padding:14px;" onclick="scanAcaoSaida()">➖ Registrar saída</button>
-        <button class="btn-secondary" style="font-size:15px;padding:14px;" onclick="scanAcaoEditar()">✏️ Ver / Editar produto</button>
+        <button class="btn-primary" style="font-size:15px;padding:14px;" onclick="scanAcaoSaida()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg> Registrar saída</button>
+        <button class="btn-secondary" style="font-size:15px;padding:14px;" onclick="scanAcaoEditar()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg> Ver / Editar produto</button>
       </div>
     </div>
   </div>
@@ -952,8 +954,8 @@
 <div id="modal-saida-rapida" class="modal-overlay hidden">
   <div class="modal-box" style="max-width:360px;">
     <div class="modal-header">
-      <span class="modal-title">➖ Saída rápida</span>
-      <button class="modal-close" onclick="fecharModal('modal-saida-rapida')">✕</button>
+      <span class="modal-title" style="display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg> Saída rápida</span>
+      <button class="modal-close" onclick="fecharModal('modal-saida-rapida')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
     </div>
     <div class="modal-body">
       <div id="saida-rapida-info" style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:14px;"></div>
@@ -974,7 +976,7 @@
 <div id="tela-admin" class="hidden tela-fullscreen">
   <div class="tela-fullscreen-header">
     <button onclick="fecharTelaAdmin()" class="btn-ghost" style="padding:8px 14px;">← Voltar</button>
-    <h2 style="margin:0;font-size:18px;">⚙️ Administração — Padarias</h2>
+    <h2 style="margin:0;font-size:18px;display:flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Administração — Padarias</h2>
     <div></div>
   </div>
   <div style="padding:20px;max-width:900px;margin:0 auto;">

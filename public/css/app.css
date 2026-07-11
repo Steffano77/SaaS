@@ -1,5 +1,7 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    
+
     :root {
       color-scheme: light dark;
       --navy: #1e3a5f;
@@ -175,7 +177,6 @@
       transition: background 0.18s, transform 0.15s, box-shadow 0.18s;
       box-shadow: 0 2px 8px rgba(249,115,22,0.28);
     }
-
     .btn-primary:hover {
       background: var(--orange-dark);
       box-shadow: 0 6px 18px rgba(249,115,22,0.38);
@@ -388,7 +389,6 @@
       overflow-y: auto;
       background: var(--bg);
     }
-
     .page-section {
       padding: 28px 28px 40px;
       animation: fadeSlideIn 0.22s ease both;
@@ -398,6 +398,12 @@
       from { opacity: 0; transform: translateY(10px); }
       to   { opacity: 1; transform: translateY(0); }
     }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+   
 
     .page-header {
       display: flex;
@@ -423,7 +429,7 @@
       margin-bottom: 24px;
     }
 
-    .kpi-card {
+        .kpi-card {
       background: var(--white);
       border-radius: 16px;
       padding: 20px;
@@ -472,7 +478,7 @@
     .kpi-clickable:hover .kpi-hint { color: var(--orange); }
 
     /* ── CARDS / PANELS ── */
-    .card {
+       .card {
       background: var(--white);
       border-radius: 16px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
@@ -607,6 +613,12 @@
       to   { opacity: 1; }
     }
 
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+   
+    }
+
     .modal-box, .modal-content {
       background: var(--white);
       border-radius: 18px;
@@ -641,12 +653,15 @@
     [data-theme="dark"] .modal-title { color: #f1f5f9; }
 
     .modal-close {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       background: none;
       border: none;
       color: var(--slate-400);
       font-size: 20px;
       cursor: pointer;
-      padding: 2px 6px;
+      padding: 6px;
       border-radius: 6px;
       line-height: 1;
       transition: color 0.2s, background 0.2s;
@@ -698,7 +713,8 @@
       cursor: pointer;
     }
 
-    .upload-icon { font-size: 36px; margin-bottom: 10px; }
+    .upload-icon { font-size: 36px; margin-bottom: 10px; color: var(--slate-400); }
+    .upload-zone:hover .upload-icon { color: var(--orange); }
 
     #nome-arquivo {
       font-size: 14px;
