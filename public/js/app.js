@@ -479,7 +479,12 @@ function renderizarSaidas(rows) {
 }
 
 function toggleSelecionarTodasSaidas(checked) {
-  document.querySelectorAll('.saida-check').forEach(cb => cb.checked = checked);
+  document.querySelectorAll('.saida-check').forEach(cb => {
+    if (!checked) { cb.checked = false; return; }
+    const r = window._saidasRows[parseInt(cb.dataset.idx)];
+    const temLoja = /loja\s*[123]/i.test(r?.observacao || '');
+    cb.checked = temLoja;
+  });
 }
 
 function imprimirSaidas() {
@@ -529,23 +534,36 @@ function imprimirSaidas() {
       ${fornBlocks}`;
   }).join('');
 
+  const logoUrl = window.location.origin + '/img/favicon-192.png';
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
-    <title>Saídas — PanificaPro</title>
+    <title> </title>
     <style>
-      body { font-family: Arial, sans-serif; font-size: 13px; padding: 24px; }
-      h2 { color: #1e3a5f; margin-bottom: 4px; }
-      p { color: #64748b; margin-bottom: 16px; }
+      body { font-family: Arial, sans-serif; font-size: 13px; padding: 24px; color: #1e293b; }
+      .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+      .page-header-left h2 { color: #1e3a5f; margin: 0 0 4px; font-size: 20px; }
+      .page-header-left p { color: #475569; margin: 0; font-size: 12px; }
+      .page-header-right { text-align: center; }
+      .page-header-right img { width: 64px; height: 64px; opacity: 0.18; display: block; margin: 0 auto 4px; }
+      .page-header-right span { font-size: 11px; font-weight: 700; color: #1e3a5f; opacity: 0.35; letter-spacing: 1px; }
       table { width: 100%; border-collapse: collapse; }
-      th { background: #1e3a5f; color: #fff; padding: 8px 10px; text-align: left; }
-      td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }
-      tr:nth-child(even) td { background: #f8fafc; }
-      td.obs { color: #64748b; font-style: italic; font-size: 12px; }
+      th { background: #1e3a5f; color: #fff; padding: 8px 10px; text-align: left; font-size: 12px; }
+      td { padding: 8px 10px; border-bottom: 1px solid #cbd5e1; color: #1e293b; }
+      tr:nth-child(even) td { background: #f1f5f9; }
+      td.obs { color: #334155; font-style: italic; font-size: 12px; }
       tr.loja-header td { background: #1e3a5f; color: #fff; font-weight: 700; font-size: 14px; padding: 8px 10px; }
-      tr.forn-header td { background: #334e6e; color: #e2e8f0; font-weight: 600; padding: 6px 10px 6px 24px; }
+      tr.forn-header td { background: #334e6e; color: #f1f5f9; font-weight: 600; padding: 6px 10px 6px 24px; font-size: 12px; }
       .total { text-align: right; font-weight: 700; margin-top: 12px; font-size: 14px; color: #dc2626; }
     </style></head><body>
-    <h2>${document.getElementById('sidebar-nome').textContent} — Saídas</h2>
-    <p>Impresso em ${new Date().toLocaleDateString('pt-BR')} · ${alvo.length} registros</p>
+    <div class="page-header">
+      <div class="page-header-left">
+        <h2>${document.getElementById('sidebar-nome').textContent} — Saídas</h2>
+        <p>Impresso em ${new Date().toLocaleDateString('pt-BR')} · ${alvo.length} registros</p>
+      </div>
+      <div class="page-header-right">
+        <img src="${logoUrl}" alt="logo"/>
+        <span>PanificaPro</span>
+      </div>
+    </div>
     <table>
       <thead><tr><th>Produto</th><th>Quantidade</th><th>Custo unit.</th><th>Total</th><th>Data</th><th>Observação</th></tr></thead>
       <tbody>${blocos}</tbody>
