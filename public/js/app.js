@@ -539,20 +539,20 @@ function imprimirSaidas() {
     <title> </title>
     <style>
       @page { margin: 0.4cm 1cm 0.4cm 1cm; }
-      body { font-family: Arial, sans-serif; font-size: 13px; padding: 20px; color: #0f172a; }
+      body { font-family: Arial, sans-serif; font-size: 13px; padding: 20px; color: #000; }
       .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
       .page-header-left h2 { color: #1e3a5f; margin: 0 0 4px; font-size: 20px; }
-      .page-header-left p { color: #1e293b; margin: 0; font-size: 12px; }
+      .page-header-left p { color: #1e3a5f; margin: 0; font-size: 12px; font-weight: 600; }
       .page-header-right { text-align: center; flex-shrink: 0; }
       .page-header-right img { width: 90px; height: 90px; opacity: 0.75; display: block; margin: 0 auto 0px; }
       .page-header-right span { font-size: 12px; font-weight: 700; color: #1e3a5f; letter-spacing: 1px; display: block; margin-top: -4px; }
       table { width: 100%; border-collapse: collapse; }
-      th { background: #1e3a5f; color: #fff; padding: 8px 10px; text-align: left; font-size: 12px; font-weight: 700; }
-      td { padding: 8px 10px; border-bottom: 1px solid #94a3b8; color: #0f172a; font-weight: 500; }
-      tr:nth-child(even) td { background: #e2e8f0; }
-      td.obs { color: #0f172a; font-style: italic; font-size: 12px; font-weight: 500; }
-      tr.loja-header td { background: #1e3a5f; color: #fff; font-weight: 700; font-size: 14px; padding: 8px 10px; }
-      tr.forn-header td { background: #334e6e; color: #ffffff; font-weight: 700; padding: 6px 10px 6px 24px; font-size: 12px; }
+      th { background: #fff; color: #1e3a5f; padding: 8px 10px; text-align: left; font-size: 12px; font-weight: 700; border-bottom: 2px solid #1e3a5f; }
+      td { padding: 8px 10px; border-bottom: 1px solid #cbd5e1; color: #000; }
+      tr:nth-child(even) td { background: #f1f5f9; }
+      td.obs { color: #1e3a5f; font-style: italic; font-size: 12px; font-weight: 600; }
+      tr.loja-header td { background: #fff; color: #1e3a5f; font-weight: 700; font-size: 14px; padding: 8px 10px; border-top: 2px solid #1e3a5f; border-bottom: 1px solid #1e3a5f; }
+      tr.forn-header td { background: #fff; color: #1e3a5f; font-weight: 700; padding: 6px 10px 6px 24px; font-size: 12px; border-bottom: 1px solid #cbd5e1; }
       .total { text-align: right; font-weight: 700; margin-top: 12px; font-size: 14px; color: #dc2626; }
     </style></head><body>
     <div class="page-header">
