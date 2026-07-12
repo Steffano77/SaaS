@@ -141,7 +141,15 @@ exports.dashboard = async (req, res) => {
       WHERE padaria_id = ? AND tipo = 'saida'
         AND data >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)`, [pid]);
 
-    res.json({ kpis: { ...kpis, total_saidas_15d: parseFloat(saidas15d.total_saidas_15d || 0), qtd_saidas_30d: parseInt(saidas15d.qtd_saidas_30d || 0) }, repor, vencendo, movimentacoes_recentes: movs });
+    const [[margemKpi]] = await db.query(`
+      SELECT
+        AVG((preco_venda - custo_unitario) / preco_venda * 100) AS margem_media,
+        AVG(custo_unitario) AS cmv_medio,
+        COUNT(*) AS qtd_com_preco
+      FROM produtos
+      WHERE padaria_id = ? AND ativo = 1 AND preco_venda > 0 AND custo_unitario > 0`, [pid]);
+
+    res.json({ kpis: { ...kpis, total_saidas_15d: parseFloat(saidas15d.total_saidas_15d || 0), qtd_saidas_30d: parseInt(saidas15d.qtd_saidas_30d || 0), margem_media: parseFloat(margemKpi.margem_media || 0), cmv_medio: parseFloat(margemKpi.cmv_medio || 0), qtd_com_preco: parseInt(margemKpi.qtd_com_preco || 0) }, repor, vencendo, movimentacoes_recentes: movs });
   } catch (e) {
     console.error('Erro ao carregar dashboard:', e);
     res.status(500).json({ erro: 'Erro interno ao carregar painel.' });
