@@ -304,20 +304,12 @@ async function carregarDashboard() {
   const d = await api('/dashboard');
   if (!d) return;
   const k = d.kpis;
-  const margemMedia = k.qtd_com_preco > 0 ? k.margem_media : null;
-  const cmvMedio = k.qtd_com_preco > 0 ? k.cmv_medio : null;
-  const margemCor = margemMedia === null ? 'var(--slate-400)' : margemMedia >= 40 ? '#16a34a' : margemMedia >= 20 ? 'var(--orange)' : '#dc2626';
-  const margemValor = margemMedia === null ? '—' : margemMedia.toFixed(1) + '%';
-  const cmvValor = cmvMedio === null ? '—' : 'R$ ' + cmvMedio.toLocaleString('pt-BR', {minimumFractionDigits:2});
-
   document.getElementById('kpis').innerHTML = `
     <div class="kpi-card"><div class="kpi-value" style="color:var(--navy)">${k.total_produtos}</div><div class="kpi-label">Total de produtos</div></div>
     <div class="kpi-card kpi-clickable" onclick="abrirModalEstoque('zerado')"><div class="kpi-value" style="color:var(--red-500)">${k.zerados}</div><div class="kpi-label">Sem estoque</div><div class="kpi-hint">Ver produtos →</div></div>
     <div class="kpi-card kpi-clickable" onclick="abrirModalEstoque('minimo')"><div class="kpi-value" style="color:var(--yellow-500)">${k.abaixo_minimo}</div><div class="kpi-label">Abaixo do mínimo</div><div class="kpi-hint">Ver produtos →</div></div>
     <div class="kpi-card"><div class="kpi-value" style="color:var(--orange);font-size:22px">${'R$ ' + parseFloat(k.valor_total_estoque||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div><div class="kpi-label">Valor em estoque</div></div>
     <div class="kpi-card kpi-clickable kpi-saidas" onclick="abrirTelaSaidas()"><div style="display:flex;align-items:center;justify-content:space-between;"><div><div class="kpi-value" style="color:var(--red-500);font-size:22px">${parseInt(k.qtd_saidas_30d||0)} saídas</div><div class="kpi-label">Saídas — últimos 30 dias</div></div><div class="kpi-hint" style="font-size:13px;">Ver detalhes →</div></div></div>
-    <div class="kpi-card" title="Margem média dos produtos com preço de venda cadastrado"><div class="kpi-value" style="color:${margemCor};font-size:22px">${margemValor}</div><div class="kpi-label">Margem média</div></div>
-    <div class="kpi-card" title="Custo médio unitário dos produtos com preço de venda cadastrado"><div class="kpi-value" style="color:var(--navy);font-size:20px">${cmvValor}</div><div class="kpi-label">CMV médio</div></div>
   `;
   const onb = document.getElementById('onboarding-vazio');
   if (onb) onb.classList.toggle('hidden', k.total_produtos > 0);
@@ -682,23 +674,11 @@ async function carregarProdutos() {
     const status = statusBadge(p);
     const validade = p.validade ? new Date(p.validade).toLocaleDateString('pt-BR') : '—';
     const valorTotal = (p.estoque_atual * p.custo_unitario).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-    const custo = parseFloat(p.custo_unitario || 0);
-    const venda = parseFloat(p.preco_venda || 0);
-    let margemHtml;
-    if (!venda || !custo) {
-      margemHtml = `<span style="color:var(--slate-400);font-size:12px;">—</span>`;
-    } else {
-      const margem = ((venda - custo) / venda) * 100;
-      const cor = margem >= 40 ? '#16a34a' : margem >= 20 ? 'var(--orange)' : '#dc2626';
-      const icone = margem >= 40 ? '✅' : margem >= 20 ? '⚠️' : '🔴';
-      margemHtml = `<span style="color:${cor};font-weight:600;">${margem.toFixed(1)}%</span> <span title="${margem>=40?'Margem saudável':margem>=20?'Margem baixa':'Margem crítica'}">${icone}</span>`;
-    }
     return `<tr data-prod-id="${p.id}">
       <td><div class="td-main">${p.nome}</div><div class="td-sub">${p.codigo_barras || '—'}</div>
         <div class="prod-mobile-info">
           <span class="prod-mobile-saldo">${fmtQtd(p.estoque_atual)} ${p.unidade}</span>
           ${status}
-          <span class="prod-mobile-margem">${margemHtml}</span>
         </div>
       </td>
       <td class="col-hide-mobile" style="color:var(--slate-600)">${p.categoria || '—'}</td>
@@ -706,7 +686,6 @@ async function carregarProdutos() {
       <td class="right td-mono col-hide-mobile" style="color:var(--slate-500)">${fmtQtd(p.estoque_minimo)}</td>
       <td class="right col-hide-mobile">${parseFloat(p.custo_unitario).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
       <td class="right col-hide-mobile" style="font-weight:600">${valorTotal}</td>
-      <td class="right col-hide-mobile">${margemHtml}</td>
       <td class="center col-hide-mobile" style="${p.validade ? 'color:var(--orange-600);font-weight:600' : 'color:var(--slate-400)'}">${validade}</td>
       <td class="center col-hide-mobile">${status}</td>
       <td class="right" style="white-space:nowrap;">
