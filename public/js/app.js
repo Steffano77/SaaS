@@ -694,15 +694,21 @@ async function carregarProdutos() {
       margemHtml = `<span style="color:${cor};font-weight:600;">${margem.toFixed(1)}%</span> <span title="${margem>=40?'Margem saudável':margem>=20?'Margem baixa':'Margem crítica'}">${icone}</span>`;
     }
     return `<tr data-prod-id="${p.id}">
-      <td><div class="td-main">${p.nome}</div><div class="td-sub">${p.codigo_barras || '—'}</div></td>
-      <td style="color:var(--slate-600)">${p.categoria || '—'}</td>
-      <td class="right td-mono">${fmtQtd(p.estoque_atual)} ${p.unidade}</td>
-      <td class="right td-mono" style="color:var(--slate-500)">${fmtQtd(p.estoque_minimo)}</td>
-      <td class="right">${parseFloat(p.custo_unitario).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
-      <td class="right" style="font-weight:600">${valorTotal}</td>
+      <td><div class="td-main">${p.nome}</div><div class="td-sub">${p.codigo_barras || '—'}</div>
+        <div class="prod-mobile-info">
+          <span class="prod-mobile-saldo">${fmtQtd(p.estoque_atual)} ${p.unidade}</span>
+          ${status}
+          <span class="prod-mobile-margem">${margemHtml}</span>
+        </div>
+      </td>
+      <td class="col-hide-mobile" style="color:var(--slate-600)">${p.categoria || '—'}</td>
+      <td class="right td-mono col-hide-mobile">${fmtQtd(p.estoque_atual)} ${p.unidade}</td>
+      <td class="right td-mono col-hide-mobile" style="color:var(--slate-500)">${fmtQtd(p.estoque_minimo)}</td>
+      <td class="right col-hide-mobile">${parseFloat(p.custo_unitario).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
+      <td class="right col-hide-mobile" style="font-weight:600">${valorTotal}</td>
       <td class="right col-hide-mobile">${margemHtml}</td>
-      <td class="center" style="${p.validade ? 'color:var(--orange-600);font-weight:600' : 'color:var(--slate-400)'}">${validade}</td>
-      <td class="center">${status}</td>
+      <td class="center col-hide-mobile" style="${p.validade ? 'color:var(--orange-600);font-weight:600' : 'color:var(--slate-400)'}">${validade}</td>
+      <td class="center col-hide-mobile">${status}</td>
       <td class="right" style="white-space:nowrap;">
         <button onclick="movRapido(${p.id},'entrada')" class="btn-icon" title="Entrada" style="color:#16a34a;font-size:16px;">➕</button>
         <button onclick="movRapido(${p.id},'saida')" class="btn-icon" title="Saída" style="color:#dc2626;font-size:16px;">➖</button>

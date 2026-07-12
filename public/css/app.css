@@ -1191,6 +1191,53 @@ tr.tr-saida td { color: #dc2626 !important; }
 [data-theme="dark"] .btn-danger  { color: #ffffff; }
 [data-theme="dark"] .sidebar-link.active { color: #ffffff; }
 
+/* ── Mobile: esconde colunas secundárias da tabela ── */
+.prod-mobile-info { display: none; }
+
+@media (max-width: 768px) {
+  .col-hide-mobile { display: none !important; }
+
+  /* Linha do produto no mobile: nome + botões lado a lado */
+  #tabela-produtos tr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--slate-100);
+  }
+  [data-theme="dark"] #tabela-produtos tr { border-bottom-color: rgba(255,255,255,0.06); }
+  #tabela-produtos tr td:first-child { flex: 1; min-width: 0; }
+  #tabela-produtos tr td:last-child { flex-shrink: 0; }
+
+  /* Info resumida abaixo do nome no mobile */
+  .prod-mobile-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+  }
+  .prod-mobile-saldo {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--slate-600);
+    background: var(--slate-100);
+    padding: 2px 7px;
+    border-radius: 20px;
+  }
+  [data-theme="dark"] .prod-mobile-saldo {
+    color: #cbd5e1;
+    background: rgba(255,255,255,0.08);
+  }
+  .prod-mobile-margem { font-size: 12px; }
+
+  /* KPIs: 2 colunas no mobile, menores */
+  #kpis { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+  .kpi-saidas { grid-column: 1 / -1; }
+  .kpi-card .kpi-value { font-size: 20px !important; }
+  .kpi-card { padding: 14px 12px !important; }
+}
+
 /* ── Fixes mobile ── */
 @media (max-width: 600px) {
   /* Login ocupa tela inteira no mobile */
