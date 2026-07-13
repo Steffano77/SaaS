@@ -393,6 +393,7 @@
     }
     .page-section {
       padding: 28px 28px 40px;
+      overflow-x: hidden;
       animation: fadeSlideIn 0.22s ease both;
     }
 
@@ -508,10 +509,11 @@
     }
 
     /* ── TABLES ── */
-    .table-wrapper { overflow-x: auto; }
+    .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
     table {
       width: 100%;
+      min-width: 700px;
       border-collapse: collapse;
       font-size: 13px;
     }
