@@ -393,6 +393,7 @@ router.patch('/admin/padarias/:id/ativo', auth, authAdmin, wrap(async (req, res)
 router.delete('/admin/padarias/:id', auth, authAdmin, wrap(async (req, res) => {
   const db = require('../database/connection');
   if (Number(req.params.id) === req.padaria.id) return res.status(400).json({ erro: 'Não pode apagar a si mesmo.' });
+  await db.query('DELETE FROM codigos_ativacao WHERE padaria_id = ?', [req.params.id]);
   await db.query('DELETE FROM padarias WHERE id = ?', [req.params.id]);
   res.json({ ok: true });
 }));
