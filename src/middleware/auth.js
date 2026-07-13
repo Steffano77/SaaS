@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
+const db  = require('../database/connection');
 
-module.exports = (req, res, next) => {
+module.exports = async (req, res, next) => {
   const header = req.headers.authorization || '';
   const token  = header.startsWith('Bearer ') ? header.slice(7) : null;
 
@@ -14,10 +15,22 @@ module.exports = (req, res, next) => {
 
   try {
     const payload = jwt.verify(token, secret);
-    // Impede tokens de reset de serem usados como tokens de sessão
-    if (payload.tipo === 'reset') {
-      return res.status(401).json({ erro: 'Token inválido.' });
+    if (payload.tipo === 'reset') return res.status(401).json({ erro: 'Token inválido.' });
+
+    // Admin nunca é bloqueado
+    if (payload.role !== 'admin') {
+      const [[padaria]] = await db.query(
+        'SELECT plano, plano_expira_em, plano_bloqueado, ativo FROM padarias WHERE id = ?',
+        [payload.id]
+      );
+      if (!padaria || !padaria.ativo) return res.status(401).json({ erro: 'Conta inativa.' });
+      if (padaria.plano_bloqueado) return res.status(402).json({ erro: 'plano_expirado', plano: padaria.plano });
+      if (padaria.plano_expira_em && new Date(padaria.plano_expira_em) < new Date()) {
+        await db.query('UPDATE padarias SET plano_bloqueado = 1 WHERE id = ?', [payload.id]);
+        return res.status(402).json({ erro: 'plano_expirado', plano: padaria.plano });
+      }
     }
+
     req.padaria = payload;
     next();
   } catch {

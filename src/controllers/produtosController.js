@@ -52,11 +52,21 @@ exports.buscar = async (req, res) => {
   }
 };
 
+const LIMITES_PLANO = { essencial: 50, pro: Infinity, premium: Infinity };
+
 exports.criar = async (req, res) => {
   try {
     const { codigo_barras, nome, unidade, categoria_id, fornecedor_id, custo_unitario,
             preco_venda, estoque_atual, estoque_minimo, validade } = req.body;
     if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório.' });
+
+    // Verifica limite do plano
+    const [[padaria]] = await db.query('SELECT plano FROM padarias WHERE id = ?', [req.padaria.id]);
+    const limite = LIMITES_PLANO[padaria?.plano] ?? 50;
+    if (limite !== Infinity) {
+      const [[{ total }]] = await db.query('SELECT COUNT(*) AS total FROM produtos WHERE padaria_id = ? AND ativo = 1', [req.padaria.id]);
+      if (total >= limite) return res.status(403).json({ erro: `limite_plano`, limite, plano: padaria.plano });
+    }
 
     const [result] = await db.query(
       `INSERT INTO produtos (padaria_id, categoria_id, fornecedor_id, codigo_barras, nome, unidade,

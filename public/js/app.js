@@ -213,10 +213,17 @@ async function fazerRegistro(e) {
 
 function entrar() {
   document.getElementById('tela-auth').classList.add('hidden');
+  document.getElementById('tela-plano-expirado')?.classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   document.getElementById('app').classList.add('flex');
   history.replaceState({ pg: 'dashboard' }, '', '#dashboard');
   mostrarPagina('dashboard', false);
+}
+
+function mostrarTelaPlanoExpirado() {
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('tela-auth').classList.add('hidden');
+  document.getElementById('tela-plano-expirado').classList.remove('hidden');
 }
 
 function sair() {
@@ -312,6 +319,10 @@ async function api(path, opts = {}) {
       localStorage.removeItem('panificapro_token');
       localStorage.removeItem('pptoken');
       location.reload();
+      return null;
+    }
+    if (r.status === 402) {
+      mostrarTelaPlanoExpirado();
       return null;
     }
     return r.json();
@@ -1213,6 +1224,7 @@ async function carregarFornecedores() {
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
           ${waBtn}
+          <button onclick="abrirHistoricoFornecedor(${f.id},'${f.nome.replace(/'/g,"\\'")}')" class="btn-icon" title="Histórico de compras">📋</button>
           <button onclick="editarFornecedor(${f.id},'${f.nome.replace(/'/g,"\\'")}','${(f.contato||'').replace(/'/g,"\\'")}','${(f.telefone||'').replace(/'/g,"\\'")}','${(f.email||'').replace(/'/g,"\\'")}')" class="btn-icon" title="Editar">✏️</button>
           <button onclick="excluirFornecedor(${f.id})" class="btn-icon" style="color:#dc2626;" title="Excluir">🗑️</button>
         </div>
@@ -1399,7 +1411,19 @@ async function salvarProduto(e) {
     validade:      document.getElementById('prod-validade').value || null,
   };
   body.estoque_atual = parseFloat(document.getElementById('prod-saldo').value) || 0;
-  const res = await api(id ? `/produtos/${id}` : '/produtos', { method: id ? 'PUT' : 'POST', body });
+  const r = await fetch(`${API}${id ? `/produtos/${id}` : '/produtos'}`, {
+    method: id ? 'PUT' : 'POST',
+    headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const res = r.ok ? await r.json() : await r.json().then(d => {
+    if (d.erro === 'limite_plano') {
+      mostrarToast(`Limite do plano ${d.plano} atingido (${d.limite} produtos). Faça upgrade!`, 'warn');
+      return null;
+    }
+    mostrarToast(d.erro || 'Erro ao salvar.', 'err');
+    return null;
+  });
   setBtnLoading(submitBtn, false);
   if (id && res) {
     // Show success message in modal before closing
@@ -1978,25 +2002,33 @@ async function abrirTelaAdmin() {
   lista.innerHTML = '<p style="color:var(--slate-500)">Carregando...</p>';
   const rows = await api('/admin/padarias');
   if (!rows) { lista.innerHTML = '<p style="color:red">Erro ao carregar.</p>'; return; }
-  lista.innerHTML = rows.map(p => `
+  const planoLabel = { essencial: 'Essencial', pro: 'Pro', premium: 'Premium' };
+  lista.innerHTML = rows.map(p => {
+    const expira = p.plano_expira_em ? new Date(p.plano_expira_em).toLocaleDateString('pt-BR') : '—';
+    const expirado = p.plano_expira_em && new Date(p.plano_expira_em) < new Date();
+    const statusPlano = p.plano_bloqueado || expirado
+      ? `<span style="color:#dc2626;font-weight:600;">🔴 Expirado (${expira})</span>`
+      : p.plano_expira_em
+        ? `<span style="color:#16a34a;">✅ Ativo até ${expira}</span>`
+        : `<span style="color:var(--slate-400);">Sem validade</span>`;
+    return `
     <div style="background:var(--white);border-radius:12px;padding:16px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.08);display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
       <div style="flex:1;min-width:0;">
         <div style="font-weight:700;font-size:15px;">${p.nome}</div>
         <div style="font-size:13px;color:var(--slate-500);">${p.email}</div>
-        <div style="font-size:12px;color:var(--slate-400);margin-top:2px;">${p.total_produtos} produto(s) · Cadastro: ${new Date(p.criado_em).toLocaleDateString('pt-BR')} · Role: ${p.role}</div>
+        <div style="font-size:12px;color:var(--slate-400);margin-top:2px;">
+          ${p.total_produtos} produto(s) · Plano: <strong>${planoLabel[p.plano] || p.plano}</strong> · ${statusPlano}
+        </div>
       </div>
-      <div style="display:flex;gap:8px;flex-shrink:0;">
+      <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;">
         ${p.role !== 'admin' ? `
-          <button onclick="adminToggleAtivo(${p.id}, ${p.ativo ? 0 : 1})" class="btn-secondary" style="font-size:13px;padding:7px 12px;">
-            ${p.ativo ? '🔒 Desativar' : '✅ Reativar'}
-          </button>
-          <button onclick="adminApagarPadaria(${p.id}, '${p.nome.replace(/'/g,"\\'")}' )" class="btn-danger" style="font-size:13px;padding:7px 12px;">
-            🗑️ Apagar
-          </button>
+          <button onclick="adminRenovarPlano(${p.id}, '${p.nome.replace(/'/g,"\\'")}')" class="btn-secondary" style="font-size:13px;padding:7px 12px;">🔄 Renovar</button>
+          <button onclick="adminToggleAtivo(${p.id}, ${p.ativo ? 0 : 1})" class="btn-secondary" style="font-size:13px;padding:7px 12px;">${p.ativo ? '🔒 Desativar' : '✅ Reativar'}</button>
+          <button onclick="adminApagarPadaria(${p.id}, '${p.nome.replace(/'/g,"\\'")}' )" class="btn-danger" style="font-size:13px;padding:7px 12px;">🗑️ Apagar</button>
         ` : '<span style="font-size:13px;color:var(--slate-400);">— Admin —</span>'}
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 function fecharTelaAdmin() {
@@ -2067,4 +2099,59 @@ async function apagarCodigo(id) {
   if (!confirm('Apagar este código?')) return;
   const r = await api(`/admin/codigos/${id}`, { method: 'DELETE' });
   if (r) carregarCodigos();
+}
+
+async function adminRenovarPlano(id, nome) {
+  const meses = prompt(`Renovar plano de "${nome}"\nQuantos meses?`, '1');
+  if (!meses || isNaN(meses) || Number(meses) < 1) return;
+  const planos = ['essencial','pro','premium'];
+  const plano = prompt(`Qual plano? (essencial / pro / premium)\nDeixe em branco para manter o atual.`,'');
+  const body = { meses: Number(meses) };
+  if (plano && planos.includes(plano.toLowerCase())) body.plano = plano.toLowerCase();
+  const r = await api(`/admin/padarias/${id}/renovar`, { method: 'POST', body });
+  if (r?.ok) { mostrarToast(`Plano renovado até ${new Date(r.plano_expira_em).toLocaleDateString('pt-BR')}`, 'success'); abrirTelaAdmin(); }
+}
+
+function exportarExcel(tipo) {
+  const mes = document.getElementById('rel-mes')?.value || new Date().toISOString().slice(0,7);
+  const url = tipo === 'produtos'
+    ? `${API}/exportar/produtos`
+    : `${API}/exportar/movimentacoes?mes=${mes}`;
+  const a = document.createElement('a');
+  a.href = url;
+  a.setAttribute('download', '');
+  // Injeta token via fetch para download autenticado
+  fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } })
+    .then(r => r.blob())
+    .then(blob => {
+      const burl = URL.createObjectURL(blob);
+      a.href = burl;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(burl), 5000);
+    });
+}
+
+async function abrirHistoricoFornecedor(id, nome) {
+  const modal = document.getElementById('modal-historico-forn');
+  document.getElementById('historico-forn-titulo').textContent = `Histórico — ${nome}`;
+  const corpo = document.getElementById('historico-forn-corpo');
+  corpo.innerHTML = '<p style="color:var(--slate-400);padding:20px;text-align:center;">Carregando...</p>';
+  modal.classList.remove('hidden');
+  const rows = await api(`/fornecedores/${id}/historico`);
+  if (!rows) { corpo.innerHTML = '<p style="color:red;padding:20px;">Erro ao carregar.</p>'; return; }
+  if (!rows.length) { corpo.innerHTML = '<p style="color:var(--slate-400);padding:20px;text-align:center;">Nenhuma compra registrada.</p>'; return; }
+  const total = rows.reduce((s, r) => s + parseFloat(r.total || 0), 0);
+  corpo.innerHTML = `
+    <div style="padding:12px 0;margin-bottom:8px;border-bottom:2px solid var(--slate-200);display:flex;justify-content:space-between;">
+      <span style="font-weight:700;">${rows.length} pedido(s)</span>
+      <span style="font-weight:700;color:var(--orange);">Total: R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
+    </div>
+    ${rows.map(r => `
+      <div style="padding:10px 0;border-bottom:1px solid var(--slate-100);">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <span style="font-size:13px;color:var(--slate-500);">${new Date(r.data).toLocaleDateString('pt-BR')}</span>
+          <span style="font-weight:700;color:var(--orange);">R$ ${parseFloat(r.total||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
+        </div>
+        <div style="font-size:12px;color:var(--slate-400);margin-top:2px;">${r.produtos || '—'}</div>
+      </div>`).join('')}`;
 }

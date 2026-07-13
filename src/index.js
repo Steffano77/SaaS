@@ -84,6 +84,18 @@ app.use(express.static(path.join(__dirname, '../public')));
         criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         usado_em DATETIME NULL
       )`,
+      `CREATE TABLE IF NOT EXISTS usuarios (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        padaria_id INT NOT NULL,
+        nome VARCHAR(120) NOT NULL,
+        email VARCHAR(120) NOT NULL UNIQUE,
+        senha_hash VARCHAR(255) NOT NULL,
+        role VARCHAR(20) NOT NULL DEFAULT 'membro',
+        ativo TINYINT(1) NOT NULL DEFAULT 1,
+        criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )`,
+      'ALTER TABLE padarias ADD COLUMN plano_expira_em DATE NULL',
+      'ALTER TABLE padarias ADD COLUMN plano_bloqueado TINYINT(1) NOT NULL DEFAULT 0',
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
     // Cria conta admin automaticamente se não existir
