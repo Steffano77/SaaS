@@ -80,7 +80,7 @@ exports.login = async (req, res) => {
 exports.perfil = async (req, res) => {
   try {
     const [rows] = await db.query(
-      'SELECT id, nome, email, plano, criado_em FROM padarias WHERE id = ?',
+      'SELECT id, nome, email, plano, role, criado_em FROM padarias WHERE id = ?',
       [req.padaria.id]
     );
     res.json(rows[0]);

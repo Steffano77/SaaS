@@ -1765,7 +1765,11 @@ if (TOKEN) {
   fetch(`${API}/auth/perfil`, { headers: { 'Authorization': `Bearer ${TOKEN}` } })
     .then(r => r.ok ? r.json() : null)
     .then(d => {
-      if (d) { document.getElementById('sidebar-nome').textContent = d.nome; entrar(); }
+      if (d) {
+        document.getElementById('sidebar-nome').textContent = d.nome;
+        if (d.role === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
+        entrar();
+      }
     });
 }
 
