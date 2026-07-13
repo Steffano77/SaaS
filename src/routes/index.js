@@ -427,7 +427,7 @@ router.post('/admin/codigos', auth, authAdmin, wrap(async (req, res) => {
 
 router.delete('/admin/codigos/:id', auth, authAdmin, wrap(async (req, res) => {
   const db = require('../database/connection');
-  await db.query('DELETE FROM codigos_ativacao WHERE id = ? AND usado = 0', [req.params.id]);
+  await db.query('DELETE FROM codigos_ativacao WHERE id = ?', [req.params.id]);
   res.json({ ok: true });
 }));
 

@@ -2037,10 +2037,10 @@ async function carregarCodigos() {
         </div>
       </div>
       <div style="display:flex;gap:8px;flex-shrink:0;">
-        ${!c.usado ? `
-          <button onclick="copiarCodigo('${c.codigo}')" class="btn-secondary" style="font-size:13px;padding:7px 12px;">📋 Copiar</button>
+        <div style="display:flex;gap:8px;">
+          ${!c.usado ? `<button onclick="copiarCodigo('${c.codigo}')" class="btn-secondary" style="font-size:13px;padding:7px 12px;">📋 Copiar</button>` : ''}
           <button onclick="apagarCodigo(${c.id})" class="btn-danger" style="font-size:13px;padding:7px 12px;">🗑️</button>
-        ` : ''}
+        </div>
       </div>
     </div>
   `).join('');
