@@ -86,10 +86,22 @@ app.use(express.static(path.join(__dirname, '../public')));
       )`,
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
-    // Define admin pelo email configurado
+    // Cria conta admin automaticamente se não existir
     const adminEmail = process.env.ADMIN_EMAIL;
-    if (adminEmail) {
-      await db.query("UPDATE padarias SET role = 'admin' WHERE email = ?", [adminEmail]).catch(() => {});
+    const adminSenha = process.env.ADMIN_SENHA;
+    if (adminEmail && adminSenha) {
+      const bcrypt = require('bcryptjs');
+      const [existe] = await db.query('SELECT id FROM padarias WHERE email = ?', [adminEmail]).catch(() => [[]]);
+      if (!existe.length) {
+        const hash = await bcrypt.hash(adminSenha, 10);
+        await db.query(
+          "INSERT INTO padarias (nome, email, senha_hash, role, plano) VALUES ('Admin PanificaPro', ?, ?, 'admin', 'premium')",
+          [adminEmail, hash]
+        ).catch(() => {});
+        console.log('✅ Conta admin criada.');
+      } else {
+        await db.query("UPDATE padarias SET role = 'admin' WHERE email = ?", [adminEmail]).catch(() => {});
+      }
     }
     console.log('✅ Migrations verificadas.');
   } catch (e) {
