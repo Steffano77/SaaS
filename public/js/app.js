@@ -225,10 +225,22 @@ function sair() {
   sessionStorage.removeItem('pptoken');
   document.getElementById('app').classList.add('hidden');
   document.getElementById('tela-auth').classList.remove('hidden');
+  // Limpa campos de login
   const em = document.getElementById('login-email');
   const pw = document.getElementById('login-senha');
   em.value = ''; em.setAttribute('readonly', '');
   pw.value = ''; pw.setAttribute('readonly', '');
+  // Limpa campos de cadastro
+  ['reg-nome','reg-email','reg-senha','reg-codigo'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const codigoStatus = document.getElementById('codigo-status');
+  if (codigoStatus) codigoStatus.textContent = '';
+  const erroReg = document.getElementById('erro-registro');
+  if (erroReg) { erroReg.textContent = ''; erroReg.classList.add('hidden'); }
+  // Volta para aba de login
+  mostrarTab('login');
 }
 
 // ── Navegação ───────────────────────────────────────────────
