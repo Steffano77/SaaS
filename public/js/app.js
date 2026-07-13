@@ -626,9 +626,9 @@ function imprimirSaidas() {
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
     <title> </title>
     <style>
-      @page { margin: 0.3cm 0.8cm; size: A4 portrait; }
-      html, body { font-family: Arial, sans-serif; font-size: 11px; padding: 0; margin: 0; color: #000; width: 100%; }
-      body { padding: 12px; box-sizing: border-box; }
+      @page { margin: 0.5cm 1cm; size: A4 portrait; }
+      html { font-family: Arial, sans-serif; font-size: 11px; color: #000; }
+      body { padding: 12px; box-sizing: border-box; width: 190mm; max-width: 190mm; margin: 0 auto; }
       .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
       .page-header-left h2 { color: #1e3a5f; margin: 0 0 2px; font-size: 16px; }
       .page-header-left p { color: #1e3a5f; margin: 0; font-size: 10px; font-weight: 600; }
@@ -659,7 +659,23 @@ function imprimirSaidas() {
       <tbody>${blocos}</tbody>
     </table>
     <div class="total">Total geral: R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
-    <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}<\/script>
+    <script>
+    window.onload = () => {
+      const body = document.body;
+      const pageH = 267; // A4 altura útil em mm (297 - margens)
+      const mmToPx = 3.7795;
+      const pageHpx = pageH * mmToPx;
+      const contentH = body.scrollHeight;
+      if (contentH > pageHpx) {
+        const scale = pageHpx / contentH;
+        body.style.transformOrigin = 'top left';
+        body.style.transform = 'scale(' + scale + ')';
+        body.style.width = Math.round(100 / scale) + '%';
+      }
+      window.print();
+      window.onafterprint = () => window.close();
+    };
+    <\/script>
     </body></html>`;
 
   const w = window.open('', '_blank');
