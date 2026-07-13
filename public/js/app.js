@@ -870,13 +870,13 @@ function filtrarProdutosCompra() {
   if (!termo) { lista.classList.add('hidden'); document.getElementById('compra-produto').value = ''; document.getElementById('novo-prod-inline').classList.add('hidden'); return; }
   const filtrados = _produtosCache.filter(p => p.nome.toLowerCase().includes(termo));
   const itens = filtrados.slice(0, 8).map(p =>
-    `<div onmousedown="event.preventDefault();selecionarProdutoCompra(${p.id},'${p.nome.replace(/'/g,"\\'")}','${p.unidade}')"
+    `<div onmousedown="event.preventDefault();selecionarProdutoCompra(${p.id},'${p.nome.replace(/'/g,"\\'")}','${p.unidade}')" ontouchend="event.preventDefault();selecionarProdutoCompra(${p.id},'${p.nome.replace(/'/g,"\\'")}','${p.unidade}')"
       style="padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--slate-100);"
       onmouseover="this.style.background='var(--slate-50)'" onmouseout="this.style.background=''">${p.nome} <span style="color:var(--slate-400);font-size:12px;">${p.unidade}</span></div>`
   );
   const jaExiste = _produtosCache.some(p => p.nome.toLowerCase() === termo);
   if (!jaExiste) {
-    itens.push(`<div onmousedown="event.preventDefault();selecionarNovoProdutoCompra('${document.getElementById('compra-prod-texto').value.trim().replace(/'/g,"\\'")}')"
+    itens.push(`<div onmousedown="event.preventDefault();selecionarNovoProdutoCompra('${document.getElementById('compra-prod-texto').value.trim().replace(/'/g,"\\'")}')" ontouchend="event.preventDefault();selecionarNovoProdutoCompra('${document.getElementById('compra-prod-texto').value.trim().replace(/'/g,"\\'")}')"
       style="padding:10px 14px;cursor:pointer;font-size:14px;color:var(--orange);font-weight:600;border-top:1px solid var(--slate-100);"
       onmouseover="this.style.background='#fff7ed'" onmouseout="this.style.background=''">➕ Criar novo: "${document.getElementById('compra-prod-texto').value.trim()}"</div>`);
   }
