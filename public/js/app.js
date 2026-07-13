@@ -624,11 +624,12 @@ function imprimirSaidas() {
 
   const logoUrl = window.location.origin + '/img/favicon-192.png';
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=794, initial-scale=1"/>
     <title> </title>
     <style>
       @page { margin: 0.5cm 1cm; size: A4 portrait; }
       html { font-family: Arial, sans-serif; font-size: 11px; color: #000; }
-      body { padding: 12px; box-sizing: border-box; width: 190mm; max-width: 190mm; margin: 0 auto; }
+      body { padding: 12px; box-sizing: border-box; width: 770px; max-width: 770px; margin: 0 auto; }
       .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
       .page-header-left h2 { color: #1e3a5f; margin: 0 0 2px; font-size: 16px; }
       .page-header-left p { color: #1e3a5f; margin: 0; font-size: 10px; font-weight: 600; }
