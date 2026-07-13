@@ -1198,16 +1198,16 @@ tr.tr-saida td { color: #dc2626 !important; }
   .col-hide-mobile { display: none !important; }
 
   /* Linha do produto no mobile: nome + botões lado a lado */
-  #tabela-produtos tr {
+  #tabela-produtos tbody tr {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 10px 4px;
     border-bottom: 1px solid var(--slate-100);
   }
-  [data-theme="dark"] #tabela-produtos tr { border-bottom-color: rgba(255,255,255,0.06); }
-  #tabela-produtos tr td:first-child { flex: 1; min-width: 0; }
-  #tabela-produtos tr td:last-child { flex-shrink: 0; }
+  [data-theme="dark"] #tabela-produtos tbody tr { border-bottom-color: rgba(255,255,255,0.06); }
+  #tabela-produtos tbody tr td:first-child { flex: 1; min-width: 0; }
+  #tabela-produtos tbody tr td:last-child { flex-shrink: 0; }
 
   /* Info resumida abaixo do nome no mobile */
   .prod-mobile-info {
