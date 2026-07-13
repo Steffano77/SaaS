@@ -626,22 +626,23 @@ function imprimirSaidas() {
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
     <title> </title>
     <style>
-      @page { margin: 0.4cm 1cm 0.4cm 1cm; }
-      body { font-family: Arial, sans-serif; font-size: 13px; padding: 20px; color: #000; }
+      @page { margin: 0.3cm 0.8cm; size: A4 portrait; }
+      html, body { font-family: Arial, sans-serif; font-size: 11px; padding: 0; margin: 0; color: #000; width: 100%; }
+      body { padding: 12px; box-sizing: border-box; }
       .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-      .page-header-left h2 { color: #1e3a5f; margin: 0 0 4px; font-size: 20px; }
-      .page-header-left p { color: #1e3a5f; margin: 0; font-size: 12px; font-weight: 600; }
+      .page-header-left h2 { color: #1e3a5f; margin: 0 0 2px; font-size: 16px; }
+      .page-header-left p { color: #1e3a5f; margin: 0; font-size: 10px; font-weight: 600; }
       .page-header-right { text-align: center; flex-shrink: 0; }
-      .page-header-right img { width: 90px; height: 90px; opacity: 0.75; display: block; margin: 0 auto 0px; }
-      .page-header-right span { font-size: 12px; font-weight: 700; color: #1e3a5f; letter-spacing: 1px; display: block; margin-top: -4px; }
+      .page-header-right img { width: 60px; height: 60px; opacity: 0.75; display: block; margin: 0 auto; }
+      .page-header-right span { font-size: 10px; font-weight: 700; color: #1e3a5f; letter-spacing: 1px; display: block; }
       table { width: 100%; border-collapse: collapse; }
-      th { background: #fff; color: #1e3a5f; padding: 8px 10px; text-align: left; font-size: 12px; font-weight: 700; border-bottom: 2px solid #1e3a5f; }
-      td { padding: 8px 10px; border-bottom: 1px solid #cbd5e1; color: #000; }
+      th { background: #fff; color: #1e3a5f; padding: 5px 7px; text-align: left; font-size: 10px; font-weight: 700; border-bottom: 2px solid #1e3a5f; }
+      td { padding: 5px 7px; border-bottom: 1px solid #cbd5e1; color: #000; font-size: 10px; }
       tr:nth-child(even) td { background: #f1f5f9; }
-      td.obs { color: #1e3a5f; font-style: italic; font-size: 12px; font-weight: 600; }
-      tr.loja-header td { background: #fff; color: #1e3a5f; font-weight: 700; font-size: 14px; padding: 8px 10px; border-top: 2px solid #1e3a5f; border-bottom: 1px solid #1e3a5f; }
-      tr.forn-header td { background: #fff; color: #1e3a5f; font-weight: 700; padding: 6px 10px 6px 24px; font-size: 12px; border-bottom: 1px solid #cbd5e1; }
-      .total { text-align: right; font-weight: 700; margin-top: 12px; font-size: 14px; color: #dc2626; }
+      td.obs { color: #1e3a5f; font-style: italic; font-size: 10px; font-weight: 600; }
+      tr.loja-header td { background: #fff; color: #1e3a5f; font-weight: 700; font-size: 11px; padding: 5px 7px; border-top: 2px solid #1e3a5f; border-bottom: 1px solid #1e3a5f; }
+      tr.forn-header td { background: #fff; color: #1e3a5f; font-weight: 700; padding: 4px 7px 4px 18px; font-size: 10px; border-bottom: 1px solid #cbd5e1; }
+      .total { text-align: right; font-weight: 700; margin-top: 8px; font-size: 12px; color: #dc2626; }
     </style></head><body>
     <div class="page-header">
       <div class="page-header-left">
