@@ -1,4 +1,4 @@
-const CACHE = 'panificapro-v1';
+const CACHE = 'panificapro-v2';
 const STATIC = [
   '/',
   '/css/app.css',
