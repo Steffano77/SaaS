@@ -270,6 +270,14 @@ function mostrarPagina(pg, pushHistory = true) {
   if (pg === 'relatorios')     { carregarRelatorios(); }
 }
 
+document.addEventListener('click', e => {
+  const lista = document.getElementById('compra-prod-lista');
+  const input = document.getElementById('compra-prod-texto');
+  if (lista && input && !lista.contains(e.target) && e.target !== input) {
+    lista.classList.add('hidden');
+  }
+});
+
 window.addEventListener('popstate', () => {
   // Swipe back sempre vai para o dashboard, nunca abre modal-sair
   mostrarPagina('dashboard', false);
