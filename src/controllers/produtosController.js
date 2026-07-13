@@ -13,11 +13,11 @@ exports.listar = async (req, res) => {
 
     if (busca) { sql += ' AND (p.nome LIKE ? OR p.codigo_barras LIKE ?)'; params.push(`%${busca}%`, `%${busca}%`); }
     if (categoria_id) { sql += ' AND p.categoria_id = ?'; params.push(categoria_id); }
-    if (alerta === 'minimo')   sql += ' AND p.estoque_minimo > 0 AND p.estoque_atual > 0 AND p.estoque_atual < p.estoque_minimo';
+    if (alerta === 'minimo')   sql += ' AND p.estoque_minimo > 0 AND p.estoque_atual > 0 AND p.estoque_atual <= p.estoque_minimo';
     if (alerta === 'zerado')   sql += ' AND p.estoque_atual <= 0';
     if (alerta === 'validade') sql += ' AND p.validade IS NOT NULL AND p.validade <= DATE_ADD(CURDATE(), INTERVAL 10 DAY)';
 
-    sql += ' ORDER BY p.estoque_atual <= 0 DESC, p.estoque_atual < p.estoque_minimo DESC, p.nome';
+    sql += ' ORDER BY p.estoque_atual <= 0 DESC, p.estoque_atual <= p.estoque_minimo DESC, p.nome';
     const [rows] = await db.query(sql, params);
     res.json(rows.map(formatarProduto));
   } catch (e) {
@@ -120,7 +120,7 @@ exports.dashboard = async (req, res) => {
       SELECT
         COUNT(*) AS total_produtos,
         COALESCE(SUM(estoque_atual <= 0), 0) AS zerados,
-        COALESCE(SUM(estoque_atual > 0 AND estoque_minimo > 0 AND estoque_atual < estoque_minimo), 0) AS abaixo_minimo,
+        COALESCE(SUM(estoque_atual > 0 AND estoque_minimo > 0 AND estoque_atual <= estoque_minimo), 0) AS abaixo_minimo,
         COALESCE(SUM(validade IS NOT NULL AND validade <= DATE_ADD(CURDATE(), INTERVAL 10 DAY) AND estoque_atual > 0), 0) AS vencendo,
         COALESCE(SUM(estoque_atual * custo_unitario), 0) AS valor_total_estoque
       FROM produtos WHERE padaria_id = ? AND ativo = 1`, [pid]);
@@ -129,7 +129,7 @@ exports.dashboard = async (req, res) => {
       SELECT nome, codigo_barras, estoque_atual, estoque_minimo,
              GREATEST(0, estoque_minimo - estoque_atual) AS falta, unidade
       FROM produtos WHERE padaria_id = ? AND ativo = 1
-        AND (estoque_atual <= 0 OR estoque_atual < estoque_minimo)
+        AND (estoque_atual <= 0 OR estoque_atual <= estoque_minimo)
       ORDER BY estoque_atual <= 0 DESC, falta DESC LIMIT 20`, [pid]);
 
     const [vencendo] = await db.query(`
