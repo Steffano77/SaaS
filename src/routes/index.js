@@ -397,4 +397,46 @@ router.delete('/admin/padarias/:id', auth, authAdmin, wrap(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// ── Códigos de ativação ───────────────────────────────────────────────────
+router.get('/admin/codigos', auth, authAdmin, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const [rows] = await db.query(`
+    SELECT c.id, c.codigo, c.plano, c.usado, c.criado_em, c.usado_em,
+           p.nome AS padaria_nome, p.email AS padaria_email
+    FROM codigos_ativacao c
+    LEFT JOIN padarias p ON p.id = c.padaria_id
+    ORDER BY c.criado_em DESC`);
+  res.json(rows);
+}));
+
+router.post('/admin/codigos', auth, authAdmin, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const { plano } = req.body;
+  const planosValidos = ['essencial', 'pro', 'premium'];
+  if (!planosValidos.includes(plano)) return res.status(400).json({ erro: 'Plano inválido.' });
+
+  // Gera código único: PP-XXXX-XXXX
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const rand = (n) => Array.from({ length: n }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  const codigo = `PP-${rand(4)}-${rand(4)}`;
+
+  await db.query('INSERT INTO codigos_ativacao (codigo, plano) VALUES (?, ?)', [codigo, plano]);
+  res.status(201).json({ codigo, plano });
+}));
+
+router.delete('/admin/codigos/:id', auth, authAdmin, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  await db.query('DELETE FROM codigos_ativacao WHERE id = ? AND usado = 0', [req.params.id]);
+  res.json({ ok: true });
+}));
+
+// Rota pública para verificar código antes de preencher o formulário
+router.get('/auth/verificar-codigo/:codigo', wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const codigo = String(req.params.codigo || '').trim().toUpperCase();
+  const [rows] = await db.query('SELECT plano FROM codigos_ativacao WHERE codigo = ? AND usado = 0', [codigo]);
+  if (!rows.length) return res.status(404).json({ valido: false });
+  res.json({ valido: true, plano: rows[0].plano });
+}));
+
 module.exports = router;

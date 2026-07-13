@@ -75,6 +75,15 @@ app.use(express.static(path.join(__dirname, '../public')));
       'ALTER TABLE itens_pedido ADD COLUMN minimo_temp FLOAT NULL',
       'ALTER TABLE itens_pedido ADD COLUMN is_novo TINYINT(1) DEFAULT 0',
       'ALTER TABLE itens_pedido MODIFY COLUMN produto_id INT NULL',
+      `CREATE TABLE IF NOT EXISTS codigos_ativacao (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        codigo VARCHAR(32) NOT NULL UNIQUE,
+        plano VARCHAR(20) NOT NULL DEFAULT 'essencial',
+        usado TINYINT(1) NOT NULL DEFAULT 0,
+        padaria_id INT NULL,
+        criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        usado_em DATETIME NULL
+      )`,
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
     // Define admin pelo email configurado

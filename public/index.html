@@ -100,10 +100,17 @@
           </button>
         </div>
       </div>
+      <div class="form-group">
+        <label>Código de ativação</label>
+        <input type="text" id="reg-codigo" required placeholder="PP-XXXX-XXXX" class="form-control"
+               autocomplete="off" maxlength="12" style="text-transform:uppercase;letter-spacing:0.1em;font-weight:600;"
+               oninput="this.value=this.value.toUpperCase()" onblur="verificarCodigo(this.value)"/>
+        <div id="codigo-status" style="font-size:12px;margin-top:4px;min-height:18px;"></div>
+      </div>
       <div id="erro-registro" class="error-msg hidden"></div>
-      <button type="submit" class="btn-primary full">Criar conta grátis</button>
+      <button type="submit" class="btn-primary full">Criar conta</button>
       <p style="text-align:center;margin-top:16px;font-size:13px;color:var(--slate-500);">
-        Ver <a href="https://www.panificapro.com.br/#planos" target="_blank" style="color:var(--orange);font-weight:600;text-decoration:none;">planos e preços no site</a>
+        Não tem código? <a href="https://www.panificapro.com.br/#planos" target="_blank" style="color:var(--orange);font-weight:600;text-decoration:none;">Ver planos no site</a>
       </p>
     </form>
   </div>
@@ -983,11 +990,33 @@
 <div id="tela-admin" class="hidden tela-fullscreen">
   <div class="tela-fullscreen-header">
     <button onclick="fecharTelaAdmin()" class="btn-ghost" style="padding:8px 14px;">← Voltar</button>
-    <h2 style="margin:0;font-size:18px;display:flex;align-items:center;gap:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Administração — Padarias</h2>
+    <h2 style="margin:0;font-size:18px;">Administração</h2>
     <div></div>
   </div>
   <div style="padding:20px;max-width:900px;margin:0 auto;">
-    <div id="admin-lista" style="display:flex;flex-direction:column;gap:12px;"></div>
+    <!-- Abas Admin -->
+    <div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:2px solid var(--slate-200);padding-bottom:0;">
+      <button class="tab-btn active" id="tab-admin-padarias" onclick="mostrarTabAdmin('padarias')" style="border-radius:8px 8px 0 0;">Padarias</button>
+      <button class="tab-btn" id="tab-admin-codigos" onclick="mostrarTabAdmin('codigos')" style="border-radius:8px 8px 0 0;">Códigos de Ativação</button>
+    </div>
+
+    <!-- Aba Padarias -->
+    <div id="admin-painel-padarias">
+      <div id="admin-lista" style="display:flex;flex-direction:column;gap:12px;"></div>
+    </div>
+
+    <!-- Aba Códigos -->
+    <div id="admin-painel-codigos" class="hidden">
+      <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center;">
+        <select id="admin-novo-plano" class="form-control" style="width:auto;">
+          <option value="essencial">Essencial</option>
+          <option value="pro">Pro</option>
+          <option value="premium">Premium</option>
+        </select>
+        <button class="btn-primary" onclick="gerarCodigo()" style="padding:10px 20px;">+ Gerar código</button>
+      </div>
+      <div id="admin-codigos-lista" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
   </div>
 </div>
 

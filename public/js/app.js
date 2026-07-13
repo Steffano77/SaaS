@@ -167,6 +167,26 @@ async function fazerLogin(e) {
   } catch { el.textContent = 'Erro de conexão.'; el.classList.remove('hidden'); }
 }
 
+async function verificarCodigo(valor) {
+  const status = document.getElementById('codigo-status');
+  const codigo = valor.trim().toUpperCase();
+  if (codigo.length < 10) { status.textContent = ''; return; }
+  status.style.color = 'var(--slate-400)';
+  status.textContent = 'Verificando...';
+  try {
+    const r = await fetch(`${API}/auth/verificar-codigo/${encodeURIComponent(codigo)}`);
+    const d = await r.json();
+    if (d.valido) {
+      const planoLabel = { essencial: 'Essencial', pro: 'Pro', premium: 'Premium' }[d.plano] || d.plano;
+      status.style.color = '#16a34a';
+      status.textContent = `✅ Código válido — Plano ${planoLabel}`;
+    } else {
+      status.style.color = '#dc2626';
+      status.textContent = '❌ Código inválido ou já utilizado';
+    }
+  } catch { status.textContent = ''; }
+}
+
 async function fazerRegistro(e) {
   e.preventDefault();
   const el = document.getElementById('erro-registro');
@@ -174,7 +194,12 @@ async function fazerRegistro(e) {
   try {
     const r = await fetch(`${API}/auth/registrar`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ nome: document.getElementById('reg-nome').value, email: document.getElementById('reg-email').value, senha: document.getElementById('reg-senha').value })
+      body: JSON.stringify({
+        nome:   document.getElementById('reg-nome').value,
+        email:  document.getElementById('reg-email').value,
+        senha:  document.getElementById('reg-senha').value,
+        codigo: document.getElementById('reg-codigo').value.trim().toUpperCase()
+      })
     });
     const d = await r.json();
     if (!r.ok) { el.textContent = d.erro; el.classList.remove('hidden'); return; }
@@ -1922,8 +1947,17 @@ async function salvarNomePadaria() {
 }
 
 // ── Admin ──────────────────────────────────────────────────────────────────
+function mostrarTabAdmin(aba) {
+  ['padarias','codigos'].forEach(a => {
+    document.getElementById(`admin-painel-${a}`).classList.toggle('hidden', a !== aba);
+    document.getElementById(`tab-admin-${a}`).classList.toggle('active', a === aba);
+  });
+  if (aba === 'codigos') carregarCodigos();
+}
+
 async function abrirTelaAdmin() {
   document.getElementById('tela-admin').classList.remove('hidden');
+  mostrarTabAdmin('padarias');
   const lista = document.getElementById('admin-lista');
   lista.innerHTML = '<p style="color:var(--slate-500)">Carregando...</p>';
   const rows = await api('/admin/padarias');
@@ -1965,4 +1999,56 @@ async function adminApagarPadaria(id, nome) {
   if (!confirm(`Confirma a exclusão definitiva de "${nome}"?`)) return;
   const r = await api(`/admin/padarias/${id}`, { method: 'DELETE' });
   if (r) abrirTelaAdmin();
+}
+
+async function carregarCodigos() {
+  const lista = document.getElementById('admin-codigos-lista');
+  lista.innerHTML = '<p style="color:var(--slate-500)">Carregando...</p>';
+  const rows = await api('/admin/codigos');
+  if (!rows) { lista.innerHTML = '<p style="color:red">Erro ao carregar.</p>'; return; }
+  if (!rows.length) { lista.innerHTML = '<p style="color:var(--slate-400);">Nenhum código gerado ainda.</p>'; return; }
+  const planoLabel = { essencial: 'Essencial', pro: 'Pro', premium: 'Premium' };
+  const planoCor = { essencial: 'var(--slate-600)', pro: 'var(--orange)', premium: '#7c3aed' };
+  lista.innerHTML = rows.map(c => `
+    <div style="background:var(--white);border-radius:12px;padding:14px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.08);display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span style="font-family:monospace;font-size:16px;font-weight:700;letter-spacing:0.1em;">${c.codigo}</span>
+          <span style="font-size:12px;font-weight:600;color:${planoCor[c.plano] || 'inherit'};background:rgba(0,0,0,0.05);padding:2px 8px;border-radius:20px;">${planoLabel[c.plano] || c.plano}</span>
+          ${c.usado
+            ? `<span style="font-size:12px;color:#16a34a;">✅ Usado por ${c.padaria_nome || '—'} (${c.padaria_email || ''})</span>`
+            : `<span style="font-size:12px;color:var(--slate-400);">Disponível</span>`}
+        </div>
+        <div style="font-size:11px;color:var(--slate-400);margin-top:3px;">
+          Criado em ${new Date(c.criado_em).toLocaleDateString('pt-BR')}
+          ${c.usado_em ? ' · Usado em ' + new Date(c.usado_em).toLocaleDateString('pt-BR') : ''}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0;">
+        ${!c.usado ? `
+          <button onclick="copiarCodigo('${c.codigo}')" class="btn-secondary" style="font-size:13px;padding:7px 12px;">📋 Copiar</button>
+          <button onclick="apagarCodigo(${c.id})" class="btn-danger" style="font-size:13px;padding:7px 12px;">🗑️</button>
+        ` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+async function gerarCodigo() {
+  const plano = document.getElementById('admin-novo-plano').value;
+  const r = await api('/admin/codigos', { method: 'POST', body: { plano } });
+  if (r) {
+    mostrarToast(`Código ${r.codigo} gerado!`, 'success');
+    carregarCodigos();
+  }
+}
+
+function copiarCodigo(codigo) {
+  navigator.clipboard.writeText(codigo).then(() => mostrarToast('Código copiado!', 'success'));
+}
+
+async function apagarCodigo(id) {
+  if (!confirm('Apagar este código?')) return;
+  const r = await api(`/admin/codigos/${id}`, { method: 'DELETE' });
+  if (r) carregarCodigos();
 }
