@@ -270,11 +270,34 @@ function mostrarPagina(pg, pushHistory = true) {
   if (pg === 'relatorios')     { carregarRelatorios(); }
 }
 
-document.addEventListener('click', e => {
+document.addEventListener('mousedown', e => {
   const lista = document.getElementById('compra-prod-lista');
+  if (!lista) return;
+  const item = e.target.closest('[data-prod-id]');
+  if (item && lista.contains(item)) {
+    e.preventDefault();
+    const id = item.dataset.prodId;
+    const nome = item.dataset.prodNome;
+    const unidade = item.dataset.prodUnidade;
+    if (id === '__novo__') selecionarNovoProdutoCompra(nome);
+    else selecionarProdutoCompra(id, nome, unidade);
+    return;
+  }
   const input = document.getElementById('compra-prod-texto');
-  if (lista && input && !lista.contains(e.target) && e.target !== input) {
-    lista.classList.add('hidden');
+  if (e.target !== input) lista.classList.add('hidden');
+});
+
+document.addEventListener('touchend', e => {
+  const lista = document.getElementById('compra-prod-lista');
+  if (!lista) return;
+  const item = e.target.closest('[data-prod-id]');
+  if (item && lista.contains(item)) {
+    e.preventDefault();
+    const id = item.dataset.prodId;
+    const nome = item.dataset.prodNome;
+    const unidade = item.dataset.prodUnidade;
+    if (id === '__novo__') selecionarNovoProdutoCompra(nome);
+    else selecionarProdutoCompra(id, nome, unidade);
   }
 });
 
@@ -878,15 +901,16 @@ function filtrarProdutosCompra() {
   if (!termo) { lista.classList.add('hidden'); document.getElementById('compra-produto').value = ''; document.getElementById('novo-prod-inline').classList.add('hidden'); return; }
   const filtrados = _produtosCache.filter(p => p.nome.toLowerCase().includes(termo));
   const itens = filtrados.slice(0, 8).map(p =>
-    `<div onmousedown="event.preventDefault();selecionarProdutoCompra(${p.id},'${p.nome.replace(/'/g,"\\'")}','${p.unidade}')" ontouchend="event.preventDefault();selecionarProdutoCompra(${p.id},'${p.nome.replace(/'/g,"\\'")}','${p.unidade}')"
+    `<div data-prod-id="${p.id}" data-prod-nome="${p.nome.replace(/"/g,'&quot;')}" data-prod-unidade="${p.unidade}"
       style="padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--slate-100);"
       onmouseover="this.style.background='var(--slate-50)'" onmouseout="this.style.background=''">${p.nome} <span style="color:var(--slate-400);font-size:12px;">${p.unidade}</span></div>`
   );
+  const textoAtual = document.getElementById('compra-prod-texto').value.trim();
   const jaExiste = _produtosCache.some(p => p.nome.toLowerCase() === termo);
   if (!jaExiste) {
-    itens.push(`<div onmousedown="event.preventDefault();selecionarNovoProdutoCompra('${document.getElementById('compra-prod-texto').value.trim().replace(/'/g,"\\'")}')" ontouchend="event.preventDefault();selecionarNovoProdutoCompra('${document.getElementById('compra-prod-texto').value.trim().replace(/'/g,"\\'")}')"
+    itens.push(`<div data-prod-id="__novo__" data-prod-nome="${textoAtual.replace(/"/g,'&quot;')}" data-prod-unidade=""
       style="padding:10px 14px;cursor:pointer;font-size:14px;color:var(--orange);font-weight:600;border-top:1px solid var(--slate-100);"
-      onmouseover="this.style.background='#fff7ed'" onmouseout="this.style.background=''">➕ Criar novo: "${document.getElementById('compra-prod-texto').value.trim()}"</div>`);
+      onmouseover="this.style.background='#fff7ed'" onmouseout="this.style.background=''">➕ Criar novo: "${textoAtual}"</div>`);
   }
   lista.innerHTML = itens.join('') || `<div style="padding:10px 14px;color:var(--slate-400);font-size:13px;">Nenhum produto encontrado</div>`;
   lista.classList.remove('hidden');
