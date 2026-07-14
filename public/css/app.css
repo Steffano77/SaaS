@@ -980,7 +980,6 @@ tr.tr-saida td { color: #dc2626 !important; }
   margin-bottom: 8px;
   background: var(--white);
   border: 1.5px solid var(--slate-100);
-  border-left: 4px solid var(--orange);
   border-radius: 12px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
   transition: box-shadow 0.15s;
