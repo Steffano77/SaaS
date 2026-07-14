@@ -985,7 +985,7 @@ tr.tr-saida td { color: #dc2626 !important; }
   transition: box-shadow 0.15s;
 }
 .pedido-pendente-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-[data-theme="dark"] .pedido-pendente-card { background: #1e293b; border-color: rgba(255,255,255,0.08); border-left-color: var(--orange); }
+[data-theme="dark"] .pedido-pendente-card { background: #1e293b; border-color: rgba(255,255,255,0.08); }
 .pedido-pendente-card:last-child { margin-bottom: 0; }
 .pedido-pendente-info { flex: 1; min-width: 0; }
 .pedido-pendente-header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; flex-wrap: wrap; }
