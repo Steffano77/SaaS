@@ -943,6 +943,12 @@ function selecionarProdutoCompra(id, nome, unidade) {
     const opt = [...uSel.options].find(o => o.value.toLowerCase() === val.toLowerCase());
     if (opt) uSel.value = opt.value;
   }
+  // Preenche custo unitário com o valor da última compra (custo atual do produto)
+  const prod = _produtosCache.find(p => String(p.id) === String(id));
+  const custoEl = document.getElementById('compra-custo');
+  if (prod && custoEl && prod.custo_unitario > 0) {
+    custoEl.value = parseFloat(prod.custo_unitario).toFixed(2);
+  }
 }
 
 function selecionarNovoProdutoCompra(nome) {
@@ -1101,8 +1107,8 @@ async function registrarPedido(abrirWhats = false) {
 
   if (abrirWhats) {
     const dataFmt = new Date(data + 'T12:00:00').toLocaleDateString('pt-BR');
-    let msg = `🛒 *Pedido de compra* — ${dataFmt}\n`;
-    if (observacao) msg += `🏭 Fornecedor: *${observacao}*\n`;
+    let msg = `*Pedido de compra* — ${dataFmt}\n`;
+    if (observacao) msg += `Fornecedor: *${observacao}*\n`;
     msg += `\n`;
     _pedidoItens.forEach(i => { msg += `• ${i.nome}: *${fmtQtd(i.qtd)} ${i.unidade}*\n`; });
     const tel = fornecedorTel.replace(/\D/g,'');
@@ -1184,16 +1190,16 @@ async function enviarPedidoWhatsApp(tel, nomeForn) {
   const zerados = await api('/produtos?alerta=zerado') || [];
   const todos = [...zerados, ...prods.filter(p => !zerados.find(z => z.id === p.id))];
   const nomePadaria = document.getElementById('sidebar-nome').textContent;
-  let msg = `📋 *PEDIDO — ${nomePadaria}*\n${new Date().toLocaleDateString('pt-BR')}\n\nOlá, *${nomeForn}*! Segue nossa lista de compras:\n\n`;
+  let msg = `*PEDIDO — ${nomePadaria}*\n${new Date().toLocaleDateString('pt-BR')}\n\nOla, *${nomeForn}*! Segue nossa lista de compras:\n\n`;
   if (todos.length) {
     todos.forEach(p => {
       const falta = Math.max(0, p.estoque_minimo - p.estoque_atual);
       msg += `• ${p.nome}: *${fmtQtd(falta)} ${p.unidade}*\n`;
     });
   } else {
-    msg += '_Nenhum item crítico no momento._\n';
+    msg += '_Nenhum item critico no momento._\n';
   }
-  msg += '\nAguardamos confirmação. Obrigado!';
+  msg += '\nAguardamos confirmacao. Obrigado!';
   const numero = tel.startsWith('55') ? tel : '55' + tel;
   abrirWhatsAppComRetorno(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`);
 }
