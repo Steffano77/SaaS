@@ -1050,10 +1050,10 @@ function renderizarFinalItens() {
         <div style="font-weight:600;margin-bottom:6px;">${i.nome} ${i.isNovo ? '<span style="font-size:11px;background:#fff7ed;color:var(--orange);padding:2px 6px;border-radius:4px;margin-left:4px;">novo</span>' : ''}</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <input type="number" value="${i.qtd}" min="0.001" step="0.001" placeholder="Qtd"
-            style="width:80px;padding:4px 8px;border:1.5px solid var(--slate-200);border-radius:6px;font-size:13px;"
+            style="width:80px;padding:4px 8px;border:1.5px solid var(--slate-200);border-radius:6px;font-size:13px;background:#fff;color:#1e293b;"
             onchange="_pedidoItens.find(x=>x.id==${i.id}).qtd=parseFloat(this.value)||0;renderizarFinalItens()"/>
           ${i.isNovo
-            ? `<select style="padding:4px 8px;border:1.5px solid var(--orange);border-radius:6px;font-size:13px;color:var(--orange);font-weight:600;"
+            ? `<select style="padding:4px 8px;border:1.5px solid var(--orange);border-radius:6px;font-size:13px;color:var(--orange);font-weight:600;background:#fff;"
                 onchange="_pedidoItens.find(x=>x.id==${i.id}).unidade=this.value">
                 ${UNIDADES.map(u => `<option value="${u}" ${u===i.unidade?'selected':''}>${u}</option>`).join('')}
                </select>`
