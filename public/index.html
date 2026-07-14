@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260714"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260714b"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -389,7 +389,7 @@
               <input type="text" id="compra-prod-texto" placeholder="Digite o nome do produto..." class="form-control" autocomplete="off"
                 oninput="filtrarProdutosCompra()"/>
               <input type="hidden" id="compra-produto"/>
-              <div id="compra-prod-lista" class="hidden" style="position:absolute;z-index:100;left:0;right:0;background:#fff;color:#1e293b;border:1.5px solid var(--slate-200);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:220px;overflow-y:auto;top:calc(100% + 4px);"></div>
+              <div id="compra-prod-lista" class="autocomplete-lista hidden"></div>
             </div>
 
             <!-- Novo produto inline -->
