@@ -1,11 +1,11 @@
 const API = '/api';
 
-// Força logout via ?logout=1 ANTES de ler o token (usado no e-mail de boas-vindas)
+// Força logout via ?logout=1 (usado no e-mail de boas-vindas)
 (function() {
   if (new URLSearchParams(window.location.search).get('logout') === '1') {
     localStorage.removeItem('pptoken');
     sessionStorage.removeItem('pptoken');
-    window.history.replaceState({}, '', '/');
+    window.location.replace('/');
   }
 })();
 
