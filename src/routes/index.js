@@ -22,6 +22,25 @@ const hotmartCtrl = require('../controllers/hotmartController');
 // Webhook Hotmart (sem auth)
 router.post('/hotmart/webhook', hotmartCtrl.webhook);
 
+// Rota de teste do webhook (apenas em desenvolvimento ou com token admin)
+router.post('/hotmart/teste', wrap(async (req, res) => {
+  const { email, nome, plano } = req.body;
+  if (!email || !nome || !plano) return res.status(400).json({ erro: 'email, nome e plano obrigatórios.' });
+  const planosValidos = ['essencial', 'pro', 'premium'];
+  if (!planosValidos.includes(plano)) return res.status(400).json({ erro: 'Plano inválido.' });
+
+  // Simula payload da Hotmart para a rota real
+  req.body = {
+    event: 'PURCHASE_APPROVED',
+    data: {
+      purchase: {},
+      buyer: { email, name: nome },
+      product: { id: plano === 'essencial' ? 'P106748886H' : plano === 'pro' ? 'F106749321O' : 'R106749586T' },
+    },
+  };
+  return hotmartCtrl.webhook(req, res);
+}));
+
 // Auth
 router.post('/auth/registrar',     authCtrl.registrar);
 router.post('/auth/login',         authCtrl.login);
