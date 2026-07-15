@@ -41,7 +41,7 @@ async function enviarBoasVindas({ to, nome, senha, plano, appUrl }) {
         </div>
 
         <div style="text-align:center;margin:28px 0;">
-          <a href="${appUrl}" style="display:inline-block;background:#f97316;color:#fff;padding:14px 32px;border-radius:10px;text-decoration:none;font-weight:700;font-size:16px;">Acessar o PanificaPro</a>
+          <a href="${appUrl}?logout=1" style="display:inline-block;background:#f97316;color:#fff;padding:14px 32px;border-radius:10px;text-decoration:none;font-weight:700;font-size:16px;">Acessar o PanificaPro</a>
         </div>
 
         <p style="color:#64748b;font-size:13px;">Recomendamos que você troque a senha após o primeiro acesso.</p>

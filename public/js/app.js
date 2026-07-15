@@ -6,6 +6,15 @@ let _prodFornecedorMap = {}; // produto_id → nome do fornecedor
 // ── Redefinição de senha via link ───────────────────────────────
 (function() {
   const params = new URLSearchParams(window.location.search);
+
+  // Força logout via ?logout=1 (usado no e-mail de boas-vindas)
+  if (params.get('logout') === '1') {
+    localStorage.removeItem('pptoken');
+    sessionStorage.removeItem('pptoken');
+    TOKEN = '';
+    window.history.replaceState({}, '', '/');
+  }
+
   const resetToken = params.get('token');
   if (resetToken && window.location.pathname.includes('redefinir-senha')) {
     document.getElementById('tela-auth').classList.add('hidden');
