@@ -1097,6 +1097,7 @@ function abrirModalFinalizar() {
 
 function fecharModalFinalizar() {
   document.getElementById('modal-finalizar').classList.add('hidden');
+  _pedidoEditandoId = null;
 }
 
 const UNIDADES = ['kg','g','L','ml','un','cx','pct','fardo'];
@@ -1149,6 +1150,15 @@ async function registrarPedido(abrirWhats = false) {
     minimo: i.minimo,
     isNovo: i.isNovo
   }));
+
+  // Se estiver editando um pedido existente, cancela o original antes de recriar
+  if (_pedidoEditandoId) {
+    await fetch(`${API}/compras/pedidos/${_pedidoEditandoId}/cancelar`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${TOKEN}` }
+    });
+    _pedidoEditandoId = null;
+  }
 
   const r = await fetch(`${API}/compras/pedidos`, {
     method: 'POST',
@@ -1284,19 +1294,18 @@ async function salvarCorrecaoItem(itemKey, pedidoId, itemIdx) {
   }
 }
 
+let _pedidoEditandoId = null;
+
 async function reabrirPedido(id) {
   // Busca os dados do pedido pendente
   const pendentes = await api('/compras/pedidos') || [];
   const pedido = pendentes.find(p => p.id === id);
   if (!pedido) return;
 
-  // Cancela o pedido no backend para poder recriá-lo com as alterações
-  await fetch(`${API}/compras/pedidos/${id}/cancelar`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${TOKEN}` }
-  });
+  // Guarda o ID do pedido sendo editado — o cancelamento só ocorre ao salvar
+  _pedidoEditandoId = id;
 
-  // Restaura os itens no carrinho
+  // Restaura os itens no carrinho sem cancelar o pedido original
   _pedidoItens = pedido.itens.map(i => ({
     id: Date.now() + Math.random(),
     prodId: i.produto_id,
@@ -1308,7 +1317,6 @@ async function reabrirPedido(id) {
     minimo: 0
   }));
 
-  // Preenche fornecedor e data no modal
   await carregarCompras();
   renderizarPedido();
 
@@ -1316,7 +1324,7 @@ async function reabrirPedido(id) {
   if (pedido.fornecedor_id) selF.value = pedido.fornecedor_id;
 
   abrirModalFinalizar();
-  mostrarMsgCompra('📝 Pedido reaberto — adicione itens e registre novamente.', 'ok');
+  mostrarMsgCompra('📝 Edite o pedido e clique em "Registrar" para salvar as alterações.', 'ok');
 }
 
 async function enviarPedidoWhatsApp(tel, nomeForn) {
