@@ -344,11 +344,11 @@ router.post('/compras/pedidos/:id/receber', auth, async (req, res) => {
          WHERE id = ? AND padaria_id = ?`,
         [item.quantidade, item.custo_unitario, item.custo_unitario, prodId, req.padaria.id]
       );
-      // Registra movimentação com valor_total
+      // Registra movimentação (valor_total é coluna gerada pelo banco)
       await conn.query(
-        `INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, custo_unit, valor_total, observacao, data)
-         VALUES (?, ?, 'entrada', ?, ?, ?, ?, NOW())`,
-        [req.padaria.id, prodId, item.quantidade, item.custo_unitario, valorTotal, `Pedido #${pedidoId}`]
+        `INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, custo_unit, observacao, data)
+         VALUES (?, ?, 'entrada', ?, ?, ?, NOW())`,
+        [req.padaria.id, prodId, item.quantidade, item.custo_unitario, `Pedido #${pedidoId}`]
       );
     }
 
