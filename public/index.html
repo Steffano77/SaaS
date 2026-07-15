@@ -304,6 +304,10 @@
 
     <!-- ESTOQUE -->
     <section id="pg-estoque" class="hidden page-section">
+      <div id="aviso-duplicatas" class="hidden" style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <span style="color:#92400e;font-size:14px;font-weight:600;">⚠️ <span id="aviso-duplicatas-texto"></span></span>
+        <button onclick="abrirModalDuplicatas()" style="background:#f97316;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;">Ver detalhes</button>
+      </div>
       <div class="page-header">
         <h2 class="page-title">Estoque</h2>
         <div style="display:flex;gap:8px;align-items:center;">
@@ -807,6 +811,20 @@
     </div>
     <div style="padding:16px 20px;border-top:1px solid var(--slate-100);">
       <button onclick="irParaCompras()" class="btn-primary full"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg> Ir para Compras</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Duplicatas -->
+<div id="modal-duplicatas" class="modal-overlay hidden" onclick="if(event.target===this)fecharModalDuplicatas()">
+  <div class="modal-box" style="max-width:560px;width:95%;">
+    <div class="modal-header">
+      <span class="modal-title">⚠️ Possíveis produtos duplicados</span>
+      <button onclick="fecharModalDuplicatas()" class="modal-close"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+    </div>
+    <div style="padding:4px 4px 0;max-height:65vh;overflow-y:auto;">
+      <p style="font-size:13px;color:var(--slate-500);padding:0 4px 12px;">Produtos com nomes iguais ou muito parecidos. Escolha qual manter ou edite para diferenciar.</p>
+      <div id="modal-duplicatas-lista"></div>
     </div>
   </div>
 </div>

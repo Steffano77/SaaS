@@ -806,6 +806,86 @@ async function carregarProdutos() {
 
   // Reaplica filtro de fornecedor se ativo
   filtrarPorFornecedor();
+
+  // Detecta duplicatas após carregar produtos
+  detectarDuplicatas(todosProds);
+}
+
+let _duplicatas = [];
+
+function detectarDuplicatas(prods) {
+  const normalizar = s => s.toLowerCase().trim().replace(/\s+/g, ' ');
+  const grupos = {};
+  prods.forEach(p => {
+    const chave = normalizar(p.nome);
+    if (!grupos[chave]) grupos[chave] = [];
+    grupos[chave].push(p);
+  });
+  _duplicatas = Object.values(grupos).filter(g => g.length > 1);
+
+  const aviso = document.getElementById('aviso-duplicatas');
+  const texto = document.getElementById('aviso-duplicatas-texto');
+  if (_duplicatas.length) {
+    const total = _duplicatas.reduce((acc, g) => acc + g.length, 0);
+    texto.textContent = `${total} produtos com nomes duplicados encontrados`;
+    aviso.classList.remove('hidden');
+    aviso.style.display = 'flex';
+  } else {
+    aviso.classList.add('hidden');
+  }
+}
+
+function abrirModalDuplicatas() {
+  const lista = document.getElementById('modal-duplicatas-lista');
+  lista.innerHTML = _duplicatas.map(grupo => `
+    <div style="border:1px solid var(--slate-200);border-radius:10px;margin-bottom:12px;overflow:hidden;">
+      <div style="background:var(--slate-50);padding:10px 14px;font-size:12px;font-weight:700;color:var(--slate-500);text-transform:uppercase;letter-spacing:.05em;">
+        "${grupo[0].nome}"
+      </div>
+      ${grupo.map(p => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid var(--slate-100);gap:8px;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:600;color:var(--slate-800);">${p.nome}</div>
+            <div style="font-size:12px;color:var(--slate-400);">${p.unidade} · Estoque: ${fmtQtd(p.estoque_atual)} · R$ ${parseFloat(p.custo_unitario).toFixed(2)}</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button onclick="fecharModalDuplicatas();editarProduto(${p.id})" style="background:var(--slate-100);color:var(--slate-700);border:none;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;">Editar</button>
+            <button onclick="excluirDuplicata(this,${p.id},'${p.nome.replace(/'/g,"\\'")}',${grupo.length})" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;">Desativar</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+  document.getElementById('modal-duplicatas').classList.remove('hidden');
+}
+
+function fecharModalDuplicatas() {
+  document.getElementById('modal-duplicatas').classList.add('hidden');
+}
+
+async function excluirDuplicata(btn, id, nome, totalNoGrupo) {
+  if (totalNoGrupo <= 1) {
+    alert('Não é possível desativar o único produto deste grupo.');
+    return;
+  }
+  if (!confirm(`Desativar "${nome}"? Ele ficará oculto do estoque mas o histórico será preservado.`)) return;
+  btn.disabled = true;
+  btn.textContent = '...';
+  const r = await fetch(`${API}/produtos/${id}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${TOKEN}` }
+  });
+  if (r.ok) {
+    btn.closest('div[style*="display:flex"]').style.opacity = '0.4';
+    btn.textContent = 'Desativado';
+    await carregarProdutos();
+    if (_duplicatas.length) abrirModalDuplicatas();
+    else fecharModalDuplicatas();
+  } else {
+    btn.disabled = false;
+    btn.textContent = 'Desativar';
+    alert('Erro ao desativar produto.');
+  }
 }
 
 async function excluirProduto(btn, id, nome) {
