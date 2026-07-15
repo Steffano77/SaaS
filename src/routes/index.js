@@ -231,8 +231,8 @@ router.get('/compras/pedidos', auth, wrap(async (req, res) => {
 
   const [itens] = await db.query(`
     SELECT ip.pedido_id, ip.produto_id, ip.quantidade, ip.custo_unitario,
-           COALESCE(p.nome, ip.nome_temp) AS produto,
-           COALESCE(p.unidade, ip.unidade_temp) AS unidade,
+           COALESCE(p.nome, ip.nome_temp, 'Produto sem nome') AS produto,
+           COALESCE(p.unidade, ip.unidade_temp, 'un') AS unidade,
            ip.is_novo
     FROM itens_pedido ip
     LEFT JOIN produtos p ON p.id = ip.produto_id

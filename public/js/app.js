@@ -862,7 +862,7 @@ async function carregarCompras() {
     secPend.classList.remove('hidden');
     listaPend.innerHTML = pendentes.map(p => {
       const dataPedido = new Date(p.criado_em).toLocaleDateString('pt-BR');
-      const itensTexto = p.itens.map(i => `${i.produto} (${fmtQtd(i.quantidade)} ${i.unidade})`).join(', ');
+      const itensTexto = p.itens.map(i => `${i.produto || i.nome_novo || 'Produto sem nome'} (${fmtQtd(i.quantidade)} ${i.unidade})`).join(', ');
       return `<div class="pedido-pendente-card">
         <div class="pedido-pendente-info">
           <div class="pedido-pendente-header">
