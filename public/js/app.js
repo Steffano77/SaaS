@@ -1015,6 +1015,13 @@ function selecionarNovoProdutoCompra(nome) {
   document.getElementById('compra-produto').value = '__novo__';
   document.getElementById('compra-prod-lista').classList.add('hidden');
   document.getElementById('novo-prod-inline').classList.remove('hidden');
+  // Sincroniza unidade da quantidade com a unidade padrão do novo produto
+  const uNovo = document.getElementById('novo-prod-unidade');
+  const uSel  = document.getElementById('compra-unidade');
+  if (uNovo && uSel) {
+    const opt = [...uSel.options].find(o => o.value === uNovo.value);
+    if (opt) uSel.value = opt.value;
+  }
 }
 
 function adicionarItemPedido() {
@@ -1025,7 +1032,9 @@ function adicionarItemPedido() {
   if (!prodId) prodId = '__novo__';
   const isNovo   = prodId === '__novo__';
   const unidadeSelect = document.getElementById('compra-unidade')?.value || 'un';
-  const unidade  = unidadeSelect || (isNovo ? 'un' : (_produtosCache.find(p=>p.id==prodId)?.unidade || 'un'));
+  const unidade  = isNovo
+    ? (document.getElementById('novo-prod-unidade')?.value || unidadeSelect || 'un')
+    : (unidadeSelect || (_produtosCache.find(p=>p.id==prodId)?.unidade || 'un'));
   const minimo   = isNovo ? parseFloat(document.getElementById('novo-prod-minimo').value || 0) : 0;
 
   if (!nome) { mostrarMsgCompra('⚠️ Selecione ou informe um produto.', 'err'); return; }

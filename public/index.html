@@ -398,7 +398,7 @@
               <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;">
                 <div class="form-group" style="margin:0;">
                   <label>Unidade</label>
-                  <select id="novo-prod-unidade" class="form-control">
+                  <select id="novo-prod-unidade" class="form-control" onchange="var u=document.getElementById('compra-unidade');if(u){var o=[...u.options].find(x=>x.value===this.value);if(o)u.value=o.value;}">
                     <option value="kg">kg</option><option value="g">g</option>
                     <option value="L">L</option><option value="ml">ml</option>
                     <option value="un">un</option><option value="cx">cx</option><option value="pct">pct</option>
