@@ -16,7 +16,11 @@ const syncCtrl   = require('../controllers/syncController');
 const importCtrl = require('../controllers/importController');
 const dadosCtrl  = require('../controllers/dadosController');
 
-const senhaCtrl = require('../controllers/senhaController');
+const senhaCtrl   = require('../controllers/senhaController');
+const hotmartCtrl = require('../controllers/hotmartController');
+
+// Webhook Hotmart (sem auth)
+router.post('/hotmart/webhook', hotmartCtrl.webhook);
 
 // Auth
 router.post('/auth/registrar',     authCtrl.registrar);
