@@ -1,4 +1,14 @@
 const API = '/api';
+
+// Força logout via ?logout=1 ANTES de ler o token (usado no e-mail de boas-vindas)
+(function() {
+  if (new URLSearchParams(window.location.search).get('logout') === '1') {
+    localStorage.removeItem('pptoken');
+    sessionStorage.removeItem('pptoken');
+    window.history.replaceState({}, '', '/');
+  }
+})();
+
 let TOKEN = localStorage.getItem('pptoken') || sessionStorage.getItem('pptoken') || '';
 let todosProds = [];
 let _prodFornecedorMap = {}; // produto_id → nome do fornecedor
@@ -6,14 +16,6 @@ let _prodFornecedorMap = {}; // produto_id → nome do fornecedor
 // ── Redefinição de senha via link ───────────────────────────────
 (function() {
   const params = new URLSearchParams(window.location.search);
-
-  // Força logout via ?logout=1 (usado no e-mail de boas-vindas)
-  if (params.get('logout') === '1') {
-    localStorage.removeItem('pptoken');
-    sessionStorage.removeItem('pptoken');
-    TOKEN = '';
-    window.history.replaceState({}, '', '/');
-  }
 
   const resetToken = params.get('token');
   if (resetToken && window.location.pathname.includes('redefinir-senha')) {
