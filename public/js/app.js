@@ -931,14 +931,40 @@ async function carregarCompras() {
           </div>
         </div>`;
       }).join('');
+      const expandId = `forn-expand-${forn.replace(/\s+/g,'_')}`;
+      const collapsed = compras.length > 3;
       return `<div style="border-bottom:2px solid var(--slate-200);margin-bottom:4px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--slate-50);">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--slate-50);cursor:pointer;" onclick="toggleHistoricoForn('${expandId}')">
           <span style="font-size:13px;font-weight:700;color:var(--navy);">🏭 ${forn}</span>
           <span style="font-size:12px;color:var(--slate-500);">${compras.length} pedido${compras.length>1?'s':''} · R$ ${totalForn.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
         </div>
-        ${linhas}
+        <div id="${expandId}" style="max-height:${collapsed ? '220px' : 'none'};overflow-y:${collapsed ? 'auto' : 'visible'};">
+          ${linhas}
+          ${collapsed ? `<div style="text-align:center;padding:8px;font-size:12px;color:var(--orange);cursor:pointer;" onclick="expandirHistoricoForn('${expandId}')">Ver todos os ${compras.length} pedidos ▼</div>` : ''}
+        </div>
       </div>`;
     }).join('');
+  }
+}
+
+function expandirHistoricoForn(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.maxHeight = 'none';
+  el.style.overflowY = 'visible';
+  const btn = el.querySelector('[onclick*="expandirHistoricoForn"]');
+  if (btn) btn.remove();
+}
+
+function toggleHistoricoForn(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (el.style.maxHeight === 'none' || !el.style.maxHeight) {
+    el.style.maxHeight = '220px';
+    el.style.overflowY = 'auto';
+  } else {
+    el.style.maxHeight = 'none';
+    el.style.overflowY = 'visible';
   }
 }
 
