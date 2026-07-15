@@ -1117,8 +1117,11 @@ function adicionarItemPedido() {
     : (unidadeSelect || (_produtosCache.find(p=>p.id==prodId)?.unidade || 'un'));
   const minimo   = isNovo ? parseFloat(document.getElementById('novo-prod-minimo').value || 0) : 0;
 
-  if (!nome) { mostrarMsgCompra('⚠️ Selecione ou informe um produto.', 'err'); return; }
-  if (!qtd || qtd <= 0) { mostrarMsgCompra('⚠️ Informe a quantidade.', 'err'); return; }
+  limparErrosCampo('compra-prod-texto', 'compra-qtd');
+  let ok = true;
+  if (!nome) { mostrarErrocampo('compra-prod-texto', 'Selecione ou informe um produto.'); ok = false; }
+  if (!qtd || qtd <= 0) { mostrarErrocampo('compra-qtd', 'Informe a quantidade.'); ok = false; }
+  if (!ok) return;
 
   _pedidoItens.push({ prodId, nome, unidade, qtd, custo, isNovo, minimo, id: Date.now() });
   renderizarPedido();
@@ -1471,13 +1474,40 @@ function abrirModalFornecedor() {
   document.getElementById('modal-forn').classList.remove('hidden');
 }
 
+function mostrarErrocampo(id, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.borderColor = '#dc2626';
+  let err = el.parentElement.querySelector('.campo-erro');
+  if (!err) { err = document.createElement('span'); err.className = 'campo-erro'; err.style.cssText = 'color:#dc2626;font-size:12px;margin-top:3px;display:block;'; el.parentElement.appendChild(err); }
+  err.textContent = msg;
+  el.addEventListener('input', function limpar() { el.style.borderColor = ''; if (err) err.textContent = ''; el.removeEventListener('input', limpar); }, { once: true });
+}
+
+function limparErrosCampo(...ids) {
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.borderColor = '';
+    const err = el.parentElement?.querySelector('.campo-erro');
+    if (err) err.textContent = '';
+  });
+}
+
 async function salvarFornecedor(e) {
   e.preventDefault();
+  const nome = document.getElementById('forn-nome').value.trim();
+  const email = document.getElementById('forn-email').value.trim();
+  limparErrosCampo('forn-nome', 'forn-email');
+  let ok = true;
+  if (!nome) { mostrarErrocampo('forn-nome', 'Nome do fornecedor é obrigatório.'); ok = false; }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { mostrarErrocampo('forn-email', 'E-mail inválido.'); ok = false; }
+  if (!ok) return;
   const body = {
-    nome:     document.getElementById('forn-nome').value,
-    contato:  document.getElementById('forn-contato').value,
-    telefone: document.getElementById('forn-tel').value,
-    email:    document.getElementById('forn-email').value,
+    nome,
+    contato:  document.getElementById('forn-contato').value.trim(),
+    telefone: document.getElementById('forn-tel').value.trim(),
+    email:    email || null,
   };
   const r = await fetch(`${API}/fornecedores`, {
     method: 'POST',
@@ -1485,6 +1515,7 @@ async function salvarFornecedor(e) {
     body: JSON.stringify(body)
   });
   if (r.ok) { fecharModal('modal-forn'); carregarFornecedores(); carregarCompras(); }
+  else { const d = await r.json(); mostrarToast(d.erro || 'Erro ao salvar fornecedor.', 'err'); }
 }
 
 async function carregarFornecedores() {
@@ -1535,24 +1566,22 @@ function editarFornecedor(id, nome, contato, tel, email) {
 
 async function salvarEdicaoFornecedor(e) {
   if (e) e.preventDefault();
-  const id = document.getElementById('editar-forn-id').value;
-  const body = {
-    nome:     document.getElementById('editar-forn-nome').value.trim(),
-    contato:  document.getElementById('editar-forn-contato').value.trim(),
-    telefone: document.getElementById('editar-forn-tel').value.trim(),
-    email:    document.getElementById('editar-forn-email').value.trim(),
-  };
-  if (!body.nome) { mostrarToast('Nome é obrigatório.', 'err'); return; }
+  const id    = document.getElementById('editar-forn-id').value;
+  const nome  = document.getElementById('editar-forn-nome').value.trim();
+  const email = document.getElementById('editar-forn-email').value.trim();
+  limparErrosCampo('editar-forn-nome', 'editar-forn-email');
+  let ok = true;
+  if (!nome) { mostrarErrocampo('editar-forn-nome', 'Nome do fornecedor é obrigatório.'); ok = false; }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { mostrarErrocampo('editar-forn-email', 'E-mail inválido.'); ok = false; }
+  if (!ok) return;
+  const body = { nome, contato: document.getElementById('editar-forn-contato').value.trim(), telefone: document.getElementById('editar-forn-tel').value.trim(), email: email || null };
   const r = await fetch(`${API}/fornecedores/${id}`, {
     method: 'PUT',
     headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   });
-  if (r.ok) {
-    fecharModal('modal-editar-forn');
-    mostrarToast('✅ Fornecedor atualizado!', 'ok');
-    carregarFornecedores();
-  }
+  if (r.ok) { fecharModal('modal-editar-forn'); mostrarToast('✅ Fornecedor atualizado!', 'ok'); carregarFornecedores(); }
+  else { const d = await r.json(); mostrarToast(d.erro || 'Erro ao atualizar.', 'err'); }
 }
 
 // ── Relatórios ────────────────────────────────────────────
@@ -1672,12 +1701,19 @@ async function editarProduto(id) {
 // D) Product edit feedback
 async function salvarProduto(e) {
   e.preventDefault();
-  const custo = parseFloat(document.getElementById('prod-custo').value || 0);
-  const preco = parseFloat(document.getElementById('prod-venda').value || 0);
+  const nome   = document.getElementById('prod-nome').value.trim();
+  const custo  = parseFloat(document.getElementById('prod-custo').value || 0);
+  const preco  = parseFloat(document.getElementById('prod-venda').value || 0);
   const estMin = parseFloat(document.getElementById('prod-minimo').value || 0);
-  if (custo < 0 || preco < 0 || estMin < 0) {
-    return alert('Valores não podem ser negativos.');
-  }
+  const saldo  = parseFloat(document.getElementById('prod-saldo').value || 0);
+  limparErrosCampo('prod-nome', 'prod-custo', 'prod-venda', 'prod-minimo', 'prod-saldo');
+  let ok = true;
+  if (!nome) { mostrarErrocampo('prod-nome', 'Nome do produto é obrigatório.'); ok = false; }
+  if (custo < 0) { mostrarErrocampo('prod-custo', 'Custo não pode ser negativo.'); ok = false; }
+  if (preco < 0) { mostrarErrocampo('prod-venda', 'Preço não pode ser negativo.'); ok = false; }
+  if (estMin < 0) { mostrarErrocampo('prod-minimo', 'Estoque mínimo não pode ser negativo.'); ok = false; }
+  if (saldo < 0) { mostrarErrocampo('prod-saldo', 'Saldo não pode ser negativo.'); ok = false; }
+  if (!ok) return;
   const submitBtn = e.submitter || document.querySelector('#modal-produto button[type=submit]');
   setBtnLoading(submitBtn, true);
   const id = document.getElementById('prod-id').value;
@@ -1778,10 +1814,13 @@ function abrirModalMovimento() {
 
 async function salvarMovimento(e) {
   e.preventDefault();
-  const qtd = parseFloat(document.getElementById('mov-qtd').value || 0);
+  const qtd   = parseFloat(document.getElementById('mov-qtd').value || 0);
   const custo = parseFloat(document.getElementById('mov-custo').value || 0);
-  if (qtd <= 0) return alert('Quantidade deve ser maior que zero.');
-  if (custo < 0) return alert('Custo não pode ser negativo.');
+  limparErrosCampo('mov-qtd', 'mov-custo');
+  let ok = true;
+  if (qtd <= 0) { mostrarErrocampo('mov-qtd', 'Quantidade deve ser maior que zero.'); ok = false; }
+  if (custo < 0) { mostrarErrocampo('mov-custo', 'Custo não pode ser negativo.'); ok = false; }
+  if (!ok) return;
   const movBtn = e.submitter || document.querySelector('#modal-mov button[type=submit]');
   setBtnLoading(movBtn, true);
   try {

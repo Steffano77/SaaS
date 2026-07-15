@@ -993,6 +993,9 @@ tr.tr-saida td { color: var(--red-600); }
 .pedido-item-corrigir { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .btn-corrigir-item { font-size: 11px; font-weight: 600; background: var(--orange); color: #fff; border: none; border-radius: 6px; padding: 2px 10px; cursor: pointer; }
 .correcao-item { width: 100%; margin-top: 4px; }
+.campo-erro { color: #dc2626; font-size: 12px; margin-top: 3px; display: block; }
+.form-control.erro, input.erro, select.erro { border-color: #dc2626 !important; }
+
 .inp-correcao { width: 100%; padding: 7px 10px; border: 1.5px solid var(--orange); border-radius: 8px; font-size: 13px; background: var(--white); color: var(--slate-800); outline: none; box-sizing: border-box; }
 [data-theme="dark"] .inp-correcao { background: #1e293b; color: #f1f5f9; border-color: var(--orange); }
 .correcao-acoes { display: flex; gap: 6px; margin-top: 6px; }
