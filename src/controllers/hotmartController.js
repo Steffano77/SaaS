@@ -56,6 +56,16 @@ async function enviarBoasVindas({ to, nome, senha, plano, appUrl }) {
 
 exports.webhook = async (req, res) => {
   try {
+    // Valida token de segurança da Hotmart (configurado no painel deles)
+    const hottok = process.env.HOTMART_HOTTOK;
+    if (hottok) {
+      const tokenRecebido = req.headers['x-hotmart-hottok'];
+      if (tokenRecebido !== hottok) {
+        console.warn('[Hotmart] Token inválido recebido:', tokenRecebido);
+        return res.status(401).json({ erro: 'Token inválido.' });
+      }
+    }
+
     const body = req.body;
     const event = body?.event || body?.data?.event;
 
