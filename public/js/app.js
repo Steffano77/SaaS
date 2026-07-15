@@ -12,6 +12,10 @@ let _prodFornecedorMap = {}; // produto_id → nome do fornecedor
     document.getElementById('tela-redefinir').classList.remove('hidden');
     window._resetToken = resetToken;
   }
+  // Abre aba de cadastro via ?cadastro=1
+  if (params.get('cadastro') === '1' && !TOKEN) {
+    window.addEventListener('DOMContentLoaded', () => mostrarTab('registro'));
+  }
 })();
 
 // ── Dark Mode ──────────────────────────────────────────────────
