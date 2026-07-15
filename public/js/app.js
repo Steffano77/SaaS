@@ -862,14 +862,36 @@ async function carregarCompras() {
     secPend.classList.remove('hidden');
     listaPend.innerHTML = pendentes.map(p => {
       const dataPedido = new Date(p.criado_em).toLocaleDateString('pt-BR');
-      const itensTexto = p.itens.map(i => `${i.produto || i.nome_novo || 'Produto sem nome'} (${fmtQtd(i.quantidade)} ${i.unidade})`).join(', ');
+      const itensHtml = p.itens.map((item, idx) => {
+        const nomeProd = item.produto || '';
+        const semNome = !nomeProd || nomeProd === 'Produto sem nome';
+        const itemKey = `item-${p.id}-${idx}`;
+        if (semNome) {
+          return `<div class="pedido-item-corrigir" id="wrap-${itemKey}">
+            <span class="pedido-item-semNome">⚠️ Produto sem nome</span>
+            <span class="pedido-item-qtd">(${fmtQtd(item.quantidade)} ${item.unidade})</span>
+            <button class="btn-corrigir-item" onclick="abrirCorrecaoItem('${itemKey}', ${p.id}, ${idx})">Corrigir</button>
+            <div id="correcao-${itemKey}" class="correcao-item hidden">
+              <input id="inp-${itemKey}" type="text" placeholder="Digite o nome do produto..." autocomplete="off"
+                oninput="filtrarCorrecaoItem('${itemKey}')" class="inp-correcao"/>
+              <div id="lista-${itemKey}" class="autocomplete-lista hidden"></div>
+              <div class="correcao-acoes">
+                <button class="btn-salvar-correcao" id="btn-salvar-${itemKey}" onclick="salvarCorrecaoItem('${itemKey}', ${p.id}, ${idx})" disabled>Salvar</button>
+                <button class="btn-cancelar-correcao" onclick="fecharCorrecaoItem('${itemKey}')">Cancelar</button>
+              </div>
+            </div>
+          </div>`;
+        }
+        return `<span class="pedido-item-ok">${nomeProd} (${fmtQtd(item.quantidade)} ${item.unidade})</span>`;
+      }).join('');
+
       return `<div class="pedido-pendente-card">
         <div class="pedido-pendente-info">
           <div class="pedido-pendente-header">
             <span class="pedido-pendente-forn">${p.fornecedor || 'Sem fornecedor'}</span>
             <span class="pedido-pendente-data">${dataPedido}</span>
           </div>
-          <div class="pedido-pendente-itens">${itensTexto}</div>
+          <div class="pedido-pendente-itens">${itensHtml}</div>
           ${p.total > 0 ? `<div class="pedido-pendente-total">Total: R$ ${parseFloat(p.total).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>` : ''}
         </div>
         <div class="pedido-pendente-acoes">
@@ -1159,6 +1181,81 @@ async function cancelarPedido(id) {
     headers: { 'Authorization': `Bearer ${TOKEN}` }
   });
   carregarCompras();
+}
+
+// ── Correção de itens sem nome no pedido ───────────────────────
+let _correcaoSelecionado = {}; // itemKey → { produto_id, nome }
+
+function abrirCorrecaoItem(itemKey, pedidoId, itemIdx) {
+  document.getElementById(`correcao-${itemKey}`).classList.remove('hidden');
+  document.getElementById(`inp-${itemKey}`).focus();
+}
+
+function fecharCorrecaoItem(itemKey) {
+  document.getElementById(`correcao-${itemKey}`).classList.add('hidden');
+  document.getElementById(`inp-${itemKey}`).value = '';
+  document.getElementById(`lista-${itemKey}`).classList.add('hidden');
+  document.getElementById(`btn-salvar-${itemKey}`).disabled = true;
+  delete _correcaoSelecionado[itemKey];
+}
+
+function filtrarCorrecaoItem(itemKey) {
+  const inp = document.getElementById(`inp-${itemKey}`);
+  const lista = document.getElementById(`lista-${itemKey}`);
+  const btn = document.getElementById(`btn-salvar-${itemKey}`);
+  const termo = inp.value.trim().toLowerCase();
+  delete _correcaoSelecionado[itemKey];
+  btn.disabled = true;
+
+  if (termo.length < 1) { lista.classList.add('hidden'); return; }
+
+  const prods = (_produtosCache || []).filter(p => p.nome.toLowerCase().includes(termo));
+  if (!prods.length) {
+    // Permite digitar nome novo
+    lista.innerHTML = `<div class="autocomplete-item" onclick="selecionarCorrecaoNovo('${itemKey}', '${inp.value.replace(/'/g,"\\'")}')">
+      <strong>+ Cadastrar como novo:</strong> "${inp.value}"
+    </div>`;
+    lista.classList.remove('hidden');
+    return;
+  }
+
+  lista.innerHTML = prods.slice(0, 8).map(p =>
+    `<div class="autocomplete-item" onclick="selecionarCorrecaoExistente('${itemKey}', ${p.id}, '${p.nome.replace(/'/g,"\\'")}')">
+      ${p.nome} <span style="color:var(--slate-400);font-size:0.8em;">${p.unidade}</span>
+    </div>`
+  ).join('');
+  lista.classList.remove('hidden');
+}
+
+function selecionarCorrecaoExistente(itemKey, prodId, nome) {
+  _correcaoSelecionado[itemKey] = { produto_id: prodId, nome };
+  document.getElementById(`inp-${itemKey}`).value = nome;
+  document.getElementById(`lista-${itemKey}`).classList.add('hidden');
+  document.getElementById(`btn-salvar-${itemKey}`).disabled = false;
+}
+
+function selecionarCorrecaoNovo(itemKey, nome) {
+  _correcaoSelecionado[itemKey] = { produto_id: null, nome };
+  document.getElementById(`inp-${itemKey}`).value = nome;
+  document.getElementById(`lista-${itemKey}`).classList.add('hidden');
+  document.getElementById(`btn-salvar-${itemKey}`).disabled = false;
+}
+
+async function salvarCorrecaoItem(itemKey, pedidoId, itemIdx) {
+  const sel = _correcaoSelecionado[itemKey];
+  if (!sel) return;
+
+  const r = await api(`/compras/pedidos/${pedidoId}/corrigir-item`, {
+    method: 'POST',
+    body: JSON.stringify({ item_idx: itemIdx, produto_id: sel.produto_id, nome_temp: sel.nome })
+  });
+
+  if (r && r.ok) {
+    mostrarToast('Item corrigido!', 'ok');
+    carregarCompras();
+  } else {
+    mostrarToast(r?.erro || 'Erro ao salvar correção.', 'err');
+  }
 }
 
 async function reabrirPedido(id) {

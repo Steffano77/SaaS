@@ -986,7 +986,19 @@ tr.tr-saida td { color: var(--red-600); }
 .pedido-pendente-forn { font-weight: 700; font-size: 14px; color: var(--slate-800); }
 [data-theme="dark"] .pedido-pendente-forn { color: #f1f5f9; }
 .pedido-pendente-data { font-size: 11px; font-weight: 600; color: var(--white); background: var(--orange); padding: 2px 8px; border-radius: 20px; }
-.pedido-pendente-itens { font-size: 12px; color: var(--slate-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.pedido-pendente-itens { font-size: 12px; color: var(--slate-500); margin-top: 2px; display: flex; flex-direction: column; gap: 4px; }
+.pedido-item-ok { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pedido-item-semNome { color: var(--red-600); font-weight: 600; }
+.pedido-item-qtd { color: var(--slate-400); margin: 0 4px; }
+.pedido-item-corrigir { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.btn-corrigir-item { font-size: 11px; font-weight: 600; background: var(--orange); color: #fff; border: none; border-radius: 6px; padding: 2px 10px; cursor: pointer; }
+.correcao-item { width: 100%; margin-top: 4px; }
+.inp-correcao { width: 100%; padding: 7px 10px; border: 1.5px solid var(--orange); border-radius: 8px; font-size: 13px; background: var(--white); color: var(--slate-800); outline: none; box-sizing: border-box; }
+[data-theme="dark"] .inp-correcao { background: #1e293b; color: #f1f5f9; border-color: var(--orange); }
+.correcao-acoes { display: flex; gap: 6px; margin-top: 6px; }
+.btn-salvar-correcao { background: #16a34a; color: #fff; border: none; border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; }
+.btn-salvar-correcao:disabled { background: var(--slate-300); cursor: not-allowed; }
+.btn-cancelar-correcao { background: transparent; color: var(--slate-500); border: 1px solid var(--slate-300); border-radius: 8px; padding: 6px 14px; font-size: 12px; cursor: pointer; }
 .pedido-pendente-total { font-size: 13px; font-weight: 700; color: var(--orange); margin-top: 4px; }
 .pedido-pendente-acoes { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
 .btn-receber {

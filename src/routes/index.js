@@ -369,6 +369,43 @@ router.post('/compras/pedidos/:id/receber', auth, async (req, res) => {
 });
 
 // Cancelar pedido pendente
+// Corrige item sem nome no pedido pendente
+router.post('/compras/pedidos/:id/corrigir-item', auth, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const { item_idx, produto_id, nome_temp } = req.body;
+  if (!nome_temp) return res.status(400).json({ erro: 'Nome obrigatório.' });
+
+  // Busca itens do pedido
+  const [itens] = await db.query(
+    'SELECT * FROM itens_pedido WHERE pedido_id = ? ORDER BY id ASC',
+    [req.params.id]
+  );
+  const item = itens[item_idx];
+  if (!item) return res.status(404).json({ erro: 'Item não encontrado.' });
+
+  // Verifica que o pedido pertence à padaria
+  const [[pedido]] = await db.query(
+    'SELECT id FROM pedidos_compra WHERE id = ? AND padaria_id = ? AND status = "pendente"',
+    [req.params.id, req.padaria.id]
+  );
+  if (!pedido) return res.status(403).json({ erro: 'Pedido não encontrado.' });
+
+  if (produto_id) {
+    // Vincula ao produto existente
+    await db.query(
+      'UPDATE itens_pedido SET produto_id = ?, nome_temp = ?, is_novo = 0 WHERE id = ?',
+      [produto_id, nome_temp, item.id]
+    );
+  } else {
+    // Salva nome temporário para criar produto novo no recebimento
+    await db.query(
+      'UPDATE itens_pedido SET produto_id = NULL, nome_temp = ?, is_novo = 1 WHERE id = ?',
+      [nome_temp, item.id]
+    );
+  }
+  res.json({ ok: true });
+}));
+
 router.post('/compras/pedidos/:id/cancelar', auth, wrap(async (req, res) => {
   const db = require('../database/connection');
   await db.query(
