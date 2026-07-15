@@ -96,8 +96,26 @@ app.use(express.static(path.join(__dirname, '../public')));
       )`,
       'ALTER TABLE padarias ADD COLUMN plano_expira_em DATE NULL',
       'ALTER TABLE padarias ADD COLUMN plano_bloqueado TINYINT(1) NOT NULL DEFAULT 0',
+      // Expande ENUM de planos para incluir essencial e premium (Hotmart)
+      "ALTER TABLE padarias MODIFY COLUMN plano ENUM('trial','basico','essencial','pro','premium') DEFAULT 'trial'",
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
+
+    // Remove produtos inativos sem movimentações (duplicatas de teste)
+    await db.query(`
+      DELETE FROM produtos
+      WHERE ativo = 0
+        AND id NOT IN (SELECT DISTINCT produto_id FROM movimentacoes WHERE produto_id IS NOT NULL)
+        AND id NOT IN (SELECT DISTINCT produto_id FROM itens_pedido WHERE produto_id IS NOT NULL)
+    `).catch(() => {});
+
+    // Remove pedidos cancelados sem itens (pedidos de teste vazios)
+    await db.query(`
+      DELETE FROM pedidos_compra
+      WHERE status = 'cancelado'
+        AND id NOT IN (SELECT DISTINCT pedido_id FROM itens_pedido)
+    `).catch(() => {});
+
     // Cria conta admin automaticamente se não existir
     const adminEmail = process.env.ADMIN_EMAIL;
     const adminSenha = process.env.ADMIN_SENHA;
