@@ -102,6 +102,13 @@ app.use(express.static(path.join(__dirname, '../public')));
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
 
+    // Remove categorias padrão indesejadas (criadas automaticamente)
+    await db.query(`
+      DELETE FROM categorias
+      WHERE nome IN ('Gorduras','Farinhas','Ovos','Açúcares','Acucares')
+        AND id NOT IN (SELECT DISTINCT categoria_id FROM produtos WHERE categoria_id IS NOT NULL)
+    `).catch(() => {});
+
     // Remove produtos inativos sem movimentações (duplicatas de teste)
     await db.query(`
       DELETE FROM produtos
