@@ -1327,3 +1327,39 @@ tr.tr-saida td { color: var(--red-600); }
   #planos-grid { grid-template-columns: 1fr !important; }
   #pg-planos { margin: -16px !important; padding: 16px !important; }
 }
+
+/* Variáveis da tela de planos — modo escuro por padrão */
+:root {
+  --pl-bg: #0f1e30;
+  --pl-card: #1a2f48;
+  --pl-card-destaque: #1e3a5f;
+  --pl-border: #243d58;
+  --pl-border2: #3d5a7a;
+  --pl-text: #ffffff;
+  --pl-subtext: #94a3b8;
+  --pl-item: #cbd5e1;
+  --pl-faq-p: #e2e8f0;
+}
+
+/* Modo claro */
+[data-theme="light"] {
+  --pl-bg: #f1f5f9;
+  --pl-card: #ffffff;
+  --pl-card-destaque: #fff7ed;
+  --pl-border: #e2e8f0;
+  --pl-border2: #cbd5e1;
+  --pl-text: #1e293b;
+  --pl-subtext: #64748b;
+  --pl-item: #334155;
+  --pl-faq-p: #1e293b;
+}
+
+#pg-planos { background: var(--pl-bg) !important; }
+#pg-planos h2 { color: var(--pl-text) !important; }
+#pg-planos p { color: var(--pl-subtext) !important; }
+.plano-card-inner { background: var(--pl-card); border-color: var(--pl-border); }
+.plano-card-inner.destaque { background: var(--pl-card-destaque); }
+.faq-planos { background: var(--pl-card) !important; border-color: var(--pl-border) !important; }
+.faq-planos-item { border-color: var(--pl-border) !important; }
+.faq-planos-p { color: var(--pl-faq-p) !important; }
+.faq-planos-r { color: var(--pl-subtext) !important; }
