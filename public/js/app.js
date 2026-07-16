@@ -788,11 +788,13 @@ async function filtrarPorFornecedor() {
 }
 
 async function carregarProdutos() {
-  const busca  = document.getElementById('busca-produto').value;
-  const alerta = document.getElementById('filtro-alerta').value;
+  const busca      = document.getElementById('busca-produto').value;
+  const alerta     = document.getElementById('filtro-alerta').value;
+  const categoriaId = document.getElementById('filtro-categoria')?.value;
   let url = '/produtos?';
-  if (busca)  url += `busca=${encodeURIComponent(busca)}&`;
-  if (alerta) url += `alerta=${alerta}`;
+  if (busca)       url += `busca=${encodeURIComponent(busca)}&`;
+  if (categoriaId) url += `categoria_id=${categoriaId}&`;
+  if (alerta)      url += `alerta=${alerta}`;
   const prods = await api(url);
   todosProds = prods || [];
   const tbody = document.getElementById('tabela-produtos');
@@ -1671,6 +1673,14 @@ function statusBadge(p) {
 
 async function carregarCategorias() {
   const [cats, forns] = await Promise.all([api('/categorias'), api('/fornecedores')]);
+  // Filtro de categoria no estoque
+  const filtroCat = document.getElementById('filtro-categoria');
+  if (cats && filtroCat) {
+    const atual = filtroCat.value;
+    filtroCat.innerHTML = '<option value="">Todas as categorias</option>' +
+      cats.map(c => `<option value="${c.id}" ${String(c.id) === atual ? 'selected' : ''}>${c.nome}</option>`).join('');
+  }
+  // Select de categoria no modal de produto
   const selCat = document.getElementById('prod-categoria');
   if (cats && selCat) {
     selCat.innerHTML = '<option value="">— Sem categoria —</option>' +

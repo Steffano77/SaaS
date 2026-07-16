@@ -308,11 +308,14 @@
           <input id="busca-produto" type="text" placeholder="Buscar produto ou código..."
             oninput="carregarProdutos()"
             class="form-control search-input"/>
+          <select id="filtro-categoria" onchange="carregarProdutos()" class="form-control">
+            <option value="">Todas as categorias</option>
+          </select>
           <select id="filtro-alerta" onchange="carregarProdutos()" class="form-control">
-            <option value="">Todos</option>
-            <option value="zerado">Sem estoque</option>
-            <option value="minimo">Abaixo do mínimo</option>
-            <option value="validade">Vencendo</option>
+            <option value="">Todos os alertas</option>
+            <option value="zerado">🔴 Sem estoque</option>
+            <option value="minimo">🟡 Abaixo do mínimo</option>
+            <option value="validade">📅 Vencendo em 10 dias</option>
           </select>
           <select id="filtro-fornecedor" onchange="filtrarPorFornecedor()" class="form-control">
             <option value="">Todos fornecedores</option>
