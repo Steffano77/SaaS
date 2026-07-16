@@ -39,7 +39,7 @@ let _prodFornecedorMap = {}; // produto_id → nome do fornecedor
 })();
 
 function _setThemeIcons(theme) {
-  const ids = ['sun-auth','moon-auth','sun-redef','moon-redef','sun-mobile','moon-mobile','sun-sidebar','moon-sidebar'];
+  const ids = ['sun-auth','moon-auth','sun-redef','moon-redef','sun-mobile','moon-mobile','sun-sidebar','moon-sidebar','sun-exp','moon-exp'];
   ids.forEach(id => {
     const el = document.getElementById('icon-' + id);
     if (!el) return;
