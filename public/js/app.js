@@ -1476,7 +1476,7 @@ async function reabrirPedido(id) {
     unidade: i.unidade,
     qtd: parseFloat(i.quantidade),
     custo: parseFloat(i.custo_unitario || 0),
-    isNovo: false,
+    isNovo: !!i.is_novo,
     minimo: 0
   }));
 
