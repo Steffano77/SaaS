@@ -808,7 +808,7 @@ async function carregarProdutos() {
       <td>
         <div class="td-main">${p.nome}</div>
         ${p.codigo_barras ? `<div class="td-sub">${p.codigo_barras}</div>` : ''}
-        <div class="td-sub" style="color:var(--slate-400);font-size:11px;">últ. compra: ${ultimaCompraLabel}</div>
+        <div class="td-sub" style="color:#dc2626;font-size:11px;">últ. compra: ${ultimaCompraLabel}</div>
       </td>
       <td style="color:var(--slate-600)">${p.categoria || '—'}</td>
       <td class="right td-mono">${fmtQtd(p.estoque_atual)} ${p.unidade}</td>
