@@ -754,20 +754,37 @@ async function carregarFiltroFornecedor() {
     ).join('');
 }
 
-function filtrarPorFornecedor() {
+async function filtrarPorFornecedor() {
   const fornecedorId = document.getElementById('filtro-fornecedor')?.value;
   const tbody = document.getElementById('tabela-produtos');
   if (!tbody) return;
 
+  if (!fornecedorId) {
+    // Sem filtro — recarrega todos os produtos normalmente
+    await carregarProdutos();
+    return;
+  }
+
+  // Busca produtos que já foram comprados desse fornecedor (histórico de compras)
+  const prodsForn = await api(`/fornecedores/${fornecedorId}/produtos`) || [];
+  const idsPermitidos = new Set(prodsForn.map(p => String(p.id)));
+
   const rows = tbody.querySelectorAll('tr[data-prod-id]');
   rows.forEach(tr => {
-    if (!fornecedorId) {
-      tr.style.display = '';
-    } else {
-      const prod = todosProds.find(p => String(p.id) === tr.dataset.prodId);
-      tr.style.display = String(prod?.fornecedor_id || '') === fornecedorId ? '' : 'none';
-    }
+    tr.style.display = idsPermitidos.has(tr.dataset.prodId) ? '' : 'none';
   });
+
+  // Se nenhum produto apareceu, mostra mensagem
+  const visiveis = [...rows].filter(tr => tr.style.display !== 'none');
+  if (visiveis.length === 0) {
+    const jaTemEmpty = tbody.querySelector('.empty-row');
+    if (!jaTemEmpty) {
+      tbody.insertAdjacentHTML('beforeend',
+        '<tr class="empty-row forn-empty"><td colspan="10">Nenhum produto encontrado para este fornecedor</td></tr>');
+    }
+  } else {
+    tbody.querySelectorAll('.forn-empty').forEach(el => el.remove());
+  }
 }
 
 async function carregarProdutos() {

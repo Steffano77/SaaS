@@ -453,6 +453,24 @@ router.get('/fornecedores/:id/historico', auth, wrap(async (req, res) => {
   res.json(rows);
 }));
 
+// ── Produtos já comprados de um fornecedor (histórico) ───────────────────────
+router.get('/fornecedores/:id/produtos', auth, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const [rows] = await db.query(`
+    SELECT DISTINCT p.id, p.nome, p.unidade, p.estoque_atual, p.estoque_minimo,
+           p.custo_unitario, p.categoria_id, p.fornecedor_id, p.validade, p.codigo_barras,
+           c.nome AS categoria, f.nome AS fornecedor_nome
+    FROM itens_pedido ip
+    JOIN pedidos_compra pc ON pc.id = ip.pedido_id
+    JOIN produtos p ON p.id = ip.produto_id
+    LEFT JOIN categorias c ON c.id = p.categoria_id
+    LEFT JOIN fornecedores f ON f.id = p.fornecedor_id
+    WHERE pc.padaria_id = ? AND pc.fornecedor_id = ? AND p.ativo = 1
+    ORDER BY p.nome
+  `, [req.padaria.id, req.params.id]);
+  res.json(rows);
+}));
+
 // ── Exportação Excel ──────────────────────────────────────────────────────────
 router.get('/exportar/produtos', auth, wrap(async (req, res) => {
   const db = require('../database/connection');
