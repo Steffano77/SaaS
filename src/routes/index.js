@@ -581,9 +581,20 @@ router.patch('/admin/padarias/:id/ativo', auth, authAdmin, wrap(async (req, res)
 
 router.delete('/admin/padarias/:id', auth, authAdmin, wrap(async (req, res) => {
   const db = require('../database/connection');
-  if (Number(req.params.id) === req.padaria.id) return res.status(400).json({ erro: 'Não pode apagar a si mesmo.' });
-  await db.query('DELETE FROM codigos_ativacao WHERE padaria_id = ?', [req.params.id]);
-  await db.query('DELETE FROM padarias WHERE id = ?', [req.params.id]);
+  const id = Number(req.params.id);
+  if (id === req.padaria.id) return res.status(400).json({ erro: 'Não pode apagar a si mesmo.' });
+  // Remove em cascata: filhos antes dos pais
+  await db.query('DELETE FROM itens_ficha WHERE ficha_id IN (SELECT id FROM fichas_tecnicas WHERE padaria_id = ?)', [id]);
+  await db.query('DELETE FROM fichas_tecnicas WHERE padaria_id = ?', [id]);
+  await db.query('DELETE FROM movimentacoes WHERE padaria_id = ?', [id]);
+  await db.query('DELETE FROM itens_pedido WHERE pedido_id IN (SELECT id FROM pedidos_compra WHERE padaria_id = ?)', [id]);
+  await db.query('DELETE FROM pedidos_compra WHERE padaria_id = ?', [id]);
+  await db.query('DELETE FROM produtos WHERE padaria_id = ?', [id]);
+  await db.query('DELETE FROM categorias WHERE padaria_id = ?', [id]);
+  await db.query('DELETE FROM fornecedores WHERE padaria_id = ?', [id]);
+  await db.query('DELETE FROM usuarios WHERE padaria_id = ?', [id]);
+  await db.query('DELETE FROM codigos_ativacao WHERE padaria_id = ?', [id]);
+  await db.query('DELETE FROM padarias WHERE id = ?', [id]);
   res.json({ ok: true });
 }));
 
