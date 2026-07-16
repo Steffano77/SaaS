@@ -2411,11 +2411,13 @@ async function abrirTelaAdmin() {
   lista.innerHTML = rows.map(p => {
     const expira = p.plano_expira_em ? new Date(p.plano_expira_em).toLocaleDateString('pt-BR') : '—';
     const expirado = p.plano_expira_em && new Date(p.plano_expira_em) < new Date();
-    const statusPlano = p.plano_bloqueado || expirado
-      ? `<span style="color:#dc2626;font-weight:600;">🔴 Expirado (${expira})</span>`
-      : p.plano_expira_em
-        ? `<span style="color:#16a34a;">✅ Ativo até ${expira}</span>`
-        : `<span style="color:var(--slate-400);">Sem validade</span>`;
+    const statusPlano = p.role === 'admin'
+      ? `<span style="color:var(--slate-400);">— Admin —</span>`
+      : p.plano_bloqueado || expirado
+        ? `<span style="color:#dc2626;font-weight:600;">🔴 Expirado (${expira})</span>`
+        : p.plano_expira_em
+          ? `<span style="color:#16a34a;">✅ Ativo até ${expira}</span>`
+          : `<span style="color:var(--slate-400);">Sem validade</span>`;
     return `
     <div style="background:var(--white);border-radius:12px;padding:16px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.08);display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
       <div style="flex:1;min-width:0;">
