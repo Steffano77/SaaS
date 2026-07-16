@@ -1715,7 +1715,8 @@ async function editarProduto(id) {
   document.getElementById('prod-minimo').value  = Math.round(p.estoque_minimo || 0);
   document.getElementById('prod-custo').value   = parseFloat(p.custo_unitario || 0).toFixed(2);
   document.getElementById('prod-venda').value   = parseFloat(p.preco_venda || 0).toFixed(2);
-  document.getElementById('prod-validade').value= p.validade ? p.validade.slice(0,10) : '';
+  document.getElementById('prod-validade').value      = p.validade ? p.validade.slice(0,10) : '';
+  document.getElementById('prod-ultima-compra').value = p.ultima_compra ? new Date(p.ultima_compra).toISOString().slice(0,10) : '';
   document.getElementById('prod-categoria').value  = p.categoria_id || '';
   document.getElementById('prod-fornecedor').value = p.fornecedor_id || '';
   document.getElementById('prod-saldo').value   = parseFloat(p.estoque_atual || 0);
@@ -1752,7 +1753,8 @@ async function salvarProduto(e) {
     estoque_minimo:parseFloat(document.getElementById('prod-minimo').value) || 0,
     custo_unitario:parseFloat(document.getElementById('prod-custo').value) || 0,
     preco_venda:   parseFloat(document.getElementById('prod-venda').value) || 0,
-    validade:      document.getElementById('prod-validade').value || null,
+    validade:       document.getElementById('prod-validade').value || null,
+    ultima_compra:  document.getElementById('prod-ultima-compra').value || null,
   };
   body.estoque_atual = parseFloat(document.getElementById('prod-saldo').value) || 0;
   const r = await fetch(`${API}${id ? `/produtos/${id}` : '/produtos'}`, {

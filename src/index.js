@@ -67,6 +67,7 @@ app.use(express.static(path.join(__dirname, '../public')));
     // Cada coluna individualmente — ignora erro se já existir
     const migrations = [
       'ALTER TABLE produtos ADD COLUMN fornecedor_id INT NULL',
+      'ALTER TABLE produtos ADD COLUMN ultima_compra DATE NULL',
       'ALTER TABLE padarias ADD COLUMN reset_token VARCHAR(512) NULL',
       'ALTER TABLE padarias ADD COLUMN reset_expires DATETIME NULL',
       "ALTER TABLE padarias ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user'",
