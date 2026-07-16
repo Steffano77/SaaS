@@ -1852,34 +1852,37 @@ function abrirModalMovimento() {
 
 async function salvarMovimento(e) {
   e.preventDefault();
+  const produtoId = parseInt(document.getElementById('mov-produto').value);
   const qtd   = parseFloat(document.getElementById('mov-qtd').value || 0);
   const custo = parseFloat(document.getElementById('mov-custo').value || 0);
-  limparErrosCampo('mov-qtd', 'mov-custo');
+  limparErrosCampo('mov-qtd', 'mov-custo', 'mov-produto');
   let ok = true;
+  if (!produtoId) { mostrarErrocampo('mov-produto', 'Selecione um produto.'); ok = false; }
   if (qtd <= 0) { mostrarErrocampo('mov-qtd', 'Quantidade deve ser maior que zero.'); ok = false; }
   if (custo < 0) { mostrarErrocampo('mov-custo', 'Custo não pode ser negativo.'); ok = false; }
   if (!ok) return;
   const movBtn = e.submitter || document.querySelector('#modal-mov button[type=submit]');
   setBtnLoading(movBtn, true);
   try {
-    const r = await fetch(`${API}/movimentacoes`, {
+    const d = await api('/movimentacoes', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
-      body: JSON.stringify({
-        produto_id: parseInt(document.getElementById('mov-produto').value),
+      body: {
+        produto_id: produtoId,
         tipo:       document.getElementById('mov-tipo').value,
-        quantidade: parseFloat(document.getElementById('mov-qtd').value),
-        custo_unit: parseFloat(document.getElementById('mov-custo').value) || 0,
+        quantidade: qtd,
+        custo_unit: custo || 0,
         observacao: document.getElementById('mov-obs').value || null,
-      })
+      }
     });
-    const d = await r.json();
-    if (!r.ok) { alert(`Erro ao registrar: ${d.erro || 'Tente novamente.'}`); return; }
+    if (!d) return; // api() já trata 401, 402 e erros de rede
+    if (d.erro) { mostrarToast(`❌ ${d.erro}`); return; }
     fecharModal('modal-mov');
+    mostrarToast('✅ Movimentação registrada!');
+    carregarProdutos();
     carregarMovimentacoes();
     carregarDashboard();
-  } catch(e) {
-    alert('Erro de conexão. Verifique sua internet e tente novamente.');
+  } catch(err) {
+    mostrarToast('❌ Erro inesperado. Tente novamente.');
   } finally {
     setBtnLoading(movBtn, false);
   }
