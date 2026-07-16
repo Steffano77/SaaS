@@ -745,30 +745,24 @@ async function irParaCompras() {
 
   if (!_produtosParaRepor.length) return;
 
-  // Pré-adiciona todos os produtos ao pedido
-  _pedidoItens = [];
-  _produtosParaRepor.forEach((p, idx) => {
-    const falta = Math.max(0, (p.estoque_minimo || 0) - (p.estoque_atual || 0));
-    _pedidoItens.push({
-      prodId: String(p.id),
-      nome: p.nome,
-      unidade: p.unidade || 'un',
-      qtd: falta > 0 ? falta : 0,
-      custo: parseFloat(p.custo_unitario || 0),
-      isNovo: false,
-      id: Date.now() + idx
-    });
-  });
-
-  // Pré-seleciona fornecedor se todos compartilham o mesmo
-  const fornIds = [...new Set(_produtosParaRepor.filter(p => p.fornecedor_id).map(p => String(p.fornecedor_id)))];
-  if (fornIds.length === 1) {
+  // Pré-seleciona o fornecedor do primeiro produto que tiver fornecedor
+  const primComForn = _produtosParaRepor.find(p => p.fornecedor_id);
+  if (primComForn) {
     const sel = document.getElementById('compra-fornecedor');
-    if (sel) sel.value = fornIds[0];
+    if (sel) sel.value = String(primComForn.fornecedor_id);
   }
 
-  renderizarPedido();
-  mostrarMsgCompra('🛒 Produtos pré-adicionados. Preencha as quantidades e finalize o pedido.', 'ok');
+  // Pré-preenche o campo produto com o primeiro produto
+  const prim = _produtosParaRepor[0];
+  document.getElementById('compra-prod-texto').value = prim.nome;
+  document.getElementById('compra-produto').value = String(prim.id);
+  if (prim.unidade) {
+    const uSel = document.getElementById('compra-unidade');
+    if (uSel) uSel.value = prim.unidade;
+  }
+  if (prim.custo_unitario) {
+    document.getElementById('compra-custo').value = parseFloat(prim.custo_unitario).toFixed(2);
+  }
 }
 
 // ── Produtos ─────────────────────────────────────────────────
