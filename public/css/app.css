@@ -908,7 +908,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
+  padding: 6px 10px;
+  font-size: 16px;
+  line-height: 1;
   transition: background 0.2s, border-color 0.2s;
   flex-shrink: 0;
 }
