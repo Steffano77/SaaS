@@ -266,7 +266,7 @@ function sair() {
 }
 
 // ── Navegação ───────────────────────────────────────────────
-const paginas = ['dashboard','estoque','compras','fornecedores','relatorios','sync','404'];
+const paginas = ['dashboard','estoque','compras','fornecedores','relatorios','sync','planos','404'];
 function mostrarPagina(pg, pushHistory = true) {
   if (!paginas.includes(pg)) { mostrarPagina('404'); return; }
   fecharSidebar();
