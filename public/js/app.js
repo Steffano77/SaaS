@@ -801,8 +801,15 @@ async function carregarProdutos() {
     const status = statusBadge(p);
     const validade = p.validade ? new Date(p.validade).toLocaleDateString('pt-BR') : '—';
     const valorTotal = (p.estoque_atual * p.custo_unitario).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+    const ultimaCompraLabel = p.ultima_compra
+      ? '🗓 ' + new Date(p.ultima_compra).toLocaleDateString('pt-BR')
+      : '—';
     return `<tr data-prod-id="${p.id}">
-      <td><div class="td-main">${p.nome}</div><div class="td-sub">${p.codigo_barras || '—'}</div></td>
+      <td>
+        <div class="td-main">${p.nome}</div>
+        ${p.codigo_barras ? `<div class="td-sub">${p.codigo_barras}</div>` : ''}
+        <div class="td-sub" style="color:var(--slate-400);font-size:11px;">últ. compra: ${ultimaCompraLabel}</div>
+      </td>
       <td style="color:var(--slate-600)">${p.categoria || '—'}</td>
       <td class="right td-mono">${fmtQtd(p.estoque_atual)} ${p.unidade}</td>
       <td class="right td-mono" style="color:var(--slate-500)">${fmtQtd(p.estoque_minimo)}</td>

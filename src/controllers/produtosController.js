@@ -4,7 +4,12 @@ exports.listar = async (req, res) => {
   try {
     const { busca, categoria_id, alerta } = req.query;
     let sql = `
-      SELECT p.*, c.nome AS categoria, f.nome AS fornecedor_nome
+      SELECT p.*, c.nome AS categoria, f.nome AS fornecedor_nome,
+        (SELECT MAX(pc.criado_em)
+         FROM pedidos_compra pc
+         JOIN itens_pedido ip ON ip.pedido_id = pc.id
+         WHERE pc.padaria_id = p.padaria_id AND ip.produto_id = p.id AND pc.status = 'recebido'
+        ) AS ultima_compra
       FROM produtos p
       LEFT JOIN categorias c ON c.id = p.categoria_id
       LEFT JOIN fornecedores f ON f.id = p.fornecedor_id
