@@ -804,11 +804,15 @@ async function carregarProdutos() {
     const ultimaCompraLabel = p.ultima_compra
       ? '🗓 ' + new Date(p.ultima_compra).toLocaleDateString('pt-BR')
       : '—';
+    const diasSemCompra = p.ultima_compra
+      ? Math.floor((Date.now() - new Date(p.ultima_compra)) / 86400000)
+      : 999;
+    const ultimaCompraColor = diasSemCompra > 30 ? '#dc2626' : diasSemCompra > 15 ? '#d97706' : 'var(--slate-400)';
     return `<tr data-prod-id="${p.id}">
       <td>
         <div class="td-main">${p.nome}</div>
         ${p.codigo_barras ? `<div class="td-sub">${p.codigo_barras}</div>` : ''}
-        <div class="td-sub" style="color:#dc2626;font-size:11px;">últ. compra: ${ultimaCompraLabel}</div>
+        <div class="td-sub" style="color:${ultimaCompraColor};font-size:11px;">últ. compra: ${ultimaCompraLabel}</div>
       </td>
       <td style="color:var(--slate-600)">${p.categoria || '—'}</td>
       <td class="right td-mono">${fmtQtd(p.estoque_atual)} ${p.unidade}</td>
