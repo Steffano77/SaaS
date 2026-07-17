@@ -391,6 +391,30 @@ function setBtnLoading(btn, loading, textoOriginal) {
   }
 }
 
+let _valorEstoqueOculto = localStorage.getItem('valorEstoqueOculto') === '1';
+
+function toggleValorEstoque() {
+  _valorEstoqueOculto = !_valorEstoqueOculto;
+  localStorage.setItem('valorEstoqueOculto', _valorEstoqueOculto ? '1' : '0');
+  _aplicarVisibilidadeValor();
+}
+
+function _aplicarVisibilidadeValor() {
+  const el = document.getElementById('kpi-valor-estoque');
+  const olho = document.getElementById('icon-olho');
+  const fechado = document.getElementById('icon-olho-fechado');
+  if (!el) return;
+  if (_valorEstoqueOculto) {
+    el.textContent = '••••••';
+    el.style.letterSpacing = '4px';
+    if (olho) olho.style.display = 'none';
+    if (fechado) fechado.style.display = '';
+  } else {
+    if (olho) olho.style.display = '';
+    if (fechado) fechado.style.display = 'none';
+  }
+}
+
 // ── Dashboard ────────────────────────────────────────────────
 async function carregarDashboard() {
   const d = await api('/dashboard');
@@ -400,9 +424,17 @@ async function carregarDashboard() {
     <div class="kpi-card"><div class="kpi-value" style="color:var(--navy)">${k.total_produtos}</div><div class="kpi-label">Total de produtos</div></div>
     <div class="kpi-card kpi-clickable" onclick="abrirModalEstoque('zerado')"><div class="kpi-value" style="color:var(--red-500)">${k.zerados}</div><div class="kpi-label">Sem estoque</div><div class="kpi-hint">Ver produtos →</div></div>
     <div class="kpi-card kpi-clickable" onclick="abrirModalEstoque('minimo')"><div class="kpi-value" style="color:var(--yellow-500)">${k.abaixo_minimo}</div><div class="kpi-label">Abaixo do mínimo</div><div class="kpi-hint">Ver produtos →</div></div>
-    <div class="kpi-card"><div class="kpi-value" style="color:var(--orange);font-size:26px;letter-spacing:-0.5px">${'R$ ' + parseFloat(k.valor_total_estoque||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div><div class="kpi-label">Valor em estoque</div></div>
+    <div class="kpi-card" style="position:relative;">
+      <button onclick="toggleValorEstoque()" id="btn-ocultar-valor" style="position:absolute;top:10px;right:10px;background:none;border:none;cursor:pointer;color:var(--slate-400);padding:2px;line-height:1;" title="Ocultar valor">
+        <svg id="icon-olho" width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M247.31 124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57 61.26 162.88 48 128 48S61.43 61.26 36.34 86.35C17.51 105.18 9 124 8.69 124.76a8 8 0 0 0 0 6.48c.35.79 8.82 19.57 27.65 38.4C61.43 194.74 93.12 208 128 208s66.57-13.26 91.66-38.36c18.83-18.83 27.3-37.61 27.65-38.4a8 8 0 0 0 0-6.48ZM128 192c-30.78 0-57.67-11.19-79.93-33.25A133.47 133.47 0 0 1 25 128a133.33 133.33 0 0 1 23.07-30.75C70.33 75.19 97.22 64 128 64s57.67 11.19 79.93 33.25A133.46 133.46 0 0 1 231.05 128C223.84 141.46 192.43 192 128 192Zm0-112a48 48 0 1 0 48 48 48.05 48.05 0 0 0-48-48Zm0 80a32 32 0 1 1 32-32 32 32 0 0 1-32 32Z" opacity="0.3"/><circle cx="128" cy="128" r="32"/></svg>
+        <svg id="icon-olho-fechado" width="16" height="16" viewBox="0 0 256 256" fill="currentColor" style="display:none"><path d="M53.92 34.62a8 8 0 1 0-11.84 10.76L61.32 67C25 88.84 9.38 123.2 8.69 124.76a8 8 0 0 0 0 6.48c.35.79 8.82 19.57 27.65 38.4C61.43 194.74 93.12 208 128 208a126.92 126.92 0 0 0 52.1-10.83l22 24.21a8 8 0 1 0 11.84-10.76Zm47.33 75.84 33.29 36.65A16 16 0 0 1 112 128a16.13 16.13 0 0 1 .58-4.3ZM128 192c-30.78 0-57.67-11.19-79.93-33.25A133.16 133.16 0 0 1 25 128c4.69-8.79 19.66-33.39 47.35-49.38l18 19.75a48 48 0 0 0 63.66 70.1l14.93 16.43A112.18 112.18 0 0 1 128 192Zm6.48-48.44ZM247.31 124.76c-.35-.79-8.82-19.58-27.65-38.41a156.23 156.23 0 0 0-24.38-20.71 8 8 0 0 0-8.58 13.52 141.41 141.41 0 0 1 21.24 18.09A133.15 133.15 0 0 1 231 128c-7.21 13.46-38.62 64-103 64a118.22 118.22 0 0 1-17.23-1.22 8 8 0 0 0-2.32 15.84A134.32 134.32 0 0 0 128 208c34.88 0 66.57-13.26 91.66-38.36 18.83-18.83 27.3-37.61 27.65-38.4a8 8 0 0 0 0-6.48Z"/></svg>
+      </button>
+      <div class="kpi-value" id="kpi-valor-estoque" style="color:var(--orange);font-size:26px;letter-spacing:-0.5px">${'R$ ' + parseFloat(k.valor_total_estoque||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+      <div class="kpi-label">Valor em estoque</div>
+    </div>
     <div class="kpi-card kpi-clickable kpi-saidas" onclick="abrirTelaSaidas()"><div style="display:flex;align-items:center;justify-content:space-between;"><div><div class="kpi-value" style="color:var(--red-500);font-size:26px;letter-spacing:-0.5px">${parseInt(k.qtd_saidas_30d||0)} saídas</div><div class="kpi-label">Saídas — últimos 30 dias</div></div><div class="kpi-hint" style="font-size:13px;">Ver detalhes →</div></div></div>
   `;
+  _aplicarVisibilidadeValor();
   const onb = document.getElementById('onboarding-vazio');
   if (onb) onb.classList.toggle('hidden', k.total_produtos > 0);
 
