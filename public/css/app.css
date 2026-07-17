@@ -379,6 +379,91 @@
 
     .sidebar-link .nav-label { flex: 1; }
 
+    /* ── Animações dos ícones do sidebar ── */
+    @keyframes sb-painel-pulse {
+      0%   { transform: scale(1); }
+      30%  { transform: scale(1.35) translate(-1px,-1px); }
+      60%  { transform: scale(0.9); }
+      100% { transform: scale(1); }
+    }
+    @keyframes sb-estoque-spin {
+      0%   { transform: rotate(0deg) scale(1); }
+      40%  { transform: rotate(-20deg) scale(1.15); }
+      100% { transform: rotate(0deg) scale(1); }
+    }
+    @keyframes sb-slide-right {
+      0%   { transform: translateX(0); }
+      35%  { transform: translateX(5px); }
+      65%  { transform: translateX(-2px); }
+      100% { transform: translateX(0); }
+    }
+    @keyframes sb-truck-go {
+      0%   { transform: translateX(0); }
+      20%  { transform: translateX(5px); }
+      50%  { transform: translateX(-1px); }
+      100% { transform: translateX(0); }
+    }
+    @keyframes sb-bar-grow {
+      0%   { transform: scaleY(1); }
+      40%  { transform: scaleY(1.3); }
+      70%  { transform: scaleY(0.9); }
+      100% { transform: scaleY(1); }
+    }
+    @keyframes sb-upload-up {
+      0%   { transform: translateY(0); }
+      35%  { transform: translateY(-4px); }
+      65%  { transform: translateY(1px); }
+      100% { transform: translateY(0); }
+    }
+    @keyframes sb-upgrade-rise {
+      0%   { transform: translate(0,0) scale(1); }
+      35%  { transform: translate(3px,-3px) scale(1.15); }
+      65%  { transform: translate(-1px,1px) scale(0.95); }
+      100% { transform: translate(0,0) scale(1); }
+    }
+    @keyframes sb-gear-spin {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotate(60deg); }
+    }
+    @keyframes sb-exit-arrow {
+      0%   { transform: translateX(0); opacity: 1; }
+      40%  { transform: translateX(6px); opacity: 0.4; }
+      41%  { transform: translateX(-4px); opacity: 0; }
+      60%  { transform: translateX(0); opacity: 1; }
+      100% { transform: translateX(0); opacity: 1; }
+    }
+
+    .sidebar-link:active .icon-painel rect,
+    .sidebar-link:focus  .icon-painel rect { animation: sb-painel-pulse 0.4s ease forwards; }
+    .sidebar-link:active .icon-painel rect:nth-child(2) { animation-delay: 0.05s; }
+    .sidebar-link:active .icon-painel rect:nth-child(3) { animation-delay: 0.05s; }
+    .sidebar-link:active .icon-painel rect:nth-child(4) { animation-delay: 0.1s; }
+
+    .sidebar-link:active .icon-estoque,
+    .sidebar-link:focus  .icon-estoque { animation: sb-estoque-spin 0.45s ease forwards; transform-origin: center; }
+
+    .sidebar-link:active .icon-compras,
+    .sidebar-link:focus  .icon-compras { animation: sb-slide-right 0.4s ease forwards; }
+
+    .sidebar-link:active .icon-fornecedores,
+    .sidebar-link:focus  .icon-fornecedores { animation: sb-truck-go 0.45s ease forwards; }
+
+    .sidebar-link:active .icon-relatorios rect { animation: sb-bar-grow 0.4s ease forwards; transform-origin: bottom; }
+    .sidebar-link:active .icon-relatorios rect:nth-child(2) { animation-delay: 0.07s; }
+    .sidebar-link:active .icon-relatorios rect:nth-child(3) { animation-delay: 0.14s; }
+
+    .sidebar-link:active .icon-importar,
+    .sidebar-link:focus  .icon-importar { animation: sb-upload-up 0.4s ease forwards; }
+
+    .sidebar-link:active .icon-upgrade,
+    .sidebar-link:focus  .icon-upgrade { animation: sb-upgrade-rise 0.4s ease forwards; }
+
+    .sidebar-link:active .icon-admin,
+    .sidebar-link:focus  .icon-admin { animation: sb-gear-spin 0.4s ease forwards; transform-origin: center; }
+
+    .sidebar-link:active .icon-sair,
+    .sidebar-link:focus  .icon-sair { animation: sb-exit-arrow 0.45s ease forwards; }
+
     .sidebar-footer {
       padding: 10px;
       border-top: 1px solid rgba(255,255,255,0.08);
