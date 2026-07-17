@@ -1218,7 +1218,7 @@ function renderizarPedido() {
       <div style="display:flex;align-items:center;gap:6px;">
         <input type="number" value="${i.qtd > 0 ? i.qtd : ''}" min="0.001" step="0.001"
           placeholder="Qtd"
-          style="width:72px;padding:5px 8px;border:1.5px solid ${i.qtd > 0 ? 'var(--slate-200)' : 'var(--orange)'};border-radius:8px;font-size:13px;text-align:center;"
+          style="width:72px;padding:5px 8px;border:1.5px solid ${i.qtd > 0 ? 'var(--slate-200)' : 'var(--orange)'};border-radius:8px;font-size:13px;text-align:center;background:var(--white);color:var(--navy);"
           oninput="atualizarQtdItem(${i.id}, this.value)"
           onchange="this.style.borderColor=this.value>0?'var(--slate-200)':'var(--orange)'"
         />
