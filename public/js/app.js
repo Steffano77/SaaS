@@ -1314,12 +1314,9 @@ async function registrarPedido(abrirWhats = false) {
     isNovo: i.isNovo
   }));
 
-  // Se estiver editando um pedido existente, cancela o original antes de recriar
+  // Se estiver editando um pedido existente, apaga o original antes de recriar
   if (_pedidoEditandoId) {
-    await fetch(`${API}/compras/pedidos/${_pedidoEditandoId}/cancelar`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${TOKEN}` }
-    });
+    await api(`/compras/pedidos/${_pedidoEditandoId}`, { method: 'DELETE' });
     _pedidoEditandoId = null;
   }
 

@@ -415,6 +415,13 @@ router.post('/compras/pedidos/:id/cancelar', auth, wrap(async (req, res) => {
   res.json({ ok: true });
 }));
 
+router.delete('/compras/pedidos/:id', auth, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  await db.query('DELETE FROM itens_pedido WHERE pedido_id = ?', [req.params.id]);
+  await db.query('DELETE FROM pedidos_compra WHERE id = ? AND padaria_id = ? AND status = \'pendente\'', [req.params.id, req.padaria.id]);
+  res.json({ ok: true });
+}));
+
 // Limpar todos os dados
 router.delete('/dados/limpar', auth, dadosCtrl.limparTudo);
 
