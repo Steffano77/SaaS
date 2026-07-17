@@ -745,11 +745,17 @@ async function irParaCompras() {
 
   if (!_produtosParaRepor.length) return;
 
-  // Pré-seleciona o fornecedor do primeiro produto que tiver fornecedor
+  // Pré-seleciona o fornecedor do primeiro produto que tiver fornecedor vinculado
   const primComForn = _produtosParaRepor.find(p => p.fornecedor_id);
   if (primComForn) {
     const sel = document.getElementById('compra-fornecedor');
-    if (sel) sel.value = String(primComForn.fornecedor_id);
+    if (sel) {
+      sel.value = String(primComForn.fornecedor_id);
+      // Se não achou a opção (select ainda não populado), tenta após um tick
+      if (!sel.value || sel.value !== String(primComForn.fornecedor_id)) {
+        setTimeout(() => { sel.value = String(primComForn.fornecedor_id); }, 100);
+      }
+    }
   }
 
   // Pré-preenche o campo produto com o primeiro produto
