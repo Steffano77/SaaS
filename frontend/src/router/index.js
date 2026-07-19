@@ -4,7 +4,8 @@ import { useAuthStore } from '@/stores/auth'
 const routes = [
   { path: '/',           component: () => import('@/views/LoginView.vue'), meta: { publico: true } },
   { path: '/painel',     component: () => import('@/views/PainelView.vue') },
-  { path: '/estoque',       component: () => import('@/views/EstoqueView.vue') },
+  { path: '/estoque',        component: () => import('@/views/EstoqueView.vue') },
+  { path: '/compras',        component: () => import('@/views/ComprasView.vue') },
   { path: '/fornecedores', component: () => import('@/views/FornecedoresView.vue') },
 ]
 
