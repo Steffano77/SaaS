@@ -7,6 +7,7 @@ const routes = [
   { path: '/estoque',        component: () => import('@/views/EstoqueView.vue') },
   { path: '/compras',        component: () => import('@/views/ComprasView.vue') },
   { path: '/relatorios',     component: () => import('@/views/RelatoriosView.vue') },
+  { path: '/admin',          component: () => import('@/views/AdminView.vue') },
   { path: '/fornecedores', component: () => import('@/views/FornecedoresView.vue') },
 ]
 
