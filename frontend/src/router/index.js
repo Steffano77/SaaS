@@ -6,6 +6,7 @@ const routes = [
   { path: '/painel',     component: () => import('@/views/PainelView.vue') },
   { path: '/estoque',        component: () => import('@/views/EstoqueView.vue') },
   { path: '/compras',        component: () => import('@/views/ComprasView.vue') },
+  { path: '/relatorios',     component: () => import('@/views/RelatoriosView.vue') },
   { path: '/fornecedores', component: () => import('@/views/FornecedoresView.vue') },
 ]
 
