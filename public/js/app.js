@@ -2959,7 +2959,7 @@ async function abrirConfigPrecificacao() {
   fatEl.value = precConfig.faturamento_medio
     ? parseFloat(precConfig.faturamento_medio).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : '';
-  fatEl.oninput = function() { mascaraMoeda(this); atualizarResumoPrecificacao(); };
+  fatEl.onblur = function() { mascaraMoeda(this); atualizarResumoPrecificacao(); };
   document.getElementById('prec-lucro').value = precConfig.lucro_desejado_pct || 10;
   document.getElementById('prec-imposto').value = precConfig.imposto_pct || 5;
   document.getElementById('prec-perda').value = precConfig.perda_pct || 2;
@@ -2983,7 +2983,7 @@ function renderizarDespesas() {
     lista.innerHTML = precDespesas.map((d, i) => `
       <div class="prec-linha" style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;margin-bottom:6px;">
         <input type="text" class="form-control" value="${d.nome}" onchange="precDespesas[${i}].nome=this.value;atualizarResumoPrecificacao()" placeholder="Nome da despesa">
-        <input type="text" class="form-control" value="${d.valor ? parseFloat(d.valor).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) : ''}" style="width:130px;" oninput="mascaraMoeda(this);precDespesas[${i}].valor=parseMoeda(this.value);atualizarResumoPrecificacao()" placeholder="R$ 0,00">
+        <input type="text" class="form-control" value="${d.valor ? parseFloat(d.valor).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) : ''}" style="width:130px;" onblur="mascaraMoeda(this);precDespesas[${i}].valor=parseMoeda(this.value);atualizarResumoPrecificacao()" placeholder="0,00">
         <button class="btn-danger" style="padding:6px 10px;" onclick="precDespesas.splice(${i},1);renderizarDespesas();atualizarResumoPrecificacao()">✕</button>
       </div>`).join('');
   }
