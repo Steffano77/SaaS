@@ -2718,7 +2718,7 @@ async function carregarFichas() {
         <p>Calcule o CMV real de cada receita e forme preços com base nos seus custos.<br>
            Disponível nos planos <strong>Pro</strong> e <strong>Premium</strong>.</p>
         <p style="color:var(--slate-400);font-size:13px;">Seu plano atual: <strong>${{ trial: 'Trial', essencial: 'Essencial' }[PLANO_ATUAL] || PLANO_ATUAL}</strong></p>
-        <a href="https://panificapro.com.br/planos" target="_blank" class="btn btn-primary" style="margin-top:8px;">Ver planos →</a>
+        <button onclick="mostrarPagina('planos')" class="btn-primary" style="margin-top:8px;padding:10px 28px;border-radius:10px;border:none;cursor:pointer;font-size:15px;font-weight:600;">Ver planos →</button>
       </div>`;
     return;
   }
