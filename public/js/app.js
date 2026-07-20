@@ -2933,14 +2933,21 @@ async function excluirFicha(id) {
 }
 
 // ── Helpers de moeda ──────────────────────────────────────────────────────
-function mascaraMoeda(input) {
-  let v = input.value.replace(/\D/g, '');
-  v = (parseInt(v || '0', 10) / 100).toFixed(2);
-  input.value = parseFloat(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 function parseMoeda(str) {
   if (typeof str === 'number') return str;
-  return parseFloat((str || '0').replace(/\./g, '').replace(',', '.')) || 0;
+  // Aceita tanto "1.200,50" (BR) quanto "1200.50" (número puro)
+  const s = (str || '').trim();
+  if (!s) return 0;
+  // Formato BR: tem vírgula como separador decimal
+  if (s.includes(',')) return parseFloat(s.replace(/\./g, '').replace(',', '.')) || 0;
+  return parseFloat(s) || 0;
+}
+function formatarMoedaBR(valor) {
+  return parseFloat(valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function mascaraMoeda(input) {
+  const v = parseMoeda(input.value);
+  input.value = v > 0 ? formatarMoedaBR(v) : '';
 }
 
 // ── Precificação ──────────────────────────────────────────────────────────
