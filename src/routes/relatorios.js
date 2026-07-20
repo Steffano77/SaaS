@@ -66,7 +66,7 @@ router.get('/mes', auth, wrap(async (req, res) => {
         COUNT(DISTINCT produto_id) AS prods_distintos
        FROM movimentacoes
        WHERE padaria_id = ? AND DATE_FORMAT(data, '%Y-%m') = ?`,
-      [req.padaria.id, mes]),
+      [padaria_id, mes]),
 
     // KPIs do mês anterior
     q(`SELECT
@@ -75,7 +75,7 @@ router.get('/mes', auth, wrap(async (req, res) => {
         COUNT(*) AS qtd_movs
        FROM movimentacoes
        WHERE padaria_id = ? AND DATE_FORMAT(data, '%Y-%m') = ?`,
-      [req.padaria.id, mesAnterior]),
+      [padaria_id, mesAnterior]),
 
     // Movimentações detalhadas — LEFT JOIN para incluir produtos excluídos
     q(`SELECT m.tipo, m.quantidade, m.custo_unit, m.valor_total,
@@ -87,7 +87,7 @@ router.get('/mes', auth, wrap(async (req, res) => {
        LEFT JOIN categorias c ON c.id = p.categoria_id
        WHERE m.padaria_id = ? AND DATE_FORMAT(m.data, '%Y-%m') = ?
        ORDER BY m.data DESC LIMIT 500`,
-      [req.padaria.id, mes]),
+      [padaria_id, mes]),
 
     // Top 5 produtos mais movimentados
     q(`SELECT m.produto_id,
@@ -101,7 +101,7 @@ router.get('/mes', auth, wrap(async (req, res) => {
        WHERE m.padaria_id = ? AND DATE_FORMAT(m.data, '%Y-%m') = ?
        GROUP BY m.produto_id
        ORDER BY qtd_movs DESC LIMIT 5`,
-      [req.padaria.id, mes]),
+      [padaria_id, mes]),
 
     // Por categoria — LEFT JOIN para incluir produtos excluídos
     q(`SELECT COALESCE(c.nome, 'Sem categoria') AS categoria,
@@ -114,7 +114,7 @@ router.get('/mes', auth, wrap(async (req, res) => {
        WHERE m.padaria_id = ? AND DATE_FORMAT(m.data, '%Y-%m') = ?
        GROUP BY c.id
        ORDER BY total_entradas DESC`,
-      [req.padaria.id, mes]),
+      [padaria_id, mes]),
 
     // Alertas de estoque
     q(`SELECT nome, estoque_atual, estoque_minimo, unidade,
@@ -135,7 +135,7 @@ router.get('/mes', auth, wrap(async (req, res) => {
          AND DATE_FORMAT(pc.recebido_em, '%Y-%m') = ?
        GROUP BY f.id
        ORDER BY total_gasto DESC`,
-      [req.padaria.id, mes]),
+      [padaria_id, mes]),
   ]);
 
   res.json({
@@ -150,14 +150,15 @@ router.get('/mes', auth, wrap(async (req, res) => {
 }));
 
 // Rota de diagnóstico temporária — remove depois
-router.get('/debug-movs', auth, wrap(async (req, res) => {
+router.get('/debug-movs', wrap(async (req, res) => {
   const mes = req.query.mes || new Date().toISOString().slice(0, 7);
+  const padaria_id = req.query.pid || 1;
   const results = {};
 
   try {
     const [r1] = await db.query(
       `SELECT COUNT(*) AS total FROM movimentacoes WHERE padaria_id = ? AND DATE_FORMAT(data,'%Y-%m') = ?`,
-      [req.padaria.id, mes]
+      [padaria_id, mes]
     );
     results.count_movs = r1[0];
   } catch(e) { results.count_movs_err = e.message; }
@@ -165,7 +166,7 @@ router.get('/debug-movs', auth, wrap(async (req, res) => {
   try {
     const [r2] = await db.query(
       `SELECT m.produto_id, p.id AS pid, p.nome FROM movimentacoes m LEFT JOIN produtos p ON p.id = m.produto_id WHERE m.padaria_id = ? AND DATE_FORMAT(m.data,'%Y-%m') = ? LIMIT 5`,
-      [req.padaria.id, mes]
+      [padaria_id, mes]
     );
     results.sample_join = r2;
   } catch(e) { results.sample_join_err = e.message; }
@@ -173,12 +174,12 @@ router.get('/debug-movs', auth, wrap(async (req, res) => {
   try {
     const [r3] = await db.query(
       `SELECT m.produto_id, MAX(p.nome) AS nome, COUNT(*) AS qtd FROM movimentacoes m LEFT JOIN produtos p ON p.id = m.produto_id WHERE m.padaria_id = ? AND DATE_FORMAT(m.data,'%Y-%m') = ? GROUP BY m.produto_id LIMIT 5`,
-      [req.padaria.id, mes]
+      [padaria_id, mes]
     );
     results.top5 = r3;
   } catch(e) { results.top5_err = e.message; }
 
-  res.json({ padaria_id: req.padaria.id, mes, ...results });
+  res.json({ padaria_id: padaria_id, mes, ...results });
 }));
 
 module.exports = router;
