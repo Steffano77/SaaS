@@ -2039,6 +2039,6 @@ tr.tr-saida td { color: var(--red-600); }
 .prod-card-titulo { font-weight: 600; font-size: 15px; color: var(--slate-700); }
 .prod-card-obs { font-size: 13px; color: var(--slate-400); margin-top: 2px; }
 .prod-card-actions { display: flex; gap: 8px; }
-.prod-item-linha { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.prod-item-linha { display: grid; grid-template-columns: 1fr 100px 36px; gap: 6px; align-items: center; margin-bottom: 6px; }
 .btn-danger-sm { background: #fee2e2; color: #b91c1c; border: none; border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
 .btn-danger-sm:hover { background: #fecaca; }

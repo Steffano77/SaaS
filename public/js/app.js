@@ -3200,12 +3200,12 @@ function adicionarLinhaProducao() {
   const div = document.createElement('div');
   div.className = 'prod-item-linha';
   div.innerHTML = `
-    <select class="form-input prod-ficha-sel" style="flex:1;">
+    <select class="form-control prod-ficha-sel">
       <option value="">Selecione a receita...</option>
       ${opts}
     </select>
-    <input type="number" class="form-input prod-qtd" placeholder="Qtd" min="0.1" step="0.1" style="width:90px;" value="1">
-    <button class="btn-danger-sm" onclick="this.parentElement.remove()" style="padding:6px 10px;">✕</button>
+    <input type="number" class="form-control prod-qtd" placeholder="Qtd" min="0.1" step="0.1" value="1" style="text-align:center;">
+    <button class="btn-danger-sm" onclick="this.parentElement.remove()" style="width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:8px;">✕</button>
   `;
   container.appendChild(div);
 }
