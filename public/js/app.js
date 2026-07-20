@@ -1741,7 +1741,12 @@ async function carregarRelatorios() {
 }
 
 function imprimirRelatorio() {
-  document.title = document.getElementById('sidebar-nome').textContent + ' — Relatório';
+  const nomePadaria = document.getElementById('sidebar-nome').textContent.trim();
+  const periodo = document.getElementById('rel-mes')?.selectedOptions[0]?.text || '';
+  const secao = document.getElementById('pg-relatorios');
+  secao.setAttribute('data-padaria', nomePadaria);
+  secao.setAttribute('data-periodo', 'Relatório de ' + periodo);
+  document.title = nomePadaria + ' — Relatório ' + periodo;
   window.print();
   document.title = 'PanificaPro';
 }
