@@ -175,6 +175,9 @@ async function fazerLogin(e) {
     if (manter) localStorage.setItem('pptoken', TOKEN);
     else { localStorage.removeItem('pptoken'); sessionStorage.setItem('pptoken', TOKEN); }
     document.getElementById('sidebar-nome').textContent = d.padaria.nome;
+    const _planoLabels = { trial: '⏳ Trial', essencial: '⚡ Essencial', pro: '⭐ Pro', premium: '💎 Premium' };
+    const _planoEl = document.getElementById('sidebar-plano');
+    if (_planoEl) _planoEl.textContent = _planoLabels[d.padaria.plano] || d.padaria.plano || '—';
     if (d.padaria.role === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
     entrar();
   } catch { el.textContent = 'Erro de conexão.'; el.classList.remove('hidden'); }
@@ -219,6 +222,9 @@ async function fazerRegistro(e) {
     TOKEN = d.token;
     localStorage.setItem('pptoken', TOKEN);
     document.getElementById('sidebar-nome').textContent = d.padaria.nome;
+    const _planoLabelsReg = { trial: '⏳ Trial', essencial: '⚡ Essencial', pro: '⭐ Pro', premium: '💎 Premium' };
+    const _planoElReg = document.getElementById('sidebar-plano');
+    if (_planoElReg) _planoElReg.textContent = _planoLabelsReg[d.padaria.plano] || d.padaria.plano || '—';
     if (d.padaria.role === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
     entrar();
   } catch { el.textContent = 'Erro de conexão.'; el.classList.remove('hidden'); }
@@ -264,7 +270,7 @@ function sair() {
 }
 
 // ── Navegação ───────────────────────────────────────────────
-const paginas = ['dashboard','estoque','compras','fornecedores','relatorios','sync','planos','404'];
+const paginas = ['dashboard','estoque','compras','fornecedores','fichas','relatorios','sync','planos','404'];
 function mostrarPagina(pg, pushHistory = true) {
   if (!paginas.includes(pg)) { mostrarPagina('404'); return; }
   fecharSidebar();
@@ -281,6 +287,7 @@ function mostrarPagina(pg, pushHistory = true) {
   if (pg === 'compras')        { carregarCompras(); }
   if (pg === 'fornecedores')   { carregarFornecedores(); }
   if (pg === 'relatorios')     { carregarRelatorios(); }
+  if (pg === 'fichas')         { carregarFichas(); }
 }
 
 document.addEventListener('mousedown', e => {
@@ -2316,6 +2323,9 @@ if (TOKEN) {
     .then(d => {
       if (d) {
         document.getElementById('sidebar-nome').textContent = d.nome;
+        const planoLabels = { trial: '⏳ Trial', essencial: '⚡ Essencial', pro: '⭐ Pro', premium: '💎 Premium' };
+        const planoEl = document.getElementById('sidebar-plano');
+        if (planoEl) planoEl.textContent = planoLabels[d.plano] || d.plano || '—';
         if (d.role === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
         entrar();
       }

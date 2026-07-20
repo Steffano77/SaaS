@@ -179,6 +179,7 @@
       <div class="sidebar-user">
         <div class="sidebar-user-label">Logado como</div>
         <span id="sidebar-nome"></span>
+        <div id="sidebar-plano" class="sidebar-plano-badge">—</div>
       </div>
     </div>
 
@@ -206,6 +207,11 @@
           <svg class="icon-fornecedores" width="18" height="18" viewBox="0 0 256 256" fill="currentColor"><path d="M176 72v56H32V88a16 16 0 0 1 16-16Z" opacity="0.25"/><path d="M176 72h40l32 56v40h-72Z" opacity="0.25"/><circle cx="68" cy="200" r="20"/><circle cx="188" cy="200" r="20"/><path d="M32 88a16 16 0 0 1 16-16h128v56H32Zm144 0h40l32 56v32h-72Z" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </span>
         <span class="nav-label" translate="no">Fornecedores</span>
+      </button>
+      <button class="sidebar-link" onclick="mostrarPagina('fichas');fecharSidebar()" spellcheck="false" autocorrect="off" autocapitalize="off">
+        <span class="nav-icon">🧾</span>
+        <span class="nav-label">Fichas Técnicas</span>
+        <span class="nav-badge-pro">PRO</span>
       </button>
       <button class="sidebar-link" onclick="mostrarPagina('relatorios');fecharSidebar()" spellcheck="false" autocorrect="off" autocapitalize="off">
         <span class="nav-icon">
@@ -799,7 +805,86 @@
       <button class="btn-primary" onclick="mostrarPagina('dashboard')"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Voltar ao Painel</button>
     </section>
 
+    <!-- FICHAS TÉCNICAS -->
+    <section id="pg-fichas" class="hidden page-section">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">🧾 Fichas Técnicas</h2>
+          <p class="page-subtitle">Custo real de produção e CMV das suas receitas</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn-primary" onclick="abrirModalFicha()">+ Nova Receita</button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div id="fichas-kpis" class="fichas-kpis-row">
+        <!-- preenchido por JS -->
+      </div>
+
+      <!-- Grid de cards -->
+      <div id="fichas-lista" class="fichas-grid">
+        <!-- preenchido por JS -->
+      </div>
+
+      <!-- Detalhe da ficha selecionada -->
+      <div id="fichas-detalhe" class="fichas-detalhe hidden">
+        <!-- preenchido por JS -->
+      </div>
+    </section>
+
   </main>
+</div>
+
+<!-- ── MODAL FICHA TÉCNICA ───────────────────────────────── -->
+<div id="modal-ficha" class="modal-backdrop hidden">
+  <div class="modal-box" style="max-width:600px;">
+    <div class="modal-header">
+      <h3 id="modal-ficha-titulo">Nova Receita</h3>
+      <button class="modal-close" onclick="fecharModalFicha()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ficha-id">
+      <div class="form-row-2">
+        <div class="form-group">
+          <label>Nome da receita *</label>
+          <input type="text" id="ficha-nome" class="form-control" placeholder="Ex: Pão Francês">
+        </div>
+        <div class="form-group">
+          <label>Preço de venda (R$)</label>
+          <input type="number" id="ficha-preco" class="form-control" placeholder="0,00" step="0.01">
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label>Rendimento *</label>
+          <input type="number" id="ficha-rendimento" class="form-control" value="1" min="0.1" step="0.1">
+        </div>
+        <div class="form-group">
+          <label>Unidade do rendimento</label>
+          <input type="text" id="ficha-unidade-rendimento" class="form-control" placeholder="unidades, kg, litros...">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Descrição</label>
+        <textarea id="ficha-descricao" class="form-control" rows="2" placeholder="Observações opcionais"></textarea>
+      </div>
+
+      <div style="margin-top:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <label style="font-weight:700;color:var(--slate-700);">Ingredientes</label>
+          <button class="btn-secondary" style="padding:5px 10px;font-size:12px;" onclick="adicionarLinhaIngrediente()">+ Ingrediente</button>
+        </div>
+        <div id="fichas-ingredientes-lista">
+          <!-- linhas de ingredientes -->
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="fecharModalFicha()">Cancelar</button>
+      <button class="btn-primary" onclick="salvarFicha()">Salvar Receita</button>
+    </div>
+  </div>
 </div>
 
 <!-- ── MODAL EDITAR PADARIA ───────────────────────────────── -->
