@@ -1811,29 +1811,25 @@ tr.tr-saida td { color: var(--red-600); }
   }
   .table-wrapper { overflow: visible !important; }
 
-  /* Tabela compacta para caber no papel */
-  table {
+  /* Tabelas no papel — sem layout fixo, deixa o browser distribuir */
+  #pg-relatorios table {
     font-size: 11px;
     width: 100%;
-    table-layout: fixed;
+    table-layout: auto;
+    border-collapse: collapse;
   }
-  table th, table td { padding: 6px 8px !important; word-break: break-word; }
-  /* Larguras das colunas: Produto 30%, Tipo 12%, Qtd 12%, Custo 14%, Total 14%, Data 18% */
-  #pg-relatorios table th:nth-child(1),
-  #pg-relatorios table td:nth-child(1) { width: 30%; }
-  #pg-relatorios table th:nth-child(2),
-  #pg-relatorios table td:nth-child(2) { width: 12%; }
-  #pg-relatorios table th:nth-child(3),
-  #pg-relatorios table td:nth-child(3) { width: 12%; }
-  #pg-relatorios table th:nth-child(4),
-  #pg-relatorios table td:nth-child(4) { width: 14%; }
-  #pg-relatorios table th:nth-child(5),
-  #pg-relatorios table td:nth-child(5) { width: 14%; }
-  #pg-relatorios table th:nth-child(6),
-  #pg-relatorios table td:nth-child(6) { width: 18%; }
+  #pg-relatorios table th,
+  #pg-relatorios table td {
+    padding: 5px 7px !important;
+    word-break: break-word;
+    white-space: normal !important;
+  }
+  /* Coluna de produto/nome sempre mais larga */
+  #pg-relatorios table th:first-child,
+  #pg-relatorios table td:first-child { width: 35%; }
 
   /* KPIs em linha */
-  #rel-kpis { grid-template-columns: repeat(4, 1fr) !important; }
+  #rel-kpis { grid-template-columns: repeat(3, 1fr) !important; }
 }
 
 /* ── Relatórios — novas seções ── */
@@ -1873,7 +1869,7 @@ tr.tr-saida td { color: var(--red-600); }
 
 /* Impressão — novas seções */
 @media print {
-  .rel-grid-2 { grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
+  /* Grid vira coluna única no papel para evitar aperto */
+  .rel-grid-2 { grid-template-columns: 1fr !important; gap: 10px !important; }
   .rel-variacao { display: none; }
-  #tabela-rel-movs td:nth-child(2) { font-size: 10px; }
 }
