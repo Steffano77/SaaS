@@ -2935,11 +2935,13 @@ async function excluirFicha(id) {
 // ── Helpers de moeda ──────────────────────────────────────────────────────
 function parseMoeda(str) {
   if (typeof str === 'number') return str;
-  // Aceita tanto "1.200,50" (BR) quanto "1200.50" (número puro)
-  const s = (str || '').trim();
+  const s = (str || '').trim().replace(/R\$\s*/g, '');
   if (!s) return 0;
-  // Formato BR: tem vírgula como separador decimal
+  // Formato BR com vírgula decimal: "1.200,50" ou "200.000,00"
   if (s.includes(',')) return parseFloat(s.replace(/\./g, '').replace(',', '.')) || 0;
+  // Número puro sem vírgula: "200000" ou "1200"
+  // Se tem ponto mas sem vírgula, trata como separador de milhar BR: "200.000" → 200000
+  if (s.includes('.')) return parseFloat(s.replace(/\./g, '')) || 0;
   return parseFloat(s) || 0;
 }
 function formatarMoedaBR(valor) {
