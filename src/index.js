@@ -139,6 +139,20 @@ app.use(express.static(path.join(__dirname, '../public')));
         taxa_pct FLOAT NOT NULL DEFAULT 0,
         participacao_pct FLOAT NOT NULL DEFAULT 0
       )`,
+      `CREATE TABLE IF NOT EXISTS producao_diaria (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        padaria_id INT NOT NULL,
+        data DATE NOT NULL,
+        observacao TEXT NULL,
+        criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS itens_producao (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        producao_id INT NOT NULL,
+        ficha_id INT NOT NULL,
+        quantidade FLOAT NOT NULL DEFAULT 1,
+        descontou_estoque TINYINT(1) NOT NULL DEFAULT 0
+      )`,
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
 

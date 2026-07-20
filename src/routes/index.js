@@ -896,4 +896,146 @@ router.put('/precificacao/modalidades', auth, authPro, wrap(async (req, res) => 
   res.json({ ok: true });
 }));
 
+// ── Controle de Produção ──────────────────────────────────────────────────
+// Middleware: apenas plano Premium (e admin) acessa produção
+const authPremium = wrap(async (req, res, next) => {
+  const db = require('../database/connection');
+  if (req.padaria.role === 'admin') return next();
+  const [[p]] = await db.query('SELECT plano FROM padarias WHERE id = ?', [req.padaria.id]);
+  if (!p || p.plano !== 'premium') {
+    return res.status(403).json({ erro: 'plano_insuficiente', plano: p ? p.plano : 'trial' });
+  }
+  next();
+});
+
+// Listar produções com total de itens
+router.get('/producao', auth, authPremium, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const [rows] = await db.query(`
+    SELECT pd.*, COUNT(ip.id) AS total_itens
+    FROM producao_diaria pd
+    LEFT JOIN itens_producao ip ON ip.producao_id = pd.id
+    WHERE pd.padaria_id = ?
+    GROUP BY pd.id
+    ORDER BY pd.data DESC, pd.criado_em DESC
+    LIMIT 30
+  `, [req.padaria.id]);
+  res.json(rows);
+}));
+
+// Buscar produção com itens
+router.get('/producao/:id', auth, authPremium, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const [[producao]] = await db.query(
+    'SELECT * FROM producao_diaria WHERE id = ? AND padaria_id = ?',
+    [req.params.id, req.padaria.id]
+  );
+  if (!producao) return res.status(404).json({ erro: 'Produção não encontrada.' });
+  const [itens] = await db.query(`
+    SELECT ip.*, ft.nome AS ficha_nome, ft.rendimento, ft.unidade_rendimento
+    FROM itens_producao ip
+    JOIN fichas_tecnicas ft ON ft.id = ip.ficha_id
+    WHERE ip.producao_id = ?
+  `, [req.params.id]);
+  res.json({ ...producao, itens });
+}));
+
+// Criar produção + itens + descontar estoque
+router.post('/producao', auth, authPremium, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const { data, observacao, itens } = req.body;
+  if (!data) return res.status(400).json({ erro: 'Data é obrigatória.' });
+  if (!Array.isArray(itens) || !itens.length) return res.status(400).json({ erro: 'Informe pelo menos um item.' });
+
+  const [rProd] = await db.query(
+    'INSERT INTO producao_diaria (padaria_id, data, observacao) VALUES (?, ?, ?)',
+    [req.padaria.id, data, observacao || null]
+  );
+  const producaoId = rProd.insertId;
+
+  for (const item of itens) {
+    const { ficha_id, quantidade } = item;
+    if (!ficha_id || !quantidade || quantidade <= 0) continue;
+
+    const [rItem] = await db.query(
+      'INSERT INTO itens_producao (producao_id, ficha_id, quantidade) VALUES (?, ?, ?)',
+      [producaoId, ficha_id, quantidade]
+    );
+    const itemId = rItem.insertId;
+
+    // Buscar ingredientes da ficha
+    const [ingredientes] = await db.query(`
+      SELECT ii.produto_id, ii.quantidade AS qtd_por_rendimento,
+             ft.rendimento, p.custo_unitario, p.nome AS prod_nome, p.unidade
+      FROM itens_ficha ii
+      JOIN fichas_tecnicas ft ON ft.id = ii.ficha_id
+      JOIN produtos p ON p.id = ii.produto_id
+      WHERE ii.ficha_id = ?
+    `, [ficha_id]);
+
+    for (const ing of ingredientes) {
+      const qtdSaida = (ing.qtd_por_rendimento / (ing.rendimento || 1)) * quantidade;
+      const valorTotal = qtdSaida * (ing.custo_unitario || 0);
+      const obs = `Produção #${producaoId} — ${ing.prod_nome}`;
+      await db.query(
+        'INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, valor_total, data, observacao) VALUES (?, ?, ?, ?, ?, NOW(), ?)',
+        [req.padaria.id, ing.produto_id, 'saida', qtdSaida, valorTotal, obs]
+      );
+      await db.query(
+        'UPDATE produtos SET estoque_atual = estoque_atual - ? WHERE id = ? AND padaria_id = ?',
+        [qtdSaida, ing.produto_id, req.padaria.id]
+      );
+    }
+
+    await db.query('UPDATE itens_producao SET descontou_estoque = 1 WHERE id = ?', [itemId]);
+  }
+
+  res.status(201).json({ id: producaoId, ok: true });
+}));
+
+// Cancelar produção (só do dia atual)
+router.delete('/producao/:id', auth, authPremium, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const [[producao]] = await db.query(
+    'SELECT *, DATE(data) = CURDATE() AS e_hoje FROM producao_diaria WHERE id = ? AND padaria_id = ?',
+    [req.params.id, req.padaria.id]
+  );
+  if (!producao) return res.status(404).json({ erro: 'Produção não encontrada.' });
+  if (!producao.e_hoje) return res.status(400).json({ erro: 'Só é possível cancelar produções do dia atual.' });
+
+  // Reverter estoque de itens já descontados
+  const [itens] = await db.query(
+    'SELECT * FROM itens_producao WHERE producao_id = ? AND descontou_estoque = 1',
+    [req.params.id]
+  );
+
+  for (const item of itens) {
+    const [ingredientes] = await db.query(`
+      SELECT ii.produto_id, ii.quantidade AS qtd_por_rendimento, ft.rendimento, p.custo_unitario
+      FROM itens_ficha ii
+      JOIN fichas_tecnicas ft ON ft.id = ii.ficha_id
+      JOIN produtos p ON p.id = ii.produto_id
+      WHERE ii.ficha_id = ?
+    `, [item.ficha_id]);
+
+    for (const ing of ingredientes) {
+      const qtdSaida = (ing.qtd_por_rendimento / (ing.rendimento || 1)) * item.quantidade;
+      const valorTotal = qtdSaida * (ing.custo_unitario || 0);
+      await db.query(
+        'INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, valor_total, data, observacao) VALUES (?, ?, ?, ?, ?, NOW(), ?)',
+        [req.padaria.id, ing.produto_id, 'entrada', qtdSaida, valorTotal, `Cancelamento produção #${req.params.id}`]
+      );
+      await db.query(
+        'UPDATE produtos SET estoque_atual = estoque_atual + ? WHERE id = ? AND padaria_id = ?',
+        [qtdSaida, ing.produto_id, req.padaria.id]
+      );
+    }
+  }
+
+  await db.query('DELETE FROM itens_producao WHERE producao_id = ?', [req.params.id]);
+  await db.query('DELETE FROM producao_diaria WHERE id = ? AND padaria_id = ?', [req.params.id, req.padaria.id]);
+
+  res.json({ ok: true });
+}));
+
 module.exports = router;

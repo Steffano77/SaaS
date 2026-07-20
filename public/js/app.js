@@ -273,7 +273,7 @@ function sair() {
 }
 
 // ── Navegação ───────────────────────────────────────────────
-const paginas = ['dashboard','estoque','compras','fornecedores','fichas','relatorios','sync','planos','404'];
+const paginas = ['dashboard','estoque','compras','fornecedores','fichas','producao','relatorios','sync','planos','404'];
 function mostrarPagina(pg, pushHistory = true) {
   if (!paginas.includes(pg)) { mostrarPagina('404'); return; }
   fecharSidebar();
@@ -291,6 +291,7 @@ function mostrarPagina(pg, pushHistory = true) {
   if (pg === 'fornecedores')   { carregarFornecedores(); }
   if (pg === 'relatorios')     { carregarRelatorios(); }
   if (pg === 'fichas')         { carregarFichas(); }
+  if (pg === 'producao')       { carregarProducao(); }
 }
 
 document.addEventListener('mousedown', e => {
@@ -3086,4 +3087,141 @@ function calcularPrecoSugerido(custoTotal, rendimento) {
   if (totalMkp >= 1) return null;
   const custoUnid = custoTotal / (rendimento || 1);
   return custoUnid / (1 - totalMkp);
+}
+
+// ── Controle de Produção ──────────────────────────────────────────────────
+let fichasCacheProducao = [];
+
+async function carregarProducao() {
+  const _btn = document.getElementById('btn-nova-producao');
+  if (!['premium'].includes(PLANO_ATUAL)) {
+    const lista = document.getElementById('prod-lista');
+    if (_btn) _btn.style.display = 'none';
+    if (lista) lista.innerHTML = `
+      <div class="fichas-lock">
+        <div class="fichas-lock-icon">🔒</div>
+        <h3>Controle de Produção — Plano Premium</h3>
+        <p>Registre produções diárias e baixe o estoque automaticamente pelas fichas técnicas.<br>
+           Disponível no plano <strong>Premium</strong>.</p>
+        <p style="color:var(--slate-400);font-size:13px;">Seu plano atual: <strong>${{ trial: 'Trial', essencial: 'Essencial', pro: 'Pro' }[PLANO_ATUAL] || PLANO_ATUAL}</strong></p>
+        <button onclick="mostrarPagina('planos')" class="btn-primary" style="margin-top:8px;padding:10px 28px;border-radius:10px;border:none;cursor:pointer;font-size:15px;font-weight:600;">Ver planos →</button>
+      </div>`;
+    return;
+  }
+  if (_btn) _btn.style.display = '';
+
+  const [producoes, fichas] = await Promise.all([
+    api('/producao'),
+    api('/fichas')
+  ]);
+  if (!producoes) return;
+  fichasCacheProducao = fichas || [];
+
+  // KPIs
+  const hoje = new Date().toISOString().slice(0, 10);
+  const prodHoje = producoes.filter(p => p.data && p.data.slice(0, 10) === hoje);
+  document.getElementById('prod-kpi-hoje').textContent = prodHoje.length;
+  document.getElementById('prod-kpi-receitas').textContent = prodHoje.reduce((a, p) => a + (p.total_itens || 0), 0);
+  document.getElementById('prod-kpi-total').textContent = producoes.length;
+
+  // Lista
+  const lista = document.getElementById('prod-lista');
+  if (!producoes.length) {
+    lista.innerHTML = '<p style="color:var(--slate-400);text-align:center;padding:40px;">Nenhuma produção registrada ainda.</p>';
+    return;
+  }
+
+  // Agrupar por data
+  const grupos = {};
+  producoes.forEach(p => {
+    const d = p.data ? p.data.slice(0, 10) : '—';
+    if (!grupos[d]) grupos[d] = [];
+    grupos[d].push(p);
+  });
+
+  lista.innerHTML = Object.entries(grupos).map(([data, prods]) => `
+    <div class="prod-grupo">
+      <div class="prod-grupo-header">${formatarDataBR(data)}</div>
+      ${prods.map(p => `
+        <div class="prod-card">
+          <div class="prod-card-info">
+            <span class="prod-card-icon">🏭</span>
+            <div>
+              <div class="prod-card-titulo">${p.total_itens} receita(s) produzida(s)</div>
+              ${p.observacao ? `<div class="prod-card-obs">${p.observacao}</div>` : ''}
+            </div>
+          </div>
+          <div class="prod-card-actions">
+            ${data === hoje ? `<button class="btn-danger-sm" onclick="cancelarProducao(${p.id})">Cancelar</button>` : ''}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function formatarDataBR(dataStr) {
+  if (!dataStr || dataStr === '—') return '—';
+  const [y, m, d] = dataStr.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function abrirModalProducao() {
+  const hoje = new Date().toISOString().slice(0, 10);
+  document.getElementById('prod-data').value = hoje;
+  document.getElementById('prod-obs').value = '';
+  document.getElementById('prod-itens-lista').innerHTML = '';
+  adicionarLinhaProducao();
+  document.getElementById('modal-producao').classList.remove('hidden');
+}
+
+function fecharModalProducao() {
+  document.getElementById('modal-producao').classList.add('hidden');
+}
+
+function adicionarLinhaProducao() {
+  const container = document.getElementById('prod-itens-lista');
+  const opts = fichasCacheProducao.map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
+  const div = document.createElement('div');
+  div.className = 'prod-item-linha';
+  div.innerHTML = `
+    <select class="form-input prod-ficha-sel" style="flex:1;">
+      <option value="">Selecione a receita...</option>
+      ${opts}
+    </select>
+    <input type="number" class="form-input prod-qtd" placeholder="Qtd" min="0.1" step="0.1" style="width:90px;" value="1">
+    <button class="btn-danger-sm" onclick="this.parentElement.remove()" style="padding:6px 10px;">✕</button>
+  `;
+  container.appendChild(div);
+}
+
+async function salvarProducao() {
+  const data = document.getElementById('prod-data').value;
+  const observacao = document.getElementById('prod-obs').value.trim();
+  if (!data) return mostrarToast('Informe a data da produção.', 'warn');
+
+  const linhas = document.querySelectorAll('#prod-itens-lista .prod-item-linha');
+  const itens = [];
+  for (const linha of linhas) {
+    const ficha_id = parseInt(linha.querySelector('.prod-ficha-sel').value);
+    const quantidade = parseFloat(linha.querySelector('.prod-qtd').value);
+    if (!ficha_id) continue;
+    if (!quantidade || quantidade <= 0) return mostrarToast('Informe a quantidade de cada receita.', 'warn');
+    itens.push({ ficha_id, quantidade });
+  }
+  if (!itens.length) return mostrarToast('Adicione pelo menos uma receita.', 'warn');
+
+  const r = await api('/producao', { method: 'POST', body: JSON.stringify({ data, observacao, itens }) });
+  if (!r) return;
+  fecharModalProducao();
+  mostrarToast('Produção registrada! Estoque atualizado.', 'ok');
+  carregarProducao();
+}
+
+async function cancelarProducao(id) {
+  if (!confirm('Cancelar esta produção? O estoque será revertido.')) return;
+  const r = await api(`/producao/${id}`, { method: 'DELETE' });
+  if (!r) return;
+  mostrarToast('Produção cancelada e estoque revertido.', 'info');
+  carregarProducao();
 }

@@ -213,6 +213,11 @@
         <span class="nav-label">Fichas Técnicas</span>
         <span class="nav-badge-pro">PRO</span>
       </button>
+      <button class="sidebar-link" onclick="mostrarPagina('producao');fecharSidebar()">
+        <span class="nav-icon">🏭</span>
+        <span class="nav-label">Produção</span>
+        <span class="nav-badge" style="background:#7c3aed;color:#fff;font-size:10px;padding:2px 6px;border-radius:6px;margin-left:auto;">PREMIUM</span>
+      </button>
       <button class="sidebar-link" onclick="mostrarPagina('relatorios');fecharSidebar()" spellcheck="false" autocorrect="off" autocapitalize="off">
         <span class="nav-icon">
           <svg class="icon-relatorios" width="18" height="18" viewBox="0 0 256 256" fill="currentColor"><rect x="32" y="128" width="48" height="88" rx="8" opacity="0.25"/><rect x="104" y="72" width="48" height="144" rx="8" opacity="0.25"/><rect x="176" y="32" width="48" height="184" rx="8"/></svg>
@@ -833,6 +838,28 @@
         <!-- preenchido por JS -->
       </div>
     </section>
+
+  <section id="pg-producao" class="hidden page-section">
+    <div class="page-header">
+      <div>
+        <h2 class="page-title">🏭 Controle de Produção</h2>
+        <p class="page-subtitle">Registre o que foi produzido e baixe o estoque automaticamente</p>
+      </div>
+      <div class="page-actions">
+        <button id="btn-nova-producao" class="btn-primary" onclick="abrirModalProducao()">+ Registrar Produção</button>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="prod-kpis-row">
+      <div class="kpi-card"><div class="kpi-label">Produções hoje</div><div class="kpi-value" id="prod-kpi-hoje">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">Receitas produzidas</div><div class="kpi-value" id="prod-kpi-receitas">—</div></div>
+      <div class="kpi-card"><div class="kpi-label">Itens no histórico</div><div class="kpi-value" id="prod-kpi-total">—</div></div>
+    </div>
+
+    <!-- Lista -->
+    <div id="prod-lista"></div>
+  </section>
 
   </main>
 </div>
@@ -1474,6 +1501,41 @@
     <div class="modal-footer">
       <button class="btn-secondary" onclick="fecharConfigPrecificacao()">Cancelar</button>
       <button class="btn-primary" onclick="salvarConfigPrecificacao()">💾 Salvar Configurações</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-producao" class="modal-backdrop hidden">
+  <div class="modal-box" style="max-width:560px;">
+    <div class="modal-header">
+      <h3>Registrar Produção</h3>
+      <button class="modal-close" onclick="fecharModalProducao()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Data da produção</label>
+        <input type="date" id="prod-data" class="form-input">
+      </div>
+      <div class="form-group">
+        <label>Observação (opcional)</label>
+        <input type="text" id="prod-obs" class="form-input" placeholder="Ex: produção da manhã">
+      </div>
+      <div style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <strong style="font-size:14px;">Receitas produzidas</strong>
+          <button class="btn-secondary" style="font-size:13px;padding:5px 12px;" onclick="adicionarLinhaProducao()">+ Adicionar receita</button>
+        </div>
+        <div id="prod-itens-lista">
+          <!-- linhas adicionadas por JS -->
+        </div>
+      </div>
+      <div style="background:var(--amber-50,#fffbeb);border:1px solid var(--amber-200,#fde68a);border-radius:10px;padding:12px;font-size:13px;color:var(--amber-800,#92400e);margin-bottom:16px;">
+        ⚠️ Ao salvar, os ingredientes serão <strong>descontados automaticamente do estoque</strong> com base nas fichas técnicas cadastradas.
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="fecharModalProducao()">Cancelar</button>
+        <button class="btn-primary" onclick="salvarProducao()">Registrar produção</button>
+      </div>
     </div>
   </div>
 </div>
