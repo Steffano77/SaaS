@@ -99,6 +99,24 @@ app.use(express.static(path.join(__dirname, '../public')));
       'ALTER TABLE padarias ADD COLUMN plano_bloqueado TINYINT(1) NOT NULL DEFAULT 0',
       // Expande ENUM de planos para incluir essencial e premium (Hotmart)
       "ALTER TABLE padarias MODIFY COLUMN plano ENUM('trial','basico','essencial','pro','premium') DEFAULT 'trial'",
+      `CREATE TABLE IF NOT EXISTS fichas_tecnicas (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        padaria_id INT NOT NULL,
+        nome VARCHAR(200) NOT NULL,
+        descricao TEXT NULL,
+        rendimento FLOAT NOT NULL DEFAULT 1,
+        unidade_rendimento VARCHAR(30) NOT NULL DEFAULT 'unidades',
+        preco_venda FLOAT NULL,
+        ativo TINYINT(1) NOT NULL DEFAULT 1,
+        criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS itens_ficha (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        ficha_id INT NOT NULL,
+        produto_id INT NOT NULL,
+        quantidade FLOAT NOT NULL,
+        unidade VARCHAR(30) NOT NULL DEFAULT 'un'
+      )`,
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
 

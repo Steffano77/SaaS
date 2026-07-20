@@ -711,6 +711,99 @@ router.delete('/admin/codigos/:id', auth, authAdmin, wrap(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// ── Fichas Técnicas ────────────────────────────────────────────────────────
+// Listar fichas com CMV calculado
+router.get('/fichas', auth, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const [fichas] = await db.query(
+    `SELECT f.*,
+            COUNT(i.id) AS total_ingredientes,
+            COALESCE(SUM(i.quantidade * p.custo_unitario), 0) AS custo_total
+     FROM fichas_tecnicas f
+     LEFT JOIN itens_ficha i ON i.ficha_id = f.id
+     LEFT JOIN produtos p ON p.id = i.produto_id
+     WHERE f.padaria_id = ? AND f.ativo = 1
+     GROUP BY f.id
+     ORDER BY f.nome`,
+    [req.padaria.id]
+  );
+  res.json(fichas);
+}));
+
+// Buscar ficha com ingredientes
+router.get('/fichas/:id', auth, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const [[ficha]] = await db.query(
+    'SELECT * FROM fichas_tecnicas WHERE id = ? AND padaria_id = ? AND ativo = 1',
+    [req.params.id, req.padaria.id]
+  );
+  if (!ficha) return res.status(404).json({ erro: 'Ficha não encontrada.' });
+
+  const [itens] = await db.query(
+    `SELECT i.*, p.nome AS produto_nome, p.unidade AS produto_unidade, p.custo_unitario,
+            (i.quantidade * p.custo_unitario) AS custo_item
+     FROM itens_ficha i
+     JOIN produtos p ON p.id = i.produto_id
+     WHERE i.ficha_id = ?
+     ORDER BY p.nome`,
+    [req.params.id]
+  );
+  res.json({ ...ficha, itens });
+}));
+
+// Criar ficha
+router.post('/fichas', auth, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const { nome, descricao, rendimento, unidade_rendimento, preco_venda, itens } = req.body;
+  if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório.' });
+
+  const [r] = await db.query(
+    'INSERT INTO fichas_tecnicas (padaria_id, nome, descricao, rendimento, unidade_rendimento, preco_venda) VALUES (?,?,?,?,?,?)',
+    [req.padaria.id, nome, descricao || null, rendimento || 1, unidade_rendimento || 'unidades', preco_venda || null]
+  );
+  const fichaId = r.insertId;
+
+  if (itens && itens.length) {
+    for (const item of itens) {
+      await db.query(
+        'INSERT INTO itens_ficha (ficha_id, produto_id, quantidade, unidade) VALUES (?,?,?,?)',
+        [fichaId, item.produto_id, item.quantidade, item.unidade || 'un']
+      );
+    }
+  }
+  res.status(201).json({ id: fichaId });
+}));
+
+// Atualizar ficha
+router.put('/fichas/:id', auth, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const { nome, descricao, rendimento, unidade_rendimento, preco_venda, itens } = req.body;
+  if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório.' });
+
+  await db.query(
+    'UPDATE fichas_tecnicas SET nome=?, descricao=?, rendimento=?, unidade_rendimento=?, preco_venda=? WHERE id=? AND padaria_id=?',
+    [nome, descricao || null, rendimento || 1, unidade_rendimento || 'unidades', preco_venda || null, req.params.id, req.padaria.id]
+  );
+
+  await db.query('DELETE FROM itens_ficha WHERE ficha_id = ?', [req.params.id]);
+  if (itens && itens.length) {
+    for (const item of itens) {
+      await db.query(
+        'INSERT INTO itens_ficha (ficha_id, produto_id, quantidade, unidade) VALUES (?,?,?,?)',
+        [req.params.id, item.produto_id, item.quantidade, item.unidade || 'un']
+      );
+    }
+  }
+  res.json({ ok: true });
+}));
+
+// Excluir ficha (soft delete)
+router.delete('/fichas/:id', auth, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  await db.query('UPDATE fichas_tecnicas SET ativo=0 WHERE id=? AND padaria_id=?', [req.params.id, req.padaria.id]);
+  res.json({ ok: true });
+}));
+
 // Rota pública para verificar código antes de preencher o formulário
 router.get('/auth/verificar-codigo/:codigo', wrap(async (req, res) => {
   const db = require('../database/connection');

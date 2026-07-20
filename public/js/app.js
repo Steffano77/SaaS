@@ -2692,3 +2692,210 @@ async function abrirHistoricoFornecedor(id, nome) {
         <div style="font-size:12px;color:var(--slate-400);margin-top:2px;">${r.produtos || '—'}</div>
       </div>`).join('')}`;
 }
+
+// ── Fichas Técnicas ────────────────────────────────────────────────────────
+let fichasCache = [];
+let produtosCache = [];
+let fichaEditandoItens = [];
+
+async function carregarFichas() {
+  const fichas = await api('/fichas');
+  if (!fichas) return;
+  fichasCache = fichas;
+
+  // KPIs
+  const cmvMedio = fichas.length
+    ? fichas.filter(f => f.preco_venda > 0)
+        .reduce((acc, f) => {
+          const cmv = f.preco_venda > 0 ? (f.custo_total / f.rendimento) / f.preco_venda * 100 : 0;
+          return acc + cmv;
+        }, 0) / Math.max(1, fichas.filter(f => f.preco_venda > 0).length)
+    : 0;
+
+  document.getElementById('fichas-kpis').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">Receitas</div><div class="kpi-value">${fichas.length}</div></div>
+    <div class="kpi-card"><div class="kpi-label">CMV Médio</div><div class="kpi-value" style="color:${cmvMedio < 35 ? '#16a34a' : cmvMedio < 50 ? '#f59e0b' : '#dc2626'}">${cmvMedio.toFixed(1)}%</div></div>
+  `;
+
+  // Grid de cards
+  if (!fichas.length) {
+    document.getElementById('fichas-lista').innerHTML = '<div class="empty-state"><p>Nenhuma receita cadastrada ainda.</p><button class="btn-primary" onclick="abrirModalFicha()">+ Criar primeira receita</button></div>';
+    return;
+  }
+
+  document.getElementById('fichas-lista').innerHTML = fichas.map(f => {
+    const custoPorUnidade = f.custo_total / (f.rendimento || 1);
+    const cmv = f.preco_venda > 0 ? (custoPorUnidade / f.preco_venda * 100) : null;
+    const margem = cmv ? 100 - cmv : null;
+    const cmvClass = cmv === null ? '' : cmv < 35 ? 'cmv-ok' : cmv < 50 ? 'cmv-warn' : 'cmv-bad';
+    const cmvLabel = cmv !== null ? `CMV ${cmv.toFixed(0)}%` : 'Sem preço';
+    return `
+      <div class="ficha-card" onclick="verFicha(${f.id})">
+        <div class="ficha-card-header">
+          <div>
+            <div class="ficha-nome">${f.nome}</div>
+            <div class="ficha-rendimento">Rende ${f.rendimento} ${f.unidade_rendimento}</div>
+          </div>
+          <span class="cmv-pill ${cmvClass}">${cmvLabel}</span>
+        </div>
+        <div class="ficha-metrics">
+          <div><div class="fm-label">Custo total</div><div class="fm-value">R$ ${parseFloat(f.custo_total||0).toFixed(2)}</div></div>
+          <div><div class="fm-label">Custo/unid.</div><div class="fm-value">R$ ${custoPorUnidade.toFixed(2)}</div></div>
+          <div><div class="fm-label">Preço venda</div><div class="fm-value">${f.preco_venda ? 'R$ '+parseFloat(f.preco_venda).toFixed(2) : '—'}</div></div>
+          <div><div class="fm-label">Margem</div><div class="fm-value" style="color:${margem && margem > 40 ? '#16a34a' : margem && margem > 20 ? '#f59e0b' : '#dc2626'}">${margem !== null ? margem.toFixed(0)+'%' : '—'}</div></div>
+        </div>
+        <div class="ficha-card-footer">
+          <span style="font-size:11px;color:var(--slate-400);">${f.total_ingredientes} ingredientes</span>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-ghost" style="padding:4px 10px;font-size:11px;" onclick="event.stopPropagation();editarFicha(${f.id})">✏️ Editar</button>
+            <button class="btn-danger" style="padding:4px 10px;font-size:11px;" onclick="event.stopPropagation();excluirFicha(${f.id})">🗑️</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function verFicha(id) {
+  const ficha = await api(`/fichas/${id}`);
+  if (!ficha) return;
+
+  const custoTotal = ficha.itens.reduce((s, i) => s + (i.custo_item || 0), 0);
+  const custoPorUnidade = custoTotal / (ficha.rendimento || 1);
+  const cmv = ficha.preco_venda > 0 ? (custoPorUnidade / ficha.preco_venda * 100) : null;
+  const margem = cmv ? 100 - cmv : null;
+
+  const det = document.getElementById('fichas-detalhe');
+  det.classList.remove('hidden');
+  det.innerHTML = `
+    <div class="ficha-detalhe-header">
+      <div>
+        <div class="ficha-detalhe-nome">🧾 ${ficha.nome}</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:2px;">Rende ${ficha.rendimento} ${ficha.unidade_rendimento}${ficha.descricao ? ' · '+ficha.descricao : ''}</div>
+      </div>
+    </div>
+    <div class="ficha-detalhe-summary">
+      <div class="fds-item"><div class="fds-label">Custo de produção</div><div class="fds-value">R$ ${custoTotal.toFixed(2)}</div></div>
+      <div class="fds-item"><div class="fds-label">Custo por unidade</div><div class="fds-value">R$ ${custoPorUnidade.toFixed(3)}</div></div>
+      <div class="fds-item"><div class="fds-label">CMV</div><div class="fds-value" style="color:${!cmv ? 'var(--slate-400)' : cmv < 35 ? '#16a34a' : cmv < 50 ? '#f59e0b' : '#dc2626'}">${cmv !== null ? cmv.toFixed(1)+'%' : '—'}</div></div>
+      <div class="fds-item"><div class="fds-label">Margem</div><div class="fds-value" style="color:${!margem ? 'var(--slate-400)' : margem > 40 ? '#16a34a' : margem > 20 ? '#f59e0b' : '#dc2626'}">${margem !== null ? margem.toFixed(1)+'%' : '—'}</div></div>
+    </div>
+    <table class="ficha-ingredientes-table">
+      <thead><tr><th>Ingrediente</th><th class="right">Quantidade</th><th class="right">Custo unit.</th><th class="right">Custo na receita</th></tr></thead>
+      <tbody>
+        ${ficha.itens.map(i => `<tr>
+          <td style="font-weight:600">${i.produto_nome}</td>
+          <td class="right">${i.quantidade} ${i.unidade}</td>
+          <td class="right">R$ ${parseFloat(i.custo_unitario||0).toFixed(4)}</td>
+          <td class="right" style="font-weight:700">R$ ${parseFloat(i.custo_item||0).toFixed(2)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    <div class="ficha-total-row">
+      <span>Custo total (${ficha.rendimento} ${ficha.unidade_rendimento})</span>
+      <span style="font-size:18px;font-weight:800;color:var(--orange)">R$ ${custoTotal.toFixed(2)}</span>
+    </div>
+  `;
+  det.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function abrirModalFicha(ficha = null) {
+  if (!produtosCache.length) {
+    const prods = await api('/produtos');
+    produtosCache = prods || [];
+  }
+  fichaEditandoItens = [];
+
+  document.getElementById('ficha-id').value = ficha ? ficha.id : '';
+  document.getElementById('modal-ficha-titulo').textContent = ficha ? 'Editar Receita' : 'Nova Receita';
+  document.getElementById('ficha-nome').value = ficha ? ficha.nome : '';
+  document.getElementById('ficha-preco').value = ficha ? (ficha.preco_venda || '') : '';
+  document.getElementById('ficha-rendimento').value = ficha ? ficha.rendimento : '1';
+  document.getElementById('ficha-unidade-rendimento').value = ficha ? ficha.unidade_rendimento : 'unidades';
+  document.getElementById('ficha-descricao').value = ficha ? (ficha.descricao || '') : '';
+  document.getElementById('fichas-ingredientes-lista').innerHTML = '';
+
+  if (ficha && ficha.itens) {
+    ficha.itens.forEach(i => adicionarLinhaIngrediente(i));
+  } else {
+    adicionarLinhaIngrediente();
+  }
+
+  document.getElementById('modal-ficha').classList.remove('hidden');
+}
+
+function fecharModalFicha() {
+  document.getElementById('modal-ficha').classList.add('hidden');
+}
+
+function adicionarLinhaIngrediente(item = null) {
+  const idx = fichaEditandoItens.length;
+  fichaEditandoItens.push(item || {});
+  const opts = produtosCache.map(p => `<option value="${p.id}" data-unidade="${p.unidade||'un'}" ${item && item.produto_id == p.id ? 'selected' : ''}>${p.nome} (${p.unidade||'un'})</option>`).join('');
+  const div = document.createElement('div');
+  div.className = 'ficha-ingrediente-linha';
+  div.innerHTML = `
+    <select class="form-control fi-produto" onchange="atualizarUnidadeIngrediente(this,${idx})">
+      <option value="">Selecionar produto...</option>${opts}
+    </select>
+    <input type="number" class="form-control fi-qtd" placeholder="Qtd" min="0" step="any" value="${item ? item.quantidade : ''}">
+    <input type="text" class="form-control fi-unidade" placeholder="un" value="${item ? item.unidade : 'un'}" style="width:70px;">
+    <button class="btn-danger" style="padding:6px 10px;font-size:12px;" onclick="this.parentElement.remove()">✕</button>
+  `;
+  document.getElementById('fichas-ingredientes-lista').appendChild(div);
+}
+
+function atualizarUnidadeIngrediente(sel, idx) {
+  const opt = sel.options[sel.selectedIndex];
+  const unidade = opt.dataset.unidade || 'un';
+  sel.parentElement.querySelector('.fi-unidade').value = unidade;
+}
+
+async function salvarFicha() {
+  const id = document.getElementById('ficha-id').value;
+  const linhas = document.querySelectorAll('.ficha-ingrediente-linha');
+  const itens = [];
+  for (const linha of linhas) {
+    const produto_id = linha.querySelector('.fi-produto').value;
+    const quantidade = parseFloat(linha.querySelector('.fi-qtd').value);
+    const unidade = linha.querySelector('.fi-unidade').value;
+    if (produto_id && quantidade > 0) itens.push({ produto_id: parseInt(produto_id), quantidade, unidade });
+  }
+
+  const body = {
+    nome: document.getElementById('ficha-nome').value.trim(),
+    preco_venda: parseFloat(document.getElementById('ficha-preco').value) || null,
+    rendimento: parseFloat(document.getElementById('ficha-rendimento').value) || 1,
+    unidade_rendimento: document.getElementById('ficha-unidade-rendimento').value.trim() || 'unidades',
+    descricao: document.getElementById('ficha-descricao').value.trim(),
+    itens,
+  };
+  if (!body.nome) return mostrarToast('Informe o nome da receita.', 'err');
+
+  const ok = id
+    ? await api(`/fichas/${id}`, { method: 'PUT', body })
+    : await api('/fichas', { method: 'POST', body });
+  if (!ok) return;
+
+  fecharModalFicha();
+  mostrarToast(id ? 'Receita atualizada!' : 'Receita criada!', 'ok');
+  carregarFichas();
+}
+
+async function editarFicha(id) {
+  const ficha = await api(`/fichas/${id}`);
+  if (!ficha) return;
+  if (!produtosCache.length) {
+    const prods = await api('/produtos');
+    produtosCache = prods || [];
+  }
+  await abrirModalFicha(ficha);
+}
+
+async function excluirFicha(id) {
+  if (!confirm('Excluir esta receita?')) return;
+  const ok = await api(`/fichas/${id}`, { method: 'DELETE' });
+  if (!ok) return;
+  mostrarToast('Receita excluída.', 'info');
+  document.getElementById('fichas-detalhe').classList.add('hidden');
+  carregarFichas();
+}
