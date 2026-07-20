@@ -1,9 +1,12 @@
 <template>
-  <div id="shell">
-    <SidebarNav v-if="auth.logado" />
-    <main :class="auth.logado ? 'com-sidebar' : ''">
+  <div v-if="auth.logado" class="app-layout">
+    <SidebarNav />
+    <main class="main-content">
       <RouterView />
     </main>
+  </div>
+  <div v-else>
+    <RouterView />
   </div>
 </template>
 
