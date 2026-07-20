@@ -2945,7 +2945,7 @@ function parseMoeda(str) {
   return parseFloat(s) || 0;
 }
 function formatarMoedaBR(valor) {
-  return parseFloat(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  return parseFloat(valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 function mascaraMoeda(input) {
   const v = parseMoeda(input.value);
