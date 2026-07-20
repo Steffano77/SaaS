@@ -2943,7 +2943,7 @@ function parseMoeda(str) {
   return parseFloat(s) || 0;
 }
 function formatarMoedaBR(valor) {
-  return parseFloat(valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return parseFloat(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 function mascaraMoeda(input) {
   const v = parseMoeda(input.value);
@@ -2963,9 +2963,7 @@ async function abrirConfigPrecificacao() {
   precModalidades = data.modalidades || [];
 
   const fatEl = document.getElementById('prec-faturamento');
-  fatEl.value = precConfig.faturamento_medio
-    ? parseFloat(precConfig.faturamento_medio).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    : '';
+  fatEl.value = precConfig.faturamento_medio ? formatarMoedaBR(precConfig.faturamento_medio) : '';
   fatEl.onblur = function() { mascaraMoeda(this); atualizarResumoPrecificacao(); };
   document.getElementById('prec-lucro').value = precConfig.lucro_desejado_pct || 10;
   document.getElementById('prec-imposto').value = precConfig.imposto_pct || 5;
@@ -2990,7 +2988,7 @@ function renderizarDespesas() {
     lista.innerHTML = precDespesas.map((d, i) => `
       <div class="prec-linha" style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;margin-bottom:6px;">
         <input type="text" class="form-control" value="${d.nome}" onchange="precDespesas[${i}].nome=this.value;atualizarResumoPrecificacao()" placeholder="Nome da despesa">
-        <input type="text" class="form-control" value="${d.valor ? parseFloat(d.valor).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) : ''}" style="width:130px;" onblur="mascaraMoeda(this);precDespesas[${i}].valor=parseMoeda(this.value);atualizarResumoPrecificacao()" placeholder="0,00">
+        <input type="text" class="form-control" value="${d.valor ? formatarMoedaBR(d.valor) : ''}" style="width:150px;" onblur="mascaraMoeda(this);precDespesas[${i}].valor=parseMoeda(this.value);atualizarResumoPrecificacao()" placeholder="R$ 0,00">
         <button class="btn-danger" style="padding:6px 10px;" onclick="precDespesas.splice(${i},1);renderizarDespesas();atualizarResumoPrecificacao()">✕</button>
       </div>`).join('');
   }
