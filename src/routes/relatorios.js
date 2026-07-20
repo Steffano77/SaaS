@@ -89,9 +89,10 @@ router.get('/mes', auth, wrap(async (req, res) => {
        ORDER BY m.data DESC LIMIT 500`,
       [req.padaria.id, mes]),
 
-    // Top 5 produtos mais movimentados — LEFT JOIN para incluir produtos excluídos
-    q(`SELECT COALESCE(p.nome, '[Produto removido]') AS nome,
-              COALESCE(p.unidade, 'un') AS unidade,
+    // Top 5 produtos mais movimentados
+    q(`SELECT m.produto_id,
+              COALESCE(MAX(p.nome), '[Produto removido]') AS nome,
+              COALESCE(MAX(p.unidade), 'un') AS unidade,
               COUNT(*) AS qtd_movs,
               SUM(CASE WHEN m.tipo IN ('entrada','sync_saurus') THEN m.quantidade ELSE 0 END) AS entradas,
               SUM(CASE WHEN m.tipo = 'saida' THEN m.quantidade ELSE 0 END) AS saidas
@@ -102,13 +103,13 @@ router.get('/mes', auth, wrap(async (req, res) => {
        ORDER BY qtd_movs DESC LIMIT 5`,
       [req.padaria.id, mes]),
 
-    // Por categoria
+    // Por categoria — LEFT JOIN para incluir produtos excluídos
     q(`SELECT COALESCE(c.nome, 'Sem categoria') AS categoria,
               SUM(CASE WHEN m.tipo IN ('entrada','sync_saurus') THEN m.valor_total ELSE 0 END) AS total_entradas,
               SUM(CASE WHEN m.tipo = 'saida' THEN m.valor_total ELSE 0 END) AS total_saidas,
               COUNT(*) AS movs
        FROM movimentacoes m
-       JOIN produtos p ON p.id = m.produto_id
+       LEFT JOIN produtos p ON p.id = m.produto_id
        LEFT JOIN categorias c ON c.id = p.categoria_id
        WHERE m.padaria_id = ? AND DATE_FORMAT(m.data, '%Y-%m') = ?
        GROUP BY c.id
