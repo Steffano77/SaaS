@@ -2,7 +2,7 @@
   <aside class="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-brand">
-        <img src="/img/logo-escuro.svg" alt="PanificaPro" class="sidebar-brand-svg" />
+        <img :src="logoUrl" alt="PanificaPro" class="sidebar-brand-svg" />
       </div>
       <div class="sidebar-user">
         <div class="sidebar-user-label">Logado como</div>
@@ -53,6 +53,7 @@
 <script setup>
 import { useAuthStore } from '@/stores/auth'
 const auth = useAuthStore()
+const logoUrl = '/img/logo-escuro.svg'
 </script>
 
 <style scoped>
