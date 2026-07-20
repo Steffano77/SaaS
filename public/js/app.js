@@ -2932,6 +2932,17 @@ async function excluirFicha(id) {
   carregarFichas();
 }
 
+// ── Helpers de moeda ──────────────────────────────────────────────────────
+function mascaraMoeda(input) {
+  let v = input.value.replace(/\D/g, '');
+  v = (parseInt(v || '0', 10) / 100).toFixed(2);
+  input.value = parseFloat(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function parseMoeda(str) {
+  if (typeof str === 'number') return str;
+  return parseFloat((str || '0').replace(/\./g, '').replace(',', '.')) || 0;
+}
+
 // ── Precificação ──────────────────────────────────────────────────────────
 let precConfig = { faturamento_medio: 0, imposto_pct: 5, perda_pct: 2, lucro_desejado_pct: 10 };
 let precDespesas = [];
@@ -2944,7 +2955,11 @@ async function abrirConfigPrecificacao() {
   precDespesas = data.despesas || [];
   precModalidades = data.modalidades || [];
 
-  document.getElementById('prec-faturamento').value = precConfig.faturamento_medio || '';
+  const fatEl = document.getElementById('prec-faturamento');
+  fatEl.value = precConfig.faturamento_medio
+    ? parseFloat(precConfig.faturamento_medio).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '';
+  fatEl.oninput = function() { mascaraMoeda(this); atualizarResumoPrecificacao(); };
   document.getElementById('prec-lucro').value = precConfig.lucro_desejado_pct || 10;
   document.getElementById('prec-imposto').value = precConfig.imposto_pct || 5;
   document.getElementById('prec-perda').value = precConfig.perda_pct || 2;
@@ -2968,12 +2983,12 @@ function renderizarDespesas() {
     lista.innerHTML = precDespesas.map((d, i) => `
       <div class="prec-linha" style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;margin-bottom:6px;">
         <input type="text" class="form-control" value="${d.nome}" onchange="precDespesas[${i}].nome=this.value;atualizarResumoPrecificacao()" placeholder="Nome da despesa">
-        <input type="number" class="form-control" value="${d.valor}" style="width:130px;" step="100" onchange="precDespesas[${i}].valor=parseFloat(this.value)||0;atualizarResumoPrecificacao()" placeholder="R$ 0,00">
+        <input type="text" class="form-control" value="${d.valor ? parseFloat(d.valor).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) : ''}" style="width:130px;" oninput="mascaraMoeda(this);precDespesas[${i}].valor=parseMoeda(this.value);atualizarResumoPrecificacao()" placeholder="R$ 0,00">
         <button class="btn-danger" style="padding:6px 10px;" onclick="precDespesas.splice(${i},1);renderizarDespesas();atualizarResumoPrecificacao()">✕</button>
       </div>`).join('');
   }
   const total = precDespesas.reduce((s, d) => s + (parseFloat(d.valor) || 0), 0);
-  const fat = parseFloat(document.getElementById('prec-faturamento')?.value) || precConfig.faturamento_medio || 0;
+  const fat = parseMoeda(document.getElementById('prec-faturamento')?.value) || precConfig.faturamento_medio || 0;
   const pct = fat > 0 ? (total / fat * 100).toFixed(1) : '—';
   document.getElementById('prec-despesas-total').innerHTML =
     `<span>Total despesas fixas</span><span style="font-weight:800">R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})} <span style="color:var(--orange);font-size:13px;">(${pct}% do fat.)</span></span>`;
@@ -3012,7 +3027,7 @@ function adicionarModalidade() {
 }
 
 function atualizarResumoPrecificacao() {
-  const fat = parseFloat(document.getElementById('prec-faturamento')?.value) || 0;
+  const fat = parseMoeda(document.getElementById('prec-faturamento')?.value);
   const imposto = parseFloat(document.getElementById('prec-imposto')?.value) || 0;
   const perda = parseFloat(document.getElementById('prec-perda')?.value) || 0;
   const lucro = parseFloat(document.getElementById('prec-lucro')?.value) || 0;
@@ -3051,7 +3066,7 @@ function atualizarResumoPrecificacao() {
 }
 
 async function salvarConfigPrecificacao() {
-  const fat = parseFloat(document.getElementById('prec-faturamento').value) || 0;
+  const fat = parseMoeda(document.getElementById('prec-faturamento').value);
   const imposto = parseFloat(document.getElementById('prec-imposto').value) || 5;
   const perda = parseFloat(document.getElementById('prec-perda').value) || 2;
   const lucro = parseFloat(document.getElementById('prec-lucro').value) || 10;
