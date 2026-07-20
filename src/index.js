@@ -151,10 +151,7 @@ app.use('/api', require('./routes'));
 
 app.get('/api/health', (_, res) => res.json({ ok: true, versao: '1.0.0' }));
 
-// Vue app fallback (hash routing — /app/* serves the Vue index)
-app.get('/app', (_, res) => res.sendFile(path.join(__dirname, '../public/app/index.html')));
-
-// Legacy SPA fallback
+// SPA fallback
 app.get('*', (_, res) => res.sendFile(path.join(__dirname, '../public/index.html')));
 
 // Tratamento global de erros — nunca vaza stack trace para o cliente
