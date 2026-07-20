@@ -1972,3 +1972,48 @@ tr.tr-saida td { color: var(--red-600); }
   display: flex; gap: 10px; justify-content: flex-end;
   padding: 16px 20px; border-top: 1px solid var(--slate-100);
 }
+
+/* ── Precificação ── */
+.prec-section {
+  background: var(--slate-50); border-radius: 10px;
+  padding: 16px; margin-bottom: 16px;
+  border: 1px solid var(--slate-100);
+}
+.prec-section-title {
+  font-size: 13px; font-weight: 700; color: var(--navy);
+  margin-bottom: 14px;
+}
+.prec-total-row {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--slate-100); border-radius: 8px;
+  padding: 8px 12px; font-size: 13px; font-weight: 600;
+  color: var(--slate-700); margin-top: 6px;
+}
+.prec-resumo {
+  background: var(--navy); border-radius: 10px;
+  padding: 16px; margin-top: 4px;
+}
+.prec-resumo-title {
+  font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 12px;
+}
+.prec-resumo-grid { display: flex; flex-direction: column; gap: 6px; }
+.prec-resumo-item {
+  display: flex; justify-content: space-between;
+  font-size: 13px; color: rgba(255,255,255,0.75);
+  padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.prec-resumo-item.total {
+  font-size: 14px; font-weight: 800; color: #fff;
+  border-top: 1px solid rgba(255,255,255,0.2);
+  margin-top: 4px; padding-top: 8px; border-bottom: none;
+}
+.prec-resumo-item.cmv {
+  font-size: 13px; font-weight: 700; color: var(--orange);
+  border-bottom: none;
+}
+.prec-formula {
+  margin-top: 12px; font-size: 12px; color: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.06); border-radius: 6px; padding: 8px 12px;
+}
+.form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ficha-detalhe-summary { grid-template-columns: repeat(5,1fr); }

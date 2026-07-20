@@ -813,4 +813,76 @@ router.get('/auth/verificar-codigo/:codigo', wrap(async (req, res) => {
   res.json({ valido: true, plano: rows[0].plano });
 }));
 
+// ── Configurações de Precificação ─────────────────────────────────────────
+
+// GET config + despesas + modalidades
+router.get('/precificacao/config', auth, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const [[config]] = await db.query(
+    'SELECT * FROM config_precificacao WHERE padaria_id = ?', [req.padaria.id]
+  );
+  const [despesas] = await db.query(
+    'SELECT * FROM despesas_fixas_config WHERE padaria_id = ? ORDER BY ordem, id', [req.padaria.id]
+  );
+  const [modalidades] = await db.query(
+    'SELECT * FROM modalidades_pagamento WHERE padaria_id = ? ORDER BY id', [req.padaria.id]
+  );
+  res.json({
+    config: config || { faturamento_medio: 0, imposto_pct: 5, perda_pct: 2, lucro_desejado_pct: 10 },
+    despesas,
+    modalidades,
+  });
+}));
+
+// PUT config geral
+router.put('/precificacao/config', auth, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const { faturamento_medio, imposto_pct, perda_pct, lucro_desejado_pct } = req.body;
+  await db.query(
+    `INSERT INTO config_precificacao (padaria_id, faturamento_medio, imposto_pct, perda_pct, lucro_desejado_pct)
+     VALUES (?,?,?,?,?)
+     ON DUPLICATE KEY UPDATE faturamento_medio=VALUES(faturamento_medio), imposto_pct=VALUES(imposto_pct),
+       perda_pct=VALUES(perda_pct), lucro_desejado_pct=VALUES(lucro_desejado_pct)`,
+    [req.padaria.id, faturamento_medio||0, imposto_pct||5, perda_pct||2, lucro_desejado_pct||10]
+  );
+  res.json({ ok: true });
+}));
+
+// PUT despesas fixas (substitui todas)
+router.put('/precificacao/despesas', auth, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const { despesas } = req.body; // [{nome, valor}]
+  await db.query('DELETE FROM despesas_fixas_config WHERE padaria_id = ?', [req.padaria.id]);
+  if (despesas && despesas.length) {
+    for (let i = 0; i < despesas.length; i++) {
+      const d = despesas[i];
+      if (d.nome && d.valor >= 0) {
+        await db.query(
+          'INSERT INTO despesas_fixas_config (padaria_id, nome, valor, ordem) VALUES (?,?,?,?)',
+          [req.padaria.id, d.nome, d.valor, i]
+        );
+      }
+    }
+  }
+  res.json({ ok: true });
+}));
+
+// PUT modalidades (substitui todas)
+router.put('/precificacao/modalidades', auth, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const { modalidades } = req.body; // [{nome, taxa_pct, participacao_pct}]
+  await db.query('DELETE FROM modalidades_pagamento WHERE padaria_id = ?', [req.padaria.id]);
+  if (modalidades && modalidades.length) {
+    for (const m of modalidades) {
+      if (m.nome) {
+        await db.query(
+          'INSERT INTO modalidades_pagamento (padaria_id, nome, taxa_pct, participacao_pct) VALUES (?,?,?,?)',
+          [req.padaria.id, m.nome, m.taxa_pct||0, m.participacao_pct||0]
+        );
+      }
+    }
+  }
+  res.json({ ok: true });
+}));
+
 module.exports = router;

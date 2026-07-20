@@ -2778,6 +2778,12 @@ async function verFicha(id) {
       <div class="fds-item"><div class="fds-label">Custo por unidade</div><div class="fds-value">R$ ${custoPorUnidade.toFixed(3)}</div></div>
       <div class="fds-item"><div class="fds-label">CMV</div><div class="fds-value" style="color:${!cmv ? 'var(--slate-400)' : cmv < 35 ? '#16a34a' : cmv < 50 ? '#f59e0b' : '#dc2626'}">${cmv !== null ? cmv.toFixed(1)+'%' : '—'}</div></div>
       <div class="fds-item"><div class="fds-label">Margem</div><div class="fds-value" style="color:${!margem ? 'var(--slate-400)' : margem > 40 ? '#16a34a' : margem > 20 ? '#f59e0b' : '#dc2626'}">${margem !== null ? margem.toFixed(1)+'%' : '—'}</div></div>
+      <div class="fds-item">
+        <div class="fds-label">Preço Sugerido</div>
+        <div class="fds-value" style="color:var(--orange)">
+          ${(() => { const ps = calcularPrecoSugerido(custoTotal, ficha.rendimento); return ps ? 'R$ '+ps.toFixed(2) : '—'; })()}
+        </div>
+      </div>
     </div>
     <table class="ficha-ingredientes-table">
       <thead><tr><th>Ingrediente</th><th class="right">Quantidade</th><th class="right">Custo unit.</th><th class="right">Custo na receita</th></tr></thead>
@@ -2898,4 +2904,161 @@ async function excluirFicha(id) {
   mostrarToast('Receita excluída.', 'info');
   document.getElementById('fichas-detalhe').classList.add('hidden');
   carregarFichas();
+}
+
+// ── Precificação ──────────────────────────────────────────────────────────
+let precConfig = { faturamento_medio: 0, imposto_pct: 5, perda_pct: 2, lucro_desejado_pct: 10 };
+let precDespesas = [];
+let precModalidades = [];
+
+async function abrirConfigPrecificacao() {
+  const data = await api('/precificacao/config');
+  if (!data) return;
+  precConfig = data.config || precConfig;
+  precDespesas = data.despesas || [];
+  precModalidades = data.modalidades || [];
+
+  document.getElementById('prec-faturamento').value = precConfig.faturamento_medio || '';
+  document.getElementById('prec-lucro').value = precConfig.lucro_desejado_pct || 10;
+  document.getElementById('prec-imposto').value = precConfig.imposto_pct || 5;
+  document.getElementById('prec-perda').value = precConfig.perda_pct || 2;
+
+  renderizarDespesas();
+  renderizarModalidades();
+  atualizarResumoPrecificacao();
+
+  document.getElementById('modal-precificacao').classList.remove('hidden');
+}
+
+function fecharConfigPrecificacao() {
+  document.getElementById('modal-precificacao').classList.add('hidden');
+}
+
+function renderizarDespesas() {
+  const lista = document.getElementById('prec-despesas-lista');
+  if (!precDespesas.length) {
+    lista.innerHTML = '<div style="color:var(--slate-400);font-size:13px;padding:8px 0;">Nenhuma despesa cadastrada.</div>';
+  } else {
+    lista.innerHTML = precDespesas.map((d, i) => `
+      <div class="prec-linha" style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;margin-bottom:6px;">
+        <input type="text" class="form-control" value="${d.nome}" onchange="precDespesas[${i}].nome=this.value;atualizarResumoPrecificacao()" placeholder="Nome da despesa">
+        <input type="number" class="form-control" value="${d.valor}" style="width:130px;" step="100" onchange="precDespesas[${i}].valor=parseFloat(this.value)||0;atualizarResumoPrecificacao()" placeholder="R$ 0,00">
+        <button class="btn-danger" style="padding:6px 10px;" onclick="precDespesas.splice(${i},1);renderizarDespesas();atualizarResumoPrecificacao()">✕</button>
+      </div>`).join('');
+  }
+  const total = precDespesas.reduce((s, d) => s + (parseFloat(d.valor) || 0), 0);
+  const fat = parseFloat(document.getElementById('prec-faturamento')?.value) || precConfig.faturamento_medio || 0;
+  const pct = fat > 0 ? (total / fat * 100).toFixed(1) : '—';
+  document.getElementById('prec-despesas-total').innerHTML =
+    `<span>Total despesas fixas</span><span style="font-weight:800">R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})} <span style="color:var(--orange);font-size:13px;">(${pct}% do fat.)</span></span>`;
+}
+
+function adicionarDespesaFixa() {
+  precDespesas.push({ nome: '', valor: 0 });
+  renderizarDespesas();
+}
+
+function renderizarModalidades() {
+  const lista = document.getElementById('prec-modalidades-lista');
+  if (!precModalidades.length) {
+    lista.innerHTML = '<div style="color:var(--slate-400);font-size:13px;padding:8px 0;">Nenhuma modalidade cadastrada.</div>';
+  } else {
+    lista.innerHTML = precModalidades.map((m, i) => `
+      <div style="display:grid;grid-template-columns:1fr 80px 90px auto;gap:8px;align-items:center;margin-bottom:6px;">
+        <input type="text" class="form-control" value="${m.nome}" onchange="precModalidades[${i}].nome=this.value" placeholder="Ex: Crédito">
+        <input type="number" class="form-control" value="${m.taxa_pct}" step="0.1" onchange="precModalidades[${i}].taxa_pct=parseFloat(this.value)||0;atualizarResumoPrecificacao()" placeholder="0,0">
+        <input type="number" class="form-control" value="${m.participacao_pct}" step="1" onchange="precModalidades[${i}].participacao_pct=parseFloat(this.value)||0;atualizarResumoPrecificacao()" placeholder="0">
+        <button class="btn-danger" style="padding:6px 10px;" onclick="precModalidades.splice(${i},1);renderizarModalidades();atualizarResumoPrecificacao()">✕</button>
+      </div>`).join('');
+  }
+  // Taxa ponderada
+  const totalPart = precModalidades.reduce((s, m) => s + (parseFloat(m.participacao_pct)||0), 0);
+  const taxaPond = totalPart > 0
+    ? precModalidades.reduce((s, m) => s + (parseFloat(m.taxa_pct)||0) * (parseFloat(m.participacao_pct)||0), 0) / totalPart
+    : 0;
+  document.getElementById('prec-modalidades-resultado').innerHTML =
+    `<span>Taxa ponderada de venda</span><span style="font-weight:800;color:var(--orange)">${taxaPond.toFixed(2)}%</span>`;
+}
+
+function adicionarModalidade() {
+  precModalidades.push({ nome: '', taxa_pct: 0, participacao_pct: 0 });
+  renderizarModalidades();
+}
+
+function atualizarResumoPrecificacao() {
+  const fat = parseFloat(document.getElementById('prec-faturamento')?.value) || 0;
+  const imposto = parseFloat(document.getElementById('prec-imposto')?.value) || 0;
+  const perda = parseFloat(document.getElementById('prec-perda')?.value) || 0;
+  const lucro = parseFloat(document.getElementById('prec-lucro')?.value) || 0;
+
+  const totalDespesas = precDespesas.reduce((s, d) => s + (parseFloat(d.valor)||0), 0);
+  const despesasPct = fat > 0 ? totalDespesas / fat * 100 : 0;
+
+  const totalPart = precModalidades.reduce((s, m) => s + (parseFloat(m.participacao_pct)||0), 0);
+  const taxaVenda = totalPart > 0
+    ? precModalidades.reduce((s, m) => s + (parseFloat(m.taxa_pct)||0) * (parseFloat(m.participacao_pct)||0), 0) / totalPart
+    : 0;
+
+  const totalMkp = imposto + taxaVenda + despesasPct + perda + lucro;
+  const cmvMeta = Math.max(0, 100 - totalMkp);
+
+  const resumo = document.getElementById('prec-resumo');
+  if (!resumo) return;
+  resumo.innerHTML = `
+    <div class="prec-resumo-title">📋 Resumo para Formação de Preço</div>
+    <div class="prec-resumo-grid">
+      <div class="prec-resumo-item"><span>Impostos</span><span>${imposto.toFixed(1)}%</span></div>
+      <div class="prec-resumo-item"><span>Despesas de venda (taxa pond.)</span><span>${taxaVenda.toFixed(2)}%</span></div>
+      <div class="prec-resumo-item"><span>Despesas fixas</span><span>${despesasPct.toFixed(1)}%</span></div>
+      <div class="prec-resumo-item"><span>Perdas</span><span>${perda.toFixed(1)}%</span></div>
+      <div class="prec-resumo-item"><span>Lucro desejado</span><span>${lucro.toFixed(1)}%</span></div>
+      <div class="prec-resumo-item total"><span>TOTAL MARKUP</span><span>${totalMkp.toFixed(1)}%</span></div>
+      <div class="prec-resumo-item cmv"><span>CMV Meta (ingredientes)</span><span>${cmvMeta.toFixed(1)}%</span></div>
+    </div>
+    <div class="prec-formula">
+      💡 Preço Sugerido = Custo ingredientes ÷ ${(cmvMeta/100).toFixed(4)} &nbsp;|&nbsp; ou × ${cmvMeta > 0 ? (1/(cmvMeta/100)).toFixed(2) : '∞'}
+    </div>
+  `;
+  // Atualiza renderização das despesas (para recalcular % com faturamento novo)
+  const listaEl = document.getElementById('prec-despesas-lista');
+  if (listaEl && listaEl.children.length) renderizarDespesas();
+}
+
+async function salvarConfigPrecificacao() {
+  const fat = parseFloat(document.getElementById('prec-faturamento').value) || 0;
+  const imposto = parseFloat(document.getElementById('prec-imposto').value) || 5;
+  const perda = parseFloat(document.getElementById('prec-perda').value) || 2;
+  const lucro = parseFloat(document.getElementById('prec-lucro').value) || 10;
+
+  const [r1, r2, r3] = await Promise.all([
+    api('/precificacao/config', { method: 'PUT', body: { faturamento_medio: fat, imposto_pct: imposto, perda_pct: perda, lucro_desejado_pct: lucro } }),
+    api('/precificacao/despesas', { method: 'PUT', body: { despesas: precDespesas } }),
+    api('/precificacao/modalidades', { method: 'PUT', body: { modalidades: precModalidades } }),
+  ]);
+
+  if (r1 && r2 && r3) {
+    mostrarToast('Configurações salvas!', 'ok');
+    fecharConfigPrecificacao();
+    // Recarregar fichas para atualizar preços sugeridos
+    carregarFichas();
+  }
+}
+
+// Calcula preço sugerido para uma ficha com base na config atual
+function calcularPrecoSugerido(custoTotal, rendimento) {
+  if (!precConfig || !precConfig.faturamento_medio) return null;
+  const fat = precConfig.faturamento_medio || 0;
+  const imposto = precConfig.imposto_pct || 0;
+  const perda = precConfig.perda_pct || 0;
+  const lucro = precConfig.lucro_desejado_pct || 0;
+  const totalDespesas = precDespesas.reduce((s, d) => s + (parseFloat(d.valor)||0), 0);
+  const despesasPct = fat > 0 ? totalDespesas / fat * 100 : 0;
+  const totalPart = precModalidades.reduce((s, m) => s + (parseFloat(m.participacao_pct)||0), 0);
+  const taxaVenda = totalPart > 0
+    ? precModalidades.reduce((s, m) => s + (parseFloat(m.taxa_pct)||0) * (parseFloat(m.participacao_pct)||0), 0) / totalPart
+    : 0;
+  const totalMkp = (imposto + taxaVenda + despesasPct + perda + lucro) / 100;
+  if (totalMkp >= 1) return null;
+  const custoUnid = custoTotal / (rendimento || 1);
+  return custoUnid / (1 - totalMkp);
 }
