@@ -77,24 +77,28 @@ router.get('/mes', auth, wrap(async (req, res) => {
        WHERE padaria_id = ? AND DATE_FORMAT(data, '%Y-%m') = ?`,
       [req.padaria.id, mesAnterior]),
 
-    // Movimentações detalhadas
-    q(`SELECT m.tipo, m.quantidade, m.custo_unit, m.valor_total, m.data,
-              p.nome AS produto, COALESCE(c.nome, 'Sem categoria') AS categoria
+    // Movimentações detalhadas — LEFT JOIN para incluir produtos excluídos
+    q(`SELECT m.tipo, m.quantidade, m.custo_unit, m.valor_total,
+              DATE_FORMAT(m.data, '%Y-%m-%dT%H:%i:%s') AS data,
+              COALESCE(p.nome, '[Produto removido]') AS produto,
+              COALESCE(c.nome, 'Sem categoria') AS categoria
        FROM movimentacoes m
-       JOIN produtos p ON p.id = m.produto_id
+       LEFT JOIN produtos p ON p.id = m.produto_id
        LEFT JOIN categorias c ON c.id = p.categoria_id
        WHERE m.padaria_id = ? AND DATE_FORMAT(m.data, '%Y-%m') = ?
        ORDER BY m.data DESC LIMIT 500`,
       [req.padaria.id, mes]),
 
-    // Top 5 produtos mais movimentados
-    q(`SELECT p.nome, p.unidade, COUNT(*) AS qtd_movs,
+    // Top 5 produtos mais movimentados — LEFT JOIN para incluir produtos excluídos
+    q(`SELECT COALESCE(p.nome, '[Produto removido]') AS nome,
+              COALESCE(p.unidade, 'un') AS unidade,
+              COUNT(*) AS qtd_movs,
               SUM(CASE WHEN m.tipo IN ('entrada','sync_saurus') THEN m.quantidade ELSE 0 END) AS entradas,
               SUM(CASE WHEN m.tipo = 'saida' THEN m.quantidade ELSE 0 END) AS saidas
        FROM movimentacoes m
-       JOIN produtos p ON p.id = m.produto_id
+       LEFT JOIN produtos p ON p.id = m.produto_id
        WHERE m.padaria_id = ? AND DATE_FORMAT(m.data, '%Y-%m') = ?
-       GROUP BY p.id
+       GROUP BY m.produto_id
        ORDER BY qtd_movs DESC LIMIT 5`,
       [req.padaria.id, mes]),
 
