@@ -5,14 +5,14 @@
     </div>
 
     <!-- Tabs -->
-    <div class="tabs">
-      <button :class="['tab', aba === 'generico' && 'ativa']" @click="aba = 'generico'">
+    <div class="tabs-importar">
+      <button :class="['tab-btn-imp', aba === 'generico' && 'ativa']" @click="aba = 'generico'">
         📊 Planilha genérica (.xlsx / .csv)
       </button>
-      <button :class="['tab', aba === 'saurus' && 'ativa']" @click="aba = 'saurus'">
+      <button :class="['tab-btn-imp', aba === 'saurus' && 'ativa']" @click="aba = 'saurus'">
         🔄 Importar do Saurus
       </button>
-      <button :class="['tab', aba === 'perfil' && 'ativa']" @click="aba = 'perfil'">
+      <button :class="['tab-btn-imp', aba === 'perfil' && 'ativa']" @click="aba = 'perfil'">
         ⚙️ Configurações
       </button>
     </div>
@@ -22,105 +22,111 @@
 
       <!-- Passo 1: selecionar arquivo -->
       <div v-if="passo === 1" class="card">
-        <h3>Passo 1 — Selecione a planilha</h3>
-        <p class="instrucao">
-          Envie um arquivo <strong>.xlsx</strong> ou <strong>.csv</strong> com seus produtos.
-          Na próxima etapa você vai associar as colunas da planilha aos campos do sistema.
-        </p>
-        <div class="upload-area" @dragover.prevent @drop.prevent="onDrop">
-          <input ref="inputArquivo" type="file" accept=".xlsx,.csv" @change="onArquivo" hidden />
-          <div v-if="!arquivo" class="upload-placeholder" @click="inputArquivo.click()">
-            <div class="upload-icon">📂</div>
-            <div>Clique aqui ou arraste o arquivo</div>
-            <div class="text-muted">.xlsx ou .csv</div>
+        <div class="card-body">
+          <h3 class="card-title">Passo 1 — Selecione a planilha</h3>
+          <p class="instrucao">
+            Envie um arquivo <strong>.xlsx</strong> ou <strong>.csv</strong> com seus produtos.
+            Na próxima etapa você vai associar as colunas da planilha aos campos do sistema.
+          </p>
+          <div class="upload-zone" @dragover.prevent @drop.prevent="onDrop" @click="inputArquivo.click()">
+            <input ref="inputArquivo" type="file" accept=".xlsx,.csv" @change="onArquivo" hidden />
+            <div v-if="!arquivo">
+              <div class="upload-icon">📂</div>
+              <div>Clique aqui ou arraste o arquivo</div>
+              <div style="font-size:13px;color:var(--slate-400);margin-top:4px;">.xlsx ou .csv</div>
+            </div>
+            <div v-else style="display:flex;align-items:center;justify-content:space-between;padding:0 4px;">
+              <span>📄 {{ arquivo.name }}</span>
+              <button class="btn-ghost btn-sm" @click.stop="arquivo = null">Trocar</button>
+            </div>
           </div>
-          <div v-else class="upload-selecionado">
-            <span>📄 {{ arquivo.name }}</span>
-            <button class="btn btn-ghost btn-sm" @click="arquivo = null">Trocar</button>
+          <div style="display:flex;gap:8px;margin-top:4px;">
+            <button class="btn-primary" @click="fazerPreview" :disabled="!arquivo || carregando">
+              {{ carregando ? 'Lendo…' : 'Avançar →' }}
+            </button>
           </div>
+          <p v-if="erro" class="msg-erro">{{ erro }}</p>
         </div>
-        <div class="card-acoes">
-          <button class="btn btn-primary" @click="fazerPreview" :disabled="!arquivo || carregando">
-            {{ carregando ? 'Lendo…' : 'Avançar →' }}
-          </button>
-        </div>
-        <p v-if="erro" class="msg-erro">{{ erro }}</p>
       </div>
 
       <!-- Passo 2: mapear colunas -->
       <div v-if="passo === 2" class="card">
-        <h3>Passo 2 — Associar colunas</h3>
-        <p class="instrucao">
-          Associe cada campo do sistema com a coluna correspondente na sua planilha.
-          O campo <strong>Nome do produto</strong> é obrigatório.
-        </p>
+        <div class="card-body">
+          <h3 class="card-title">Passo 2 — Associar colunas</h3>
+          <p class="instrucao">
+            Associe cada campo do sistema com a coluna correspondente na sua planilha.
+            O campo <strong>Nome do produto</strong> é obrigatório.
+          </p>
 
-        <div class="mapeamento">
-          <div v-for="campo in CAMPOS" :key="campo.key" class="campo-linha">
-            <label>
-              {{ campo.label }}
-              <span v-if="campo.obrigatorio" class="obrigatorio">*</span>
-            </label>
-            <select v-model="mapeamento[campo.key]">
-              <option value="">— Ignorar —</option>
-              <option v-for="col in colunas" :key="col" :value="col">{{ col }}</option>
-            </select>
+          <div class="mapeamento">
+            <div v-for="campo in CAMPOS" :key="campo.key" class="campo-linha">
+              <label>
+                {{ campo.label }}
+                <span v-if="campo.obrigatorio" class="obrigatorio">*</span>
+              </label>
+              <select v-model="mapeamento[campo.key]">
+                <option value="">— Ignorar —</option>
+                <option v-for="col in colunas" :key="col" :value="col">{{ col }}</option>
+              </select>
+            </div>
           </div>
-        </div>
 
-        <div class="card-acoes">
-          <button class="btn btn-ghost" @click="passo = 1; resultado = null">← Voltar</button>
-          <button class="btn btn-primary" @click="confirmarImportacao" :disabled="carregando || !mapeamento.nome">
-            {{ carregando ? 'Importando…' : 'Importar' }}
-          </button>
-        </div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="btn-ghost" @click="passo = 1; resultado = null">← Voltar</button>
+            <button class="btn-primary" @click="confirmarImportacao" :disabled="carregando || !mapeamento.nome">
+              {{ carregando ? 'Importando…' : 'Importar' }}
+            </button>
+          </div>
 
-        <div v-if="resultado" :class="['resultado', resultado.ok ? 'resultado-ok' : 'resultado-erro']">
-          <template v-if="resultado.ok">
-            ✅ Importação concluída!
-            <strong>{{ resultado.criados }} criados</strong>,
-            <strong>{{ resultado.atualizados }} atualizados</strong>,
-            {{ resultado.ignorados }} ignorados.
-          </template>
-          <template v-else>❌ {{ resultado.erro }}</template>
-        </div>
+          <div v-if="resultado" :class="resultado.ok ? 'result-ok' : 'result-err'" style="margin-top:16px;">
+            <template v-if="resultado.ok">
+              ✅ Importação concluída!
+              <strong>{{ resultado.criados }} criados</strong>,
+              <strong>{{ resultado.atualizados }} atualizados</strong>,
+              {{ resultado.ignorados }} ignorados.
+            </template>
+            <template v-else>❌ {{ resultado.erro }}</template>
+          </div>
 
-        <p v-if="erro" class="msg-erro">{{ erro }}</p>
+          <p v-if="erro" class="msg-erro">{{ erro }}</p>
+        </div>
       </div>
     </div>
 
     <!-- ── Aba Saurus ── -->
     <div v-if="aba === 'saurus'">
       <div class="card">
-        <h3>Importar do sistema Saurus</h3>
-        <p class="instrucao">
-          Exporte os produtos do Saurus em formato <strong>.xlsx</strong> e faça o upload abaixo.
-          Os produtos serão atualizados automaticamente pelo código de barras.
-        </p>
+        <div class="card-body">
+          <h3 class="card-title">Importar do sistema Saurus</h3>
+          <p class="instrucao">
+            Exporte os produtos do Saurus em formato <strong>.xlsx</strong> e faça o upload abaixo.
+            Os produtos serão atualizados automaticamente pelo código de barras.
+          </p>
 
-        <div class="form-group">
-          <label>Arquivo Saurus (.xlsx)</label>
-          <input ref="inputSaurus" type="file" accept=".xlsx" @change="onArquivoSaurus" />
-        </div>
-        <div class="form-group" style="max-width:200px">
-          <label>Número da loja (opcional)</label>
-          <input v-model="loja" placeholder="Ex: 1" />
-        </div>
+          <div class="form-group">
+            <label>Arquivo Saurus (.xlsx)</label>
+            <input ref="inputSaurus" type="file" accept=".xlsx" @change="onArquivoSaurus" />
+          </div>
+          <div class="form-group" style="max-width:200px">
+            <label>Número da loja (opcional)</label>
+            <input v-model="loja" placeholder="Ex: 1" />
+          </div>
 
-        <div class="card-acoes">
-          <button class="btn btn-primary" @click="sincronizarSaurus" :disabled="!arquivoSaurus || carregandoSaurus">
-            {{ carregandoSaurus ? 'Importando…' : '🔄 Sincronizar' }}
-          </button>
-        </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-primary" @click="sincronizarSaurus" :disabled="!arquivoSaurus || carregandoSaurus">
+              {{ carregandoSaurus ? 'Importando…' : '🔄 Sincronizar' }}
+            </button>
+          </div>
 
-        <div v-if="resultadoSaurus" :class="['resultado', resultadoSaurus.ok ? 'resultado-ok' : 'resultado-erro']">
-          <template v-if="resultadoSaurus.ok">
-            ✅ Sincronização concluída!
-            <strong>{{ resultadoSaurus.criados }} criados</strong>,
-            <strong>{{ resultadoSaurus.atualizados }} atualizados</strong>,
-            {{ resultadoSaurus.ignorados }} ignorados.
-          </template>
-          <template v-else>❌ {{ resultadoSaurus.erro }}</template>
+          <div v-if="resultadoSaurus" :class="resultadoSaurus.ok ? 'result-ok' : 'result-err'" style="margin-top:16px;">
+            <template v-if="resultadoSaurus.ok">
+              ✅ Sincronização concluída!
+              <strong>{{ resultadoSaurus.criados }} criados</strong>,
+              <strong>{{ resultadoSaurus.atualizados }} atualizados</strong>,
+              {{ resultadoSaurus.ignorados }} ignorados.
+            </template>
+            <template v-else>❌ {{ resultadoSaurus.erro }}</template>
+          </div>
         </div>
       </div>
     </div>
@@ -128,18 +134,20 @@
     <!-- ── Aba Configurações (Perfil) ── -->
     <div v-if="aba === 'perfil'">
       <div class="card" style="max-width:480px">
-        <h3>Nome da padaria</h3>
-        <p class="instrucao">Este nome aparece no sidebar e nos pedidos de compra.</p>
-        <div class="form-group">
-          <label>Nome</label>
-          <input v-model="nomePadaria" placeholder="Nome da sua padaria" />
+        <div class="card-body">
+          <h3 class="card-title">Nome da padaria</h3>
+          <p class="instrucao">Este nome aparece no sidebar e nos pedidos de compra.</p>
+          <div class="form-group">
+            <label>Nome</label>
+            <input v-model="nomePadaria" placeholder="Nome da sua padaria" />
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-primary" @click="salvarNome" :disabled="salvandoNome || !nomePadaria.trim()">
+              {{ salvandoNome ? 'Salvando…' : 'Salvar nome' }}
+            </button>
+          </div>
+          <p v-if="nomeSalvo" class="msg-ok">✅ Nome atualizado!</p>
         </div>
-        <div class="card-acoes">
-          <button class="btn btn-primary" @click="salvarNome" :disabled="salvandoNome || !nomePadaria.trim()">
-            {{ salvandoNome ? 'Salvando…' : 'Salvar nome' }}
-          </button>
-        </div>
-        <p v-if="nomeSalvo" class="msg-ok">✅ Nome atualizado!</p>
       </div>
     </div>
 
@@ -291,40 +299,59 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid var(--border); flex-wrap: wrap; }
-.tab {
-  padding: 10px 16px; border: none; background: none;
-  cursor: pointer; font-size: 14px; font-weight: 500;
-  color: var(--text-muted); border-bottom: 2px solid transparent;
-  margin-bottom: -2px; transition: color .15s, border-color .15s;
+/* Tabs */
+.tabs-importar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--slate-200);
+  flex-wrap: wrap;
 }
-.tab.ativa { color: var(--orange); border-bottom-color: var(--orange); }
-.tab:hover { color: var(--text); }
-
-.instrucao { color: var(--text-muted); font-size: 14px; margin-bottom: 20px; line-height: 1.6; }
-
-/* Upload area */
-.upload-area {
-  border: 2px dashed var(--border);
-  border-radius: var(--radius);
-  margin-bottom: 16px;
-  transition: border-color .15s;
-}
-.upload-area:hover { border-color: var(--orange); }
-
-.upload-placeholder {
-  padding: 40px;
-  text-align: center;
+.tab-btn-imp {
+  padding: 10px 16px;
+  border: none;
+  background: none;
   cursor: pointer;
-  color: var(--text-muted);
-}
-.upload-icon { font-size: 32px; margin-bottom: 8px; }
-
-.upload-selecionado {
-  padding: 14px 20px;
-  display: flex; align-items: center; justify-content: space-between;
   font-size: 14px;
+  font-weight: 500;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color .15s, border-color .15s;
 }
+.tab-btn-imp.ativa { color: var(--orange); border-bottom-color: var(--orange); }
+.tab-btn-imp:hover { color: var(--slate-800); }
+
+.instrucao {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+/* Upload zone — usa o padrão do CSS global */
+.upload-zone {
+  border: 2px dashed var(--slate-300);
+  border-radius: 12px;
+  padding: 36px 24px;
+  text-align: center;
+  margin-bottom: 16px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  font-size: 14px;
+  color: var(--slate-500);
+}
+.upload-zone:hover {
+  border-color: var(--orange);
+  background: var(--orange-100);
+}
+.upload-icon {
+  font-size: 36px;
+  margin-bottom: 10px;
+  color: var(--slate-400);
+}
+.upload-zone:hover .upload-icon { color: var(--orange); }
 
 /* Mapeamento */
 .mapeamento { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
@@ -336,17 +363,24 @@ onMounted(() => {
 .campo-linha select { flex: 1; }
 .obrigatorio { color: #dc2626; margin-left: 2px; }
 
-/* Resultado */
-.resultado {
-  margin-top: 16px; padding: 14px 16px;
-  border-radius: 8px; font-size: 14px;
+/* Resultados */
+.result-ok {
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--green-50);
+  color: var(--green-700);
+  font-size: 14px;
+  border: 1px solid var(--green-100);
 }
-.resultado-ok  { background: #dcfce7; color: #166534; }
-.resultado-erro { background: #fee2e2; color: #991b1b; }
-
-.card-acoes { display: flex; gap: 8px; margin-top: 8px; }
+.result-err {
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--red-50);
+  color: var(--red-700);
+  font-size: 14px;
+  border: 1px solid var(--red-100);
+}
 
 .msg-erro { color: #dc2626; font-size: 13px; margin-top: 10px; }
 .msg-ok   { color: #16a34a; font-size: 13px; margin-top: 10px; }
-.text-muted { color: var(--text-muted); }
 </style>

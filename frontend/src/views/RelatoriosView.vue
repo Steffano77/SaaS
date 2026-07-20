@@ -2,32 +2,32 @@
   <div>
     <div class="page-header">
       <h1>Relatórios</h1>
-      <div class="header-acoes">
-        <select v-model="mes" @change="carregarMes" class="select-mes">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <select v-model="mes" @change="carregarMes" style="width:auto;">
           <option v-for="m in mesesDisponiveis" :key="m.valor" :value="m.valor">{{ m.label }}</option>
         </select>
-        <button class="btn btn-ghost btn-sm" @click="exportar('produtos')">⬇ Exportar produtos</button>
-        <button class="btn btn-ghost btn-sm" @click="exportar('movimentacoes')">⬇ Exportar movs.</button>
+        <button class="btn-ghost btn-sm" @click="exportar('produtos')">⬇ Exportar produtos</button>
+        <button class="btn-ghost btn-sm" @click="exportar('movimentacoes')">⬇ Exportar movs.</button>
       </div>
     </div>
 
     <!-- KPIs do mês -->
-    <div class="kpi-grid">
+    <div class="rel-kpis">
       <div class="kpi-card">
         <div class="kpi-label">Total entradas</div>
-        <div class="kpi-valor entrada">{{ fmtMoeda(kpis.total_entradas) }}</div>
+        <div class="kpi-value entrada">{{ fmtMoeda(kpis.total_entradas) }}</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Total saídas</div>
-        <div class="kpi-valor saida">{{ fmtMoeda(kpis.total_saidas) }}</div>
+        <div class="kpi-value saida">{{ fmtMoeda(kpis.total_saidas) }}</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Movimentações</div>
-        <div class="kpi-valor">{{ kpis.qtd_movs ?? '—' }}</div>
+        <div class="kpi-value">{{ kpis.qtd_movs ?? '—' }}</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Produtos distintos</div>
-        <div class="kpi-valor">{{ kpis.prods_distintos ?? '—' }}</div>
+        <div class="kpi-value">{{ kpis.prods_distintos ?? '—' }}</div>
       </div>
     </div>
 
@@ -35,66 +35,72 @@
     <div class="graficos-grid">
 
       <!-- Movimentações da semana -->
-      <div class="card grafico-card">
-        <h3>Movimentações — últimos 7 dias</h3>
-        <div v-if="!semana.length" class="estado-vazio">Sem dados.</div>
-        <div v-else class="barras-wrap">
-          <div v-for="d in semana" :key="d.dia" class="barra-grupo">
-            <div class="barras">
-              <div
-                class="barra barra-entrada"
-                :style="{ height: pct(d.entradas, maxSemana) + '%' }"
-                :title="`Entradas: ${fmtQtd(d.entradas)}`"
-              ></div>
-              <div
-                class="barra barra-saida"
-                :style="{ height: pct(d.saidas, maxSemana) + '%' }"
-                :title="`Saídas: ${fmtQtd(d.saidas)}`"
-              ></div>
+      <div class="card">
+        <div class="card-body">
+          <h3 class="card-title">Movimentações — últimos 7 dias</h3>
+          <div v-if="!semana.length" class="estado-vazio">Sem dados.</div>
+          <div v-else class="barras-wrap">
+            <div v-for="d in semana" :key="d.dia" class="barra-grupo">
+              <div class="barras">
+                <div
+                  class="barra barra-entrada"
+                  :style="{ height: pct(d.entradas, maxSemana) + '%' }"
+                  :title="`Entradas: ${fmtQtd(d.entradas)}`"
+                ></div>
+                <div
+                  class="barra barra-saida"
+                  :style="{ height: pct(d.saidas, maxSemana) + '%' }"
+                  :title="`Saídas: ${fmtQtd(d.saidas)}`"
+                ></div>
+              </div>
+              <div class="barra-label">{{ d.dia }}</div>
             </div>
-            <div class="barra-label">{{ d.dia }}</div>
           </div>
-        </div>
-        <div class="legenda">
-          <span class="leg-dot entrada"></span> Entradas
-          <span class="leg-dot saida"></span> Saídas
+          <div class="legenda">
+            <span class="leg-dot entrada"></span> Entradas
+            <span class="leg-dot saida"></span> Saídas
+          </div>
         </div>
       </div>
 
       <!-- Top 5 produtos por valor -->
-      <div class="card grafico-card">
-        <h3>Top 5 — valor em estoque</h3>
-        <div v-if="!topProdutos.length" class="estado-vazio">Sem dados.</div>
-        <div v-else class="top-lista">
-          <div v-for="(p, i) in topProdutos" :key="p.nome" class="top-item">
-            <div class="top-rank">{{ i + 1 }}</div>
-            <div class="top-nome">{{ p.nome }}</div>
-            <div class="top-barra-wrap">
-              <div
-                class="top-barra"
-                :style="{ width: pct(p.valor, topProdutos[0].valor) + '%' }"
-              ></div>
+      <div class="card">
+        <div class="card-body">
+          <h3 class="card-title">Top 5 — valor em estoque</h3>
+          <div v-if="!topProdutos.length" class="estado-vazio">Sem dados.</div>
+          <div v-else class="top-lista">
+            <div v-for="(p, i) in topProdutos" :key="p.nome" class="top-item">
+              <div class="top-rank">{{ i + 1 }}</div>
+              <div class="top-nome">{{ p.nome }}</div>
+              <div class="top-barra-wrap">
+                <div
+                  class="top-barra"
+                  :style="{ width: pct(p.valor, topProdutos[0].valor) + '%' }"
+                ></div>
+              </div>
+              <div class="top-valor">{{ fmtMoeda(p.valor) }}</div>
             </div>
-            <div class="top-valor">{{ fmtMoeda(p.valor) }}</div>
           </div>
         </div>
       </div>
 
-      <!-- Valor por categoria (donut simplificado) -->
-      <div class="card grafico-card">
-        <h3>Valor por categoria</h3>
-        <div v-if="!categorias.length" class="estado-vazio">Sem dados.</div>
-        <div v-else class="cat-lista">
-          <div v-for="(c, i) in categorias" :key="c.categoria" class="cat-item">
-            <div class="cat-cor" :style="{ background: cores[i % cores.length] }"></div>
-            <div class="cat-nome">{{ c.categoria }}</div>
-            <div class="cat-barra-wrap">
-              <div
-                class="cat-barra"
-                :style="{ width: pct(c.valor, totalCategorias) + '%', background: cores[i % cores.length] }"
-              ></div>
+      <!-- Valor por categoria -->
+      <div class="card">
+        <div class="card-body">
+          <h3 class="card-title">Valor por categoria</h3>
+          <div v-if="!categorias.length" class="estado-vazio">Sem dados.</div>
+          <div v-else class="cat-lista">
+            <div v-for="(c, i) in categorias" :key="c.categoria" class="cat-item">
+              <div class="cat-cor" :style="{ background: cores[i % cores.length] }"></div>
+              <div class="cat-nome">{{ c.categoria }}</div>
+              <div class="cat-barra-wrap">
+                <div
+                  class="cat-barra"
+                  :style="{ width: pct(c.valor, totalCategorias) + '%', background: cores[i % cores.length] }"
+                ></div>
+              </div>
+              <div class="cat-valor">{{ fmtMoeda(c.valor) }}</div>
             </div>
-            <div class="cat-valor">{{ fmtMoeda(c.valor) }}</div>
           </div>
         </div>
       </div>
@@ -103,35 +109,35 @@
 
     <!-- Histórico de movimentações do mês -->
     <div class="card" style="margin-top:20px">
-      <h3 style="margin-bottom:14px;font-size:15px;font-weight:600">
-        Movimentações de {{ labelMes }}
-      </h3>
-      <div v-if="!movs.length" class="estado-vazio">Nenhuma movimentação no período.</div>
-      <div v-else class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Data</th>
-              <th>Produto</th>
-              <th class="center">Tipo</th>
-              <th class="right">Qtd</th>
-              <th class="right">Custo unit.</th>
-              <th class="right">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="m in movs" :key="m.data + m.produto + m.tipo">
-              <td class="text-muted" style="white-space:nowrap">{{ fmtData(m.data) }}</td>
-              <td><strong>{{ m.produto }}</strong></td>
-              <td class="center">
-                <span :class="['badge', tipoBadge(m.tipo)]">{{ tipoLabel(m.tipo) }}</span>
-              </td>
-              <td class="right mono">{{ fmtQtd(m.quantidade) }}</td>
-              <td class="right mono text-muted">{{ fmtMoeda(m.custo_unit) }}</td>
-              <td class="right mono bold">{{ fmtMoeda(m.valor_total) }}</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="card-body">
+        <h3 class="card-title">Movimentações de {{ labelMes }}</h3>
+        <div v-if="!movs.length" class="estado-vazio">Nenhuma movimentação no período.</div>
+        <div v-else class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="left">Data</th>
+                <th class="left">Produto</th>
+                <th class="center">Tipo</th>
+                <th class="right">Qtd</th>
+                <th class="right">Custo unit.</th>
+                <th class="right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="m in movs" :key="m.data + m.produto + m.tipo">
+                <td class="text-muted" style="white-space:nowrap">{{ fmtData(m.data) }}</td>
+                <td><strong>{{ m.produto }}</strong></td>
+                <td class="center">
+                  <span :class="['badge', tipoBadge(m.tipo)]">{{ tipoLabel(m.tipo) }}</span>
+                </td>
+                <td class="right mono">{{ fmtQtd(m.quantidade) }}</td>
+                <td class="right mono text-muted">{{ fmtMoeda(m.custo_unit) }}</td>
+                <td class="right mono bold">{{ fmtMoeda(m.valor_total) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -201,7 +207,6 @@ async function exportar(tipo) {
     : `/api/exportar/movimentacoes?mes=${mes.value}`
   const a = document.createElement('a')
   a.href = url
-  // Passa token via header não é possível em anchor; usa fetch + blob
   const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
   const blob = await resp.blob()
   a.href = URL.createObjectURL(blob)
@@ -234,28 +239,31 @@ onMounted(carregar)
 </script>
 
 <style scoped>
-.header-acoes { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.select-mes { width: auto; }
-
 /* KPIs */
-.kpi-grid {
+.rel-kpis {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+  gap: 16px;
   margin-bottom: 20px;
 }
-@media (max-width: 700px) { .kpi-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 700px) { .rel-kpis { grid-template-columns: 1fr 1fr; } }
 
 .kpi-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px 20px;
+  background: var(--white);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+  border: 1px solid var(--slate-100);
+  transition: transform 0.2s, box-shadow 0.2s;
 }
-.kpi-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
-.kpi-valor { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.kpi-valor.entrada { color: #16a34a; }
-.kpi-valor.saida   { color: #dc2626; }
+.kpi-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+}
+.kpi-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; font-weight: 500; }
+.kpi-value { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+.kpi-value.entrada { color: #16a34a; }
+.kpi-value.saida   { color: #dc2626; }
 
 /* Gráficos grid */
 .graficos-grid {
@@ -265,8 +273,6 @@ onMounted(carregar)
   margin-bottom: 20px;
 }
 @media (max-width: 900px) { .graficos-grid { grid-template-columns: 1fr; } }
-
-.grafico-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
 
 /* Barras de semana */
 .barras-wrap {
@@ -314,17 +320,11 @@ onMounted(carregar)
 .cat-valor { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 12px; white-space: nowrap; }
 
 /* Tabela */
-.table-wrap { overflow-x: auto; }
 .right   { text-align: right; }
 .center  { text-align: center; }
+.left    { text-align: left; }
 .mono    { font-variant-numeric: tabular-nums; }
 .bold    { font-weight: 600; }
 .text-muted { color: var(--text-muted); }
-.estado-vazio { padding: 32px; text-align: center; color: var(--text-muted); }
-
-.badge { display: inline-block; padding: 2px 7px; border-radius: 99px; font-size: 11px; font-weight: 500; }
-.badge-green  { background: #dcfce7; color: #16a34a; }
-.badge-red    { background: #fee2e2; color: #dc2626; }
-.badge-orange { background: #fff7ed; color: #c2410c; }
-.badge-blue   { background: #dbeafe; color: #1d4ed8; }
+.estado-vazio { padding: 32px; text-align: center; color: var(--text-muted); font-size: 14px; }
 </style>

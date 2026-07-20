@@ -2,7 +2,7 @@
   <div>
     <div class="page-header">
       <h1>Fornecedores</h1>
-      <button class="btn btn-primary" @click="abrirModal()">+ Novo fornecedor</button>
+      <button class="btn-primary" @click="abrirModal()">+ Novo fornecedor</button>
     </div>
 
     <div class="card">
@@ -10,29 +10,31 @@
       <div v-else-if="!fornecedores.length" class="estado-vazio">
         Nenhum fornecedor cadastrado ainda.
       </div>
-      <table v-else>
-        <thead>
-          <tr>
-            <th>Nome</th>
-            <th>Contato</th>
-            <th>Telefone</th>
-            <th>E-mail</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="f in fornecedores" :key="f.id">
-            <td><strong>{{ f.nome }}</strong></td>
-            <td>{{ f.contato || '—' }}</td>
-            <td>{{ f.telefone || '—' }}</td>
-            <td>{{ f.email || '—' }}</td>
-            <td class="acoes">
-              <button class="btn btn-ghost btn-sm" @click="abrirModal(f)">Editar</button>
-              <button class="btn btn-danger btn-sm" @click="remover(f)">Excluir</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div v-else class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="left">Nome</th>
+              <th class="left">Contato</th>
+              <th class="left">Telefone</th>
+              <th class="left">E-mail</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="f in fornecedores" :key="f.id">
+              <td><strong>{{ f.nome }}</strong></td>
+              <td>{{ f.contato || '—' }}</td>
+              <td>{{ f.telefone || '—' }}</td>
+              <td>{{ f.email || '—' }}</td>
+              <td class="acoes">
+                <button class="btn-ghost btn-sm" @click="abrirModal(f)">Editar</button>
+                <button class="btn-danger btn-sm" @click="remover(f)">Excluir</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- Modal novo/editar -->
@@ -40,28 +42,30 @@
       <div class="modal">
         <h2>{{ form.id ? 'Editar fornecedor' : 'Novo fornecedor' }}</h2>
 
-        <div class="form-group">
-          <label>Nome *</label>
-          <input v-model="form.nome" placeholder="Nome do fornecedor" required />
-        </div>
-        <div class="form-group">
-          <label>Contato</label>
-          <input v-model="form.contato" placeholder="Nome da pessoa de contato" />
-        </div>
-        <div class="form-group">
-          <label>Telefone / WhatsApp</label>
-          <input v-model="form.telefone" placeholder="(00) 00000-0000" />
-        </div>
-        <div class="form-group">
-          <label>E-mail</label>
-          <input v-model="form.email" type="email" placeholder="fornecedor@email.com" />
-        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Nome <span class="obrigatorio">*</span></label>
+            <input v-model="form.nome" placeholder="Nome do fornecedor" required />
+          </div>
+          <div class="form-group">
+            <label>Contato</label>
+            <input v-model="form.contato" placeholder="Nome da pessoa de contato" />
+          </div>
+          <div class="form-group">
+            <label>Telefone / WhatsApp</label>
+            <input v-model="form.telefone" placeholder="(00) 00000-0000" />
+          </div>
+          <div class="form-group">
+            <label>E-mail</label>
+            <input v-model="form.email" type="email" placeholder="fornecedor@email.com" />
+          </div>
 
-        <div class="modal-actions">
-          <button class="btn btn-ghost" @click="fecharModal">Cancelar</button>
-          <button class="btn btn-primary" @click="salvar" :disabled="salvando">
-            {{ salvando ? 'Salvando…' : 'Salvar' }}
-          </button>
+          <div class="modal-actions">
+            <button class="btn-ghost" @click="fecharModal">Cancelar</button>
+            <button class="btn-primary" @click="salvar" :disabled="salvando">
+              {{ salvando ? 'Salvando…' : 'Salvar' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -137,6 +141,8 @@ onMounted(carregar)
 </script>
 
 <style scoped>
-.acoes { display: flex; gap: 6px; }
-.estado-vazio { color: var(--text-muted); padding: 40px; text-align: center; }
+.acoes { display: flex; gap: 6px; white-space: nowrap; }
+.estado-vazio { color: var(--text-muted); padding: 40px; text-align: center; font-size: 14px; }
+.obrigatorio { color: #dc2626; margin-left: 2px; }
+.left { text-align: left; }
 </style>

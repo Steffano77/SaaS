@@ -3,79 +3,82 @@
     <!-- Header -->
     <div class="page-header">
       <h1>Estoque</h1>
-      <div class="header-acoes">
-        <button class="btn btn-ghost btn-sm" @click="modalMov = true; movForm = movFormVazio()">
+      <div style="display:flex;gap:8px;">
+        <button class="btn-ghost btn-sm" @click="modalMov = true; movForm = movFormVazio()">
           ↕ Movimentação
         </button>
-        <button class="btn btn-primary" @click="abrirModalProduto()">+ Novo produto</button>
+        <button class="btn-primary" @click="abrirModalProduto()">+ Novo produto</button>
       </div>
     </div>
 
-    <!-- Filtros -->
-    <div class="filtros">
-      <input v-model="busca" placeholder="🔍 Buscar produto…" @input="carregarProdutos" />
-      <select v-model="filtroCat" @change="carregarProdutos">
-        <option value="">Todas as categorias</option>
-        <option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.nome }}</option>
-      </select>
-      <select v-model="filtroForn" @change="filtrarPorFornecedor">
-        <option value="">Todos fornecedores</option>
-        <option v-for="f in fornecedores" :key="f.id" :value="f.id">{{ f.nome }}</option>
-      </select>
-      <select v-model="filtroAlerta" @change="carregarProdutos">
-        <option value="">Todos os status</option>
-        <option value="zerado">Sem estoque</option>
-        <option value="abaixo">Abaixo do mínimo</option>
-      </select>
-    </div>
+    <!-- Card com filtros + tabela -->
+    <div class="card">
+      <!-- Filtros dentro do card -->
+      <div class="filters-bar">
+        <input v-model="busca" placeholder="🔍 Buscar produto…" @input="carregarProdutos" class="search-input" />
+        <select v-model="filtroCat" @change="carregarProdutos">
+          <option value="">Todas as categorias</option>
+          <option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.nome }}</option>
+        </select>
+        <select v-model="filtroForn" @change="filtrarPorFornecedor">
+          <option value="">Todos fornecedores</option>
+          <option v-for="f in fornecedores" :key="f.id" :value="f.id">{{ f.nome }}</option>
+        </select>
+        <select v-model="filtroAlerta" @change="carregarProdutos">
+          <option value="">Todos os status</option>
+          <option value="zerado">Sem estoque</option>
+          <option value="abaixo">Abaixo do mínimo</option>
+        </select>
+      </div>
 
-    <!-- Tabela -->
-    <div class="card table-wrap">
+      <!-- Tabela com scroll -->
       <div v-if="carregando" class="estado-vazio">Carregando…</div>
       <div v-else-if="!produtosFiltrados.length" class="estado-vazio">Nenhum produto encontrado.</div>
-      <table v-else>
-        <thead>
-          <tr>
-            <th>Produto</th>
-            <th>Categoria</th>
-            <th class="right">Estoque</th>
-            <th class="right">Mínimo</th>
-            <th class="right">Custo unit.</th>
-            <th class="right">Valor total</th>
-            <th class="center">Validade</th>
-            <th class="center">Status</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="p in produtosFiltrados" :key="p.id">
-            <td>
-              <div class="td-main">{{ p.nome }}</div>
-              <div v-if="p.codigo_barras" class="td-sub">{{ p.codigo_barras }}</div>
-              <div class="td-sub" :style="{ color: corUltimaCompra(p) }">
-                últ. compra: {{ fmtData(p.ultima_compra) }}
-              </div>
-            </td>
-            <td class="text-muted">{{ p.categoria || '—' }}</td>
-            <td class="right mono">{{ fmtQtd(p.estoque_atual) }} {{ p.unidade }}</td>
-            <td class="right mono text-muted">{{ fmtQtd(p.estoque_minimo) }}</td>
-            <td class="right mono">{{ fmtMoeda(p.custo_unitario) }}</td>
-            <td class="right mono bold">{{ fmtMoeda(p.estoque_atual * p.custo_unitario) }}</td>
-            <td class="center" :style="{ color: p.validade ? 'var(--orange)' : 'var(--slate-400)' }">
-              {{ p.validade ? fmtData(p.validade) : '—' }}
-            </td>
-            <td class="center">
-              <StatusBadge :produto="p" />
-            </td>
-            <td class="acoes">
-              <button class="btn btn-ghost btn-sm" title="Entrada" @click="movRapido(p, 'entrada')">📥</button>
-              <button class="btn btn-ghost btn-sm" title="Saída"   @click="movRapido(p, 'saida')">📤</button>
-              <button class="btn btn-ghost btn-sm"                  @click="editarProduto(p)">✏️</button>
-              <button class="btn btn-danger btn-sm"                 @click="excluirProduto(p)">🗑</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div v-else class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th class="left">Produto</th>
+              <th class="left">Categoria</th>
+              <th class="right">Estoque</th>
+              <th class="right">Mínimo</th>
+              <th class="right">Custo unit.</th>
+              <th class="right">Valor total</th>
+              <th class="center">Validade</th>
+              <th class="center">Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="p in produtosFiltrados" :key="p.id">
+              <td>
+                <div class="td-main">{{ p.nome }}</div>
+                <div v-if="p.codigo_barras" class="td-sub">{{ p.codigo_barras }}</div>
+                <div class="td-sub" :style="{ color: corUltimaCompra(p) }">
+                  últ. compra: {{ fmtData(p.ultima_compra) }}
+                </div>
+              </td>
+              <td class="text-muted">{{ p.categoria || '—' }}</td>
+              <td class="right mono">{{ fmtQtd(p.estoque_atual) }} {{ p.unidade }}</td>
+              <td class="right mono text-muted">{{ fmtQtd(p.estoque_minimo) }}</td>
+              <td class="right mono">{{ fmtMoeda(p.custo_unitario) }}</td>
+              <td class="right mono bold">{{ fmtMoeda(p.estoque_atual * p.custo_unitario) }}</td>
+              <td class="center" :style="{ color: p.validade ? 'var(--orange)' : 'var(--slate-400)' }">
+                {{ p.validade ? fmtData(p.validade) : '—' }}
+              </td>
+              <td class="center">
+                <StatusBadge :produto="p" />
+              </td>
+              <td class="acoes">
+                <button class="btn-icon" title="Entrada" @click="movRapido(p, 'entrada')">📥</button>
+                <button class="btn-icon" title="Saída"   @click="movRapido(p, 'saida')">📤</button>
+                <button class="btn-icon"                  @click="editarProduto(p)">✏️</button>
+                <button class="btn-icon" style="color:var(--red-600)" @click="excluirProduto(p)">🗑</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- ── Modal produto ── -->
@@ -83,78 +86,80 @@
       <div class="modal modal-lg">
         <h2>{{ prodForm.id ? 'Editar produto' : 'Novo produto' }}</h2>
 
-        <div class="form-grid">
-          <div class="form-group span-2">
-            <label>Nome *</label>
-            <input v-model="prodForm.nome" placeholder="Nome do produto" required />
-          </div>
-          <div class="form-group">
-            <label>Código de barras</label>
-            <input v-model="prodForm.codigo_barras" placeholder="EAN / interno" />
-          </div>
-          <div class="form-group">
-            <label>Unidade</label>
-            <select v-model="prodForm.unidade">
-              <option value="un">un</option>
-              <option value="kg">kg</option>
-              <option value="g">g</option>
-              <option value="cx">cx</option>
-              <option value="lt">lt</option>
-              <option value="ml">ml</option>
-              <option value="pct">pct</option>
-              <option value="sc">sc</option>
-              <option value="fardo">fardo</option>
-              <option value="bd">bd</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Categoria</label>
-            <div style="display:flex;gap:6px">
-              <select v-model="prodForm.categoria_id" style="flex:1">
-                <option value="">— Sem categoria —</option>
-                <option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.nome }}</option>
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group col-full">
+              <label>Nome <span class="obrigatorio">*</span></label>
+              <input v-model="prodForm.nome" placeholder="Nome do produto" required />
+            </div>
+            <div class="form-group">
+              <label>Código de barras</label>
+              <input v-model="prodForm.codigo_barras" placeholder="EAN / interno" />
+            </div>
+            <div class="form-group">
+              <label>Unidade</label>
+              <select v-model="prodForm.unidade">
+                <option value="un">un</option>
+                <option value="kg">kg</option>
+                <option value="g">g</option>
+                <option value="cx">cx</option>
+                <option value="lt">lt</option>
+                <option value="ml">ml</option>
+                <option value="pct">pct</option>
+                <option value="sc">sc</option>
+                <option value="fardo">fardo</option>
+                <option value="bd">bd</option>
               </select>
-              <button type="button" class="btn btn-ghost btn-sm" @click="criarCategoria">+</button>
+            </div>
+            <div class="form-group">
+              <label>Categoria</label>
+              <div style="display:flex;gap:6px">
+                <select v-model="prodForm.categoria_id" style="flex:1">
+                  <option value="">— Sem categoria —</option>
+                  <option v-for="c in categorias" :key="c.id" :value="c.id">{{ c.nome }}</option>
+                </select>
+                <button type="button" class="btn-ghost btn-sm" @click="criarCategoria">+</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Fornecedor</label>
+              <select v-model="prodForm.fornecedor_id">
+                <option value="">— Sem fornecedor —</option>
+                <option v-for="f in fornecedores" :key="f.id" :value="f.id">{{ f.nome }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Estoque mínimo</label>
+              <input v-model.number="prodForm.estoque_minimo" type="number" min="0" />
+            </div>
+            <div class="form-group">
+              <label>Custo unitário (R$)</label>
+              <input v-model.number="prodForm.custo_unitario" type="number" min="0" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Preço de venda (R$)</label>
+              <input v-model.number="prodForm.preco_venda" type="number" min="0" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Saldo inicial</label>
+              <input v-model.number="prodForm.estoque_atual" type="number" min="0" :disabled="!!prodForm.id" />
+            </div>
+            <div class="form-group">
+              <label>Validade</label>
+              <input v-model="prodForm.validade" type="date" />
+            </div>
+            <div class="form-group">
+              <label>Última compra</label>
+              <input v-model="prodForm.ultima_compra" type="date" />
             </div>
           </div>
-          <div class="form-group">
-            <label>Fornecedor</label>
-            <select v-model="prodForm.fornecedor_id">
-              <option value="">— Sem fornecedor —</option>
-              <option v-for="f in fornecedores" :key="f.id" :value="f.id">{{ f.nome }}</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Estoque mínimo</label>
-            <input v-model.number="prodForm.estoque_minimo" type="number" min="0" />
-          </div>
-          <div class="form-group">
-            <label>Custo unitário (R$)</label>
-            <input v-model.number="prodForm.custo_unitario" type="number" min="0" step="0.01" />
-          </div>
-          <div class="form-group">
-            <label>Preço de venda (R$)</label>
-            <input v-model.number="prodForm.preco_venda" type="number" min="0" step="0.01" />
-          </div>
-          <div class="form-group">
-            <label>Saldo inicial</label>
-            <input v-model.number="prodForm.estoque_atual" type="number" min="0" :disabled="!!prodForm.id" />
-          </div>
-          <div class="form-group">
-            <label>Validade</label>
-            <input v-model="prodForm.validade" type="date" />
-          </div>
-          <div class="form-group">
-            <label>Última compra</label>
-            <input v-model="prodForm.ultima_compra" type="date" />
-          </div>
-        </div>
 
-        <div class="modal-actions">
-          <button class="btn btn-ghost" @click="modalProduto = false">Cancelar</button>
-          <button class="btn btn-primary" @click="salvarProduto" :disabled="salvando">
-            {{ salvando ? 'Salvando…' : 'Salvar' }}
-          </button>
+          <div class="modal-actions">
+            <button class="btn-ghost" @click="modalProduto = false">Cancelar</button>
+            <button class="btn-primary" @click="salvarProduto" :disabled="salvando">
+              {{ salvando ? 'Salvando…' : 'Salvar' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -164,52 +169,54 @@
       <div class="modal">
         <h2>Registrar movimentação</h2>
 
-        <div class="form-group">
-          <label>Produto *</label>
-          <select v-model="movForm.produto_id" @change="preencherCustoMov">
-            <option value="">— Selecione —</option>
-            <option v-for="p in produtos" :key="p.id" :value="p.id">{{ p.nome }}</option>
-          </select>
-        </div>
-
-        <div v-if="movForm.produto_id" class="mov-info-produto">
-          <span>
-            Estoque atual:
-            <strong>{{ fmtQtd(produtoSelecionado?.estoque_atual) }} {{ produtoSelecionado?.unidade }}</strong>
-          </span>
-          <span :class="movForm.tipo === 'entrada' ? 'badge-green' : 'badge-red'" class="badge">
-            {{ movForm.tipo === 'entrada' ? '📥 Entrada' : movForm.tipo === 'saida' ? '📤 Saída' : '🔧 Ajuste' }}
-          </span>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="modal-body">
           <div class="form-group">
-            <label>Tipo</label>
-            <select v-model="movForm.tipo">
-              <option value="entrada">Entrada</option>
-              <option value="saida">Saída</option>
-              <option value="ajuste">Ajuste</option>
+            <label>Produto <span class="obrigatorio">*</span></label>
+            <select v-model="movForm.produto_id" @change="preencherCustoMov">
+              <option value="">— Selecione —</option>
+              <option v-for="p in produtos" :key="p.id" :value="p.id">{{ p.nome }}</option>
             </select>
           </div>
-          <div class="form-group">
-            <label>Quantidade *</label>
-            <input v-model.number="movForm.quantidade" type="number" min="0.001" step="0.001" ref="inputQtd" />
-          </div>
-          <div class="form-group">
-            <label>Custo unit. (R$)</label>
-            <input v-model.number="movForm.custo_unit" type="number" min="0" step="0.01" />
-          </div>
-          <div class="form-group">
-            <label>Observação</label>
-            <input v-model="movForm.observacao" placeholder="Opcional" />
-          </div>
-        </div>
 
-        <div class="modal-actions">
-          <button class="btn btn-ghost" @click="modalMov = false">Cancelar</button>
-          <button class="btn btn-primary" @click="salvarMovimentacao" :disabled="salvando">
-            {{ salvando ? 'Salvando…' : 'Registrar' }}
-          </button>
+          <div v-if="movForm.produto_id" class="mov-info-produto">
+            <span>
+              Estoque atual:
+              <strong>{{ fmtQtd(produtoSelecionado?.estoque_atual) }} {{ produtoSelecionado?.unidade }}</strong>
+            </span>
+            <span :class="['badge', movForm.tipo === 'entrada' ? 'badge-ok' : 'badge-zero']">
+              {{ movForm.tipo === 'entrada' ? '📥 Entrada' : movForm.tipo === 'saida' ? '📤 Saída' : '🔧 Ajuste' }}
+            </span>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Tipo</label>
+              <select v-model="movForm.tipo">
+                <option value="entrada">Entrada</option>
+                <option value="saida">Saída</option>
+                <option value="ajuste">Ajuste</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Quantidade <span class="obrigatorio">*</span></label>
+              <input v-model.number="movForm.quantidade" type="number" min="0.001" step="0.001" ref="inputQtd" />
+            </div>
+            <div class="form-group">
+              <label>Custo unit. (R$)</label>
+              <input v-model.number="movForm.custo_unit" type="number" min="0" step="0.01" />
+            </div>
+            <div class="form-group">
+              <label>Observação</label>
+              <input v-model="movForm.observacao" placeholder="Opcional" />
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn-ghost" @click="modalMov = false">Cancelar</button>
+            <button class="btn-primary" @click="salvarMovimentacao" :disabled="salvando">
+              {{ salvando ? 'Salvando…' : 'Registrar' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -451,36 +458,30 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.header-acoes { display: flex; gap: 8px; }
-
-.filtros {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-.filtros input, .filtros select { flex: 1; min-width: 160px; }
-
-.table-wrap { overflow-x: auto; }
-
 .acoes { display: flex; gap: 4px; white-space: nowrap; }
-.right  { text-align: right; }
-.center { text-align: center; }
-.mono   { font-variant-numeric: tabular-nums; }
-.bold   { font-weight: 600; }
-.text-muted { color: var(--text-muted); }
-.td-main { font-weight: 500; }
-.td-sub  { font-size: 11px; color: var(--text-muted); }
 
-.estado-vazio { padding: 48px; text-align: center; color: var(--text-muted); }
-
-.modal-lg { width: 640px; }
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0 16px;
+/* Scroll vertical na tabela */
+.table-scroll {
+  max-height: 62vh;
+  overflow-y: auto;
+  overflow-x: auto;
 }
-.span-2 { grid-column: span 2; }
+.table-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--white);
+  box-shadow: 0 1px 0 var(--slate-100);
+}
+
+.estado-vazio {
+  padding: 48px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+/* Modal largo para produto */
+.modal-lg { max-width: 640px; }
 
 .mov-info-produto {
   display: flex;
@@ -492,4 +493,14 @@ onMounted(async () => {
   margin-bottom: 14px;
   font-size: 14px;
 }
+
+.obrigatorio { color: #dc2626; margin-left: 2px; }
+
+/* Texto inline */
+.right  { text-align: right; }
+.center { text-align: center; }
+.left   { text-align: left; }
+.mono   { font-variant-numeric: tabular-nums; }
+.bold   { font-weight: 600; }
+.text-muted { color: var(--text-muted); }
 </style>

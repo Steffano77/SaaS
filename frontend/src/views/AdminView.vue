@@ -5,11 +5,11 @@
     </div>
 
     <!-- Tabs -->
-    <div class="tabs">
-      <button :class="['tab', aba === 'padarias' && 'ativa']" @click="aba = 'padarias'">
+    <div class="tabs-admin">
+      <button :class="['tab-btn-adm', aba === 'padarias' && 'ativa']" @click="aba = 'padarias'">
         🏪 Padarias ({{ padarias.length }})
       </button>
-      <button :class="['tab', aba === 'codigos' && 'ativa']" @click="aba = 'codigos'; carregarCodigos()">
+      <button :class="['tab-btn-adm', aba === 'codigos' && 'ativa']" @click="aba = 'codigos'; carregarCodigos()">
         🔑 Códigos de ativação
       </button>
     </div>
@@ -29,14 +29,14 @@
               <span class="sep">·</span>
               <span v-html="statusPlano(p)"></span>
             </div>
-            <div class="padaria-data text-muted">Cadastro: {{ fmtData(p.criado_em) }}</div>
+            <div class="padaria-data">Cadastro: {{ fmtData(p.criado_em) }}</div>
           </div>
           <div class="padaria-acoes" v-if="p.role !== 'admin'">
-            <button class="btn btn-ghost btn-sm" @click="abrirRenovar(p)">🔄 Renovar</button>
-            <button class="btn btn-ghost btn-sm" @click="toggleAtivo(p)">
+            <button class="btn-ghost btn-sm" @click="abrirRenovar(p)">🔄 Renovar</button>
+            <button class="btn-ghost btn-sm" @click="toggleAtivo(p)">
               {{ p.ativo ? '🔒 Desativar' : '✅ Reativar' }}
             </button>
-            <button class="btn btn-danger btn-sm" @click="apagarPadaria(p)">🗑 Apagar</button>
+            <button class="btn-danger btn-sm" @click="apagarPadaria(p)">🗑 Apagar</button>
           </div>
           <div v-else class="admin-badge">— Admin —</div>
         </div>
@@ -46,22 +46,24 @@
     <!-- ── Aba Códigos ── -->
     <div v-if="aba === 'codigos'">
       <!-- Gerar novo código -->
-      <div class="card gerar-card">
-        <h3>Gerar novo código</h3>
-        <div class="gerar-form">
-          <select v-model="novoPlano">
-            <option value="essencial">Essencial</option>
-            <option value="pro">Pro</option>
-            <option value="premium">Premium</option>
-          </select>
-          <button class="btn btn-primary" @click="gerarCodigo" :disabled="gerando">
-            {{ gerando ? 'Gerando…' : '+ Gerar código' }}
-          </button>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-body">
+          <h3 class="card-title">Gerar novo código</h3>
+          <div class="gerar-form">
+            <select v-model="novoPlano" style="max-width:180px;">
+              <option value="essencial">Essencial</option>
+              <option value="pro">Pro</option>
+              <option value="premium">Premium</option>
+            </select>
+            <button class="btn-primary" @click="gerarCodigo" :disabled="gerando">
+              {{ gerando ? 'Gerando…' : '+ Gerar código' }}
+            </button>
+          </div>
+          <div v-if="ultimoCodigo" class="ultimo-codigo">
+            Código gerado: <strong>{{ ultimoCodigo }}</strong>
+            <button class="btn-copiar" @click="copiar(ultimoCodigo)" title="Copiar">📋</button>
+          </div>
         </div>
-        <p v-if="ultimoCodigo" class="ultimo-codigo">
-          Código gerado: <strong>{{ ultimoCodigo }}</strong>
-          <button class="btn-copiar" @click="copiar(ultimoCodigo)" title="Copiar">📋</button>
-        </p>
       </div>
 
       <!-- Lista de códigos -->
@@ -73,7 +75,7 @@
             <div class="codigo-valor">
               <span class="codigo-texto">{{ c.codigo }}</span>
               <span :class="['badge', planoCor(c.plano)]">{{ planoLabel(c.plano) }}</span>
-              <span :class="['badge', c.usado ? 'badge-green' : 'badge-orange']">
+              <span :class="['badge', c.usado ? 'badge-ok' : 'badge-validade']">
                 {{ c.usado ? '✅ Usado' : 'Disponível' }}
               </span>
             </div>
@@ -85,8 +87,8 @@
             <div class="codigo-data text-muted">Criado em {{ fmtData(c.criado_em) }}</div>
           </div>
           <div class="codigo-acoes">
-            <button v-if="!c.usado" class="btn btn-ghost btn-sm" @click="copiar(c.codigo)">📋 Copiar</button>
-            <button class="btn btn-danger btn-sm" @click="apagarCodigo(c)">🗑</button>
+            <button v-if="!c.usado" class="btn-ghost btn-sm" @click="copiar(c.codigo)">📋 Copiar</button>
+            <button class="btn-danger btn-sm" @click="apagarCodigo(c)">🗑</button>
           </div>
         </div>
       </div>
@@ -97,25 +99,27 @@
       <div class="modal">
         <h2>Renovar plano — {{ renovarPadaria?.nome }}</h2>
 
-        <div class="form-group">
-          <label>Plano</label>
-          <select v-model="renovarForm.plano">
-            <option value="">Manter atual ({{ planoLabel(renovarPadaria?.plano) }})</option>
-            <option value="essencial">Essencial</option>
-            <option value="pro">Pro</option>
-            <option value="premium">Premium</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Quantos meses?</label>
-          <input v-model.number="renovarForm.meses" type="number" min="1" max="24" />
-        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Plano</label>
+            <select v-model="renovarForm.plano">
+              <option value="">Manter atual ({{ planoLabel(renovarPadaria?.plano) }})</option>
+              <option value="essencial">Essencial</option>
+              <option value="pro">Pro</option>
+              <option value="premium">Premium</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Quantos meses?</label>
+            <input v-model.number="renovarForm.meses" type="number" min="1" max="24" />
+          </div>
 
-        <div class="modal-actions">
-          <button class="btn btn-ghost" @click="modalRenovar = false">Cancelar</button>
-          <button class="btn btn-primary" @click="confirmarRenovar" :disabled="salvando">
-            {{ salvando ? 'Salvando…' : 'Renovar' }}
-          </button>
+          <div class="modal-actions">
+            <button class="btn-ghost" @click="modalRenovar = false">Cancelar</button>
+            <button class="btn-primary" @click="confirmarRenovar" :disabled="salvando">
+              {{ salvando ? 'Salvando…' : 'Renovar' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -246,7 +250,7 @@ function planoLabel(p) {
 }
 
 function planoCor(p) {
-  return { essencial: 'badge-blue', pro: 'badge-orange', premium: 'badge-purple' }[p] || ''
+  return { essencial: 'badge-blue', pro: 'badge-validade', premium: 'badge-purple' }[p] || ''
 }
 
 function statusPlano(p) {
@@ -269,40 +273,61 @@ onMounted(carregarPadarias)
 
 <style scoped>
 /* Tabs */
-.tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
-.tab {
-  padding: 10px 18px; border: none; background: none;
-  cursor: pointer; font-size: 14px; font-weight: 500;
-  color: var(--text-muted); border-bottom: 2px solid transparent;
-  margin-bottom: -2px; transition: color .15s, border-color .15s;
+.tabs-admin {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--slate-200);
+  flex-wrap: wrap;
 }
-.tab.ativa { color: var(--orange); border-bottom-color: var(--orange); }
-.tab:hover { color: var(--text); }
+.tab-btn-adm {
+  padding: 10px 18px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color .15s, border-color .15s;
+}
+.tab-btn-adm.ativa { color: var(--orange); border-bottom-color: var(--orange); }
+.tab-btn-adm:hover { color: var(--slate-800); }
 
 /* Lista de padarias */
 .padarias-lista { display: flex; flex-direction: column; gap: 12px; }
 
 .padaria-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  background: var(--white);
+  border: 1px solid var(--slate-100);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
   padding: 16px 20px;
-  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  transition: box-shadow 0.2s;
+}
+.padaria-card:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.09), 0 2px 6px rgba(0,0,0,0.05);
 }
 .padaria-info { flex: 1; min-width: 0; }
-.padaria-nome  { font-weight: 700; font-size: 15px; }
+.padaria-nome  { font-weight: 700; font-size: 15px; color: var(--slate-800); }
 .padaria-email { font-size: 13px; color: var(--text-muted); }
-.padaria-meta  { font-size: 12px; color: var(--slate-500); margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-.padaria-data  { font-size: 11px; margin-top: 2px; }
+.padaria-meta  {
+  font-size: 12px; color: var(--slate-500); margin-top: 4px;
+  display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
+}
+.padaria-data  { font-size: 11px; margin-top: 2px; color: var(--slate-400); }
 .sep { color: var(--slate-400); }
 .padaria-acoes { display: flex; gap: 6px; flex-wrap: wrap; }
 .admin-badge { font-size: 13px; color: var(--slate-400); font-style: italic; }
 
 /* Gerar código */
-.gerar-card { margin-bottom: 16px; }
-.gerar-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
-.gerar-form { display: flex; gap: 10px; align-items: center; }
-.gerar-form select { max-width: 180px; }
+.gerar-form { display: flex; gap: 10px; align-items: center; margin-bottom: 0; }
 .ultimo-codigo {
   margin-top: 12px; padding: 10px 14px;
   background: var(--slate-100); border-radius: 8px;
@@ -313,26 +338,31 @@ onMounted(carregarPadarias)
 /* Lista de códigos */
 .codigos-lista { display: flex; flex-direction: column; gap: 10px; }
 .codigo-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  background: var(--white);
+  border: 1px solid var(--slate-100);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
   padding: 14px 18px;
-  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  transition: box-shadow 0.2s;
+}
+.codigo-card:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.09), 0 2px 6px rgba(0,0,0,0.05);
 }
 .codigo-info { flex: 1; min-width: 0; }
 .codigo-valor { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
-.codigo-texto { font-family: monospace; font-size: 16px; font-weight: 700; letter-spacing: .05em; }
+.codigo-texto { font-family: ui-monospace, 'Cascadia Code', 'Courier New', monospace; font-size: 16px; font-weight: 700; letter-spacing: .05em; }
 .codigo-uso  { font-size: 12px; margin-bottom: 2px; }
 .codigo-data { font-size: 11px; }
 .codigo-acoes { display: flex; gap: 6px; flex-shrink: 0; }
 
-/* Badges */
-.badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
-.badge-green  { background: #dcfce7; color: #16a34a; }
-.badge-orange { background: #fff7ed; color: #c2410c; }
-.badge-blue   { background: #dbeafe; color: #1d4ed8; }
+/* Badge purple (não global) */
 .badge-purple { background: #f3e8ff; color: #7c3aed; }
+.badge-blue   { background: #dbeafe; color: #1d4ed8; }
 
-.estado-vazio { padding: 48px; text-align: center; color: var(--text-muted); }
+.estado-vazio { padding: 48px; text-align: center; color: var(--text-muted); font-size: 14px; }
 .text-muted { color: var(--text-muted); }
 </style>
