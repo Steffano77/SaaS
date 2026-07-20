@@ -156,24 +156,97 @@ router.get('/relatorios/valor-categorias', auth, wrap(async (req, res) => {
 router.get('/relatorios/mes', auth, wrap(async (req, res) => {
   const db = require('../database/connection');
   const mes = req.query.mes || new Date().toISOString().slice(0, 7);
-  const [kpis] = await db.query(`
-    SELECT
-      COALESCE(SUM(CASE WHEN tipo IN ('entrada','sync_saurus') THEN valor_total ELSE 0 END), 0) AS total_entradas,
-      COALESCE(SUM(CASE WHEN tipo = 'saida' THEN valor_total ELSE 0 END), 0) AS total_saidas,
-      COUNT(*) AS qtd_movs,
-      COUNT(DISTINCT produto_id) AS prods_distintos
-    FROM movimentacoes
-    WHERE padaria_id = ? AND DATE_FORMAT(data, '%Y-%m') = ?`, [req.padaria.id, mes]);
+  const [ano, m] = mes.split('-').map(Number);
+  const mesAnterior = m === 1
+    ? `${ano - 1}-12`
+    : `${ano}-${String(m - 1).padStart(2, '0')}`;
 
-  const [movs] = await db.query(`
-    SELECT m.tipo, m.quantidade, m.custo_unit, m.valor_total, m.data, p.nome AS produto
-    FROM movimentacoes m
-    JOIN produtos p ON p.id = m.produto_id
-    WHERE m.padaria_id = ? AND DATE_FORMAT(m.data, '%Y-%m') = ?
-    ORDER BY m.data DESC
-    LIMIT 200`, [req.padaria.id, mes]);
+  const q = (sql, params) => db.query(sql, params)
+    .then(([rows]) => rows)
+    .catch(e => { console.error('[rel] ERRO:', e.message); return []; });
 
-  res.json({ ...kpis[0], movs });
+  const [kpisRows, kpisAntRows, movs, top, categorias, alertas, compras] = await Promise.all([
+    q(`SELECT
+        COALESCE(SUM(CASE WHEN tipo IN ('entrada','sync_saurus') THEN valor_total ELSE 0 END), 0) AS total_entradas,
+        COALESCE(SUM(CASE WHEN tipo = 'saida' THEN valor_total ELSE 0 END), 0) AS total_saidas,
+        COUNT(*) AS qtd_movs,
+        COUNT(DISTINCT produto_id) AS prods_distintos
+       FROM movimentacoes
+       WHERE padaria_id = ? AND DATE_FORMAT(data, '%Y-%m') = ?`,
+      [req.padaria.id, mes]),
+
+    q(`SELECT
+        COALESCE(SUM(CASE WHEN tipo IN ('entrada','sync_saurus') THEN valor_total ELSE 0 END), 0) AS total_entradas,
+        COALESCE(SUM(CASE WHEN tipo = 'saida' THEN valor_total ELSE 0 END), 0) AS total_saidas,
+        COUNT(*) AS qtd_movs
+       FROM movimentacoes
+       WHERE padaria_id = ? AND DATE_FORMAT(data, '%Y-%m') = ?`,
+      [req.padaria.id, mesAnterior]),
+
+    q(`SELECT m.tipo, m.quantidade, m.custo_unit, m.valor_total, m.data,
+              COALESCE(p.nome, '[Produto removido]') AS produto,
+              COALESCE(c.nome, 'Sem categoria') AS categoria
+       FROM movimentacoes m
+       LEFT JOIN produtos p ON p.id = m.produto_id
+       LEFT JOIN categorias c ON c.id = p.categoria_id
+       WHERE m.padaria_id = ? AND DATE_FORMAT(m.data, '%Y-%m') = ?
+       ORDER BY m.data DESC LIMIT 500`,
+      [req.padaria.id, mes]),
+
+    q(`SELECT m.produto_id,
+              COALESCE(MAX(p.nome), '[Produto removido]') AS nome,
+              COALESCE(MAX(p.unidade), 'un') AS unidade,
+              COUNT(*) AS qtd_movs,
+              SUM(CASE WHEN m.tipo IN ('entrada','sync_saurus') THEN m.quantidade ELSE 0 END) AS entradas,
+              SUM(CASE WHEN m.tipo = 'saida' THEN m.quantidade ELSE 0 END) AS saidas
+       FROM movimentacoes m
+       LEFT JOIN produtos p ON p.id = m.produto_id
+       WHERE m.padaria_id = ? AND DATE_FORMAT(m.data, '%Y-%m') = ?
+       GROUP BY m.produto_id
+       ORDER BY qtd_movs DESC LIMIT 5`,
+      [req.padaria.id, mes]),
+
+    q(`SELECT COALESCE(c.nome, 'Sem categoria') AS categoria,
+              SUM(CASE WHEN m.tipo IN ('entrada','sync_saurus') THEN m.valor_total ELSE 0 END) AS total_entradas,
+              SUM(CASE WHEN m.tipo = 'saida' THEN m.valor_total ELSE 0 END) AS total_saidas,
+              COUNT(*) AS movs
+       FROM movimentacoes m
+       LEFT JOIN produtos p ON p.id = m.produto_id
+       LEFT JOIN categorias c ON c.id = p.categoria_id
+       WHERE m.padaria_id = ? AND DATE_FORMAT(m.data, '%Y-%m') = ?
+       GROUP BY c.id
+       ORDER BY total_entradas DESC`,
+      [req.padaria.id, mes]),
+
+    q(`SELECT nome, estoque_atual, estoque_minimo, unidade,
+              CASE WHEN estoque_atual <= 0 THEN 'zerado' ELSE 'minimo' END AS alerta
+       FROM produtos
+       WHERE padaria_id = ? AND ativo = 1
+         AND (estoque_atual <= 0 OR (estoque_minimo > 0 AND estoque_atual <= estoque_minimo))
+       ORDER BY estoque_atual ASC LIMIT 20`,
+      [req.padaria.id]),
+
+    q(`SELECT COALESCE(f.nome, '— Sem fornecedor —') AS fornecedor,
+              COUNT(DISTINCT pc.id) AS qtd_pedidos,
+              SUM(pc.total) AS total_gasto
+       FROM pedidos_compra pc
+       LEFT JOIN fornecedores f ON f.id = pc.fornecedor_id
+       WHERE pc.padaria_id = ? AND pc.status = 'recebido'
+         AND DATE_FORMAT(pc.recebido_em, '%Y-%m') = ?
+       GROUP BY f.id
+       ORDER BY total_gasto DESC`,
+      [req.padaria.id, mes]),
+  ]);
+
+  res.json({
+    ...(kpisRows[0] || {}),
+    mes_anterior: kpisAntRows[0] || {},
+    movs,
+    top_produtos: top,
+    categorias,
+    alertas,
+    compras_fornecedor: compras,
+  });
 }));
 
 // Saídas últimos 30 dias
