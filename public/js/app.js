@@ -1710,35 +1710,108 @@ function popularMeses() {
   }
 }
 
+function _pct(atual, anterior) {
+  if (!anterior || anterior == 0) return '';
+  const diff = ((atual - anterior) / anterior * 100).toFixed(0);
+  const up = diff >= 0;
+  return `<span class="rel-variacao ${up ? 'rel-up' : 'rel-down'}">${up ? '▲' : '▼'} ${Math.abs(diff)}%</span>`;
+}
+
 async function carregarRelatorios() {
   popularMeses();
   const mes = document.getElementById('rel-mes').value;
   const data = await api(`/relatorios/mes?mes=${mes}`);
   if (!data) return;
 
+  const fmtR$ = v => 'R$ ' + parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
+  const ant = data.mes_anterior || {};
+
+  // ── KPIs com comparativo ──
+  const saldo = parseFloat(data.total_entradas||0) - parseFloat(data.total_saidas||0);
   document.getElementById('rel-kpis').innerHTML = `
-    <div class="kpi-card"><div class="kpi-label">Total entradas</div><div class="kpi-value" style="color:#16a34a;">R$ ${parseFloat(data.total_entradas||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Total saídas (custo)</div><div class="kpi-value" style="color:#dc2626;">R$ ${parseFloat(data.total_saidas||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Movimentações</div><div class="kpi-value">${data.qtd_movs||0}</div></div>
-    <div class="kpi-card"><div class="kpi-label">Produtos movimentados</div><div class="kpi-value">${data.prods_distintos||0}</div></div>
+    <div class="kpi-card">
+      <div class="kpi-label">Total entradas</div>
+      <div class="kpi-value" style="color:#16a34a;">${fmtR$(data.total_entradas)}</div>
+      ${_pct(data.total_entradas, ant.total_entradas)}
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Total saídas (custo)</div>
+      <div class="kpi-value" style="color:#dc2626;">${fmtR$(data.total_saidas)}</div>
+      ${_pct(data.total_saidas, ant.total_saidas)}
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Saldo do período</div>
+      <div class="kpi-value" style="color:${saldo>=0?'#16a34a':'#dc2626'};">${fmtR$(saldo)}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Movimentações</div>
+      <div class="kpi-value">${data.qtd_movs||0}</div>
+      ${_pct(data.qtd_movs, ant.qtd_movs)}
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Produtos movimentados</div>
+      <div class="kpi-value">${data.prods_distintos||0}</div>
+    </div>
   `;
 
+  // ── Top 5 produtos ──
+  document.getElementById('tabela-rel-top').innerHTML = data.top_produtos?.length
+    ? data.top_produtos.map((p,i) => `<tr>
+        <td><span class="rel-rank">${i+1}</span> ${p.nome}</td>
+        <td class="right" style="color:#16a34a;">${fmtQtd(p.entradas)} ${p.unidade}</td>
+        <td class="right" style="color:#dc2626;">${fmtQtd(p.saidas)} ${p.unidade}</td>
+        <td class="right bold">${p.qtd_movs}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="4" class="empty-row">Nenhum produto movimentado</td></tr>';
+
+  // ── Compras por fornecedor ──
+  document.getElementById('tabela-rel-compras').innerHTML = data.compras_fornecedor?.length
+    ? data.compras_fornecedor.map(c => `<tr>
+        <td class="td-main">${c.fornecedor}</td>
+        <td class="right">${c.qtd_pedidos}</td>
+        <td class="right bold">${fmtR$(c.total_gasto)}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="3" class="empty-row">Nenhuma compra recebida no mês</td></tr>';
+
+  // ── Por categoria ──
+  document.getElementById('tabela-rel-cats').innerHTML = data.categorias?.length
+    ? data.categorias.map(c => `<tr>
+        <td class="td-main">${c.categoria}</td>
+        <td class="right" style="color:#16a34a;">${fmtR$(c.total_entradas)}</td>
+        <td class="right" style="color:#dc2626;">${fmtR$(c.total_saidas)}</td>
+        <td class="right">${c.movs}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="4" class="empty-row">Sem dados</td></tr>';
+
+  // ── Alertas de estoque ──
+  document.getElementById('tabela-rel-alertas').innerHTML = data.alertas?.length
+    ? data.alertas.map(p => `<tr>
+        <td class="td-main">${p.nome}</td>
+        <td class="right">${fmtQtd(p.estoque_atual)} ${p.unidade}</td>
+        <td class="right">${fmtQtd(p.estoque_minimo)} ${p.unidade}</td>
+        <td class="center">${p.alerta === 'zerado'
+          ? '<span class="badge badge-zero">🔴 Zerado</span>'
+          : '<span class="badge badge-min">⚠️ Baixo</span>'}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="4" class="empty-row" style="color:#16a34a;">✅ Estoque OK</td></tr>';
+
+  // ── Movimentações detalhadas ──
   const tiposEmoji = { entrada:'📥 Entrada', saida:'📤 Saída', ajuste:'⚙️ Ajuste', sync_saurus:'🔄 Saurus' };
   const tiposTexto = { entrada:'Entrada', saida:'Saída', ajuste:'Ajuste', sync_saurus:'Saurus' };
   document.getElementById('tabela-rel-movs').innerHTML = data.movs?.length
     ? data.movs.map(m => {
         const isSaida = m.tipo === 'saida';
-        const cor = isSaida ? 'color:#dc2626;' : '';
         return `<tr class="${isSaida ? 'tr-saida' : ''}">
           <td class="td-main">${m.produto}</td>
+          <td style="color:var(--slate-500);font-size:12px;">${m.categoria||'—'}</td>
           <td><span class="tipo-tela">${tiposEmoji[m.tipo]||m.tipo}</span><span class="tipo-print">${tiposTexto[m.tipo]||m.tipo}</span></td>
           <td class="right td-mono">${fmtQtd(m.quantidade)}</td>
           <td class="right">R$ ${parseFloat(m.custo_unit||0).toFixed(2)}</td>
-          <td class="right" style="font-weight:600;">R$ ${parseFloat(m.valor_total||0).toFixed(2)}</td>
+          <td class="right bold">R$ ${parseFloat(m.valor_total||0).toFixed(2)}</td>
           <td>${new Date(m.data).toLocaleDateString('pt-BR')}</td>
         </tr>`;
       }).join('')
-    : '<tr class="empty-row"><td colspan="6">Nenhuma movimentação neste mês</td></tr>';
+    : '<tr class="empty-row"><td colspan="7">Nenhuma movimentação neste mês</td></tr>';
 }
 
 function imprimirRelatorio() {
