@@ -1723,14 +1723,15 @@ async function carregarRelatorios() {
     <div class="kpi-card"><div class="kpi-label">Produtos movimentados</div><div class="kpi-value">${data.prods_distintos||0}</div></div>
   `;
 
-  const tipos = { entrada:'📥 Entrada', saida:'📤 Saída', ajuste:'⚙️ Ajuste', sync_saurus:'🔄 Saurus' };
+  const tiposEmoji = { entrada:'📥 Entrada', saida:'📤 Saída', ajuste:'⚙️ Ajuste', sync_saurus:'🔄 Saurus' };
+  const tiposTexto = { entrada:'Entrada', saida:'Saída', ajuste:'Ajuste', sync_saurus:'Saurus' };
   document.getElementById('tabela-rel-movs').innerHTML = data.movs?.length
     ? data.movs.map(m => {
         const isSaida = m.tipo === 'saida';
         const cor = isSaida ? 'color:#dc2626;' : '';
         return `<tr class="${isSaida ? 'tr-saida' : ''}">
           <td class="td-main">${m.produto}</td>
-          <td>${tipos[m.tipo]||m.tipo}</td>
+          <td><span class="tipo-tela">${tiposEmoji[m.tipo]||m.tipo}</span><span class="tipo-print">${tiposTexto[m.tipo]||m.tipo}</span></td>
           <td class="right td-mono">${fmtQtd(m.quantidade)}</td>
           <td class="right">R$ ${parseFloat(m.custo_unit||0).toFixed(2)}</td>
           <td class="right" style="font-weight:600;">R$ ${parseFloat(m.valor_total||0).toFixed(2)}</td>

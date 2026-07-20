@@ -1744,8 +1744,14 @@ tr.tr-saida td { color: var(--red-600); }
   color: var(--pl-subtext);
 }
 
+/* Tipo na tela mostra emoji, na impressão só texto */
+.tipo-print { display: none; }
+@screen { .tipo-tela { display: inline; } }
+
 /* ── Impressão ── */
 @media print {
+  .tipo-tela { display: none !important; }
+  .tipo-print { display: inline !important; }
   /* Esconde tudo que não é o relatório */
   .sidebar,
   .mobile-topbar,
@@ -1804,7 +1810,27 @@ tr.tr-saida td { color: var(--red-600); }
     break-inside: avoid;
   }
   .table-wrapper { overflow: visible !important; }
-  table { font-size: 12px; }
+
+  /* Tabela compacta para caber no papel */
+  table {
+    font-size: 11px;
+    width: 100%;
+    table-layout: fixed;
+  }
+  table th, table td { padding: 6px 8px !important; word-break: break-word; }
+  /* Larguras das colunas: Produto 30%, Tipo 12%, Qtd 12%, Custo 14%, Total 14%, Data 18% */
+  #pg-relatorios table th:nth-child(1),
+  #pg-relatorios table td:nth-child(1) { width: 30%; }
+  #pg-relatorios table th:nth-child(2),
+  #pg-relatorios table td:nth-child(2) { width: 12%; }
+  #pg-relatorios table th:nth-child(3),
+  #pg-relatorios table td:nth-child(3) { width: 12%; }
+  #pg-relatorios table th:nth-child(4),
+  #pg-relatorios table td:nth-child(4) { width: 14%; }
+  #pg-relatorios table th:nth-child(5),
+  #pg-relatorios table td:nth-child(5) { width: 14%; }
+  #pg-relatorios table th:nth-child(6),
+  #pg-relatorios table td:nth-child(6) { width: 18%; }
 
   /* KPIs em linha */
   #rel-kpis { grid-template-columns: repeat(4, 1fr) !important; }
