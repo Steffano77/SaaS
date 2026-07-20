@@ -54,8 +54,8 @@ router.get('/mes', auth, wrap(async (req, res) => {
     : `${ano}-${String(m - 1).padStart(2, '0')}`;
 
   const q = (sql, params) => db.query(sql, params)
-    .then(([rows]) => rows)
-    .catch(e => { console.error('rel query err:', e.message); return []; });
+    .then(([rows]) => { console.log(`[rel] query ok: ${rows.length} linhas`); return rows; })
+    .catch(e => { console.error('[rel] query ERRO:', e.message, '\nSQL:', sql.slice(0,120)); return []; });
 
   const [kpisRows, kpisAntRows, movs, top, categorias, alertas, compras] = await Promise.all([
     // KPIs do mês atual
