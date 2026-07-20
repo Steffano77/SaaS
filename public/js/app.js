@@ -10,6 +10,7 @@ const API = '/api';
 })();
 
 let TOKEN = localStorage.getItem('pptoken') || sessionStorage.getItem('pptoken') || '';
+let PLANO_ATUAL = '';
 let todosProds = [];
 let _prodFornecedorMap = {}; // produto_id → nome do fornecedor
 
@@ -178,6 +179,7 @@ async function fazerLogin(e) {
     const _planoLabels = { trial: '⏳ Trial', essencial: '⚡ Essencial', pro: '⭐ Pro', premium: '💎 Premium' };
     const _planoEl = document.getElementById('sidebar-plano');
     if (_planoEl) _planoEl.textContent = _planoLabels[d.padaria.plano] || d.padaria.plano || '—';
+    PLANO_ATUAL = d.padaria.plano || 'trial';
     if (d.padaria.role === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
     entrar();
   } catch { el.textContent = 'Erro de conexão.'; el.classList.remove('hidden'); }
@@ -225,6 +227,7 @@ async function fazerRegistro(e) {
     const _planoLabelsReg = { trial: '⏳ Trial', essencial: '⚡ Essencial', pro: '⭐ Pro', premium: '💎 Premium' };
     const _planoElReg = document.getElementById('sidebar-plano');
     if (_planoElReg) _planoElReg.textContent = _planoLabelsReg[d.padaria.plano] || d.padaria.plano || '—';
+    PLANO_ATUAL = d.padaria.plano || 'trial';
     if (d.padaria.role === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
     entrar();
   } catch { el.textContent = 'Erro de conexão.'; el.classList.remove('hidden'); }
@@ -2326,6 +2329,7 @@ if (TOKEN) {
         const planoLabels = { trial: '⏳ Trial', essencial: '⚡ Essencial', pro: '⭐ Pro', premium: '💎 Premium' };
         const planoEl = document.getElementById('sidebar-plano');
         if (planoEl) planoEl.textContent = planoLabels[d.plano] || d.plano || '—';
+        PLANO_ATUAL = d.plano || 'trial';
         if (d.role === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
         entrar();
       }
@@ -2699,6 +2703,27 @@ let produtosCache = [];
 let fichaEditandoItens = [];
 
 async function carregarFichas() {
+  const _btnConf = document.getElementById('btn-config-prec');
+  const _btnNova = document.getElementById('btn-nova-ficha');
+  if (!['pro', 'premium'].includes(PLANO_ATUAL)) {
+    if (_btnConf) _btnConf.style.display = 'none';
+    if (_btnNova) _btnNova.style.display = 'none';
+    const lista = document.getElementById('fichas-lista');
+    const detalhe = document.getElementById('fichas-detalhe');
+    if (detalhe) detalhe.classList.add('hidden');
+    if (lista) lista.innerHTML = `
+      <div class="fichas-lock">
+        <div class="fichas-lock-icon">🔒</div>
+        <h3>Fichas Técnicas — Plano Pro ou Premium</h3>
+        <p>Calcule o CMV real de cada receita e forme preços com base nos seus custos.<br>
+           Disponível nos planos <strong>Pro</strong> e <strong>Premium</strong>.</p>
+        <p style="color:var(--slate-400);font-size:13px;">Seu plano atual: <strong>${{ trial: 'Trial', essencial: 'Essencial' }[PLANO_ATUAL] || PLANO_ATUAL}</strong></p>
+        <a href="https://panificapro.com.br/planos" target="_blank" class="btn btn-primary" style="margin-top:8px;">Ver planos →</a>
+      </div>`;
+    return;
+  }
+  if (_btnConf) _btnConf.style.display = '';
+  if (_btnNova) _btnNova.style.display = '';
   const fichas = await api('/fichas');
   if (!fichas) return;
   fichasCache = fichas;

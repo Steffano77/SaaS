@@ -1894,6 +1894,17 @@ tr.tr-saida td { color: var(--red-600); }
 /* ── Fichas Técnicas ── */
 .fichas-kpis-row { display: flex; gap: 14px; margin-bottom: 20px; flex-wrap: wrap; }
 .fichas-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.fichas-lock {
+  grid-column: 1/-1;
+  text-align: center;
+  padding: 60px 24px;
+  background: var(--white);
+  border-radius: 16px;
+  border: 2px dashed var(--slate-200);
+}
+.fichas-lock-icon { font-size: 48px; margin-bottom: 16px; }
+.fichas-lock h3 { font-size: 20px; font-weight: 700; margin-bottom: 10px; color: var(--slate-700); }
+.fichas-lock p { color: var(--slate-500); margin-bottom: 6px; line-height: 1.5; }
 
 .ficha-card {
   background: var(--white); border-radius: 12px;

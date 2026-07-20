@@ -712,8 +712,19 @@ router.delete('/admin/codigos/:id', auth, authAdmin, wrap(async (req, res) => {
 }));
 
 // ── Fichas Técnicas ────────────────────────────────────────────────────────
+// Middleware: apenas planos Pro/Premium (e admin) acessam fichas
+const authPro = wrap(async (req, res, next) => {
+  const db = require('../database/connection');
+  if (req.padaria.role === 'admin') return next();
+  const [[p]] = await db.query('SELECT plano FROM padarias WHERE id = ?', [req.padaria.id]);
+  if (!p || !['pro', 'premium'].includes(p.plano)) {
+    return res.status(403).json({ erro: 'plano_insuficiente', plano: p ? p.plano : 'trial' });
+  }
+  next();
+});
+
 // Listar fichas com CMV calculado
-router.get('/fichas', auth, wrap(async (req, res) => {
+router.get('/fichas', auth, authPro, wrap(async (req, res) => {
   const db = require('../database/connection');
   const [fichas] = await db.query(
     `SELECT f.*,
@@ -731,7 +742,7 @@ router.get('/fichas', auth, wrap(async (req, res) => {
 }));
 
 // Buscar ficha com ingredientes
-router.get('/fichas/:id', auth, wrap(async (req, res) => {
+router.get('/fichas/:id', auth, authPro, wrap(async (req, res) => {
   const db = require('../database/connection');
   const [[ficha]] = await db.query(
     'SELECT * FROM fichas_tecnicas WHERE id = ? AND padaria_id = ? AND ativo = 1',
@@ -752,7 +763,7 @@ router.get('/fichas/:id', auth, wrap(async (req, res) => {
 }));
 
 // Criar ficha
-router.post('/fichas', auth, wrap(async (req, res) => {
+router.post('/fichas', auth, authPro, wrap(async (req, res) => {
   const db = require('../database/connection');
   const { nome, descricao, rendimento, unidade_rendimento, preco_venda, itens } = req.body;
   if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório.' });
@@ -775,7 +786,7 @@ router.post('/fichas', auth, wrap(async (req, res) => {
 }));
 
 // Atualizar ficha
-router.put('/fichas/:id', auth, wrap(async (req, res) => {
+router.put('/fichas/:id', auth, authPro, wrap(async (req, res) => {
   const db = require('../database/connection');
   const { nome, descricao, rendimento, unidade_rendimento, preco_venda, itens } = req.body;
   if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório.' });
@@ -798,7 +809,7 @@ router.put('/fichas/:id', auth, wrap(async (req, res) => {
 }));
 
 // Excluir ficha (soft delete)
-router.delete('/fichas/:id', auth, wrap(async (req, res) => {
+router.delete('/fichas/:id', auth, authPro, wrap(async (req, res) => {
   const db = require('../database/connection');
   await db.query('UPDATE fichas_tecnicas SET ativo=0 WHERE id=? AND padaria_id=?', [req.params.id, req.padaria.id]);
   res.json({ ok: true });
@@ -816,7 +827,7 @@ router.get('/auth/verificar-codigo/:codigo', wrap(async (req, res) => {
 // ── Configurações de Precificação ─────────────────────────────────────────
 
 // GET config + despesas + modalidades
-router.get('/precificacao/config', auth, wrap(async (req, res) => {
+router.get('/precificacao/config', auth, authPro, wrap(async (req, res) => {
   const db = require('../database/connection');
   const [[config]] = await db.query(
     'SELECT * FROM config_precificacao WHERE padaria_id = ?', [req.padaria.id]
@@ -835,7 +846,7 @@ router.get('/precificacao/config', auth, wrap(async (req, res) => {
 }));
 
 // PUT config geral
-router.put('/precificacao/config', auth, wrap(async (req, res) => {
+router.put('/precificacao/config', auth, authPro, wrap(async (req, res) => {
   const db = require('../database/connection');
   const { faturamento_medio, imposto_pct, perda_pct, lucro_desejado_pct } = req.body;
   await db.query(
@@ -849,7 +860,7 @@ router.put('/precificacao/config', auth, wrap(async (req, res) => {
 }));
 
 // PUT despesas fixas (substitui todas)
-router.put('/precificacao/despesas', auth, wrap(async (req, res) => {
+router.put('/precificacao/despesas', auth, authPro, wrap(async (req, res) => {
   const db = require('../database/connection');
   const { despesas } = req.body; // [{nome, valor}]
   await db.query('DELETE FROM despesas_fixas_config WHERE padaria_id = ?', [req.padaria.id]);
@@ -868,7 +879,7 @@ router.put('/precificacao/despesas', auth, wrap(async (req, res) => {
 }));
 
 // PUT modalidades (substitui todas)
-router.put('/precificacao/modalidades', auth, wrap(async (req, res) => {
+router.put('/precificacao/modalidades', auth, authPro, wrap(async (req, res) => {
   const db = require('../database/connection');
   const { modalidades } = req.body; // [{nome, taxa_pct, participacao_pct}]
   await db.query('DELETE FROM modalidades_pagamento WHERE padaria_id = ?', [req.padaria.id]);
