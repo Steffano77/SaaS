@@ -149,4 +149,36 @@ router.get('/mes', auth, wrap(async (req, res) => {
   });
 }));
 
+// Rota de diagnóstico temporária — remove depois
+router.get('/debug-movs', auth, wrap(async (req, res) => {
+  const mes = req.query.mes || new Date().toISOString().slice(0, 7);
+  const results = {};
+
+  try {
+    const [r1] = await db.query(
+      `SELECT COUNT(*) AS total FROM movimentacoes WHERE padaria_id = ? AND DATE_FORMAT(data,'%Y-%m') = ?`,
+      [req.padaria.id, mes]
+    );
+    results.count_movs = r1[0];
+  } catch(e) { results.count_movs_err = e.message; }
+
+  try {
+    const [r2] = await db.query(
+      `SELECT m.produto_id, p.id AS pid, p.nome FROM movimentacoes m LEFT JOIN produtos p ON p.id = m.produto_id WHERE m.padaria_id = ? AND DATE_FORMAT(m.data,'%Y-%m') = ? LIMIT 5`,
+      [req.padaria.id, mes]
+    );
+    results.sample_join = r2;
+  } catch(e) { results.sample_join_err = e.message; }
+
+  try {
+    const [r3] = await db.query(
+      `SELECT m.produto_id, MAX(p.nome) AS nome, COUNT(*) AS qtd FROM movimentacoes m LEFT JOIN produtos p ON p.id = m.produto_id WHERE m.padaria_id = ? AND DATE_FORMAT(m.data,'%Y-%m') = ? GROUP BY m.produto_id LIMIT 5`,
+      [req.padaria.id, mes]
+    );
+    results.top5 = r3;
+  } catch(e) { results.top5_err = e.message; }
+
+  res.json({ padaria_id: req.padaria.id, mes, ...results });
+}));
+
 module.exports = router;
