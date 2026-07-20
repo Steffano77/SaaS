@@ -19,7 +19,7 @@
                 </span>
                 <span class="repor-nome">{{ p.nome }}</span>
               </div>
-              <button class="btn btn-ghost btn-sm" @click="adicionarDaRepor(p)">+ Adicionar</button>
+              <button class="btn-ghost btn-sm" @click="adicionarDaRepor(p)">+ Adicionar</button>
             </div>
           </div>
         </div>
@@ -93,7 +93,7 @@
               <input v-model.number="itemMinimo" type="number" min="0" />
             </div>
 
-            <button class="btn btn-primary" style="align-self:flex-end;margin-bottom:14px" @click="adicionarItem">
+            <button class="btn-primary" style="align-self:flex-end;margin-bottom:14px" @click="adicionarItem">
               + Item
             </button>
           </div>
@@ -119,18 +119,18 @@
               />
               <span class="ci-unid">{{ item.unidade }}</span>
               <span class="ci-custo">{{ item.custo > 0 ? fmtMoeda(item.custo) + '/un' : '' }}</span>
-              <button class="btn btn-danger btn-sm" @click="compras.removerItem(item._id)">✕</button>
+              <button class="btn-danger btn-sm" @click="compras.removerItem(item._id)">✕</button>
             </div>
           </div>
 
           <!-- Botões de ação -->
           <div v-if="compras.itens.length" class="acoes-pedido">
-            <button class="btn btn-ghost" @click="compras.limpar()">Descartar</button>
-            <button class="btn btn-ghost" @click="registrarPedido(false)" :disabled="salvando">
+            <button class="btn-ghost" @click="compras.limpar()">Descartar</button>
+            <button class="btn-ghost" @click="registrarPedido(false)" :disabled="salvando">
               Registrar
             </button>
             <button
-              class="btn btn-primary"
+              class="btn-primary"
               @click="registrarPedido(true)"
               :disabled="salvando || !fornecedorTel"
               :title="!fornecedorTel ? 'Selecione um fornecedor com telefone' : ''"
@@ -147,29 +147,30 @@
         <!-- Pedidos pendentes -->
         <div v-if="pendentes.length" class="card" style="margin-bottom:16px">
           <h3 class="secao-titulo">⏳ Aguardando recebimento</h3>
-          <div v-for="p in pendentes" :key="p.id" class="pedido-card">
-            <div class="pedido-header">
-              <div>
-                <strong>{{ p.fornecedor || '— Sem fornecedor —' }}</strong>
-                <span class="text-muted" style="font-size:12px;margin-left:8px">{{ fmtData(p.criado_em) }}</span>
+          <div v-for="p in pendentes" :key="p.id" class="pedido-pendente-card">
+            <div class="pedido-pendente-info">
+              <div class="pedido-pendente-header">
+                <span class="pedido-pendente-forn">{{ p.fornecedor || '— Sem fornecedor —' }}</span>
+                <span class="pedido-pendente-data">{{ fmtData(p.criado_em) }}</span>
               </div>
-              <span class="pedido-total">{{ fmtMoeda(p.total) }}</span>
+              <div class="pedido-pendente-itens">
+                <span v-for="i in p.itens" :key="i.produto_id + i.produto" class="pedido-item-ok">
+                  {{ i.produto }} ({{ fmtQtd(i.quantidade) }} {{ i.unidade }})
+                </span>
+              </div>
+              <div v-if="p.total > 0" class="pedido-pendente-total">Total: {{ fmtMoeda(p.total) }}</div>
             </div>
-            <ul class="pedido-itens-lista">
-              <li v-for="i in p.itens" :key="i.produto_id + i.produto">
-                {{ i.produto }} — <strong>{{ fmtQtd(i.quantidade) }} {{ i.unidade }}</strong>
-                <span v-if="i.custo_unitario > 0" class="text-muted"> · {{ fmtMoeda(i.custo_unitario) }}/un</span>
-              </li>
-            </ul>
-            <div class="pedido-acoes">
-              <button class="btn btn-ghost btn-sm" @click="editarPedido(p)">✏️ Editar</button>
-              <button
-                class="btn btn-ghost btn-sm"
-                v-if="p.fornecedor_tel"
-                @click="enviarWhatsApp(p)"
-              >📱 WhatsApp</button>
-              <button class="btn btn-primary btn-sm" @click="receberPedido(p)">✅ Recebi</button>
-              <button class="btn btn-danger btn-sm" @click="cancelarPedido(p)">✕</button>
+            <div class="pedido-pendente-acoes">
+              <button class="btn-editar-pedido" @click="editarPedido(p)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Editar
+              </button>
+              <button v-if="p.fornecedor_tel" class="btn-editar-pedido" @click="enviarWhatsApp(p)">📱 WhatsApp</button>
+              <button class="btn-receber" @click="receberPedido(p)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Recebi
+              </button>
+              <button class="btn-cancelar-pedido" @click="cancelarPedido(p)">✕</button>
             </div>
           </div>
         </div>
@@ -496,15 +497,42 @@ onMounted(carregar)
 
 /* Pedidos pendentes */
 .secao-titulo { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
-.pedido-card { border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 10px; }
-.pedido-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 8px;
+
+.pedido-pendente-card {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px; margin-bottom: 8px;
+  background: var(--surface); border: 1.5px solid var(--slate-100);
+  border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  transition: box-shadow 0.15s;
 }
-.pedido-total { font-weight: 700; color: var(--navy); }
-.pedido-itens-lista { list-style: none; font-size: 13px; margin-bottom: 10px; }
-.pedido-itens-lista li { padding: 2px 0; }
-.pedido-acoes { display: flex; gap: 6px; flex-wrap: wrap; }
+.pedido-pendente-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.pedido-pendente-card:last-child { margin-bottom: 0; }
+.pedido-pendente-info { flex: 1; min-width: 0; }
+.pedido-pendente-header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; flex-wrap: wrap; }
+.pedido-pendente-forn { font-weight: 700; font-size: 14px; color: var(--slate-800); }
+.pedido-pendente-data { font-size: 11px; font-weight: 600; color: #fff; background: var(--orange); padding: 2px 8px; border-radius: 20px; }
+.pedido-pendente-itens { font-size: 12px; color: var(--slate-500); margin-top: 2px; display: flex; flex-direction: column; gap: 4px; }
+.pedido-item-ok { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pedido-pendente-total { font-size: 13px; font-weight: 700; color: var(--orange); margin-top: 4px; }
+.pedido-pendente-acoes { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+.btn-receber {
+  background: #16a34a; color: #fff; border: none; border-radius: 8px;
+  padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  display: flex; align-items: center; gap: 5px; font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.btn-receber:hover { background: #15803d; }
+.btn-editar-pedido {
+  background: none; border: 1.5px solid var(--slate-200); color: var(--slate-600);
+  border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  display: flex; align-items: center; gap: 5px; font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.btn-editar-pedido:hover { background: var(--slate-50); border-color: var(--orange); color: var(--orange); }
+.btn-cancelar-pedido {
+  background: none; border: 1.5px solid var(--slate-200); color: var(--slate-400);
+  border-radius: 8px; padding: 7px 10px; font-size: 14px; cursor: pointer; line-height: 1;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.btn-cancelar-pedido:hover { border-color: #dc2626; color: #dc2626; background: #fef2f2; }
 
 /* Histórico */
 .historico-item { padding: 10px 0; border-bottom: 1px solid var(--border); }
