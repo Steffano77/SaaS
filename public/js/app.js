@@ -382,7 +382,14 @@ async function api(path, opts = {}) {
       mostrarTelaPlanoExpirado();
       return null;
     }
-    return r.json();
+    const data = await r.json().catch(() => null);
+    if (!r.ok) {
+      const msg = data?.erro || `Erro ${r.status}`;
+      mostrarToast(msg, 'err');
+      console.error(`[API] ${opts.method || 'GET'} ${path} →`, r.status, data);
+      return null;
+    }
+    return data;
   } catch (err) {
     mostrarToast('Sem conexão. Verifique sua internet.', 'err');
     return null;
@@ -2729,7 +2736,7 @@ async function carregarFichas() {
   if (_btnConf) _btnConf.style.display = '';
   if (_btnNova) _btnNova.style.display = '';
   const fichas = await api('/fichas');
-  if (!fichas) return;
+  if (!fichas || !Array.isArray(fichas)) return;
   fichasCache = fichas;
 
   // KPIs
@@ -2898,7 +2905,7 @@ async function salvarFicha() {
 
   const body = {
     nome: document.getElementById('ficha-nome').value.trim(),
-    preco_venda: parseFloat(document.getElementById('ficha-preco').value) || null,
+    preco_venda: parseMoeda(document.getElementById('ficha-preco').value) || null,
     rendimento: parseFloat(document.getElementById('ficha-rendimento').value) || 1,
     unidade_rendimento: document.getElementById('ficha-unidade-rendimento').value.trim() || 'unidades',
     descricao: document.getElementById('ficha-descricao').value.trim(),
