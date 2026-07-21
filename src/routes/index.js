@@ -723,12 +723,6 @@ const authPro = wrap(async (req, res, next) => {
   next();
 });
 
-// Rota de debug temporária — remover após diagnóstico
-router.get('/debug/fichas', auth, wrap(async (req, res) => {
-  const db = require('../database/connection');
-  const [todas] = await db.query('SELECT id, padaria_id, nome, ativo FROM fichas_tecnicas ORDER BY id DESC LIMIT 20');
-  res.json({ meu_id: req.padaria.id, todas });
-}));
 
 // Listar fichas com CMV calculado
 router.get('/fichas', auth, authPro, wrap(async (req, res) => {
