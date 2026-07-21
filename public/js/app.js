@@ -2949,9 +2949,15 @@ function parseMoeda(str) {
   if (!s) return 0;
   // Formato BR com vírgula decimal: "1.200,50" ou "200.000,00"
   if (s.includes(',')) return parseFloat(s.replace(/\./g, '').replace(',', '.')) || 0;
-  // Número puro sem vírgula: "200000" ou "1200"
-  // Se tem ponto mas sem vírgula, trata como separador de milhar BR: "200.000" → 200000
-  if (s.includes('.')) return parseFloat(s.replace(/\./g, '')) || 0;
+  // Com ponto mas sem vírgula: distingue milhar BR de decimal
+  // "200.000" → milhar (3 dígitos após ponto) → 200000
+  // "0.80" ou "1.5" → decimal → valor real
+  if (s.includes('.')) {
+    const partes = s.split('.');
+    const ehMilharBR = partes.length >= 2 && partes.slice(1).every(p => p.length === 3);
+    if (ehMilharBR) return parseFloat(s.replace(/\./g, '')) || 0;
+    return parseFloat(s) || 0;
+  }
   return parseFloat(s) || 0;
 }
 function formatarMoedaBR(valor) {
