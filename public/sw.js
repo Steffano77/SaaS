@@ -1,4 +1,3 @@
-// Service worker sem cache — sempre busca arquivos atualizados do servidor
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => {
   e.waitUntil(
@@ -7,5 +6,7 @@ self.addEventListener('activate', e => {
   );
 });
 self.addEventListener('fetch', e => {
+  // Nunca intercepta chamadas de API — vai direto ao servidor
+  if (e.request.url.includes('/api/')) return;
   e.respondWith(fetch(e.request));
 });
