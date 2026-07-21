@@ -117,6 +117,7 @@ app.use(express.static(path.join(__dirname, '../public')));
         quantidade FLOAT NOT NULL,
         unidade VARCHAR(30) NOT NULL DEFAULT 'un'
       )`,
+      'ALTER TABLE fichas_tecnicas ADD COLUMN IF NOT EXISTS descricao TEXT NULL',
       `CREATE TABLE IF NOT EXISTS config_precificacao (
         id INT AUTO_INCREMENT PRIMARY KEY,
         padaria_id INT NOT NULL UNIQUE,
