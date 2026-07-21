@@ -985,8 +985,8 @@ router.post('/producao', auth, authPremium, wrap(async (req, res) => {
       const valorTotal = qtdSaida * (ing.custo_unitario || 0);
       const obs = `Produção #${producaoId} — ${ing.prod_nome}`;
       await db.query(
-        'INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, valor_total, data, observacao) VALUES (?, ?, ?, ?, ?, NOW(), ?)',
-        [req.padaria.id, ing.produto_id, 'saida', qtdSaida, valorTotal, obs]
+        'INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, custo_unit, data, observacao) VALUES (?, ?, ?, ?, ?, NOW(), ?)',
+        [req.padaria.id, ing.produto_id, 'saida', qtdSaida, ing.custo_unitario || 0, obs]
       );
       await db.query(
         'UPDATE produtos SET estoque_atual = estoque_atual - ? WHERE id = ? AND padaria_id = ?',
@@ -1029,8 +1029,8 @@ router.delete('/producao/:id', auth, authPremium, wrap(async (req, res) => {
       const qtdSaida = (ing.qtd_por_rendimento / (ing.rendimento || 1)) * item.quantidade;
       const valorTotal = qtdSaida * (ing.custo_unitario || 0);
       await db.query(
-        'INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, valor_total, data, observacao) VALUES (?, ?, ?, ?, ?, NOW(), ?)',
-        [req.padaria.id, ing.produto_id, 'entrada', qtdSaida, valorTotal, `Cancelamento produção #${req.params.id}`]
+        'INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, custo_unit, data, observacao) VALUES (?, ?, ?, ?, ?, NOW(), ?)',
+        [req.padaria.id, ing.produto_id, 'entrada', qtdSaida, ing.custo_unitario || 0, `Cancelamento produção #${req.params.id}`]
       );
       await db.query(
         'UPDATE produtos SET estoque_atual = estoque_atual + ? WHERE id = ? AND padaria_id = ?',
