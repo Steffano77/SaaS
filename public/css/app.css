@@ -1953,7 +1953,9 @@ tr.tr-saida td { color: var(--red-600); }
 .ficha-total-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; background: var(--navy); color: #fff; font-weight: 700; font-size: 14px; }
 
 .ficha-ingrediente-linha { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
-.ficha-ingrediente-linha .form-control { flex: 1; }
+.ficha-ingrediente-linha .fi-produto { flex: 1; min-width: 0; }
+.ficha-ingrediente-linha .fi-qtd { width: 80px; flex: none; }
+.ficha-ingrediente-linha .fi-unidade { width: 64px; flex: none; }
 
 /* Modal backdrop para fichas */
 .modal-backdrop {
