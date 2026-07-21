@@ -11,6 +11,7 @@ const API = '/api';
 
 let TOKEN = localStorage.getItem('pptoken') || sessionStorage.getItem('pptoken') || '';
 let PLANO_ATUAL = '';
+let ROLE_ATUAL = '';
 let todosProds = [];
 let _prodFornecedorMap = {}; // produto_id → nome do fornecedor
 
@@ -228,6 +229,7 @@ async function fazerRegistro(e) {
     const _planoElReg = document.getElementById('sidebar-plano');
     if (_planoElReg) _planoElReg.textContent = _planoLabelsReg[d.padaria.plano] || d.padaria.plano || '—';
     PLANO_ATUAL = d.padaria.plano || 'trial';
+    ROLE_ATUAL = d.padaria.role || 'user';
     if (d.padaria.role === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
     entrar();
   } catch { el.textContent = 'Erro de conexão.'; el.classList.remove('hidden'); }
@@ -2331,6 +2333,7 @@ if (TOKEN) {
         const planoEl = document.getElementById('sidebar-plano');
         if (planoEl) planoEl.textContent = planoLabels[d.plano] || d.plano || '—';
         PLANO_ATUAL = d.plano || 'trial';
+        ROLE_ATUAL = d.role || 'user';
         if (d.role === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
         entrar();
       }
@@ -2706,7 +2709,7 @@ let fichaEditandoItens = [];
 async function carregarFichas() {
   const _btnConf = document.getElementById('btn-config-prec');
   const _btnNova = document.getElementById('btn-nova-ficha');
-  if (!['pro', 'premium'].includes(PLANO_ATUAL)) {
+  if (ROLE_ATUAL !== 'admin' && !['pro', 'premium'].includes(PLANO_ATUAL)) {
     if (_btnConf) _btnConf.style.display = 'none';
     if (_btnNova) _btnNova.style.display = 'none';
     const lista = document.getElementById('fichas-lista');
@@ -3116,7 +3119,7 @@ let fichasCacheProducao = [];
 
 async function carregarProducao() {
   const _btn = document.getElementById('btn-nova-producao');
-  if (!['premium'].includes(PLANO_ATUAL)) {
+  if (ROLE_ATUAL !== 'admin' && !['premium'].includes(PLANO_ATUAL)) {
     const lista = document.getElementById('prod-lista');
     if (_btn) _btn.style.display = 'none';
     if (lista) lista.innerHTML = `
