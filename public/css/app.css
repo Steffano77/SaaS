@@ -2044,3 +2044,40 @@ tr.tr-saida td { color: var(--red-600); }
 .prod-item-linha { display: grid; grid-template-columns: 1fr 100px 36px; gap: 6px; align-items: center; margin-bottom: 6px; }
 .btn-danger-sm { background: #fee2e2; color: #b91c1c; border: none; border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
 .btn-danger-sm:hover { background: #fecaca; }
+
+/* ── MOBILE LEGIBILITY ── */
+@media (max-width: 768px) {
+  /* Aumenta base font-size no mobile */
+  body { font-size: 15px; }
+
+  /* Subtextos: 11px → 13px, 12px → 14px, 13px → 15px */
+  .td-sub, .saida-item-data, .saida-item-sub,
+  .repor-item-sub, .pedido-pendente-itens,
+  .ficha-rendimento, .cmv-pill,
+  .prod-card-obs, .prod-grupo-header,
+  .campo-erro { font-size: 13px !important; }
+
+  .fm-label, .fds-label,
+  .ficha-ingredientes-table th { font-size: 12px !important; }
+
+  .ficha-ingredientes-table td,
+  .ficha-nome, .saida-item-nome,
+  .pedido-pendente-forn, .prod-card-titulo,
+  .inp-correcao, .btn-salvar-correcao,
+  .btn-cancelar-correcao { font-size: 15px !important; }
+
+  /* Escurece textos cinza para melhor contraste */
+  .td-sub, .saida-item-sub, .saida-item-data,
+  .repor-item-sub, .prod-card-obs,
+  .ficha-rendimento { color: var(--slate-600) !important; }
+
+  /* Form controls maiores no mobile */
+  .form-control, select.form-control {
+    font-size: 15px !important;
+    padding: 10px 14px !important;
+  }
+
+  /* Tabela de estoque */
+  .td-mono { font-size: 14px !important; }
+  .estoque-table td, .estoque-table th { font-size: 14px !important; }
+}
