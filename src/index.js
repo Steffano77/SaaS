@@ -118,6 +118,10 @@ app.use(express.static(path.join(__dirname, '../public')));
         unidade VARCHAR(30) NOT NULL DEFAULT 'un'
       )`,
       'ALTER TABLE fichas_tecnicas ADD COLUMN descricao TEXT NULL',
+      "ALTER TABLE fichas_tecnicas ADD COLUMN unidade_rendimento VARCHAR(30) NOT NULL DEFAULT 'unidades'",
+      'ALTER TABLE fichas_tecnicas ADD COLUMN preco_venda FLOAT NULL',
+      'ALTER TABLE fichas_tecnicas ADD COLUMN ativo TINYINT(1) NOT NULL DEFAULT 1',
+      'ALTER TABLE fichas_tecnicas ADD COLUMN criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP',
       `CREATE TABLE IF NOT EXISTS config_precificacao (
         id INT AUTO_INCREMENT PRIMARY KEY,
         padaria_id INT NOT NULL UNIQUE,
