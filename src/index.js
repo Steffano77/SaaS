@@ -55,3 +55,102 @@ app.use('/api/auth/esqueci-senha', rateLimit({
   legacyHeaders: false,
   message: { erro: 'Muitas solicitações de recuperação. Aguarde 1 hora.' }
 }));
+
+app.use(express.json({ limit: '5mb' }));
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Auto-migrate: adiciona colunas novas sem quebrar instâncias existentes
+(async () => {
+  try {
+    const db = require('./database/connection');
+    const migrations = [
+      'ALTER TABLE produtos ADD COLUMN fornecedor_id INT NULL',
+      'ALTER TABLE produtos ADD COLUMN ultima_compra DATE NULL',
+      'ALTER TABLE padarias ADD COLUMN reset_token VARCHAR(512) NULL',
+      'ALTER TABLE padarias ADD COLUMN reset_expires DATETIME NULL',
+      "ALTER TABLE padarias ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user'",
+      'ALTER TABLE itens_pedido ADD COLUMN nome_temp VARCHAR(200) NULL',
+      'ALTER TABLE itens_pedido ADD COLUMN unidade_temp VARCHAR(20) NULL',
+      'ALTER TABLE itens_pedido ADD COLUMN minimo_temp FLOAT NULL',
+      'ALTER TABLE itens_pedido ADD COLUMN is_novo TINYINT(1) DEFAULT 0',
+      'ALTER TABLE itens_pedido MODIFY COLUMN produto_id INT NULL',
+      `CREATE TABLE IF NOT EXISTS codigos_ativacao (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        codigo VARCHAR(32) NOT NULL UNIQUE,
+        plano VARCHAR(20) NOT NULL DEFAULT 'essencial',
+        usado TINYINT(1) NOT NULL DEFAULT 0,
+        padaria_id INT NULL,
+        criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        usado_em DATETIME NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS usuarios (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        padaria_id INT NOT NULL,
+        nome VARCHAR(120) NOT NULL,
+        email VARCHAR(120) NOT NULL UNIQUE,
+        senha_hash VARCHAR(255) NOT NULL,
+        role VARCHAR(20) NOT NULL DEFAULT 'membro',
+        ativo TINYINT(1) NOT NULL DEFAULT 1,
+        criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )`,
+      'ALTER TABLE padarias ADD COLUMN plano_expira_em DATE NULL',
+      'ALTER TABLE padarias ADD COLUMN plano_bloqueado TINYINT(1) NOT NULL DEFAULT 0',
+      "ALTER TABLE padarias MODIFY COLUMN plano ENUM('trial','basico','essencial','pro','premium') DEFAULT 'trial'",
+    ];
+    await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
+
+    await db.query(`
+      DELETE FROM categorias
+      WHERE nome IN ('Gorduras','Farinhas','Ovos','Açúcares','Acucares')
+        AND id NOT IN (SELECT DISTINCT categoria_id FROM produtos WHERE categoria_id IS NOT NULL)
+    `).catch(() => {});
+
+    await db.query(`
+      DELETE FROM produtos
+      WHERE ativo = 0
+        AND id NOT IN (SELECT DISTINCT produto_id FROM movimentacoes WHERE produto_id IS NOT NULL)
+        AND id NOT IN (SELECT DISTINCT produto_id FROM itens_pedido WHERE produto_id IS NOT NULL)
+    `).catch(() => {});
+
+    await db.query(`
+      DELETE FROM pedidos_compra
+      WHERE status = 'cancelado'
+        AND id NOT IN (SELECT DISTINCT pedido_id FROM itens_pedido)
+    `).catch(() => {});
+
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminSenha = process.env.ADMIN_SENHA;
+    if (adminEmail && adminSenha) {
+      const bcrypt = require('bcryptjs');
+      const [existe] = await db.query('SELECT id FROM padarias WHERE email = ?', [adminEmail]).catch(() => [[]]);
+      if (!existe.length) {
+        const hash = await bcrypt.hash(adminSenha, 10);
+        await db.query(
+          "INSERT INTO padarias (nome, email, senha_hash, role, plano) VALUES ('Admin PanificaPro', ?, ?, 'admin', 'premium')",
+          [adminEmail, hash]
+        ).catch(() => {});
+        console.log('✅ Conta admin criada.');
+      } else {
+        await db.query("UPDATE padarias SET role = 'admin' WHERE email = ?", [adminEmail]).catch(() => {});
+      }
+    }
+    console.log('✅ Migrations verificadas.');
+  } catch (e) {
+    console.error('Erro na migration automática:', e.message);
+  }
+})();
+
+app.use('/api', require('./routes'));
+
+app.get('/api/health', (_, res) => res.json({ ok: true, versao: '1.0.0' }));
+
+// SPA fallback
+app.get('*', (_, res) => res.sendFile(path.join(__dirname, '../public/index.html')));
+
+// Tratamento global de erros
+app.use((err, req, res, _next) => {
+  console.error(err);
+  res.status(500).json({ erro: 'Erro interno do servidor.' });
+});
+
+app.listen(PORT, () => console.log(`🥖 PanificaPro rodando em http://localhost:${PORT}`));
