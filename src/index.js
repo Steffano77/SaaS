@@ -23,9 +23,8 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://panificapro-erp
   .split(',').map(o => o.trim());
 app.use(cors({
   origin: (origin, cb) => {
-    // Permite requisições sem origin (apps nativos, curl, Postman)
     if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-    cb(new Error('Origem não permitida pelo CORS'));
+    cb(null, false);
   },
   credentials: true
 }));
