@@ -5,8 +5,3 @@ self.addEventListener('activate', e => {
       .then(() => self.clients.claim())
   );
 });
-self.addEventListener('fetch', e => {
-  // Nunca intercepta chamadas de API — vai direto ao servidor
-  if (e.request.url.includes('/api/')) return;
-  e.respondWith(fetch(e.request));
-});
