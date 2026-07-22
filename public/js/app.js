@@ -847,8 +847,8 @@ async function filtrarPorFornecedor() {
   if (!tbody) return;
 
   if (!fornecedorId) {
-    // Sem filtro — recarrega todos os produtos normalmente
-    await carregarProdutos();
+    tbody.querySelectorAll('tr[data-prod-id]').forEach(tr => tr.style.display = '');
+    tbody.querySelectorAll('.forn-empty').forEach(el => el.remove());
     return;
   }
 
