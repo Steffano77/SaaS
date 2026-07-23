@@ -22,7 +22,7 @@ exports.listar = async (req, res) => {
     if (alerta === 'zerado')   sql += ' AND p.estoque_atual <= 0';
     if (alerta === 'validade') sql += ' AND p.validade IS NOT NULL AND p.validade <= DATE_ADD(CURDATE(), INTERVAL 10 DAY)';
 
-    sql += ' ORDER BY p.estoque_atual <= 0 DESC, p.estoque_atual <= p.estoque_minimo DESC, p.nome';
+    sql += ' ORDER BY p.estoque_atual <= 0 ASC, p.estoque_atual <= p.estoque_minimo ASC, p.nome';
     const [rows] = await db.query(sql, params);
     res.json(rows.map(formatarProduto));
   } catch (e) {
