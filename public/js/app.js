@@ -2446,7 +2446,8 @@ async function processarCodigoBarras(codigo, ctx) {
     headers: { 'Authorization': `Bearer ${TOKEN}` }
   });
   const lista = await r.json();
-  const prod = lista.find(p => p.codigo_barras === codigo);
+  const prod = lista.find(p => p.codigo_barras && p.codigo_barras.toString().trim() === codigo.toString().trim())
+            || (lista.length === 1 ? lista[0] : null);
 
   await fecharScanner();
 
