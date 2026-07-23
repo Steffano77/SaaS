@@ -907,7 +907,7 @@ async function carregarProdutos() {
       <td class="right td-mono">${fmtQtd(p.estoque_atual)} ${p.unidade}</td>
       <td class="right td-mono" style="color:var(--slate-500)">${fmtQtd(p.estoque_minimo)}</td>
       <td class="right">${parseFloat(p.custo_unitario).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
-      <td class="right" style="font-weight:600">${valorTotal}</td>
+      <td class="right" style="font-weight:600">${parseFloat(p.preco_venda||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
       <td class="center" style="${p.validade ? 'color:var(--orange-600);font-weight:600' : 'color:var(--slate-400)'}">${validade}</td>
       <td class="center">${status}</td>
       <td class="right" style="white-space:nowrap;">
