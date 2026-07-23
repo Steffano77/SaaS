@@ -2082,9 +2082,3 @@ tr.tr-saida td { color: var(--red-600); }
   .estoque-table td, .estoque-table th { font-size: 14px !important; }
 }
 
-/* Colunas desktop da tabela de estoque — esconder no mobile */
-@media (max-width: 700px) {
-  .col-desktop { display: none !important; }
-  #pg-estoque .table-wrapper table { font-size: 14px; width: 100%; }
-  #pg-estoque .table-wrapper { overflow-x: auto; }
-}

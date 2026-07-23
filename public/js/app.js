@@ -903,12 +903,12 @@ async function carregarProdutos() {
         ${p.codigo_barras ? `<div class="td-sub">${p.codigo_barras}</div>` : ''}
         <div class="td-sub" style="color:${ultimaCompraColor};font-size:11px;">últ. compra: ${ultimaCompraLabel}</div>
       </td>
-      <td class="col-desktop" style="color:var(--slate-600)">${p.categoria || '—'}</td>
+      <td style="color:var(--slate-600)">${p.categoria || '—'}</td>
       <td class="right td-mono">${fmtQtd(p.estoque_atual)} ${p.unidade}</td>
-      <td class="col-desktop right td-mono" style="color:var(--slate-500)">${fmtQtd(p.estoque_minimo)}</td>
-      <td class="col-desktop right">${parseFloat(p.custo_unitario).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
-      <td class="col-desktop right" style="font-weight:600">${parseFloat(p.preco_venda||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
-      <td class="col-desktop center" style="${p.validade ? 'color:var(--orange-600);font-weight:600' : 'color:var(--slate-400)'}">${validade}</td>
+      <td class="right td-mono" style="color:var(--slate-500)">${fmtQtd(p.estoque_minimo)}</td>
+      <td class="right">${parseFloat(p.custo_unitario).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
+      <td class="right" style="font-weight:600">${parseFloat(p.preco_venda||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
+      <td class="center" style="${p.validade ? 'color:var(--orange-600);font-weight:600' : 'color:var(--slate-400)'}">${validade}</td>
       <td class="center">${status}</td>
       <td class="right" style="white-space:nowrap;">
         <button onclick="movRapido(${p.id},'entrada')" class="btn-icon" title="Entrada" style="color:#16a34a;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
