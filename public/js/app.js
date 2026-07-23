@@ -2381,6 +2381,12 @@ async function fecharScanner() {
   document.getElementById('modal-scanner').classList.add('hidden');
 }
 
+function scanAcaoEntrada() {
+  if (!_scanProduto) return;
+  fecharModal('modal-acao-scan');
+  movRapido(_scanProduto.id, 'entrada');
+}
+
 function scanAcaoSaida() {
   if (!_scanProduto) return;
   fecharModal('modal-acao-scan');
