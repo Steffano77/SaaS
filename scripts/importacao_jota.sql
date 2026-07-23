@@ -1,5 +1,5 @@
 -- Passo 1: Adicionar coluna NCM
-ALTER TABLE produtos ADD COLUMN IF NOT EXISTS ncm VARCHAR(20) NULL;
+ALTER TABLE produtos ADD COLUMN ncm VARCHAR(20) NULL;
 
 -- Passo 2: Inserir produtos (sem duplicar por codigo_barras)
 
