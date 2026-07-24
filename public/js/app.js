@@ -1285,16 +1285,32 @@ async function saurusGerarPreview() {
     document.getElementById('import-resumo').innerHTML =
       `Planilha: <strong>${data.total_planilha}</strong> itens com saldo · Encontrados no cadastro: <strong>${data.total_encontrados}</strong>`;
 
-    document.getElementById('import-preview-lista').innerHTML = _saurusPreview.map(p => {
+    let listaHTML = _saurusPreview.map(p => {
       const diff = p.novo_estoque - p.estoque_atual;
       const cor = diff > 0 ? '#16a34a' : diff < 0 ? '#dc2626' : 'var(--slate-400)';
       const sinal = diff > 0 ? '+' : '';
+      const nomeDiff = p.nome_planilha && p.nome_planilha !== p.nome
+        ? `<span style="font-size:11px;color:var(--slate-400);display:block;">planilha: ${p.nome_planilha}</span>` : '';
       return `<div style="display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--slate-100);font-size:14px;">
-        <span style="flex:1;">${p.nome}</span>
+        <span style="flex:1;">${p.nome}${nomeDiff}</span>
         <span style="min-width:80px;text-align:right;color:var(--slate-500);">${p.estoque_atual} ${p.unidade}</span>
         <span style="min-width:80px;text-align:right;font-weight:600;color:${cor};">${p.novo_estoque} ${p.unidade} <span style="font-size:11px;">(${sinal}${diff})</span></span>
       </div>`;
-    }).join('') || '<p style="padding:20px;text-align:center;color:var(--slate-400);">Nenhum produto encontrado no cadastro.</p>';
+    }).join('');
+
+    if (!listaHTML && data.amostra && data.amostra.length) {
+      listaHTML = `<div style="padding:16px;">
+        <p style="color:#dc2626;font-weight:600;margin-bottom:8px;">Nenhum produto encontrado no cadastro.</p>
+        <p style="font-size:13px;color:var(--slate-500);margin-bottom:8px;">Primeiros nomes da planilha (verifique se batem com o cadastro):</p>
+        ${data.amostra.map(i => `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid var(--slate-100);">
+          <strong>${i.nome || '(sem nome)'}</strong>${i.ean ? ` · EAN: ${i.ean}` : ''} · Saldo: ${i.saldo}
+        </div>`).join('')}
+      </div>`;
+    } else if (!listaHTML) {
+      listaHTML = '<p style="padding:20px;text-align:center;color:var(--slate-400);">Nenhum produto encontrado no cadastro.</p>';
+    }
+
+    document.getElementById('import-preview-lista').innerHTML = listaHTML;
 
     document.getElementById('import-step-1').classList.add('hidden');
     document.getElementById('import-step-2').classList.remove('hidden');

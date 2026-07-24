@@ -67,11 +67,22 @@ exports.preview = async (req, res) => {
       }
 
       if (!prod && item.nome) {
+        // Tenta match exato primeiro
         const [rows] = await db.query(
-          'SELECT id, nome, estoque_atual, unidade FROM produtos WHERE padaria_id = ? AND nome = ? AND ativo = 1',
+          'SELECT id, nome, estoque_atual, unidade FROM produtos WHERE padaria_id = ? AND LOWER(nome) = LOWER(?) AND ativo = 1',
           [padaria_id, item.nome]
         );
-        if (rows.length) prod = rows[0];
+        if (rows.length) {
+          prod = rows[0];
+        } else {
+          // Tenta match parcial: nome do cadastro contido no nome da planilha ou vice-versa
+          const nomeLike = `%${item.nome.replace(/%/g, '\\%')}%`;
+          const [rows2] = await db.query(
+            'SELECT id, nome, estoque_atual, unidade FROM produtos WHERE padaria_id = ? AND (LOWER(nome) LIKE LOWER(?) OR LOWER(?) LIKE CONCAT(\'%\', LOWER(nome), \'%\')) AND ativo = 1 LIMIT 1',
+            [padaria_id, nomeLike, item.nome]
+          );
+          if (rows2.length) prod = rows2[0];
+        }
       }
 
       if (!prod) continue; // ignora produtos não cadastrados
@@ -82,10 +93,16 @@ exports.preview = async (req, res) => {
         unidade: prod.unidade,
         estoque_atual: parseFloat(prod.estoque_atual || 0),
         novo_estoque: item.saldo,
+        nome_planilha: item.nome,
       });
     }
 
-    res.json({ preview, total_planilha: itens.length, total_encontrados: preview.length });
+    // Amostra de nomes da planilha para diagnóstico quando nada é encontrado
+    const amostra = preview.length === 0
+      ? itens.slice(0, 10).map(i => ({ ean: i.ean, nome: i.nome, saldo: i.saldo }))
+      : undefined;
+
+    res.json({ preview, total_planilha: itens.length, total_encontrados: preview.length, amostra });
   } catch (e) {
     console.error('Erro preview Saurus:', e);
     res.status(400).json({ erro: e.message || 'Erro ao ler planilha.' });
