@@ -768,12 +768,14 @@ async function abrirModalEstoque(tipo) {
     ? `<div style="display:flex;flex-direction:column;">
         <div style="display:flex;padding:8px 16px;border-bottom:2px solid var(--slate-200);font-size:12px;font-weight:600;color:var(--slate-500);">
           <span style="flex:1;">PRODUTO</span>
-          <span style="text-align:right;min-width:70px;">ATUAL</span>
+          <span style="text-align:right;min-width:60px;">ATUAL</span>
+          <span style="text-align:right;min-width:60px;">MÍN.</span>
         </div>
         ${prods.map(p => `
         <div style="display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--slate-100);">
-          <span style="flex:1;font-size:14px;">${p.nome}</span>
-          <span style="min-width:70px;text-align:right;font-weight:600;font-size:14px;color:${p.estoque_atual <= 0 ? 'var(--red-500)' : 'var(--yellow-500)'};">${fmtQtd(p.estoque_atual)} ${p.unidade}</span>
+          <span style="flex:1;font-size:14px;padding-right:8px;">${p.nome}</span>
+          <span style="min-width:60px;text-align:right;font-weight:600;font-size:14px;color:${p.estoque_atual <= 0 ? 'var(--red-500)' : 'var(--yellow-500)'};">${fmtQtd(p.estoque_atual)} ${p.unidade}</span>
+          <span style="min-width:60px;text-align:right;font-size:14px;color:var(--slate-400);">${fmtQtd(p.estoque_minimo || 0)} ${p.unidade}</span>
         </div>`).join('')}
       </div>`
     : `<p style="text-align:center;padding:24px;color:var(--slate-400);">✅ Nenhum produto nesta situação!</p>`;
