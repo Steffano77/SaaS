@@ -1299,9 +1299,13 @@ async function saurusGerarPreview() {
     }).join('');
 
     if (!listaHTML && data.amostra && data.amostra.length) {
+      const colunasInfo = data._debug
+        ? `<p style="font-size:12px;color:var(--slate-400);margin-bottom:8px;">Colunas encontradas na planilha: <strong>${(data._debug.colunas||[]).filter(Boolean).join(', ')}</strong></p>`
+        : '';
       listaHTML = `<div style="padding:16px;">
         <p style="color:#dc2626;font-weight:600;margin-bottom:8px;">Nenhum produto encontrado no cadastro.</p>
-        <p style="font-size:13px;color:var(--slate-500);margin-bottom:8px;">Primeiros nomes da planilha (verifique se batem com o cadastro):</p>
+        ${colunasInfo}
+        <p style="font-size:13px;color:var(--slate-500);margin-bottom:8px;">Primeiros itens da planilha:</p>
         ${data.amostra.map(i => `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid var(--slate-100);">
           <strong>${i.nome || '(sem nome)'}</strong>${i.ean ? ` · EAN: ${i.ean}` : ''} · Saldo: ${i.saldo}
         </div>`).join('')}

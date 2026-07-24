@@ -43,6 +43,9 @@ async function parseSaurus(filePath) {
     itens.push({ ean: isEAN(ean) ? ean : null, nome, saldo });
   });
 
+  itens._headerRow = headerRow;
+  itens._idxNome = idxNome;
+  itens._idxEan = idxEan;
   return itens;
 }
 
@@ -102,7 +105,8 @@ exports.preview = async (req, res) => {
       ? itens.slice(0, 10).map(i => ({ ean: i.ean, nome: i.nome, saldo: i.saldo }))
       : undefined;
 
-    res.json({ preview, total_planilha: itens.length, total_encontrados: preview.length, amostra });
+    res.json({ preview, total_planilha: itens.length, total_encontrados: preview.length, amostra,
+      _debug: { colunas: itens._headerRow, idxNome: itens._idxNome, idxEan: itens._idxEan } });
   } catch (e) {
     console.error('Erro preview Saurus:', e);
     res.status(400).json({ erro: e.message || 'Erro ao ler planilha.' });
