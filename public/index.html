@@ -318,6 +318,7 @@
         <h2 class="page-title">Estoque</h2>
         <div style="display:flex;gap:8px;align-items:center;">
           <button class="btn-primary" onclick="abrirModalProduto()">+ Novo produto</button>
+          <button class="btn-secondary" onclick="abrirImportSaurus()" title="Atualizar estoque via planilha Saurus">📥 Importar Saurus</button>
           <button class="btn-primary" onclick="abrirScanner('estoque')" style="background:var(--navy);"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Escanear</button>
         </div>
       </div>
@@ -1085,7 +1086,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260724g"></script>
+<script src="/js/app.js?v=20260724h"></script>
 
 <!-- Tela Saídas 30 dias -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
@@ -1100,6 +1101,51 @@
     </button>
   </div>
   <div id="saidas-lista" style="flex:1;overflow-y:auto;"></div>
+</div>
+
+<!-- Modal Importar Saurus -->
+<div id="modal-import-saurus" class="modal-overlay hidden" onclick="if(event.target===this)fecharImportSaurus()">
+  <div class="modal-box" style="max-width:640px;width:95%;">
+    <div class="modal-header">
+      <span class="modal-title">📥 Atualizar estoque via Saurus</span>
+      <button onclick="fecharImportSaurus()" class="modal-close"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+    </div>
+
+    <!-- Passo 1: Upload -->
+    <div id="import-step-1" style="padding:20px;">
+      <p style="font-size:14px;color:var(--slate-600);margin-bottom:16px;">Selecione a planilha exportada do Saurus (.xlsx). O sistema vai mostrar uma prévia antes de atualizar qualquer coisa.</p>
+      <div style="border:2px dashed var(--slate-300);border-radius:12px;padding:32px;text-align:center;cursor:pointer;" onclick="document.getElementById('input-saurus').click()">
+        <div style="font-size:32px;margin-bottom:8px;">📄</div>
+        <p style="font-size:14px;font-weight:600;color:var(--slate-700);" id="import-filename">Clique para selecionar o arquivo</p>
+        <p style="font-size:12px;color:var(--slate-400);">Apenas .xlsx</p>
+      </div>
+      <input type="file" id="input-saurus" accept=".xlsx" style="display:none" onchange="saurusArquivoSelecionado(this)"/>
+      <div id="import-step1-msg" style="margin-top:12px;font-size:13px;"></div>
+      <div style="margin-top:16px;display:flex;justify-content:flex-end;">
+        <button id="btn-saurus-preview" class="btn-primary" onclick="saurusGerarPreview()" disabled style="opacity:0.5;">Ver prévia →</button>
+      </div>
+    </div>
+
+    <!-- Passo 2: Prévia -->
+    <div id="import-step-2" class="hidden" style="padding:0;">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--slate-100);display:flex;align-items:center;justify-content:space-between;">
+        <div id="import-resumo" style="font-size:13px;color:var(--slate-600);"></div>
+        <button onclick="voltarStep1()" style="background:none;border:none;color:var(--slate-400);cursor:pointer;font-size:13px;">← Voltar</button>
+      </div>
+      <div style="max-height:50vh;overflow-y:auto;">
+        <div style="display:flex;padding:8px 16px;border-bottom:2px solid var(--slate-200);font-size:12px;font-weight:600;color:var(--slate-500);">
+          <span style="flex:1;">PRODUTO</span>
+          <span style="min-width:80px;text-align:right;">ATUAL</span>
+          <span style="min-width:80px;text-align:right;">NOVO</span>
+        </div>
+        <div id="import-preview-lista"></div>
+      </div>
+      <div style="padding:16px 20px;border-top:1px solid var(--slate-100);display:flex;gap:10px;justify-content:flex-end;">
+        <button onclick="fecharImportSaurus()" class="btn-secondary">Cancelar</button>
+        <button onclick="saurusConfirmar()" class="btn-primary" id="btn-saurus-confirmar">✅ Confirmar atualização</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Modal Estoque Alerta -->

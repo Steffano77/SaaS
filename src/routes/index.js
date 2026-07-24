@@ -18,6 +18,7 @@ const dadosCtrl  = require('../controllers/dadosController');
 
 const senhaCtrl   = require('../controllers/senhaController');
 const hotmartCtrl = require('../controllers/hotmartController');
+const saurusCtrl  = require('../controllers/saurusController');
 
 // Webhook Hotmart (sem auth)
 router.post('/hotmart/webhook', hotmartCtrl.webhook);
@@ -72,6 +73,10 @@ router.post('/movimentacoes', auth, movCtrl.registrar);
 
 // Sync Saurus
 router.post('/sync/saurus', auth, upload.single('arquivo'), syncCtrl.importarSaurus);
+
+// Atualização de estoque via planilha Saurus
+router.post('/saurus/preview',   auth, upload.single('arquivo'), saurusCtrl.preview);
+router.post('/saurus/confirmar', auth, saurusCtrl.confirmar);
 
 // Importação genérica
 router.post('/sync/preview',   auth, upload.single('arquivo'), importCtrl.preview);

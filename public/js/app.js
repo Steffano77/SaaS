@@ -1229,6 +1229,119 @@ function selecionarNovoProdutoCompra(nome) {
   }
 }
 
+// ── Importação Saurus ─────────────────────────────────────────────────────
+let _saurusArquivo = null;
+let _saurusPreview = [];
+
+function abrirImportSaurus() {
+  _saurusArquivo = null;
+  _saurusPreview = [];
+  document.getElementById('import-filename').textContent = 'Clique para selecionar o arquivo';
+  document.getElementById('input-saurus').value = '';
+  document.getElementById('import-step1-msg').textContent = '';
+  document.getElementById('btn-saurus-preview').disabled = true;
+  document.getElementById('btn-saurus-preview').style.opacity = '0.5';
+  document.getElementById('import-step-1').classList.remove('hidden');
+  document.getElementById('import-step-2').classList.add('hidden');
+  document.getElementById('modal-import-saurus').classList.remove('hidden');
+}
+
+function fecharImportSaurus() {
+  document.getElementById('modal-import-saurus').classList.add('hidden');
+}
+
+function voltarStep1() {
+  document.getElementById('import-step-1').classList.remove('hidden');
+  document.getElementById('import-step-2').classList.add('hidden');
+}
+
+function saurusArquivoSelecionado(input) {
+  if (!input.files.length) return;
+  _saurusArquivo = input.files[0];
+  document.getElementById('import-filename').textContent = _saurusArquivo.name;
+  document.getElementById('btn-saurus-preview').disabled = false;
+  document.getElementById('btn-saurus-preview').style.opacity = '1';
+}
+
+async function saurusGerarPreview() {
+  if (!_saurusArquivo) return;
+  const msg = document.getElementById('import-step1-msg');
+  msg.textContent = '🔍 Lendo planilha...';
+  msg.style.color = 'var(--slate-500)';
+
+  const form = new FormData();
+  form.append('arquivo', _saurusArquivo);
+
+  try {
+    const r = await fetch(`${API}/saurus/preview`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${TOKEN}` },
+      body: form
+    });
+    const data = await r.json();
+    if (!r.ok) { msg.textContent = '❌ ' + (data.erro || 'Erro ao ler planilha.'); msg.style.color = '#dc2626'; return; }
+
+    _saurusPreview = data.preview;
+    document.getElementById('import-resumo').innerHTML =
+      `Planilha: <strong>${data.total_planilha}</strong> itens com saldo · Encontrados no cadastro: <strong>${data.total_encontrados}</strong>`;
+
+    document.getElementById('import-preview-lista').innerHTML = _saurusPreview.map(p => {
+      const diff = p.novo_estoque - p.estoque_atual;
+      const cor = diff > 0 ? '#16a34a' : diff < 0 ? '#dc2626' : 'var(--slate-400)';
+      const sinal = diff > 0 ? '+' : '';
+      return `<div style="display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--slate-100);font-size:14px;">
+        <span style="flex:1;">${p.nome}</span>
+        <span style="min-width:80px;text-align:right;color:var(--slate-500);">${p.estoque_atual} ${p.unidade}</span>
+        <span style="min-width:80px;text-align:right;font-weight:600;color:${cor};">${p.novo_estoque} ${p.unidade} <span style="font-size:11px;">(${sinal}${diff})</span></span>
+      </div>`;
+    }).join('') || '<p style="padding:20px;text-align:center;color:var(--slate-400);">Nenhum produto encontrado no cadastro.</p>';
+
+    document.getElementById('import-step-1').classList.add('hidden');
+    document.getElementById('import-step-2').classList.remove('hidden');
+    msg.textContent = '';
+  } catch (e) {
+    msg.textContent = '❌ Erro de conexão.';
+    msg.style.color = '#dc2626';
+  }
+}
+
+async function saurusConfirmar() {
+  const btn = document.getElementById('btn-saurus-confirmar');
+  btn.disabled = true;
+  btn.textContent = 'Atualizando...';
+
+  try {
+    const r = await fetch(`${API}/saurus/confirmar`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ itens: _saurusPreview.map(p => ({ id: p.id, novo_estoque: p.novo_estoque })) })
+    });
+    const data = await r.json();
+    if (!r.ok) { alert('Erro: ' + (data.erro || 'Tente novamente.')); btn.disabled = false; btn.textContent = '✅ Confirmar atualização'; return; }
+
+    fecharImportSaurus();
+    carregarProdutos();
+    mostrarToast(`✅ ${data.atualizados} produtos atualizados com sucesso!`);
+  } catch (e) {
+    alert('Erro de conexão.');
+    btn.disabled = false;
+    btn.textContent = '✅ Confirmar atualização';
+  }
+}
+
+function mostrarToast(msg) {
+  let t = document.getElementById('toast-global');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast-global';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#166534;color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.2);';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 3500);
+}
+
 function toggleCalcCx() {
   const wrap = document.getElementById('calc-cx-wrap');
   wrap.classList.toggle('hidden');
