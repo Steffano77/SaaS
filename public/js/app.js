@@ -766,17 +766,19 @@ async function abrirModalEstoque(tipo) {
   document.getElementById('modal-estoque-titulo').textContent = titulo;
   document.getElementById('modal-estoque-lista').innerHTML = prods.length
     ? `<div style="display:flex;flex-direction:column;">
-        <div style="display:flex;padding:8px 16px;border-bottom:2px solid var(--slate-200);font-size:12px;font-weight:600;color:var(--slate-500);">
+        <div style="display:flex;align-items:center;padding:8px 16px;border-bottom:2px solid var(--slate-200);font-size:12px;font-weight:600;color:var(--slate-500);">
+          <span style="width:32px;"></span>
           <span style="flex:1;">PRODUTO</span>
           <span style="text-align:right;min-width:60px;">ATUAL</span>
           <span style="text-align:right;min-width:60px;">MÍN.</span>
         </div>
         ${prods.map(p => `
-        <div style="display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--slate-100);">
+        <label style="display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--slate-100);cursor:pointer;gap:0;">
+          <input type="checkbox" data-prod-id="${p.id}" onchange="atualizarBtnCompras()" style="width:18px;height:18px;flex-shrink:0;accent-color:var(--orange);cursor:pointer;margin-right:10px;"/>
           <span style="flex:1;font-size:14px;padding-right:8px;">${p.nome}</span>
           <span style="min-width:60px;text-align:right;font-weight:600;font-size:14px;color:${p.estoque_atual <= 0 ? 'var(--red-500)' : 'var(--yellow-500)'};">${fmtQtd(p.estoque_atual)} ${p.unidade}</span>
           <span style="min-width:60px;text-align:right;font-size:14px;color:var(--slate-400);">${fmtQtd(p.estoque_minimo || 0)} ${p.unidade}</span>
-        </div>`).join('')}
+        </label>`).join('')}
       </div>`
     : `<p style="text-align:center;padding:24px;color:var(--slate-400);">✅ Nenhum produto nesta situação!</p>`;
 
@@ -788,36 +790,51 @@ function fecharModalEstoque() {
   document.getElementById('modal-estoque').classList.add('hidden');
 }
 
+function atualizarBtnCompras() {
+  const checks = document.querySelectorAll('#modal-estoque-lista input[type=checkbox]:checked');
+  const btn = document.getElementById('btn-ir-compras');
+  if (btn) {
+    btn.disabled = checks.length === 0;
+    btn.style.opacity = checks.length === 0 ? '0.5' : '1';
+    btn.textContent = checks.length > 0 ? `🛒 Ir para Compras (${checks.length})` : '🛒 Ir para Compras';
+  }
+}
+
 async function irParaCompras() {
+  const checks = document.querySelectorAll('#modal-estoque-lista input[type=checkbox]:checked');
+  const selecionados = Array.from(checks).map(c => {
+    const id = c.dataset.prodId;
+    return _produtosParaRepor.find(p => String(p.id) === String(id));
+  }).filter(Boolean);
+
   fecharModalEstoque();
   mostrarPagina('compras');
   await carregarCompras();
 
-  if (!_produtosParaRepor.length) return;
+  if (!selecionados.length) return;
 
-  // Pré-seleciona o fornecedor do primeiro produto que tiver fornecedor vinculado
-  const primComForn = _produtosParaRepor.find(p => p.fornecedor_id);
+  // Adiciona todos os selecionados ao pedido
+  selecionados.forEach(p => {
+    _pedidoItens.push({
+      id: Date.now() + Math.random(),
+      prodId: String(p.id),
+      nome: p.nome,
+      unidade: p.unidade || 'un',
+      qtd: 1,
+      custo: parseFloat(p.custo_unitario || 0),
+      isNovo: false,
+      minimo: 0,
+      qtdKg: null,
+      unidadeCusto: null
+    });
+  });
+  renderizarPedido();
+
+  // Pré-seleciona fornecedor do primeiro produto que tiver
+  const primComForn = selecionados.find(p => p.fornecedor_id);
   if (primComForn) {
     const sel = document.getElementById('compra-fornecedor');
-    if (sel) {
-      sel.value = String(primComForn.fornecedor_id);
-      // Se não achou a opção (select ainda não populado), tenta após um tick
-      if (!sel.value || sel.value !== String(primComForn.fornecedor_id)) {
-        setTimeout(() => { sel.value = String(primComForn.fornecedor_id); }, 100);
-      }
-    }
-  }
-
-  // Pré-preenche o campo produto com o primeiro produto
-  const prim = _produtosParaRepor[0];
-  document.getElementById('compra-prod-texto').value = prim.nome;
-  document.getElementById('compra-produto').value = String(prim.id);
-  if (prim.unidade) {
-    const uSel = document.getElementById('compra-unidade');
-    if (uSel) uSel.value = prim.unidade;
-  }
-  if (prim.custo_unitario) {
-    document.getElementById('compra-custo').value = parseFloat(prim.custo_unitario).toFixed(2);
+    if (sel) setTimeout(() => { sel.value = String(primComForn.fornecedor_id); }, 100);
   }
 }
 
