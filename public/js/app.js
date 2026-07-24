@@ -1233,20 +1233,22 @@ function calcularPorCaixa() {
 
   if (!caixas || !kgCx || !precoKg) { res.textContent = ''; return; }
 
-  const totalKg    = caixas * kgCx;
-  const custoPorCx = kgCx * precoKg;
-  const total      = caixas * custoPorCx;
+  const totalKg = caixas * kgCx;
+  const total   = totalKg * precoKg;
 
-  // Preenche os campos principais
-  document.getElementById('compra-qtd').value   = totalKg.toFixed(3);
+  // Campos principais: quantidade = caixas, custo = preço/kg
+  document.getElementById('compra-qtd').value   = caixas;
   document.getElementById('compra-custo').value = precoKg.toFixed(2);
 
-  // Muda unidade para kg
+  // Unidade = cx
   const uSel = document.getElementById('compra-unidade');
-  if (uSel) uSel.value = 'kg';
+  if (uSel) uSel.value = 'cx';
 
-  res.innerHTML = `<strong>${totalKg.toFixed(2)} kg</strong> · custo/kg R$ ${precoKg.toFixed(2)} · <strong>Total R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong>`;
+  res.innerHTML = `<strong>${caixas} cx</strong> × ${kgCx} kg/cx = <strong>${totalKg.toFixed(2)} kg</strong> · R$ ${precoKg.toFixed(2)}/kg · <strong>Total R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong>`;
 }
+
+// Variável auxiliar para dados da calculadora ao adicionar item
+let _calcCxDados = null;
 
 function adicionarItemPedido() {
   let prodId     = document.getElementById('compra-produto').value;
@@ -1267,7 +1269,13 @@ function adicionarItemPedido() {
   if (!qtd || qtd <= 0) { mostrarErrocampo('compra-qtd', 'Informe a quantidade.'); ok = false; }
   if (!ok) return;
 
-  _pedidoItens.push({ prodId, nome, unidade, qtd, custo, isNovo, minimo, id: Date.now() });
+  // Captura dados da calculadora por caixa, se ativa
+  const calcAberto = !document.getElementById('calc-cx-wrap').classList.contains('hidden');
+  const calcCaixas = parseFloat(document.getElementById('calc-caixas').value) || 0;
+  const calcKgCx   = parseFloat(document.getElementById('calc-kg-cx').value) || 0;
+  const qtdKg      = (calcAberto && calcCaixas && calcKgCx) ? calcCaixas * calcKgCx : null;
+
+  _pedidoItens.push({ prodId, nome, unidade, qtd, custo, isNovo, minimo, id: Date.now(), qtdKg, unidadeCusto: qtdKg ? 'kg' : null });
   renderizarPedido();
 
   document.getElementById('compra-prod-texto').value = '';
@@ -1310,7 +1318,8 @@ function renderizarPedido() {
       <div style="flex:1;min-width:120px;">
         <span style="font-weight:600;">${i.nome}</span>
         ${i.isNovo ? '<span style="font-size:11px;background:#fff7ed;color:var(--orange);padding:2px 6px;border-radius:4px;margin-left:4px;">novo</span>' : ''}
-        ${i.custo > 0 ? `<div style="color:var(--slate-400);font-size:12px;margin-top:2px;">R$ ${i.custo.toFixed(2)}/un</div>` : ''}
+        ${i.custo > 0 ? `<div style="color:var(--slate-400);font-size:12px;margin-top:2px;">R$ ${i.custo.toFixed(2)}/${i.unidadeCusto || i.unidade}</div>` : ''}
+        ${i.qtdKg ? `<div style="color:var(--slate-400);font-size:11px;">${i.qtdKg.toFixed(2)} kg no estoque</div>` : ''}
       </div>
       <div style="display:flex;align-items:center;gap:6px;">
         <input type="number" value="${i.qtd > 0 ? i.qtd : ''}" min="0.001" step="0.001"
@@ -1404,8 +1413,8 @@ async function registrarPedido(abrirWhats = false) {
   const itensPayload = _pedidoItens.map(i => ({
     produto_id: i.isNovo ? null : i.prodId,
     nome: i.nome,
-    unidade: i.unidade,
-    quantidade: i.qtd,
+    unidade: i.qtdKg ? 'kg' : i.unidade,
+    quantidade: i.qtdKg ?? i.qtd,
     custo: i.custo,
     minimo: i.minimo,
     isNovo: i.isNovo
