@@ -1291,10 +1291,11 @@ async function saurusGerarPreview() {
       const sinal = diff > 0 ? '+' : '';
       const nomeDiff = p.nome_planilha && p.nome_planilha !== p.nome
         ? `<span style="font-size:11px;color:var(--slate-400);display:block;">planilha: ${p.nome_planilha}</span>` : '';
-      return `<div style="display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--slate-100);font-size:14px;">
+      return `<div style="display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--slate-100);font-size:14px;gap:8px;">
         <span style="flex:1;">${p.nome}${nomeDiff}</span>
-        <span style="min-width:80px;text-align:right;color:var(--slate-500);">${p.estoque_atual} ${p.unidade}</span>
-        <span style="min-width:80px;text-align:right;font-weight:600;color:${cor};">${p.novo_estoque} ${p.unidade} <span style="font-size:11px;">(${sinal}${diff})</span></span>
+        <span style="min-width:70px;text-align:right;color:var(--slate-500);">${p.estoque_atual}<br><small>${p.unidade}</small></span>
+        <span style="color:var(--slate-300);">→</span>
+        <span style="min-width:70px;text-align:right;font-weight:600;color:${cor};">${p.novo_estoque}<br><small style="font-weight:400;">${sinal}${diff}</small></span>
       </div>`;
     }).join('');
 
