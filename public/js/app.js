@@ -765,33 +765,17 @@ async function abrirModalEstoque(tipo) {
 
   document.getElementById('modal-estoque-titulo').textContent = titulo;
   document.getElementById('modal-estoque-lista').innerHTML = prods.length
-    ? `<table style="width:100%;border-collapse:collapse;font-size:14px;table-layout:fixed;">
-        <colgroup>
-          <col style="width:55%"/>
-          <col style="width:15%"/>
-          <col style="width:15%"/>
-          <col style="width:15%"/>
-        </colgroup>
-        <thead>
-          <tr style="border-bottom:2px solid var(--slate-200);">
-            <th style="text-align:left;padding:8px 10px;color:var(--slate-500);font-weight:600;">Produto</th>
-            <th style="text-align:right;padding:8px 6px;color:var(--slate-500);font-weight:600;">Atual</th>
-            <th style="text-align:right;padding:8px 6px;color:var(--slate-500);font-weight:600;">Mín.</th>
-            <th style="text-align:right;padding:8px 6px;color:var(--slate-500);font-weight:600;">Falta</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${prods.map(p => {
-            const falta = Math.max(0, (p.estoque_minimo || 0) - (p.estoque_atual || 0));
-            return `<tr style="border-bottom:1px solid var(--slate-100);">
-              <td style="padding:10px 10px;word-break:break-word;">${p.nome}</td>
-              <td style="text-align:right;padding:10px 6px;color:${p.estoque_atual <= 0 ? 'var(--red-500)' : 'var(--yellow-500)'};font-weight:600;">${fmtQtd(p.estoque_atual)} ${p.unidade}</td>
-              <td style="text-align:right;padding:10px 6px;color:var(--slate-400);">${fmtQtd(p.estoque_minimo || 0)}</td>
-              <td style="text-align:right;padding:10px 6px;font-weight:700;color:var(--navy);">${fmtQtd(falta)}</td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>`
+    ? `<div style="display:flex;flex-direction:column;">
+        <div style="display:flex;padding:8px 16px;border-bottom:2px solid var(--slate-200);font-size:12px;font-weight:600;color:var(--slate-500);">
+          <span style="flex:1;">PRODUTO</span>
+          <span style="text-align:right;min-width:70px;">ATUAL</span>
+        </div>
+        ${prods.map(p => `
+        <div style="display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--slate-100);">
+          <span style="flex:1;font-size:14px;">${p.nome}</span>
+          <span style="min-width:70px;text-align:right;font-weight:600;font-size:14px;color:${p.estoque_atual <= 0 ? 'var(--red-500)' : 'var(--yellow-500)'};">${fmtQtd(p.estoque_atual)} ${p.unidade}</span>
+        </div>`).join('')}
+      </div>`
     : `<p style="text-align:center;padding:24px;color:var(--slate-400);">✅ Nenhum produto nesta situação!</p>`;
 
   _produtosParaRepor = prods;
