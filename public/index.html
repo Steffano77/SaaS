@@ -1091,7 +1091,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260724b"></script>
+<script src="/js/app.js?v=20260724c"></script>
 
 <!-- Tela Saídas 30 dias -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
@@ -1115,8 +1115,8 @@
       <span id="modal-estoque-titulo" class="modal-title"></span>
       <button onclick="fecharModalEstoque()" class="modal-close"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
     </div>
-    <div style="padding:0 4px 4px;max-height:60vh;overflow-y:auto;">
-      <div id="modal-estoque-lista"></div>
+    <div style="padding:0 4px 4px;max-height:60vh;overflow-y:auto;overflow-x:auto;">
+      <div id="modal-estoque-lista" style="min-width:0;"></div>
     </div>
     <div style="padding:16px 20px;border-top:1px solid var(--slate-100);">
       <button onclick="irParaCompras()" class="btn-primary full"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg> Ir para Compras</button>

@@ -778,7 +778,7 @@ async function abrirModalEstoque(tipo) {
           ${prods.map(p => {
             const falta = Math.max(0, (p.estoque_minimo || 0) - (p.estoque_atual || 0));
             return `<tr style="border-bottom:1px solid var(--slate-100);">
-              <td style="padding:10px 10px;">${p.nome}</td>
+              <td style="padding:10px 10px;word-break:break-word;max-width:220px;">${p.nome}</td>
               <td style="text-align:right;padding:10px;color:${p.estoque_atual <= 0 ? 'var(--red-500)' : 'var(--yellow-500)'};font-weight:600;">${fmtQtd(p.estoque_atual)} ${p.unidade}</td>
               <td style="text-align:right;padding:10px;color:var(--slate-400);">${fmtQtd(p.estoque_minimo || 0)} ${p.unidade}</td>
               <td style="text-align:right;padding:10px;font-weight:700;color:var(--navy);">${fmtQtd(falta)} ${p.unidade}</td>
