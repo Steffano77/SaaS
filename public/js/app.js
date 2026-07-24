@@ -1220,6 +1220,34 @@ function selecionarNovoProdutoCompra(nome) {
   }
 }
 
+function toggleCalcCx() {
+  const wrap = document.getElementById('calc-cx-wrap');
+  wrap.classList.toggle('hidden');
+}
+
+function calcularPorCaixa() {
+  const caixas  = parseFloat(document.getElementById('calc-caixas').value) || 0;
+  const kgCx    = parseFloat(document.getElementById('calc-kg-cx').value) || 0;
+  const precoKg = parseFloat(document.getElementById('calc-preco-kg').value) || 0;
+  const res     = document.getElementById('calc-resultado');
+
+  if (!caixas || !kgCx || !precoKg) { res.textContent = ''; return; }
+
+  const totalKg    = caixas * kgCx;
+  const custoPorCx = kgCx * precoKg;
+  const total      = caixas * custoPorCx;
+
+  // Preenche os campos principais
+  document.getElementById('compra-qtd').value   = totalKg.toFixed(3);
+  document.getElementById('compra-custo').value = precoKg.toFixed(2);
+
+  // Muda unidade para kg
+  const uSel = document.getElementById('compra-unidade');
+  if (uSel) uSel.value = 'kg';
+
+  res.innerHTML = `<strong>${totalKg.toFixed(2)} kg</strong> · custo/kg R$ ${precoKg.toFixed(2)} · <strong>Total R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong>`;
+}
+
 function adicionarItemPedido() {
   let prodId     = document.getElementById('compra-produto').value;
   const nome     = document.getElementById('compra-prod-texto').value.trim();
@@ -1249,6 +1277,11 @@ function adicionarItemPedido() {
   const uSel = document.getElementById('compra-unidade');
   if (uSel) uSel.value = 'un';
   document.getElementById('novo-prod-inline').classList.add('hidden');
+  document.getElementById('calc-cx-wrap').classList.add('hidden');
+  document.getElementById('calc-caixas').value = '';
+  document.getElementById('calc-kg-cx').value = '';
+  document.getElementById('calc-preco-kg').value = '';
+  document.getElementById('calc-resultado').textContent = '';
   document.getElementById('compra-prod-texto').focus();
 }
 

@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260723c"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260724a"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -449,6 +449,29 @@
                 <input type="number" id="compra-custo" min="0" step="0.01" placeholder="0.00" class="form-control"/>
               </div>
               <button class="btn-secondary" onclick="adicionarItemPedido()" style="white-space:nowrap;">+ Item</button>
+            </div>
+
+            <!-- Calculadora por caixa/kg -->
+            <div style="margin-top:8px;">
+              <button type="button" id="btn-calc-cx" onclick="toggleCalcCx()" style="background:none;border:none;color:var(--slate-400);font-size:12px;cursor:pointer;padding:0;text-decoration:underline;">📦 calcular por caixa (kg)</button>
+            </div>
+            <div id="calc-cx-wrap" class="hidden" style="background:#fff;border:1.5px dashed var(--slate-300);border-radius:10px;padding:12px;margin-top:8px;">
+              <p style="font-size:12px;font-weight:600;color:var(--slate-500);margin-bottom:8px;">CALCULAR POR CAIXA</p>
+              <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
+                <div class="form-group" style="margin:0;">
+                  <label>Nº de caixas</label>
+                  <input type="number" id="calc-caixas" min="0.001" step="0.001" placeholder="0" class="form-control" style="width:90px;" oninput="calcularPorCaixa()"/>
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label>Kg por caixa</label>
+                  <input type="number" id="calc-kg-cx" min="0.001" step="0.001" placeholder="0.000" class="form-control" style="width:100px;" oninput="calcularPorCaixa()"/>
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label>Preço por kg (R$)</label>
+                  <input type="number" id="calc-preco-kg" min="0" step="0.01" placeholder="0.00" class="form-control" style="width:110px;" oninput="calcularPorCaixa()"/>
+                </div>
+                <div id="calc-resultado" style="font-size:13px;color:var(--slate-600);align-self:center;padding-bottom:2px;"></div>
+              </div>
             </div>
           </div>
 
@@ -1068,7 +1091,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260723d"></script>
+<script src="/js/app.js?v=20260724a"></script>
 
 <!-- Tela Saídas 30 dias -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
