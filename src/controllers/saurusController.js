@@ -2,10 +2,10 @@ const ExcelJS = require('exceljs');
 const db      = require('../database/connection');
 const fs      = require('fs');
 
-// Colunas esperadas na planilha Saurus
-const COL_EAN   = 'cEAN';
+// Colunas da planilha Saurus
+const COL_EAN   = 'pro_codProduto';
 const COL_SALDO = 'qSaldo';
-const COL_NOME  = 'xProd';
+const COL_NOME  = 'pro_descProduto';
 
 function isEAN(cod) {
   return cod && /^\d{8,14}$/.test(String(cod).trim());
