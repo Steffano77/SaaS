@@ -765,23 +765,29 @@ async function abrirModalEstoque(tipo) {
 
   document.getElementById('modal-estoque-titulo').textContent = titulo;
   document.getElementById('modal-estoque-lista').innerHTML = prods.length
-    ? `<table style="width:100%;border-collapse:collapse;font-size:14px;">
+    ? `<table style="width:100%;border-collapse:collapse;font-size:14px;table-layout:fixed;">
+        <colgroup>
+          <col style="width:55%"/>
+          <col style="width:15%"/>
+          <col style="width:15%"/>
+          <col style="width:15%"/>
+        </colgroup>
         <thead>
           <tr style="border-bottom:2px solid var(--slate-200);">
             <th style="text-align:left;padding:8px 10px;color:var(--slate-500);font-weight:600;">Produto</th>
-            <th style="text-align:right;padding:8px 10px;color:var(--slate-500);font-weight:600;">Atual</th>
-            <th style="text-align:right;padding:8px 10px;color:var(--slate-500);font-weight:600;">Mínimo</th>
-            <th style="text-align:right;padding:8px 10px;color:var(--slate-500);font-weight:600;">Falta</th>
+            <th style="text-align:right;padding:8px 6px;color:var(--slate-500);font-weight:600;">Atual</th>
+            <th style="text-align:right;padding:8px 6px;color:var(--slate-500);font-weight:600;">Mín.</th>
+            <th style="text-align:right;padding:8px 6px;color:var(--slate-500);font-weight:600;">Falta</th>
           </tr>
         </thead>
         <tbody>
           ${prods.map(p => {
             const falta = Math.max(0, (p.estoque_minimo || 0) - (p.estoque_atual || 0));
             return `<tr style="border-bottom:1px solid var(--slate-100);">
-              <td style="padding:10px 10px;word-break:break-word;max-width:220px;">${p.nome}</td>
-              <td style="text-align:right;padding:10px;color:${p.estoque_atual <= 0 ? 'var(--red-500)' : 'var(--yellow-500)'};font-weight:600;">${fmtQtd(p.estoque_atual)} ${p.unidade}</td>
-              <td style="text-align:right;padding:10px;color:var(--slate-400);">${fmtQtd(p.estoque_minimo || 0)} ${p.unidade}</td>
-              <td style="text-align:right;padding:10px;font-weight:700;color:var(--navy);">${fmtQtd(falta)} ${p.unidade}</td>
+              <td style="padding:10px 10px;word-break:break-word;">${p.nome}</td>
+              <td style="text-align:right;padding:10px 6px;color:${p.estoque_atual <= 0 ? 'var(--red-500)' : 'var(--yellow-500)'};font-weight:600;">${fmtQtd(p.estoque_atual)} ${p.unidade}</td>
+              <td style="text-align:right;padding:10px 6px;color:var(--slate-400);">${fmtQtd(p.estoque_minimo || 0)}</td>
+              <td style="text-align:right;padding:10px 6px;font-weight:700;color:var(--navy);">${fmtQtd(falta)}</td>
             </tr>`;
           }).join('')}
         </tbody>
