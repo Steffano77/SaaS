@@ -690,6 +690,21 @@
       align-items: center;
     }
 
+    .filters-selects {
+      display: contents;
+    }
+
+    .btn-limpar-filtros {
+      background: transparent;
+      border: 1px dashed var(--slate-300);
+      border-radius: 8px;
+      color: var(--slate-500);
+      font-size: 12px;
+      padding: 7px 12px;
+      cursor: pointer;
+    }
+    .btn-limpar-filtros:hover { background: var(--slate-50); }
+
     .search-input {
       flex: 1;
       min-width: 200px;
@@ -972,6 +987,14 @@
 /* ── Melhorias mobile tabela estoque ── */
 @media (max-width: 768px) {
   .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  .hide-mobile { display: none !important; }
+
+  .filters-bar { flex-direction: column; padding: 10px 12px; gap: 8px; }
+  .filters-bar .search-input { min-width: 0; width: 100%; }
+  .filters-selects { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+  .filters-selects select { width: 100%; }
+  .btn-limpar-filtros { width: 100%; }
 }
 
 /* ── Toast de notificação ── */

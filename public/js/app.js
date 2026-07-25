@@ -850,6 +850,30 @@ async function carregarFiltroFornecedor() {
     ).join('');
 }
 
+function atualizarBtnLimpar() {
+  const busca = document.getElementById('busca-produto')?.value;
+  const cat = document.getElementById('filtro-categoria')?.value;
+  const alerta = document.getElementById('filtro-alerta')?.value;
+  const forn = document.getElementById('filtro-fornecedor')?.value;
+  const btn = document.getElementById('btn-limpar-filtros');
+  if (!btn) return;
+  if (busca || cat || alerta || forn) btn.classList.remove('hidden');
+  else btn.classList.add('hidden');
+}
+
+function limparFiltros() {
+  const busca = document.getElementById('busca-produto');
+  const cat = document.getElementById('filtro-categoria');
+  const alerta = document.getElementById('filtro-alerta');
+  const forn = document.getElementById('filtro-fornecedor');
+  if (busca) busca.value = '';
+  if (cat) cat.value = '';
+  if (alerta) alerta.value = '';
+  if (forn) forn.value = '';
+  atualizarBtnLimpar();
+  carregarProdutos();
+}
+
 async function filtrarPorFornecedor() {
   const fornecedorId = document.getElementById('filtro-fornecedor')?.value;
   const tbody = document.getElementById('tabela-produtos');
@@ -912,9 +936,9 @@ async function carregarProdutos() {
         ${p.codigo_barras ? `<div class="td-sub">${p.codigo_barras}</div>` : ''}
         <div class="td-sub" style="color:${ultimaCompraColor};font-size:11px;">últ. compra: ${ultimaCompraLabel}</div>
       </td>
-      <td style="color:var(--slate-600)">${p.categoria || '—'}</td>
+      <td class="hide-mobile" style="color:var(--slate-600)">${p.categoria || '—'}</td>
       <td class="right td-mono">${fmtQtd(p.estoque_atual)} ${p.unidade}</td>
-      <td class="right td-mono" style="color:var(--slate-500)">${fmtQtd(p.estoque_minimo)}</td>
+      <td class="right td-mono hide-mobile" style="color:var(--slate-500)">${fmtQtd(p.estoque_minimo)}</td>
       <td class="right">${parseFloat(p.custo_unitario).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
       <td class="right" style="font-weight:600">${parseFloat(p.preco_venda||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
       <td class="center" style="${p.validade ? 'color:var(--orange-600);font-weight:600' : 'color:var(--slate-400)'}">${validade}</td>
