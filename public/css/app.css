@@ -686,16 +686,16 @@
       border-bottom: 1px solid var(--slate-100);
       display: flex;
       gap: 10px;
-      flex-wrap: wrap;
       align-items: center;
     }
 
     .filters-selects {
       display: flex;
       gap: 10px;
-      flex: 1;
       flex-wrap: wrap;
+      align-items: center;
     }
+    .filters-selects select { flex: 1; min-width: 140px; }
 
     .btn-limpar-filtros {
       background: transparent;
@@ -996,8 +996,14 @@
   .filters-bar { flex-direction: column; padding: 10px 12px; gap: 8px; }
   .filters-bar .search-input { min-width: 0; width: 100%; }
   .filters-selects { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
-  .filters-selects select { width: 100%; font-size: 12px; text-overflow: ellipsis; overflow: hidden; }
+  .filters-selects select { width: 100%; min-width: 0; font-size: 12px; }
   .btn-limpar-filtros { width: 100%; grid-column: span 2; }
+
+  /* tabela estoque mobile sem scroll horizontal */
+  #pg-estoque .table-wrapper { overflow-x: hidden; }
+  #pg-estoque table { table-layout: fixed; width: 100%; }
+  #pg-estoque table td, #pg-estoque table th { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #pg-estoque table td:first-child, #pg-estoque table th:first-child { white-space: normal; }
 }
 
 /* ── Toast de notificação ── */
