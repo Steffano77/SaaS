@@ -1006,6 +1006,25 @@
   #pg-estoque table td:first-child, #pg-estoque table th:first-child { white-space: normal; }
 }
 
+/* ── Tabela estoque desktop sem scroll horizontal ── */
+#pg-estoque .table-scroll { overflow-x: hidden; }
+#pg-estoque .table-scroll table,
+#pg-estoque table {
+  min-width: 0;
+  width: 100%;
+  table-layout: fixed;
+}
+#pg-estoque table td,
+#pg-estoque table th {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#pg-estoque table td:first-child,
+#pg-estoque table th:first-child {
+  white-space: normal;
+}
+
 /* ── Toast de notificação ── */
 #toast {
   position: fixed;
