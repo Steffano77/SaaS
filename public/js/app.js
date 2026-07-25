@@ -857,8 +857,14 @@ function atualizarBtnLimpar() {
   const forn = document.getElementById('filtro-fornecedor')?.value;
   const btn = document.getElementById('btn-limpar-filtros');
   if (!btn) return;
-  if (busca || cat || alerta || forn) btn.classList.remove('hidden');
-  else btn.classList.add('hidden');
+  const contagem = document.getElementById('contagem-produtos');
+  if (busca || cat || alerta || forn) {
+    btn.classList.remove('hidden');
+    if (contagem) contagem.style.display = 'none';
+  } else {
+    btn.classList.add('hidden');
+    if (contagem) contagem.style.display = '';
+  }
 }
 
 function limparFiltros() {
@@ -917,6 +923,8 @@ async function carregarProdutos() {
   if (alerta)      url += `alerta=${alerta}`;
   const prods = await api(url);
   todosProds = prods || [];
+  const contagem = document.getElementById('contagem-produtos');
+  if (contagem) contagem.textContent = `${todosProds.length} produto${todosProds.length !== 1 ? 's' : ''}`;
   const tbody = document.getElementById('tabela-produtos');
   // F) col-hide-mobile and col-hide-mobile classes for mobile hiding
   tbody.innerHTML = todosProds.map(p => {

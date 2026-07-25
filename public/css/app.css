@@ -708,6 +708,27 @@
     }
     .btn-limpar-filtros:hover { background: var(--slate-50); }
 
+    .filtro-contagem {
+      font-size: 12px;
+      color: var(--slate-400);
+      padding: 7px 12px;
+      border: 1px solid var(--slate-200);
+      border-radius: 8px;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+    }
+
+    /* Botões de ação do estoque */
+    .estoque-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .estoque-action-btn {
+      white-space: nowrap;
+    }
+
     .search-input {
       flex: 1;
       min-width: 200px;
@@ -997,7 +1018,12 @@
   .filters-bar .search-input { min-width: 0; width: 100%; }
   .filters-selects { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
   .filters-selects select { width: 100%; min-width: 0; font-size: 12px; }
+  .filtro-contagem { font-size: 11px; justify-content: center; }
   .btn-limpar-filtros { width: 100%; grid-column: span 2; }
+
+  /* botões de ação estoque em grade 3 colunas iguais */
+  .estoque-actions { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; gap: 8px; }
+  .estoque-action-btn { width: 100%; justify-content: center; text-align: center; font-size: 12px; padding: 8px 6px; }
 
 }
 
