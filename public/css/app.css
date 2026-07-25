@@ -691,7 +691,10 @@
     }
 
     .filters-selects {
-      display: contents;
+      display: flex;
+      gap: 10px;
+      flex: 1;
+      flex-wrap: wrap;
     }
 
     .btn-limpar-filtros {
@@ -993,8 +996,8 @@
   .filters-bar { flex-direction: column; padding: 10px 12px; gap: 8px; }
   .filters-bar .search-input { min-width: 0; width: 100%; }
   .filters-selects { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
-  .filters-selects select { width: 100%; }
-  .btn-limpar-filtros { width: 100%; }
+  .filters-selects select { width: 100%; font-size: 12px; text-overflow: ellipsis; overflow: hidden; }
+  .btn-limpar-filtros { width: 100%; grid-column: span 2; }
 }
 
 /* ── Toast de notificação ── */
