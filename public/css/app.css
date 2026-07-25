@@ -999,11 +999,6 @@
   .filters-selects select { width: 100%; min-width: 0; font-size: 12px; }
   .btn-limpar-filtros { width: 100%; grid-column: span 2; }
 
-  /* tabela estoque mobile sem scroll horizontal */
-  #pg-estoque .table-wrapper { overflow-x: hidden; }
-  #pg-estoque table { table-layout: fixed; width: 100%; }
-  #pg-estoque table td, #pg-estoque table th { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  #pg-estoque table td:first-child, #pg-estoque table th:first-child { white-space: normal; }
 }
 
 /* ── Tabela estoque desktop sem scroll horizontal ── */
