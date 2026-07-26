@@ -844,7 +844,7 @@ async function carregarFiltroFornecedor() {
   if (!sel) return;
   const fornecedores = await api('/fornecedores') || [];
   const atual = sel.value;
-  sel.innerHTML = '<option value="">Todos fornecedores</option>' +
+  sel.innerHTML = '<option value="">Fornecedor</option>' +
     fornecedores.map(f =>
       `<option value="${f.id}" ${String(f.id) === atual ? 'selected' : ''}>${f.nome}</option>`
     ).join('');
