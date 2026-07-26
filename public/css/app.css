@@ -1023,7 +1023,21 @@
 
   /* botões de ação estoque em grade 3 colunas iguais */
   .estoque-actions { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; gap: 8px; }
-  .estoque-action-btn { width: 100%; justify-content: center; text-align: center; font-size: 12px; padding: 8px 6px; }
+  .estoque-action-btn {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    text-align: center;
+    font-size: 11px;
+    padding: 10px 4px;
+    white-space: nowrap;
+    line-height: 1.2;
+  }
+  .estoque-action-btn svg,
+  .estoque-action-btn .btn-emoji { font-size: 18px; display: block; }
 
 }
 
