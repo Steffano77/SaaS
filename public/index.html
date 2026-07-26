@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260726a"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260726b"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -566,13 +566,13 @@
     <!-- Modal Financeiro -->
     <div id="modal-financeiro" class="modal-overlay hidden">
       <div class="modal-box" style="max-width:420px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div class="modal-header">
           <span class="modal-title">Nova movimentação</span>
           <button onclick="fecharModalFinanceiro()" class="btn-icon">✕</button>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
-          <button id="fin-tab-entrada" onclick="finSetTipo('entrada')" style="background:#dcfce7;color:#16a34a;border:2px solid #16a34a;border-radius:8px;padding:10px;font-weight:700;font-size:13px;cursor:pointer;">↑ Entrada</button>
-          <button id="fin-tab-saida" onclick="finSetTipo('saida')" style="background:var(--white);color:var(--slate-500);border:1.5px solid var(--slate-200);border-radius:8px;padding:10px;font-weight:600;font-size:13px;cursor:pointer;">↓ Saída</button>
+        <div class="fin-tipo-grid">
+          <button id="fin-tab-entrada" class="fin-tab active-entrada" onclick="finSetTipo('entrada')">↑ Entrada</button>
+          <button id="fin-tab-saida"   class="fin-tab" onclick="finSetTipo('saida')">↓ Saída</button>
         </div>
         <div class="form-group">
           <label class="form-label">Valor (R$)</label>
@@ -598,7 +598,7 @@
           <label class="form-label">Data</label>
           <input id="fin-data" type="date" class="form-control"/>
         </div>
-        <button id="btn-fin-confirmar" onclick="finSalvar()" class="btn-primary" style="width:100%;padding:12px;font-size:14px;margin-top:4px;">✅ Confirmar</button>
+        <button id="btn-fin-confirmar" onclick="finSalvar()" class="fin-confirmar-btn entrada">✅ Confirmar entrada</button>
       </div>
     </div>
 
@@ -1173,7 +1173,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260725j"></script>
+<script src="/js/app.js?v=20260726b"></script>
 
 <!-- Tela Saídas 30 dias -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

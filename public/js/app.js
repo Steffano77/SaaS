@@ -1476,17 +1476,10 @@ function finSetTipo(tipo) {
   const btnE = document.getElementById('fin-tab-entrada');
   const btnS = document.getElementById('fin-tab-saida');
   const btnConf = document.getElementById('btn-fin-confirmar');
-  if (tipo === 'entrada') {
-    btnE.style.cssText = 'background:#dcfce7;color:#16a34a;border:2px solid #16a34a;border-radius:8px;padding:10px;font-weight:700;font-size:13px;cursor:pointer;';
-    btnS.style.cssText = 'background:var(--white,#fff);color:var(--slate-500,#64748b);border:1.5px solid var(--slate-200,#e2e8f0);border-radius:8px;padding:10px;font-weight:600;font-size:13px;cursor:pointer;';
-    btnConf.textContent = '✅ Confirmar entrada';
-    btnConf.style.background = '#16a34a';
-  } else {
-    btnS.style.cssText = 'background:#fee2e2;color:#dc2626;border:2px solid #dc2626;border-radius:8px;padding:10px;font-weight:700;font-size:13px;cursor:pointer;';
-    btnE.style.cssText = 'background:var(--white,#fff);color:var(--slate-500,#64748b);border:1.5px solid var(--slate-200,#e2e8f0);border-radius:8px;padding:10px;font-weight:600;font-size:13px;cursor:pointer;';
-    btnConf.textContent = '✅ Confirmar saída';
-    btnConf.style.background = '#dc2626';
-  }
+  btnE.className = 'fin-tab' + (tipo === 'entrada' ? ' active-entrada' : '');
+  btnS.className = 'fin-tab' + (tipo === 'saida'   ? ' active-saida'   : '');
+  btnConf.className = 'fin-confirmar-btn ' + tipo;
+  btnConf.textContent = tipo === 'entrada' ? '✅ Confirmar entrada' : '✅ Confirmar saída';
 }
 
 async function finSalvar() {
