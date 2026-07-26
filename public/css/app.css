@@ -1068,14 +1068,15 @@
   grid-template-columns: 1fr 1fr 1fr;
   gap: 12px;
   padding: 16px;
-  background: var(--white);
+  background: var(--bg);
   border-bottom: 1px solid var(--slate-100);
 }
 .fin-kpi {
-  background: var(--slate-50);
-  border: 1px solid var(--slate-100);
+  background: var(--white);
+  border: 1px solid var(--slate-200);
   border-radius: 12px;
   padding: 14px 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
 }
 .fin-kpi-saldo {
   grid-column: span 3;
@@ -1083,7 +1084,10 @@
   border-color: transparent;
   text-align: center;
   padding: 20px;
+  box-shadow: 0 4px 16px rgba(15,23,42,.25);
 }
+.fin-kpi-entrada { border-top: 3px solid #16a34a; }
+.fin-kpi-saida   { border-top: 3px solid #dc2626; }
 .fin-kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--slate-500); margin-bottom: 6px; }
 .fin-kpi-saldo .fin-kpi-label { color: #94a3b8; }
 .fin-kpi-value { font-size: 22px; font-weight: 800; color: var(--text); }
