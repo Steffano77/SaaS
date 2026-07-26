@@ -2077,7 +2077,7 @@ async function carregarCategorias() {
   const filtroCat = document.getElementById('filtro-categoria');
   if (cats && filtroCat) {
     const atual = filtroCat.value;
-    filtroCat.innerHTML = '<option value="">Todas as categorias</option>' +
+    filtroCat.innerHTML = '<option value="">Categoria</option>' +
       cats.map(c => `<option value="${c.id}" ${String(c.id) === atual ? 'selected' : ''}>${c.nome}</option>`).join('');
   }
   // Select de categoria no modal de produto

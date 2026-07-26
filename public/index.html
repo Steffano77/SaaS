@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260725f"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260725g"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -329,16 +329,16 @@
             class="form-control search-input"/>
           <div class="filters-selects">
             <select id="filtro-categoria" onchange="carregarProdutos();atualizarBtnLimpar()" class="form-control">
-              <option value="">Todas as categorias</option>
+              <option value="">Categoria</option>
             </select>
             <select id="filtro-alerta" onchange="carregarProdutos();atualizarBtnLimpar()" class="form-control">
-              <option value="">Todos os alertas</option>
+              <option value="">Alertas</option>
               <option value="zerado">🔴 Sem estoque</option>
               <option value="minimo">🟡 Abaixo do mínimo</option>
               <option value="validade">📅 Vencendo em 10 dias</option>
             </select>
             <select id="filtro-fornecedor" onchange="filtrarPorFornecedor();atualizarBtnLimpar()" class="form-control">
-              <option value="">Todos fornecedores</option>
+              <option value="">Fornecedor</option>
             </select>
             <span id="contagem-produtos" class="filtro-contagem">— produtos</span>
             <button id="btn-limpar-filtros" class="btn-limpar-filtros hidden" onclick="limparFiltros()">✕ Limpar filtros</button>
@@ -1090,7 +1090,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260725d"></script>
+<script src="/js/app.js?v=20260725e"></script>
 
 <!-- Tela Saídas 30 dias -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
