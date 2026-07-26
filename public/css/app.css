@@ -1094,21 +1094,11 @@
 .fin-kpi-saldo .fin-kpi-value { font-size: 32px; color: #2563eb; letter-spacing: -1px; }
 .fin-kpi-sub { font-size: 11px; color: var(--slate-500); margin-top: 4px; }
 
-/* dark mode: fundo azul clarinho */
-@media (prefers-color-scheme: dark) {
-  .fin-kpi-saldo { background: #1e3a5f; border-color: #3b82f6; }
-  .fin-kpi-saldo .fin-kpi-label { color: #93c5fd; }
-  .fin-kpi-saldo .fin-kpi-value { color: #93c5fd; }
-  .fin-kpi-saldo .fin-kpi-sub { color: #60a5fa; }
-}
-[data-theme="dark"] .fin-kpi-saldo { background: #1e3a5f; border-color: #3b82f6; }
-[data-theme="dark"] .fin-kpi-saldo .fin-kpi-label { color: #93c5fd; }
-[data-theme="dark"] .fin-kpi-saldo .fin-kpi-value { color: #93c5fd; }
-[data-theme="dark"] .fin-kpi-saldo .fin-kpi-sub { color: #60a5fa; }
-[data-theme="light"] .fin-kpi-saldo { background: transparent; border-color: #2563eb; }
-[data-theme="light"] .fin-kpi-saldo .fin-kpi-label { color: #2563eb; }
-[data-theme="light"] .fin-kpi-saldo .fin-kpi-value { color: #2563eb; }
-[data-theme="light"] .fin-kpi-saldo .fin-kpi-sub { color: var(--slate-500); }
+/* dark: azul escurinho com texto clarinho */
+[data-theme="dark"] .fin-kpi-saldo { background: #1e3a5f !important; border-color: #3b82f6 !important; }
+[data-theme="dark"] .fin-kpi-saldo .fin-kpi-label { color: #93c5fd !important; }
+[data-theme="dark"] .fin-kpi-saldo .fin-kpi-value { color: #93c5fd !important; }
+[data-theme="dark"] .fin-kpi-saldo .fin-kpi-sub   { color: #60a5fa !important; }
 
 @media (max-width: 768px) {
   .fin-kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px; }
