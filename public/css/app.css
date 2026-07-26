@@ -1080,11 +1080,11 @@
 }
 .fin-kpi-saldo {
   grid-column: span 3;
-  background: var(--orange);
+  background: #2563eb;
   border-color: transparent;
   text-align: center;
   padding: 20px;
-  box-shadow: 0 4px 16px rgba(0,0,0,.12);
+  box-shadow: 0 4px 16px rgba(37,99,235,.3);
 }
 .fin-kpi-entrada { border-top: 3px solid #16a34a; }
 .fin-kpi-saida   { border-top: 3px solid #dc2626; }
