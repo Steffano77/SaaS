@@ -46,6 +46,8 @@ exports.importarSaurus = async (req, res) => {
       if (!nome) { ignorados++; continue; }
       // Só importa EAN-13
       if (!cod || !/^\d{13}$/.test(cod)) { ignorados++; continue; }
+      // Ignora produtos com saldo zerado ou negativo
+      if (saldo <= 0) { ignorados++; continue; }
       // Filtra por loja se solicitado
       if (filtroLoja && colLoja) {
         const lojaRow = String(row.getCell(colLoja).value || '').trim();
