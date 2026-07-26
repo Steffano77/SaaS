@@ -245,6 +245,27 @@ function entrar() {
   setTimeout(verificarOnboarding, 800);
 }
 
+function mostrarUpgrade(pg, planoNecessario) {
+  fecharSidebar();
+  const nomes = { financeiro: 'Financeiro', relatorios: 'Relatórios', fichas: 'Fichas de Produção', producao: 'Módulo de Produção' };
+  paginas.forEach(p => document.getElementById(`pg-${p}`).classList.toggle('hidden', p !== pg));
+  document.querySelectorAll('.sidebar-link').forEach((el, i) => el.classList.toggle('active', paginas[i] === pg));
+  history.replaceState({ pg }, '', `#${pg}`);
+  const container = document.getElementById(`pg-${pg}`);
+  container.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;padding:32px">
+      <div style="font-size:52px;margin-bottom:16px">🔒</div>
+      <h2 style="font-size:22px;font-weight:800;margin-bottom:8px">${nomes[pg] || pg} — Plano ${planoNecessario}</h2>
+      <p style="color:var(--slate-500);max-width:380px;line-height:1.6;margin-bottom:28px">
+        Esta funcionalidade está disponível a partir do plano <strong>${planoNecessario}</strong>.<br>
+        Faça upgrade para desbloquear o acesso completo.
+      </p>
+      <button onclick="mostrarPagina('planos')" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;padding:13px 32px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(249,115,22,.35)">
+        Ver planos e fazer upgrade →
+      </button>
+    </div>`;
+}
+
 function mostrarTelaPlanoExpirado() {
   document.getElementById('app').classList.add('hidden');
   document.getElementById('tela-auth').classList.add('hidden');
@@ -277,8 +298,23 @@ function sair() {
 
 // ── Navegação ───────────────────────────────────────────────
 const paginas = ['dashboard','estoque','compras','fornecedores','fichas','producao','relatorios','financeiro','sync','planos','404'];
+const PAGINAS_PRO      = ['financeiro', 'relatorios', 'fichas'];
+const PAGINAS_PREMIUM  = ['producao'];
+
 function mostrarPagina(pg, pushHistory = true) {
   if (!paginas.includes(pg)) { mostrarPagina('404'); return; }
+
+  // Bloqueio por plano (apenas para usuários não-admin)
+  const plano = PLANO_ATUAL || 'essencial';
+  if (PAGINAS_PREMIUM.includes(pg) && !['premium'].includes(plano) && plano !== 'admin') {
+    mostrarUpgrade(pg, 'Premium');
+    return;
+  }
+  if (PAGINAS_PRO.includes(pg) && !['pro','premium'].includes(plano) && plano !== 'admin') {
+    mostrarUpgrade(pg, 'Pro');
+    return;
+  }
+
   if (pg === 'financeiro' && !financeiroDesbloqueado()) {
     abrirModalPin();
     return;
@@ -473,6 +509,10 @@ async function api(path, opts = {}) {
     }
     if (r.status === 402) {
       mostrarTelaPlanoExpirado();
+      return null;
+    }
+    if (r.status === 403) {
+      mostrarToast('Funcionalidade disponível apenas nos planos Pro e Premium. Faça upgrade!', 'warn');
       return null;
     }
     const data = await r.json().catch(() => null);

@@ -58,6 +58,17 @@ router.put('/auth/padaria', auth, wrap(async (req, res) => {
   res.json({ ok: true, nome: nome.trim() });
 }));
 
+// Middleware: apenas planos Pro/Premium (e admin)
+const authPro = wrap(async (req, res, next) => {
+  const db = require('../database/connection');
+  if (req.padaria.role === 'admin') return next();
+  const [[p]] = await db.query('SELECT plano FROM padarias WHERE id = ?', [req.padaria.id]);
+  if (!p || !['pro', 'premium'].includes(p.plano)) {
+    return res.status(403).json({ erro: 'plano_insuficiente', plano: p ? p.plano : 'essencial' });
+  }
+  next();
+});
+
 // Dashboard
 router.get('/dashboard', auth, prodCtrl.dashboard);
 
@@ -80,17 +91,17 @@ router.post('/saurus/preview',   auth, upload.single('arquivo'), saurusCtrl.prev
 router.post('/saurus/confirmar', auth, saurusCtrl.confirmar);
 router.post('/saurus/limpar-zerados', auth, saurusCtrl.limparZerados);
 
-// Financeiro
-router.get('/financeiro',                   auth, wrap(financeiroCtrl.listar));
-router.post('/financeiro',                  auth, wrap(financeiroCtrl.criar));
-router.delete('/financeiro/:id',            auth, wrap(financeiroCtrl.excluir));
-router.get('/financeiro/grafico',           auth, wrap(financeiroCtrl.grafico));
-router.post('/financeiro/pin',              auth, wrap(financeiroCtrl.verificarPin));
-router.put('/financeiro/pin',               auth, wrap(financeiroCtrl.alterarPin));
-router.get('/financeiro/contas-pagar',      auth, wrap(financeiroCtrl.listarContasPagar));
-router.post('/financeiro/contas-pagar',     auth, wrap(financeiroCtrl.criarContaPagar));
-router.put('/financeiro/contas-pagar/:id',  auth, wrap(financeiroCtrl.pagarConta));
-router.delete('/financeiro/contas-pagar/:id', auth, wrap(financeiroCtrl.excluirContaPagar));
+// Financeiro — Pro/Premium apenas
+router.get('/financeiro',                   auth, authPro, wrap(financeiroCtrl.listar));
+router.post('/financeiro',                  auth, authPro, wrap(financeiroCtrl.criar));
+router.delete('/financeiro/:id',            auth, authPro, wrap(financeiroCtrl.excluir));
+router.get('/financeiro/grafico',           auth, authPro, wrap(financeiroCtrl.grafico));
+router.post('/financeiro/pin',              auth, authPro, wrap(financeiroCtrl.verificarPin));
+router.put('/financeiro/pin',               auth, authPro, wrap(financeiroCtrl.alterarPin));
+router.get('/financeiro/contas-pagar',      auth, authPro, wrap(financeiroCtrl.listarContasPagar));
+router.post('/financeiro/contas-pagar',     auth, authPro, wrap(financeiroCtrl.criarContaPagar));
+router.put('/financeiro/contas-pagar/:id',  auth, authPro, wrap(financeiroCtrl.pagarConta));
+router.delete('/financeiro/contas-pagar/:id', auth, authPro, wrap(financeiroCtrl.excluirContaPagar));
 
 // Importação genérica
 router.post('/sync/preview',   auth, upload.single('arquivo'), importCtrl.preview);
@@ -131,8 +142,8 @@ router.delete('/fornecedores/:id', auth, wrap(async (req, res) => {
   res.json({ ok: true });
 }));
 
-// Relatórios
-router.get('/relatorios/movs-semana', auth, wrap(async (req, res) => {
+// Relatórios — Pro/Premium apenas
+router.get('/relatorios/movs-semana', auth, authPro, wrap(async (req, res) => {
   const db = require('../database/connection');
   const [rows] = await db.query(`
     SELECT
@@ -147,7 +158,7 @@ router.get('/relatorios/movs-semana', auth, wrap(async (req, res) => {
   res.json(rows);
 }));
 
-router.get('/relatorios/top-produtos', auth, wrap(async (req, res) => {
+router.get('/relatorios/top-produtos', auth, authPro, wrap(async (req, res) => {
   const db = require('../database/connection');
   const [rows] = await db.query(`
     SELECT nome, ROUND(estoque_atual * custo_unitario, 2) AS valor
@@ -158,7 +169,7 @@ router.get('/relatorios/top-produtos', auth, wrap(async (req, res) => {
   res.json(rows);
 }));
 
-router.get('/relatorios/valor-categorias', auth, wrap(async (req, res) => {
+router.get('/relatorios/valor-categorias', auth, authPro, wrap(async (req, res) => {
   const db = require('../database/connection');
   const [rows] = await db.query(`
     SELECT COALESCE(c.nome, 'Sem categoria') AS categoria,
@@ -172,7 +183,7 @@ router.get('/relatorios/valor-categorias', auth, wrap(async (req, res) => {
   res.json(rows);
 }));
 
-router.get('/relatorios/mes', auth, wrap(async (req, res) => {
+router.get('/relatorios/mes', auth, authPro, wrap(async (req, res) => {
   const db = require('../database/connection');
   const mes = req.query.mes || new Date().toISOString().slice(0, 7);
   const [ano, m] = mes.split('-').map(Number);
@@ -571,7 +582,7 @@ router.get('/fornecedores/:id/produtos', auth, wrap(async (req, res) => {
 }));
 
 // ── Exportação Excel ──────────────────────────────────────────────────────────
-router.get('/exportar/produtos', auth, wrap(async (req, res) => {
+router.get('/exportar/produtos', auth, authPro, wrap(async (req, res) => {
   const db = require('../database/connection');
   const ExcelJS = require('exceljs');
   const [rows] = await db.query(`
@@ -606,7 +617,7 @@ router.get('/exportar/produtos', auth, wrap(async (req, res) => {
   res.end();
 }));
 
-router.get('/exportar/movimentacoes', auth, wrap(async (req, res) => {
+router.get('/exportar/movimentacoes', auth, authPro, wrap(async (req, res) => {
   const db = require('../database/connection');
   const ExcelJS = require('exceljs');
   const mes = req.query.mes || new Date().toISOString().slice(0, 7);
@@ -731,16 +742,6 @@ router.delete('/admin/codigos/:id', auth, authAdmin, wrap(async (req, res) => {
 }));
 
 // ── Fichas Técnicas ────────────────────────────────────────────────────────
-// Middleware: apenas planos Pro/Premium (e admin) acessam fichas
-const authPro = wrap(async (req, res, next) => {
-  const db = require('../database/connection');
-  if (req.padaria.role === 'admin') return next();
-  const [[p]] = await db.query('SELECT plano FROM padarias WHERE id = ?', [req.padaria.id]);
-  if (!p || !['pro', 'premium'].includes(p.plano)) {
-    return res.status(403).json({ erro: 'plano_insuficiente', plano: p ? p.plano : 'trial' });
-  }
-  next();
-});
 
 
 // Listar fichas com CMV calculado
