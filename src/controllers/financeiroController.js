@@ -15,9 +15,11 @@ async function criarTabela() {
       INDEX idx_padaria_data (padaria_id, data)
     )
   `);
-  await db.query(`
-    ALTER TABLE padarias ADD COLUMN IF NOT EXISTS pin_financeiro VARCHAR(4) NOT NULL DEFAULT '1234'
-  `).catch(() => {});
+  try {
+    await db.query(`ALTER TABLE padarias ADD COLUMN pin_financeiro VARCHAR(4) NOT NULL DEFAULT '1234'`);
+  } catch(e) { /* coluna já existe */ }
+  // Garante que linhas antigas com NULL recebam o padrão
+  await db.query(`UPDATE padarias SET pin_financeiro = '1234' WHERE pin_financeiro IS NULL OR pin_financeiro = ''`).catch(() => {});
 }
 criarTabela().catch(console.error);
 
@@ -27,7 +29,7 @@ exports.verificarPin = async (req, res) => {
   const { pin } = req.body;
   if (!pin) return res.status(400).json({ erro: 'PIN obrigatório.' });
   const [[padaria]] = await db.query(`SELECT pin_financeiro FROM padarias WHERE id = ?`, [padaria_id]);
-  if (!padaria || padaria.pin_financeiro !== pin)
+  if (!padaria || (padaria.pin_financeiro || '1234').trim() !== pin.trim())
     return res.status(401).json({ erro: 'PIN incorreto.' });
   res.json({ ok: true });
 };
