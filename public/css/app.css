@@ -1063,6 +1063,40 @@
 }
 
 /* ── Financeiro ── */
+.fin-kpi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  padding: 16px;
+  background: var(--white);
+  border-bottom: 1px solid var(--slate-100);
+}
+.fin-kpi {
+  background: var(--slate-50);
+  border: 1px solid var(--slate-100);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.fin-kpi-saldo {
+  grid-column: span 3;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+  border-color: transparent;
+  text-align: center;
+  padding: 20px;
+}
+.fin-kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--slate-500); margin-bottom: 6px; }
+.fin-kpi-saldo .fin-kpi-label { color: #94a3b8; }
+.fin-kpi-value { font-size: 22px; font-weight: 800; color: var(--text); }
+.fin-kpi-saldo .fin-kpi-value { font-size: 32px; color: #4ade80; letter-spacing: -1px; }
+.fin-kpi-sub { font-size: 11px; color: #64748b; margin-top: 4px; }
+
+@media (max-width: 768px) {
+  .fin-kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px; }
+  .fin-kpi-saldo { grid-column: span 2; }
+  .fin-kpi-value { font-size: 18px; }
+  .fin-kpi-saldo .fin-kpi-value { font-size: 26px; }
+}
+
 .fin-periodo-btn {
   padding: 5px 14px;
   border-radius: 20px;

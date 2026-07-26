@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260725j"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260725k"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -528,43 +528,39 @@
     <section id="pg-financeiro" class="hidden page-section">
       <div class="page-header">
         <h2 class="page-title">Financeiro</h2>
-      </div>
-
-      <!-- Saldo hero -->
-      <div id="fin-hero" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);padding:24px 20px;text-align:center;">
-        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Saldo do período</div>
-        <div id="fin-saldo" style="font-size:36px;font-weight:900;color:#4ade80;letter-spacing:-1px;">R$ 0,00</div>
-        <div id="fin-periodo-label" style="font-size:11px;color:#64748b;margin-top:4px;"></div>
-      </div>
-
-      <!-- Botões entrada/saída -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px;background:var(--white);border-bottom:1px solid var(--slate-100);">
-        <button onclick="abrirModalFinanceiro('entrada')" style="background:#dcfce7;color:#16a34a;border:1.5px solid #bbf7d0;border-radius:10px;padding:12px;font-weight:700;font-size:14px;cursor:pointer;">↑ + Entrada</button>
-        <button onclick="abrirModalFinanceiro('saida')" style="background:#fee2e2;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;padding:12px;font-weight:700;font-size:14px;cursor:pointer;">↓ − Saída</button>
-      </div>
-
-      <!-- Resumo -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--slate-100);">
-        <div style="padding:12px 16px;border-right:1px solid var(--slate-100);">
-          <div style="font-size:10px;color:var(--slate-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">↑ Entradas</div>
-          <div id="fin-entradas" style="font-size:18px;font-weight:800;color:#16a34a;">R$ 0,00</div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="abrirModalFinanceiro('entrada')" class="btn-primary" style="background:#16a34a;font-size:12px;padding:7px 12px;">↑ Entrada</button>
+          <button onclick="abrirModalFinanceiro('saida')" class="btn-primary" style="background:#dc2626;font-size:12px;padding:7px 12px;">↓ Saída</button>
         </div>
-        <div style="padding:12px 16px;">
-          <div style="font-size:10px;color:var(--slate-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">↓ Saídas</div>
-          <div id="fin-saidas" style="font-size:18px;font-weight:800;color:#dc2626;">R$ 0,00</div>
+      </div>
+
+      <!-- Cards KPI -->
+      <div class="fin-kpi-grid">
+        <div class="fin-kpi fin-kpi-saldo">
+          <div class="fin-kpi-label">Saldo do período</div>
+          <div id="fin-saldo" class="fin-kpi-value">R$ 0,00</div>
+          <div id="fin-periodo-label" class="fin-kpi-sub"></div>
+        </div>
+        <div class="fin-kpi">
+          <div class="fin-kpi-label">↑ Entradas</div>
+          <div id="fin-entradas" class="fin-kpi-value" style="color:#16a34a;">R$ 0,00</div>
+        </div>
+        <div class="fin-kpi">
+          <div class="fin-kpi-label">↓ Saídas</div>
+          <div id="fin-saidas" class="fin-kpi-value" style="color:#dc2626;">R$ 0,00</div>
         </div>
       </div>
 
       <!-- Filtro período -->
-      <div style="display:flex;gap:6px;padding:10px 12px;background:var(--white);border-bottom:1px solid var(--slate-100);overflow-x:auto;">
-        <button class="fin-periodo-btn active" data-periodo="hoje" onclick="finSetPeriodo('hoje',this)">Hoje</button>
-        <button class="fin-periodo-btn" data-periodo="semana" onclick="finSetPeriodo('semana',this)">Semana</button>
-        <button class="fin-periodo-btn" data-periodo="mes" onclick="finSetPeriodo('mes',this)">Mês</button>
-        <button class="fin-periodo-btn" data-periodo="ano" onclick="finSetPeriodo('ano',this)">Ano</button>
+      <div class="card" style="padding:10px 16px;display:flex;gap:6px;overflow-x:auto;border-radius:0;border-left:none;border-right:none;">
+        <button class="fin-periodo-btn active" onclick="finSetPeriodo('hoje',this)">Hoje</button>
+        <button class="fin-periodo-btn" onclick="finSetPeriodo('semana',this)">Semana</button>
+        <button class="fin-periodo-btn" onclick="finSetPeriodo('mes',this)">Mês</button>
+        <button class="fin-periodo-btn" onclick="finSetPeriodo('ano',this)">Ano</button>
       </div>
 
       <!-- Lista de movimentações -->
-      <div id="fin-lista"></div>
+      <div id="fin-lista" class="card" style="border-radius:0;border-left:none;border-right:none;min-height:120px;"></div>
     </section>
 
     <!-- Modal Financeiro -->
@@ -1177,7 +1173,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260725i"></script>
+<script src="/js/app.js?v=20260725j"></script>
 
 <!-- Tela Saídas 30 dias -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
