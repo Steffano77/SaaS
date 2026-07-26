@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260725i"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260725j"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -223,6 +223,10 @@
           <svg class="icon-relatorios" width="18" height="18" viewBox="0 0 256 256" fill="currentColor"><rect x="32" y="128" width="48" height="88" rx="8" opacity="0.25"/><rect x="104" y="72" width="48" height="144" rx="8" opacity="0.25"/><rect x="176" y="32" width="48" height="184" rx="8"/></svg>
         </span>
         <span class="nav-label" translate="no">Relatórios</span>
+      </button>
+      <button class="sidebar-link" onclick="mostrarPagina('financeiro');fecharSidebar()" spellcheck="false" autocorrect="off" autocapitalize="off">
+        <span class="nav-icon">💰</span>
+        <span class="nav-label" translate="no">Financeiro</span>
       </button>
       <button class="sidebar-link" onclick="mostrarPagina('sync');fecharSidebar()" spellcheck="false" autocorrect="off" autocapitalize="off">
         <span class="nav-icon">
@@ -519,6 +523,88 @@
         </div>
       </div>
     </section>
+
+    <!-- FINANCEIRO -->
+    <section id="pg-financeiro" class="hidden page-section">
+      <div class="page-header">
+        <h2 class="page-title">Financeiro</h2>
+      </div>
+
+      <!-- Saldo hero -->
+      <div id="fin-hero" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);padding:24px 20px;text-align:center;">
+        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Saldo do período</div>
+        <div id="fin-saldo" style="font-size:36px;font-weight:900;color:#4ade80;letter-spacing:-1px;">R$ 0,00</div>
+        <div id="fin-periodo-label" style="font-size:11px;color:#64748b;margin-top:4px;"></div>
+      </div>
+
+      <!-- Botões entrada/saída -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px;background:var(--white);border-bottom:1px solid var(--slate-100);">
+        <button onclick="abrirModalFinanceiro('entrada')" style="background:#dcfce7;color:#16a34a;border:1.5px solid #bbf7d0;border-radius:10px;padding:12px;font-weight:700;font-size:14px;cursor:pointer;">↑ + Entrada</button>
+        <button onclick="abrirModalFinanceiro('saida')" style="background:#fee2e2;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;padding:12px;font-weight:700;font-size:14px;cursor:pointer;">↓ − Saída</button>
+      </div>
+
+      <!-- Resumo -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--slate-100);">
+        <div style="padding:12px 16px;border-right:1px solid var(--slate-100);">
+          <div style="font-size:10px;color:var(--slate-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">↑ Entradas</div>
+          <div id="fin-entradas" style="font-size:18px;font-weight:800;color:#16a34a;">R$ 0,00</div>
+        </div>
+        <div style="padding:12px 16px;">
+          <div style="font-size:10px;color:var(--slate-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">↓ Saídas</div>
+          <div id="fin-saidas" style="font-size:18px;font-weight:800;color:#dc2626;">R$ 0,00</div>
+        </div>
+      </div>
+
+      <!-- Filtro período -->
+      <div style="display:flex;gap:6px;padding:10px 12px;background:var(--white);border-bottom:1px solid var(--slate-100);overflow-x:auto;">
+        <button class="fin-periodo-btn active" data-periodo="hoje" onclick="finSetPeriodo('hoje',this)">Hoje</button>
+        <button class="fin-periodo-btn" data-periodo="semana" onclick="finSetPeriodo('semana',this)">Semana</button>
+        <button class="fin-periodo-btn" data-periodo="mes" onclick="finSetPeriodo('mes',this)">Mês</button>
+        <button class="fin-periodo-btn" data-periodo="ano" onclick="finSetPeriodo('ano',this)">Ano</button>
+      </div>
+
+      <!-- Lista de movimentações -->
+      <div id="fin-lista"></div>
+    </section>
+
+    <!-- Modal Financeiro -->
+    <div id="modal-financeiro" class="modal-overlay hidden">
+      <div class="modal-box" style="max-width:420px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <span class="modal-title">Nova movimentação</span>
+          <button onclick="fecharModalFinanceiro()" class="btn-icon">✕</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+          <button id="fin-tab-entrada" onclick="finSetTipo('entrada')" style="background:#dcfce7;color:#16a34a;border:2px solid #16a34a;border-radius:8px;padding:10px;font-weight:700;font-size:13px;cursor:pointer;">↑ Entrada</button>
+          <button id="fin-tab-saida" onclick="finSetTipo('saida')" style="background:var(--white);color:var(--slate-500);border:1.5px solid var(--slate-200);border-radius:8px;padding:10px;font-weight:600;font-size:13px;cursor:pointer;">↓ Saída</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Valor (R$)</label>
+          <input id="fin-valor" type="number" step="0.01" min="0" class="form-control" placeholder="0,00" style="font-size:20px;font-weight:800;"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descrição</label>
+          <input id="fin-descricao" type="text" class="form-control" placeholder="Ex: Vendas do dia, Conta de luz..."/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Categoria</label>
+          <select id="fin-categoria" class="form-control">
+            <option value="Vendas">💰 Vendas</option>
+            <option value="Despesa fixa">🧾 Despesa fixa</option>
+            <option value="Fornecedor">🚚 Fornecedor</option>
+            <option value="Folha de pagamento">👥 Folha de pagamento</option>
+            <option value="Manutenção">🔧 Manutenção</option>
+            <option value="Compras">📦 Compras</option>
+            <option value="Outro">Outro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data</label>
+          <input id="fin-data" type="date" class="form-control"/>
+        </div>
+        <button id="btn-fin-confirmar" onclick="finSalvar()" class="btn-primary" style="width:100%;padding:12px;font-size:14px;margin-top:4px;">✅ Confirmar</button>
+      </div>
+    </div>
 
     <!-- RELATÓRIOS -->
     <section id="pg-relatorios" class="hidden page-section">
@@ -1091,7 +1177,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260725h"></script>
+<script src="/js/app.js?v=20260725i"></script>
 
 <!-- Tela Saídas 30 dias -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

@@ -276,7 +276,7 @@ function sair() {
 }
 
 // ── Navegação ───────────────────────────────────────────────
-const paginas = ['dashboard','estoque','compras','fornecedores','fichas','producao','relatorios','sync','planos','404'];
+const paginas = ['dashboard','estoque','compras','fornecedores','fichas','producao','relatorios','financeiro','sync','planos','404'];
 function mostrarPagina(pg, pushHistory = true) {
   if (!paginas.includes(pg)) { mostrarPagina('404'); return; }
   fecharSidebar();
@@ -293,6 +293,7 @@ function mostrarPagina(pg, pushHistory = true) {
   if (pg === 'compras')        { carregarCompras(); }
   if (pg === 'fornecedores')   { carregarFornecedores(); }
   if (pg === 'relatorios')     { carregarRelatorios(); }
+  if (pg === 'financeiro')     { carregarFinanceiro(); }
   if (pg === 'fichas')         { carregarFichas(); }
   if (pg === 'producao')       { carregarProducao(); }
 }
@@ -1394,6 +1395,131 @@ async function saurusConfirmar() {
     btn.disabled = false;
     btn.textContent = '✅ Confirmar atualização';
   }
+}
+
+// ── Financeiro ──────────────────────────────────────────────────────────────
+let _finPeriodo = 'hoje';
+let _finTipo = 'entrada';
+
+async function carregarFinanceiro() {
+  const data = await api(`/financeiro?periodo=${_finPeriodo}`);
+  if (!data) return;
+
+  const fmt = v => parseFloat(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const saldo = data.saldo;
+
+  document.getElementById('fin-saldo').textContent = fmt(saldo);
+  document.getElementById('fin-saldo').style.color = saldo >= 0 ? '#4ade80' : '#f87171';
+  document.getElementById('fin-entradas').textContent = fmt(data.total_entradas);
+  document.getElementById('fin-saidas').textContent   = fmt(data.total_saidas);
+
+  const labels = { hoje: 'Hoje', semana: 'Últimos 7 dias', mes: 'Este mês', ano: 'Este ano' };
+  document.getElementById('fin-periodo-label').textContent = labels[_finPeriodo] || '';
+
+  const lista = document.getElementById('fin-lista');
+  if (!data.movimentacoes.length) {
+    lista.innerHTML = '<p style="text-align:center;color:var(--slate-400);padding:32px 16px;font-size:14px;">Nenhuma movimentação no período.</p>';
+    return;
+  }
+
+  const icones = { Vendas:'💰', 'Despesa fixa':'🧾', Fornecedor:'🚚', 'Folha de pagamento':'👥', Manutenção:'🔧', Compras:'📦', Outro:'💵' };
+  let html = '';
+  let dataAtual = '';
+
+  data.movimentacoes.forEach(m => {
+    const d = new Date(m.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'2-digit' });
+    if (d !== dataAtual) {
+      dataAtual = d;
+      html += `<div class="fin-date-header">${d}</div>`;
+    }
+    const icone = icones[m.categoria] || '💵';
+    const sinal = m.tipo === 'entrada' ? '+' : '−';
+    html += `
+      <div class="fin-mov-item">
+        <div class="fin-mov-icon ${m.tipo}">${icone}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="fin-mov-desc">${m.descricao}</div>
+          <div class="fin-mov-cat">${m.categoria}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="fin-mov-val ${m.tipo}">${sinal}${parseFloat(m.valor).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
+          <button onclick="finExcluir(${m.id})" class="btn-icon" style="color:#dc2626;font-size:13px;" title="Excluir">🗑</button>
+        </div>
+      </div>`;
+  });
+  lista.innerHTML = html;
+}
+
+function finSetPeriodo(periodo, btn) {
+  _finPeriodo = periodo;
+  document.querySelectorAll('.fin-periodo-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  carregarFinanceiro();
+}
+
+function abrirModalFinanceiro(tipo = 'entrada') {
+  _finTipo = tipo;
+  finSetTipo(tipo);
+  document.getElementById('fin-valor').value = '';
+  document.getElementById('fin-descricao').value = '';
+  document.getElementById('fin-categoria').value = tipo === 'entrada' ? 'Vendas' : 'Despesa fixa';
+  document.getElementById('fin-data').value = new Date().toISOString().split('T')[0];
+  document.getElementById('modal-financeiro').classList.remove('hidden');
+}
+
+function fecharModalFinanceiro() {
+  document.getElementById('modal-financeiro').classList.add('hidden');
+}
+
+function finSetTipo(tipo) {
+  _finTipo = tipo;
+  const btnE = document.getElementById('fin-tab-entrada');
+  const btnS = document.getElementById('fin-tab-saida');
+  const btnConf = document.getElementById('btn-fin-confirmar');
+  if (tipo === 'entrada') {
+    btnE.style.cssText = 'background:#dcfce7;color:#16a34a;border:2px solid #16a34a;border-radius:8px;padding:10px;font-weight:700;font-size:13px;cursor:pointer;';
+    btnS.style.cssText = 'background:var(--white,#fff);color:var(--slate-500,#64748b);border:1.5px solid var(--slate-200,#e2e8f0);border-radius:8px;padding:10px;font-weight:600;font-size:13px;cursor:pointer;';
+    btnConf.textContent = '✅ Confirmar entrada';
+    btnConf.style.background = '#16a34a';
+  } else {
+    btnS.style.cssText = 'background:#fee2e2;color:#dc2626;border:2px solid #dc2626;border-radius:8px;padding:10px;font-weight:700;font-size:13px;cursor:pointer;';
+    btnE.style.cssText = 'background:var(--white,#fff);color:var(--slate-500,#64748b);border:1.5px solid var(--slate-200,#e2e8f0);border-radius:8px;padding:10px;font-weight:600;font-size:13px;cursor:pointer;';
+    btnConf.textContent = '✅ Confirmar saída';
+    btnConf.style.background = '#dc2626';
+  }
+}
+
+async function finSalvar() {
+  const valor = parseFloat(document.getElementById('fin-valor').value);
+  const descricao = document.getElementById('fin-descricao').value.trim();
+  const categoria = document.getElementById('fin-categoria').value;
+  const data = document.getElementById('fin-data').value;
+
+  if (!valor || valor <= 0) { mostrarToast('Informe um valor válido.'); return; }
+  if (!descricao) { mostrarToast('Informe uma descrição.'); return; }
+
+  const btn = document.getElementById('btn-fin-confirmar');
+  btn.disabled = true;
+
+  const r = await fetch(`${API}/financeiro`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tipo: _finTipo, valor, descricao, categoria, data })
+  });
+  const d = await r.json();
+  btn.disabled = false;
+
+  if (!r.ok) { mostrarToast('Erro: ' + (d.erro || 'Tente novamente.')); return; }
+  fecharModalFinanceiro();
+  mostrarToast(_finTipo === 'entrada' ? '✅ Entrada registrada!' : '✅ Saída registrada!');
+  carregarFinanceiro();
+}
+
+async function finExcluir(id) {
+  if (!confirm('Excluir esta movimentação?')) return;
+  await fetch(`${API}/financeiro/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${TOKEN}` } });
+  mostrarToast('Movimentação excluída.');
+  carregarFinanceiro();
 }
 
 // ── Onboarding ──────────────────────────────────────────────────────────────

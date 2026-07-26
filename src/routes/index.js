@@ -16,9 +16,10 @@ const syncCtrl   = require('../controllers/syncController');
 const importCtrl = require('../controllers/importController');
 const dadosCtrl  = require('../controllers/dadosController');
 
-const senhaCtrl   = require('../controllers/senhaController');
-const hotmartCtrl = require('../controllers/hotmartController');
-const saurusCtrl  = require('../controllers/saurusController');
+const senhaCtrl      = require('../controllers/senhaController');
+const hotmartCtrl    = require('../controllers/hotmartController');
+const saurusCtrl     = require('../controllers/saurusController');
+const financeiroCtrl = require('../controllers/financeiroController');
 
 // Webhook Hotmart (sem auth)
 router.post('/hotmart/webhook', hotmartCtrl.webhook);
@@ -78,6 +79,11 @@ router.post('/sync/saurus', auth, upload.single('arquivo'), syncCtrl.importarSau
 router.post('/saurus/preview',   auth, upload.single('arquivo'), saurusCtrl.preview);
 router.post('/saurus/confirmar', auth, saurusCtrl.confirmar);
 router.post('/saurus/limpar-zerados', auth, saurusCtrl.limparZerados);
+
+// Financeiro
+router.get('/financeiro',      auth, wrap(financeiroCtrl.listar));
+router.post('/financeiro',     auth, wrap(financeiroCtrl.criar));
+router.delete('/financeiro/:id', auth, wrap(financeiroCtrl.excluir));
 
 // Importação genérica
 router.post('/sync/preview',   auth, upload.single('arquivo'), importCtrl.preview);
