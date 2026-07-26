@@ -279,6 +279,10 @@ function sair() {
 const paginas = ['dashboard','estoque','compras','fornecedores','fichas','producao','relatorios','financeiro','sync','planos','404'];
 function mostrarPagina(pg, pushHistory = true) {
   if (!paginas.includes(pg)) { mostrarPagina('404'); return; }
+  if (pg === 'financeiro' && !financeiroDesbloqueado()) {
+    abrirModalPin();
+    return;
+  }
   fecharSidebar();
   paginas.forEach(p => {
     document.getElementById(`pg-${p}`).classList.toggle('hidden', p !== pg);
@@ -296,6 +300,93 @@ function mostrarPagina(pg, pushHistory = true) {
   if (pg === 'financeiro')     { carregarFinanceiro(); }
   if (pg === 'fichas')         { carregarFichas(); }
   if (pg === 'producao')       { carregarProducao(); }
+}
+
+// ── PIN Financeiro ───────────────────────────────────────────
+const FIN_UNLOCK_MS = 30 * 60 * 1000; // 30 minutos
+
+function financeiroDesbloqueado() {
+  const t = sessionStorage.getItem('fin_unlocked_at');
+  return t && (Date.now() - parseInt(t)) < FIN_UNLOCK_MS;
+}
+
+function abrirModalPin() {
+  ['pin0','pin1','pin2','pin3'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('pin-erro').classList.add('hidden');
+  document.querySelectorAll('.pin-input').forEach(el => el.classList.remove('erro'));
+  document.getElementById('modal-pin-financeiro').classList.remove('hidden');
+  setTimeout(() => document.getElementById('pin0').focus(), 100);
+}
+
+function fecharModalPin() {
+  document.getElementById('modal-pin-financeiro').classList.add('hidden');
+}
+
+// Auto-avançar entre os inputs do PIN
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.pin-input').forEach((input, i) => {
+    input.addEventListener('input', () => {
+      input.value = input.value.replace(/\D/g, '').slice(-1);
+      if (input.value && i < 3) document.getElementById(`pin${i+1}`).focus();
+      if (i === 3 && input.value) confirmarPin();
+    });
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !input.value && i > 0)
+        document.getElementById(`pin${i-1}`).focus();
+    });
+  });
+});
+
+async function confirmarPin() {
+  const pin = ['pin0','pin1','pin2','pin3'].map(id => document.getElementById(id).value).join('');
+  if (pin.length < 4) return;
+  const r = await fetch(`${API}/financeiro/pin`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
+    body: JSON.stringify({ pin })
+  });
+  if (r.ok) {
+    sessionStorage.setItem('fin_unlocked_at', Date.now());
+    fecharModalPin();
+    mostrarPagina('financeiro');
+  } else {
+    document.getElementById('pin-erro').classList.remove('hidden');
+    document.querySelectorAll('.pin-input').forEach(el => {
+      el.classList.add('erro');
+      el.value = '';
+    });
+    document.getElementById('pin0').focus();
+  }
+}
+
+function abrirAlterarPin() {
+  fecharModalPin();
+  document.getElementById('pin-atual').value = '';
+  document.getElementById('pin-novo').value = '';
+  document.getElementById('modal-alterar-pin').classList.remove('hidden');
+}
+
+function fecharAlterarPin() {
+  document.getElementById('modal-alterar-pin').classList.add('hidden');
+}
+
+async function salvarPin() {
+  const pin_atual = document.getElementById('pin-atual').value;
+  const pin_novo  = document.getElementById('pin-novo').value;
+  if (!pin_atual || !pin_novo) { mostrarToast('Preencha todos os campos.'); return; }
+  if (!/^\d{4}$/.test(pin_novo)) { mostrarToast('O novo PIN deve ter exatamente 4 dígitos.'); return; }
+  const r = await fetch(`${API}/financeiro/pin`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
+    body: JSON.stringify({ pin_atual, pin_novo })
+  });
+  const d = await r.json();
+  if (r.ok) {
+    fecharAlterarPin();
+    mostrarToast('✅ PIN alterado com sucesso!');
+  } else {
+    mostrarToast('❌ ' + (d.erro || 'Erro ao alterar PIN.'));
+  }
 }
 
 document.addEventListener('mousedown', e => {

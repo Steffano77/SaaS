@@ -81,9 +81,11 @@ router.post('/saurus/confirmar', auth, saurusCtrl.confirmar);
 router.post('/saurus/limpar-zerados', auth, saurusCtrl.limparZerados);
 
 // Financeiro
-router.get('/financeiro',      auth, wrap(financeiroCtrl.listar));
-router.post('/financeiro',     auth, wrap(financeiroCtrl.criar));
-router.delete('/financeiro/:id', auth, wrap(financeiroCtrl.excluir));
+router.get('/financeiro',           auth, wrap(financeiroCtrl.listar));
+router.post('/financeiro',          auth, wrap(financeiroCtrl.criar));
+router.delete('/financeiro/:id',    auth, wrap(financeiroCtrl.excluir));
+router.post('/financeiro/pin',      auth, wrap(financeiroCtrl.verificarPin));
+router.put('/financeiro/pin',       auth, wrap(financeiroCtrl.alterarPin));
 
 // Importação genérica
 router.post('/sync/preview',   auth, upload.single('arquivo'), importCtrl.preview);

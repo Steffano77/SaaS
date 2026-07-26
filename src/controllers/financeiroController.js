@@ -1,6 +1,6 @@
 const db = require('../database/connection');
 
-// Garante que a tabela existe
+// Garante que a tabela existe e coluna de PIN na padaria
 async function criarTabela() {
   await db.query(`
     CREATE TABLE IF NOT EXISTS financeiro (
@@ -15,8 +15,35 @@ async function criarTabela() {
       INDEX idx_padaria_data (padaria_id, data)
     )
   `);
+  await db.query(`
+    ALTER TABLE padarias ADD COLUMN IF NOT EXISTS pin_financeiro VARCHAR(4) NOT NULL DEFAULT '1234'
+  `).catch(() => {});
 }
 criarTabela().catch(console.error);
+
+// Verificar PIN
+exports.verificarPin = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const { pin } = req.body;
+  if (!pin) return res.status(400).json({ erro: 'PIN obrigatório.' });
+  const [[padaria]] = await db.query(`SELECT pin_financeiro FROM padarias WHERE id = ?`, [padaria_id]);
+  if (!padaria || padaria.pin_financeiro !== pin)
+    return res.status(401).json({ erro: 'PIN incorreto.' });
+  res.json({ ok: true });
+};
+
+// Alterar PIN
+exports.alterarPin = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const { pin_atual, pin_novo } = req.body;
+  if (!pin_atual || !pin_novo) return res.status(400).json({ erro: 'Preencha todos os campos.' });
+  if (!/^\d{4}$/.test(pin_novo)) return res.status(400).json({ erro: 'PIN deve ter 4 dígitos.' });
+  const [[padaria]] = await db.query(`SELECT pin_financeiro FROM padarias WHERE id = ?`, [padaria_id]);
+  if (!padaria || padaria.pin_financeiro !== pin_atual)
+    return res.status(401).json({ erro: 'PIN atual incorreto.' });
+  await db.query(`UPDATE padarias SET pin_financeiro = ? WHERE id = ?`, [pin_novo, padaria_id]);
+  res.json({ ok: true });
+};
 
 // Listar movimentações
 exports.listar = async (req, res) => {
