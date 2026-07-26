@@ -81,11 +81,16 @@ router.post('/saurus/confirmar', auth, saurusCtrl.confirmar);
 router.post('/saurus/limpar-zerados', auth, saurusCtrl.limparZerados);
 
 // Financeiro
-router.get('/financeiro',           auth, wrap(financeiroCtrl.listar));
-router.post('/financeiro',          auth, wrap(financeiroCtrl.criar));
-router.delete('/financeiro/:id',    auth, wrap(financeiroCtrl.excluir));
-router.post('/financeiro/pin',      auth, wrap(financeiroCtrl.verificarPin));
-router.put('/financeiro/pin',       auth, wrap(financeiroCtrl.alterarPin));
+router.get('/financeiro',                   auth, wrap(financeiroCtrl.listar));
+router.post('/financeiro',                  auth, wrap(financeiroCtrl.criar));
+router.delete('/financeiro/:id',            auth, wrap(financeiroCtrl.excluir));
+router.get('/financeiro/grafico',           auth, wrap(financeiroCtrl.grafico));
+router.post('/financeiro/pin',              auth, wrap(financeiroCtrl.verificarPin));
+router.put('/financeiro/pin',               auth, wrap(financeiroCtrl.alterarPin));
+router.get('/financeiro/contas-pagar',      auth, wrap(financeiroCtrl.listarContasPagar));
+router.post('/financeiro/contas-pagar',     auth, wrap(financeiroCtrl.criarContaPagar));
+router.put('/financeiro/contas-pagar/:id',  auth, wrap(financeiroCtrl.pagarConta));
+router.delete('/financeiro/contas-pagar/:id', auth, wrap(financeiroCtrl.excluirContaPagar));
 
 // Importação genérica
 router.post('/sync/preview',   auth, upload.single('arquivo'), importCtrl.preview);

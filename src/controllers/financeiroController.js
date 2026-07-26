@@ -1,24 +1,40 @@
 const db = require('../database/connection');
 
-// Garante que a tabela existe e coluna de PIN na padaria
 async function criarTabela() {
   await db.query(`
     CREATE TABLE IF NOT EXISTS financeiro (
-      id           INT AUTO_INCREMENT PRIMARY KEY,
-      padaria_id   INT NOT NULL,
-      tipo         ENUM('entrada','saida') NOT NULL,
-      valor        DECIMAL(10,2) NOT NULL,
-      descricao    VARCHAR(255) NOT NULL,
-      categoria    VARCHAR(100) DEFAULT 'Outro',
-      data         DATE NOT NULL,
-      criado_em    DATETIME DEFAULT NOW(),
+      id               INT AUTO_INCREMENT PRIMARY KEY,
+      padaria_id       INT NOT NULL,
+      tipo             ENUM('entrada','saida') NOT NULL,
+      valor            DECIMAL(10,2) NOT NULL,
+      descricao        VARCHAR(255) NOT NULL,
+      categoria        VARCHAR(100) DEFAULT 'Outro',
+      forma_pagamento  VARCHAR(50) DEFAULT 'Dinheiro',
+      data             DATE NOT NULL,
+      criado_em        DATETIME DEFAULT NOW(),
       INDEX idx_padaria_data (padaria_id, data)
     )
   `);
+  // Adiciona forma_pagamento se não existir
+  await db.query(`ALTER TABLE financeiro ADD COLUMN forma_pagamento VARCHAR(50) DEFAULT 'Dinheiro'`).catch(() => {});
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS contas_pagar (
+      id          INT AUTO_INCREMENT PRIMARY KEY,
+      padaria_id  INT NOT NULL,
+      descricao   VARCHAR(255) NOT NULL,
+      categoria   VARCHAR(100) DEFAULT 'Outro',
+      valor       DECIMAL(10,2) NOT NULL,
+      vencimento  DATE NOT NULL,
+      status      ENUM('aberto','pago','atrasado') DEFAULT 'aberto',
+      criado_em   DATETIME DEFAULT NOW(),
+      INDEX idx_cp_padaria (padaria_id, vencimento)
+    )
+  `);
+
   try {
     await db.query(`ALTER TABLE padarias ADD COLUMN pin_financeiro VARCHAR(4) NOT NULL DEFAULT '1234'`);
-  } catch(e) { /* coluna já existe */ }
-  // Garante que linhas antigas com NULL recebam o padrão
+  } catch(e) {}
   await db.query(`UPDATE padarias SET pin_financeiro = '1234' WHERE pin_financeiro IS NULL OR pin_financeiro = ''`).catch(() => {});
 }
 criarTabela().catch(console.error);
@@ -104,7 +120,7 @@ exports.listar = async (req, res) => {
 // Criar movimentação
 exports.criar = async (req, res) => {
   const padaria_id = req.padaria.id;
-  const { tipo, valor, descricao, categoria, data } = req.body;
+  const { tipo, valor, descricao, categoria, data, forma_pagamento, conta_pagar_id } = req.body;
 
   if (!tipo || !valor || !descricao || !data)
     return res.status(400).json({ erro: 'Preencha todos os campos obrigatórios.' });
@@ -114,9 +130,15 @@ exports.criar = async (req, res) => {
     return res.status(400).json({ erro: 'Valor deve ser maior que zero.' });
 
   const [r] = await db.query(
-    `INSERT INTO financeiro (padaria_id, tipo, valor, descricao, categoria, data) VALUES (?,?,?,?,?,?)`,
-    [padaria_id, tipo, parseFloat(valor), descricao.trim(), categoria || 'Outro', data]
+    `INSERT INTO financeiro (padaria_id, tipo, valor, descricao, categoria, forma_pagamento, data) VALUES (?,?,?,?,?,?,?)`,
+    [padaria_id, tipo, parseFloat(valor), descricao.trim(), categoria || 'Outro', forma_pagamento || 'Dinheiro', data]
   );
+
+  // Baixa a conta a pagar se vinculada
+  if (conta_pagar_id) {
+    await db.query(`UPDATE contas_pagar SET status='pago' WHERE id=? AND padaria_id=?`, [conta_pagar_id, padaria_id]).catch(() => {});
+  }
+
   res.json({ ok: true, id: r.insertId });
 };
 
@@ -125,5 +147,63 @@ exports.excluir = async (req, res) => {
   const padaria_id = req.padaria.id;
   const { id } = req.params;
   await db.query(`DELETE FROM financeiro WHERE id = ? AND padaria_id = ?`, [id, padaria_id]);
+  res.json({ ok: true });
+};
+
+// Gráfico últimos 6 meses
+exports.grafico = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const [rows] = await db.query(`
+    SELECT
+      DATE_FORMAT(data, '%Y-%m') AS mes,
+      COALESCE(SUM(CASE WHEN tipo='entrada' THEN valor ELSE 0 END),0) AS entradas,
+      COALESCE(SUM(CASE WHEN tipo='saida'   THEN valor ELSE 0 END),0) AS saidas
+    FROM financeiro
+    WHERE padaria_id = ?
+      AND data >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+    GROUP BY mes ORDER BY mes ASC
+  `, [padaria_id]);
+  res.json(rows);
+};
+
+// ── Contas a Pagar ──────────────────────────────────────────
+exports.listarContasPagar = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  // Atualiza status atrasado automaticamente
+  await db.query(`UPDATE contas_pagar SET status='atrasado' WHERE padaria_id=? AND vencimento < CURDATE() AND status='aberto'`, [padaria_id]).catch(() => {});
+  const [rows] = await db.query(
+    `SELECT * FROM contas_pagar WHERE padaria_id=? AND status != 'pago' ORDER BY vencimento ASC`,
+    [padaria_id]
+  );
+  const [totais] = await db.query(
+    `SELECT COALESCE(SUM(valor),0) AS total, COUNT(*) AS qtd FROM contas_pagar WHERE padaria_id=? AND status != 'pago'`,
+    [padaria_id]
+  );
+  res.json({ contas: rows, total: parseFloat(totais[0].total), qtd: totais[0].qtd });
+};
+
+exports.criarContaPagar = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const { descricao, categoria, valor, vencimento } = req.body;
+  if (!descricao || !valor || !vencimento)
+    return res.status(400).json({ erro: 'Preencha todos os campos.' });
+  const [r] = await db.query(
+    `INSERT INTO contas_pagar (padaria_id, descricao, categoria, valor, vencimento) VALUES (?,?,?,?,?)`,
+    [padaria_id, descricao.trim(), categoria || 'Outro', parseFloat(valor), vencimento]
+  );
+  res.json({ ok: true, id: r.insertId });
+};
+
+exports.pagarConta = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const { id } = req.params;
+  await db.query(`UPDATE contas_pagar SET status='pago' WHERE id=? AND padaria_id=?`, [id, padaria_id]);
+  res.json({ ok: true });
+};
+
+exports.excluirContaPagar = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const { id } = req.params;
+  await db.query(`DELETE FROM contas_pagar WHERE id=? AND padaria_id=?`, [id, padaria_id]);
   res.json({ ok: true });
 };

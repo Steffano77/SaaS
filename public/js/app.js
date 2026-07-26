@@ -1491,54 +1491,178 @@ async function saurusConfirmar() {
 // ── Financeiro ──────────────────────────────────────────────────────────────
 let _finPeriodo = 'hoje';
 let _finTipo = 'entrada';
+let _finPgto = 'Dinheiro';
+
+const FIN_ICONES = {
+  Vendas:'💰', Encomendas:'🥐', 'Café':'☕', Delivery:'🛵',
+  Farinha:'🌾', Fornecedor:'🚚', 'Folha de pagamento':'👥',
+  Energia:'⚡', Aluguel:'🏠', 'Gás':'🔥', Manutenção:'🔧',
+  Impostos:'📋', Marketing:'📣', Compras:'📦', Outro:'💵',
+  'Despesa fixa':'🧾', Internet:'🌐', Água:'💧', Contabilidade:'📊'
+};
 
 async function carregarFinanceiro() {
-  const data = await api(`/financeiro?periodo=${_finPeriodo}`);
+  const [data, grafico, contas] = await Promise.all([
+    api(`/financeiro?periodo=${_finPeriodo}`),
+    api('/financeiro/grafico'),
+    api('/financeiro/contas-pagar')
+  ]);
   if (!data) return;
 
   const fmt = v => parseFloat(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const saldo = data.saldo;
 
   document.getElementById('fin-saldo').textContent = fmt(saldo);
-  document.getElementById('fin-saldo').style.color = saldo >= 0 ? '#4ade80' : '#f87171';
+  document.getElementById('fin-saldo').style.color = saldo >= 0 ? '#2563eb' : '#dc2626';
   document.getElementById('fin-entradas').textContent = fmt(data.total_entradas);
   document.getElementById('fin-saidas').textContent   = fmt(data.total_saidas);
 
   const labels = { hoje: 'Hoje', semana: 'Últimos 7 dias', mes: 'Este mês', ano: 'Este ano' };
   document.getElementById('fin-periodo-label').textContent = labels[_finPeriodo] || '';
 
+  // KPI contas a pagar
+  if (contas) {
+    document.getElementById('fin-total-pagar').textContent = fmt(contas.total);
+    document.getElementById('fin-qtd-pagar').textContent = contas.qtd + ' conta' + (contas.qtd !== 1 ? 's' : '') + ' em aberto';
+    renderContasPagar(contas.contas);
+  }
+
+  // Gráfico
+  if (grafico) renderGrafico(grafico);
+
+  // Movimentações
+  renderMovimentacoes(data.movimentacoes, data.movimentacoes);
+
+  // Categorias
+  renderCategorias(data.movimentacoes);
+
+  // Alertas
+  renderAlertas(contas ? contas.contas : []);
+}
+
+function renderMovimentacoes(movs) {
+  const fmt = v => parseFloat(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const lista = document.getElementById('fin-lista');
-  if (!data.movimentacoes.length) {
+  if (!movs.length) {
     lista.innerHTML = '<p style="text-align:center;color:var(--slate-400);padding:32px 16px;font-size:14px;">Nenhuma movimentação no período.</p>';
     return;
   }
-
-  const icones = { Vendas:'💰', 'Despesa fixa':'🧾', Fornecedor:'🚚', 'Folha de pagamento':'👥', Manutenção:'🔧', Compras:'📦', Outro:'💵' };
-  let html = '';
-  let dataAtual = '';
-
-  data.movimentacoes.forEach(m => {
+  const pgtoTag = p => {
+    const cores = { Pix:'#eff6ff:#2563eb', Dinheiro:'#f0fdf4:#16a34a', Crédito:'#fdf4ff:#9333ea', Débito:'#fdf4ff:#9333ea', Transferência:'#eff6ff:#2563eb', Boleto:'#fefce8:#ca8a04' };
+    const [bg, color] = (cores[p] || '#f1f5f9:#64748b').split(':');
+    return `<span style="background:${bg};color:${color};border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;">${p||'Dinheiro'}</span>`;
+  };
+  let html = '', dataAtual = '';
+  movs.forEach(m => {
     const d = new Date(m.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'2-digit' });
-    if (d !== dataAtual) {
-      dataAtual = d;
-      html += `<div class="fin-date-header">${d}</div>`;
-    }
-    const icone = icones[m.categoria] || '💵';
+    if (d !== dataAtual) { dataAtual = d; html += `<div class="fin-date-header">${d}</div>`; }
+    const icone = FIN_ICONES[m.categoria] || '💵';
     const sinal = m.tipo === 'entrada' ? '+' : '−';
-    html += `
-      <div class="fin-mov-item">
-        <div class="fin-mov-icon ${m.tipo}">${icone}</div>
-        <div style="flex:1;min-width:0;">
-          <div class="fin-mov-desc">${m.descricao}</div>
-          <div class="fin-mov-cat">${m.categoria}</div>
+    html += `<div class="fin-mov-item">
+      <div class="fin-mov-icon ${m.tipo}">${icone}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="fin-mov-desc">${m.descricao}</div>
+        <div class="fin-mov-cat" style="display:flex;gap:6px;align-items:center;margin-top:2px;">
+          <span>${m.categoria}</span>${pgtoTag(m.forma_pagamento)}
         </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div class="fin-mov-val ${m.tipo}">${sinal}${parseFloat(m.valor).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
-          <button onclick="finExcluir(${m.id})" class="btn-icon" style="color:#dc2626;font-size:13px;" title="Excluir">🗑</button>
-        </div>
-      </div>`;
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="fin-mov-val ${m.tipo}">${sinal}${fmt(m.valor)}</div>
+        <button onclick="finExcluir(${m.id})" class="btn-icon" style="color:#dc2626;font-size:13px;" title="Excluir">🗑</button>
+      </div>
+    </div>`;
   });
   lista.innerHTML = html;
+}
+
+function renderGrafico(dados) {
+  const maxVal = Math.max(...dados.map(d => Math.max(parseFloat(d.entradas), parseFloat(d.saidas))), 1);
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  let barsHtml = '', mesesHtml = '';
+  dados.forEach(d => {
+    const hEnt = Math.max((parseFloat(d.entradas)/maxVal)*100, 4);
+    const hSai = Math.max((parseFloat(d.saidas)/maxVal)*100, 4);
+    const mesNum = parseInt(d.mes.split('-')[1]) - 1;
+    barsHtml += `<div class="fin-bar-group">
+      <div class="fin-bar ent" style="height:${hEnt}%" title="Entradas: R$ ${parseFloat(d.entradas).toLocaleString('pt-BR')}"></div>
+      <div class="fin-bar sai" style="height:${hSai}%" title="Saídas: R$ ${parseFloat(d.saidas).toLocaleString('pt-BR')}"></div>
+    </div>`;
+    mesesHtml += `<div class="fin-grafico-mes">${meses[mesNum]}</div>`;
+  });
+  document.getElementById('fin-grafico').innerHTML = barsHtml || '<p style="padding:16px;color:var(--slate-400);font-size:13px;">Sem dados ainda.</p>';
+  document.getElementById('fin-grafico-meses').innerHTML = mesesHtml;
+}
+
+function renderContasPagar(contas) {
+  const fmt = v => parseFloat(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const hoje = new Date().toISOString().split('T')[0];
+  const atrasadas = contas.filter(c => c.status === 'atrasado').length;
+  const badge = document.getElementById('fin-badge-atrasadas');
+  if (atrasadas > 0) { badge.textContent = atrasadas + ' atrasada' + (atrasadas>1?'s':''); badge.classList.remove('hidden'); }
+  else badge.classList.add('hidden');
+
+  if (!contas.length) {
+    document.getElementById('fin-contas-pagar-lista').innerHTML = '<p style="font-size:12px;color:var(--slate-400);padding:8px 0;">Nenhuma conta em aberto.</p>';
+    return;
+  }
+  let html = '';
+  contas.forEach(c => {
+    const venc = c.vencimento.split('T')[0];
+    const diffDias = Math.round((new Date(venc+'T12:00:00') - new Date(hoje+'T12:00:00')) / 86400000);
+    let cls = 'ok', label = 'Em dia';
+    if (c.status === 'atrasado') { cls = 'late'; label = 'Atrasada'; }
+    else if (diffDias <= 3) { cls = 'warn'; label = diffDias === 0 ? 'Vence hoje' : `${diffDias}d`; }
+    html += `<div class="fin-cp-item">
+      <div class="fin-cp-dot ${cls}"></div>
+      <div class="fin-cp-info">
+        <div class="fin-cp-desc">${c.descricao}</div>
+        <div class="fin-cp-date">${new Date(venc+'T12:00:00').toLocaleDateString('pt-BR')}</div>
+        <span class="fin-cp-status ${cls}">${label}</span>
+      </div>
+      <div class="fin-cp-right">
+        <div class="fin-cp-val">${fmt(c.valor)}</div>
+        <div class="fin-cp-pagar" onclick="pagarContaDireta(${c.id})">✓ Pagar</div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('fin-contas-pagar-lista').innerHTML = html;
+}
+
+function renderCategorias(movs) {
+  const saidas = movs.filter(m => m.tipo === 'saida');
+  const totais = {};
+  saidas.forEach(m => { totais[m.categoria] = (totais[m.categoria] || 0) + parseFloat(m.valor); });
+  const sorted = Object.entries(totais).sort((a,b) => b[1]-a[1]).slice(0,5);
+  const max = sorted[0]?.[1] || 1;
+  const cores = ['#dc2626','#f97316','#d97706','#2563eb','#9333ea'];
+  const fmt = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  if (!sorted.length) { document.getElementById('fin-categorias-chart').innerHTML = '<p style="font-size:12px;color:var(--slate-400);padding:8px 0;">Sem saídas no período.</p>'; return; }
+  document.getElementById('fin-categorias-chart').innerHTML = sorted.map(([cat, val], i) => `
+    <div class="fin-cat-item">
+      <div class="fin-cat-name">${FIN_ICONES[cat]||'📦'} ${cat}</div>
+      <div class="fin-cat-right">
+        <div class="fin-cat-val">${fmt(val)}</div>
+        <div class="fin-cat-bar-wrap"><div class="fin-cat-bar" style="width:${(val/max)*100}%;background:${cores[i]};"></div></div>
+      </div>
+    </div>`).join('');
+}
+
+function renderAlertas(contas) {
+  const hoje = new Date().toISOString().split('T')[0];
+  const atrasadas = contas.filter(c => c.status === 'atrasado');
+  const vencendoHoje = contas.filter(c => c.vencimento && c.vencimento.split('T')[0] === hoje && c.status !== 'atrasado');
+  const fmt = v => parseFloat(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  let html = '';
+  if (atrasadas.length) {
+    const total = atrasadas.reduce((s,c) => s + parseFloat(c.valor), 0);
+    html += `<div class="fin-alerta red"><div class="fin-alerta-dot"></div>${atrasadas.length} conta${atrasadas.length>1?'s':''} atrasada${atrasadas.length>1?'s':''} — ${fmt(total)}</div>`;
+  }
+  if (vencendoHoje.length) {
+    const total = vencendoHoje.reduce((s,c) => s + parseFloat(c.valor), 0);
+    html += `<div class="fin-alerta yellow"><div class="fin-alerta-dot"></div>${vencendoHoje.length} conta${vencendoHoje.length>1?'s':''} vence${vencendoHoje.length>1?'m':''} hoje — ${fmt(total)}</div>`;
+  }
+  document.getElementById('fin-alertas').innerHTML = html;
+  document.getElementById('fin-alertas').style.display = html ? 'flex' : 'none';
 }
 
 function finSetPeriodo(periodo, btn) {
@@ -1553,8 +1677,14 @@ function abrirModalFinanceiro(tipo = 'entrada') {
   finSetTipo(tipo);
   document.getElementById('fin-valor').value = '';
   document.getElementById('fin-descricao').value = '';
-  document.getElementById('fin-categoria').value = tipo === 'entrada' ? 'Vendas' : 'Despesa fixa';
+  document.getElementById('fin-categoria').value = tipo === 'entrada' ? 'Vendas' : 'Aluguel';
   document.getElementById('fin-data').value = new Date().toISOString().split('T')[0];
+  // Reset forma pagamento
+  _finPgto = 'Dinheiro';
+  document.querySelectorAll('.fin-pgto-btn').forEach(b => b.classList.toggle('active', b.dataset.pgto === 'Dinheiro'));
+  // Mostrar campo de baixa só para saída
+  const grp = document.getElementById('fin-conta-pagar-group');
+  grp.style.display = tipo === 'saida' ? '' : 'none';
   document.getElementById('modal-financeiro').classList.remove('hidden');
 }
 
@@ -1571,13 +1701,27 @@ function finSetTipo(tipo) {
   btnS.className = 'fin-tab' + (tipo === 'saida'   ? ' active-saida'   : '');
   btnConf.className = 'fin-confirmar-btn ' + tipo;
   btnConf.textContent = tipo === 'entrada' ? '✅ Confirmar entrada' : '✅ Confirmar saída';
+  const grp = document.getElementById('fin-conta-pagar-group');
+  if (grp) grp.style.display = tipo === 'saida' ? '' : 'none';
 }
+
+// Botões de forma de pagamento
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('fin-pgto-grid')?.addEventListener('click', e => {
+    const btn = e.target.closest('.fin-pgto-btn');
+    if (!btn) return;
+    _finPgto = btn.dataset.pgto;
+    document.querySelectorAll('.fin-pgto-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
 
 async function finSalvar() {
   const valor = parseFloat(document.getElementById('fin-valor').value);
   const descricao = document.getElementById('fin-descricao').value.trim();
   const categoria = document.getElementById('fin-categoria').value;
   const data = document.getElementById('fin-data').value;
+  const conta_pagar_id = document.getElementById('fin-conta-pagar-id')?.value || null;
 
   if (!valor || valor <= 0) { mostrarToast('Informe um valor válido.'); return; }
   if (!descricao) { mostrarToast('Informe uma descrição.'); return; }
@@ -1588,7 +1732,7 @@ async function finSalvar() {
   const r = await fetch(`${API}/financeiro`, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tipo: _finTipo, valor, descricao, categoria, data })
+    body: JSON.stringify({ tipo: _finTipo, valor, descricao, categoria, data, forma_pagamento: _finPgto, conta_pagar_id })
   });
   const d = await r.json();
   btn.disabled = false;
@@ -1604,6 +1748,40 @@ async function finExcluir(id) {
   await fetch(`${API}/financeiro/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${TOKEN}` } });
   mostrarToast('Movimentação excluída.');
   carregarFinanceiro();
+}
+
+// ── Contas a Pagar ───────────────────────────────────────────
+function abrirModalContaPagar() {
+  document.getElementById('cp-descricao').value = '';
+  document.getElementById('cp-valor').value = '';
+  document.getElementById('cp-vencimento').value = '';
+  document.getElementById('cp-categoria').value = 'Aluguel';
+  document.getElementById('modal-conta-pagar').classList.remove('hidden');
+}
+
+function fecharModalContaPagar() {
+  document.getElementById('modal-conta-pagar').classList.add('hidden');
+}
+
+async function salvarContaPagar() {
+  const descricao  = document.getElementById('cp-descricao').value.trim();
+  const valor      = parseFloat(document.getElementById('cp-valor').value);
+  const vencimento = document.getElementById('cp-vencimento').value;
+  const categoria  = document.getElementById('cp-categoria').value;
+  if (!descricao || !valor || !vencimento) { mostrarToast('Preencha todos os campos.'); return; }
+  const r = await fetch(`${API}/financeiro/contas-pagar`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ descricao, valor, vencimento, categoria })
+  });
+  if (r.ok) { fecharModalContaPagar(); mostrarToast('✅ Conta cadastrada!'); carregarFinanceiro(); }
+  else mostrarToast('Erro ao salvar conta.');
+}
+
+async function pagarContaDireta(id) {
+  if (!confirm('Marcar conta como paga?')) return;
+  const r = await fetch(`${API}/financeiro/contas-pagar/${id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${TOKEN}` } });
+  if (r.ok) { mostrarToast('✅ Conta baixada!'); carregarFinanceiro(); }
 }
 
 // ── Onboarding ──────────────────────────────────────────────────────────────

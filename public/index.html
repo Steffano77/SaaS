@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260726g"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260726h"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -528,13 +528,17 @@
     <section id="pg-financeiro" class="hidden page-section">
       <div class="page-header">
         <h2 class="page-title">Financeiro</h2>
-        <div style="display:flex;gap:8px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button onclick="abrirModalFinanceiro('entrada')" class="btn-primary" style="background:#16a34a;font-size:12px;padding:7px 12px;">↑ Entrada</button>
           <button onclick="abrirModalFinanceiro('saida')" class="btn-primary" style="background:#dc2626;font-size:12px;padding:7px 12px;">↓ Saída</button>
+          <button onclick="abrirModalContaPagar()" class="btn-secondary" style="font-size:12px;padding:7px 12px;">⚠ Conta a pagar</button>
         </div>
       </div>
 
-      <!-- Cards KPI -->
+      <!-- Alertas -->
+      <div id="fin-alertas" class="fin-alertas-bar"></div>
+
+      <!-- KPI Grid -->
       <div class="fin-kpi-grid">
         <div class="fin-kpi fin-kpi-saldo">
           <div class="fin-kpi-label">Saldo do período</div>
@@ -549,18 +553,66 @@
           <div class="fin-kpi-label">↓ Saídas</div>
           <div id="fin-saidas" class="fin-kpi-value" style="color:#dc2626;">R$ 0,00</div>
         </div>
+        <div class="fin-kpi fin-kpi-pagar">
+          <div class="fin-kpi-label">⚠ A pagar</div>
+          <div id="fin-total-pagar" class="fin-kpi-value" style="color:#d97706;">R$ 0,00</div>
+          <div id="fin-qtd-pagar" class="fin-kpi-sub"></div>
+        </div>
       </div>
 
-      <!-- Filtro período -->
-      <div class="card" style="padding:10px 16px;display:flex;gap:6px;overflow-x:auto;border-radius:0;border-left:none;border-right:none;">
-        <button class="fin-periodo-btn active" onclick="finSetPeriodo('hoje',this)">Hoje</button>
-        <button class="fin-periodo-btn" onclick="finSetPeriodo('semana',this)">Semana</button>
-        <button class="fin-periodo-btn" onclick="finSetPeriodo('mes',this)">Mês</button>
-        <button class="fin-periodo-btn" onclick="finSetPeriodo('ano',this)">Ano</button>
-      </div>
+      <!-- Layout principal -->
+      <div class="fin-content-grid">
+        <!-- Coluna esquerda -->
+        <div class="fin-col-main">
+          <!-- Gráfico -->
+          <div class="fin-chart-card">
+            <div class="fin-chart-header">
+              <span class="fin-chart-title">Receitas x Despesas</span>
+              <div class="fin-chart-legend">
+                <span class="fin-leg fin-leg-green">Entradas</span>
+                <span class="fin-leg fin-leg-red">Saídas</span>
+              </div>
+            </div>
+            <div id="fin-grafico" class="fin-grafico"></div>
+            <div id="fin-grafico-meses" class="fin-grafico-meses"></div>
+          </div>
 
-      <!-- Lista de movimentações -->
-      <div id="fin-lista" class="card" style="border-radius:0;border-left:none;border-right:none;min-height:120px;"></div>
+          <!-- Filtros + movimentações -->
+          <div class="fin-mov-card">
+            <div class="fin-mov-header">
+              <span style="font-size:14px;font-weight:700;">Movimentações</span>
+              <div style="display:flex;gap:4px;">
+                <button class="fin-periodo-btn active" onclick="finSetPeriodo('hoje',this)">Hoje</button>
+                <button class="fin-periodo-btn" onclick="finSetPeriodo('semana',this)">Semana</button>
+                <button class="fin-periodo-btn" onclick="finSetPeriodo('mes',this)">Mês</button>
+                <button class="fin-periodo-btn" onclick="finSetPeriodo('ano',this)">Ano</button>
+              </div>
+            </div>
+            <div id="fin-lista"></div>
+          </div>
+        </div>
+
+        <!-- Coluna direita -->
+        <div class="fin-col-side">
+          <!-- Contas a pagar -->
+          <div class="fin-side-card">
+            <div class="fin-side-header">
+              <span class="fin-side-title">⚠ Contas a Pagar</span>
+              <span id="fin-badge-atrasadas" class="fin-badge-red hidden"></span>
+            </div>
+            <div id="fin-contas-pagar-lista"></div>
+            <button onclick="abrirModalContaPagar()" class="fin-add-btn">+ Nova conta a pagar</button>
+          </div>
+
+          <!-- Categorias -->
+          <div class="fin-side-card">
+            <div class="fin-side-header">
+              <span class="fin-side-title">Despesas por categoria</span>
+            </div>
+            <div id="fin-categorias-chart"></div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- Modal PIN Financeiro -->
@@ -603,7 +655,7 @@
 
     <!-- Modal Financeiro -->
     <div id="modal-financeiro" class="modal-overlay hidden">
-      <div class="modal-box" style="max-width:420px;">
+      <div class="modal-box" style="max-width:440px;">
         <div class="modal-header">
           <span class="modal-title">Nova movimentação</span>
           <button onclick="fecharModalFinanceiro()" class="btn-icon">✕</button>
@@ -616,27 +668,97 @@
           <label class="form-label">Valor (R$)</label>
           <input id="fin-valor" type="number" step="0.01" min="0" class="form-control" placeholder="0,00" style="font-size:20px;font-weight:800;"/>
         </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="form-group">
+            <label class="form-label">Descrição</label>
+            <input id="fin-descricao" type="text" class="form-control" placeholder="Ex: Vendas do dia..."/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Data</label>
+            <input id="fin-data" type="date" class="form-control"/>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="form-group">
+            <label class="form-label">Categoria</label>
+            <select id="fin-categoria" class="form-control">
+              <option value="Vendas">💰 Vendas</option>
+              <option value="Encomendas">🥐 Encomendas</option>
+              <option value="Café">☕ Café</option>
+              <option value="Delivery">🛵 Delivery</option>
+              <option value="Farinha">🌾 Farinha</option>
+              <option value="Fornecedor">🚚 Fornecedor</option>
+              <option value="Folha de pagamento">👥 Funcionários</option>
+              <option value="Energia">⚡ Energia</option>
+              <option value="Aluguel">🏠 Aluguel</option>
+              <option value="Gás">🔥 Gás</option>
+              <option value="Manutenção">🔧 Manutenção</option>
+              <option value="Impostos">📋 Impostos</option>
+              <option value="Marketing">📣 Marketing</option>
+              <option value="Compras">📦 Compras</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+          <div class="form-group" id="fin-conta-pagar-group" style="display:none;">
+            <label class="form-label">Baixar conta</label>
+            <select id="fin-conta-pagar-id" class="form-control">
+              <option value="">— Nenhuma —</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Forma de pagamento</label>
+          <div class="fin-pgto-grid" id="fin-pgto-grid">
+            <button class="fin-pgto-btn active" data-pgto="Dinheiro">💵 Dinheiro</button>
+            <button class="fin-pgto-btn" data-pgto="Pix">📱 Pix</button>
+            <button class="fin-pgto-btn" data-pgto="Crédito">💳 Crédito</button>
+            <button class="fin-pgto-btn" data-pgto="Débito">💳 Débito</button>
+            <button class="fin-pgto-btn" data-pgto="Transferência">🏦 Transf.</button>
+            <button class="fin-pgto-btn" data-pgto="Boleto">📄 Boleto</button>
+          </div>
+        </div>
+        <button id="btn-fin-confirmar" onclick="finSalvar()" class="fin-confirmar-btn entrada">✅ Confirmar entrada</button>
+      </div>
+    </div>
+
+    <!-- Modal Conta a Pagar -->
+    <div id="modal-conta-pagar" class="modal-overlay hidden">
+      <div class="modal-box" style="max-width:400px;">
+        <div class="modal-header">
+          <span class="modal-title">Nova conta a pagar</span>
+          <button onclick="fecharModalContaPagar()" class="btn-icon">✕</button>
+        </div>
         <div class="form-group">
           <label class="form-label">Descrição</label>
-          <input id="fin-descricao" type="text" class="form-control" placeholder="Ex: Vendas do dia, Conta de luz..."/>
+          <input id="cp-descricao" type="text" class="form-control" placeholder="Ex: Aluguel, Energia..."/>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="form-group">
+            <label class="form-label">Valor (R$)</label>
+            <input id="cp-valor" type="number" step="0.01" min="0" class="form-control" placeholder="0,00"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Vencimento</label>
+            <input id="cp-vencimento" type="date" class="form-control"/>
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">Categoria</label>
-          <select id="fin-categoria" class="form-control">
-            <option value="Vendas">💰 Vendas</option>
-            <option value="Despesa fixa">🧾 Despesa fixa</option>
+          <select id="cp-categoria" class="form-control">
+            <option value="Aluguel">🏠 Aluguel</option>
+            <option value="Energia">⚡ Energia</option>
+            <option value="Gás">🔥 Gás</option>
+            <option value="Água">💧 Água</option>
+            <option value="Internet">🌐 Internet</option>
+            <option value="Folha de pagamento">👥 Funcionários</option>
             <option value="Fornecedor">🚚 Fornecedor</option>
-            <option value="Folha de pagamento">👥 Folha de pagamento</option>
+            <option value="Impostos">📋 Impostos</option>
+            <option value="Contabilidade">📊 Contabilidade</option>
             <option value="Manutenção">🔧 Manutenção</option>
-            <option value="Compras">📦 Compras</option>
             <option value="Outro">Outro</option>
           </select>
         </div>
-        <div class="form-group">
-          <label class="form-label">Data</label>
-          <input id="fin-data" type="date" class="form-control"/>
-        </div>
-        <button id="btn-fin-confirmar" onclick="finSalvar()" class="fin-confirmar-btn entrada">✅ Confirmar entrada</button>
+        <button onclick="salvarContaPagar()" class="fin-confirmar-btn saida" style="margin-top:4px;">💾 Salvar conta</button>
       </div>
     </div>
 
@@ -1211,7 +1333,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260726g"></script>
+<script src="/js/app.js?v=20260726h"></script>
 
 <!-- Tela Saídas 30 dias -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

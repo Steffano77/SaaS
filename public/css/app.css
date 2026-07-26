@@ -1139,6 +1139,101 @@
 .fin-confirmar-btn.entrada { background: #16a34a; }
 .fin-confirmar-btn.saida   { background: #dc2626; }
 
+/* Forma de pagamento */
+.fin-pgto-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
+.fin-pgto-btn { padding: 8px 4px; border-radius: 8px; font-size: 11px; font-weight: 600; border: 1px solid var(--slate-200); background: var(--white); color: var(--slate-500); cursor: pointer; text-align: center; transition: all .15s; }
+.fin-pgto-btn.active { background: #eff6ff; color: #2563eb; border-color: #2563eb; font-weight: 700; }
+
+/* Alertas */
+.fin-alertas-bar { display: flex; gap: 8px; padding: 10px 16px 0; flex-wrap: wrap; }
+.fin-alerta { display: flex; align-items: center; gap: 8px; padding: 9px 13px; border-radius: 10px; font-size: 12px; font-weight: 600; flex: 1; min-width: 200px; }
+.fin-alerta-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.fin-alerta.red  { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.fin-alerta.red .fin-alerta-dot  { background: #dc2626; }
+.fin-alerta.yellow { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+.fin-alerta.yellow .fin-alerta-dot { background: #d97706; }
+.fin-alerta.blue { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+.fin-alerta.blue .fin-alerta-dot  { background: #2563eb; }
+
+/* Layout principal financeiro */
+.fin-content-grid { display: grid; grid-template-columns: 1fr 300px; gap: 14px; padding: 14px 16px 24px; }
+.fin-col-main { display: flex; flex-direction: column; gap: 12px; }
+.fin-col-side  { display: flex; flex-direction: column; gap: 12px; }
+
+/* Gráfico */
+.fin-chart-card { background: var(--white); border: 1px solid var(--slate-200); border-radius: 14px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+.fin-chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.fin-chart-title { font-size: 13px; font-weight: 700; }
+.fin-chart-legend { display: flex; gap: 12px; }
+.fin-leg { font-size: 11px; color: var(--slate-500); display: flex; align-items: center; gap: 5px; }
+.fin-leg::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+.fin-leg-green::before { background: #16a34a; }
+.fin-leg-red::before   { background: #dc2626; }
+.fin-grafico { height: 140px; display: flex; align-items: flex-end; gap: 6px; border-bottom: 1px solid var(--slate-100); padding-bottom: 4px; }
+.fin-bar-group { flex: 1; display: flex; gap: 2px; align-items: flex-end; }
+.fin-bar { flex: 1; border-radius: 3px 3px 0 0; min-height: 4px; }
+.fin-bar.ent { background: #16a34a; }
+.fin-bar.sai { background: #dc2626; opacity: .8; }
+.fin-grafico-meses { display: flex; gap: 6px; margin-top: 5px; }
+.fin-grafico-mes { flex: 1; text-align: center; font-size: 10px; color: var(--slate-500); }
+
+/* Movimentações card */
+.fin-mov-card { background: var(--white); border: 1px solid var(--slate-200); border-radius: 14px; padding: 14px 16px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+.fin-mov-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+
+/* Side cards */
+.fin-side-card { background: var(--white); border: 1px solid var(--slate-200); border-radius: 14px; padding: 14px 16px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+.fin-side-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.fin-side-title { font-size: 13px; font-weight: 700; }
+.fin-badge-red { background: #fee2e2; color: #dc2626; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+.fin-add-btn { width: 100%; margin-top: 10px; padding: 8px; border-radius: 8px; border: 1px solid var(--slate-200); background: var(--white); color: #2563eb; font-size: 12px; font-weight: 700; cursor: pointer; }
+
+/* Contas a pagar item */
+.fin-cp-item { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--slate-100); }
+.fin-cp-item:last-child { border-bottom: none; }
+.fin-cp-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.fin-cp-dot.ok   { background: #16a34a; }
+.fin-cp-dot.warn { background: #d97706; }
+.fin-cp-dot.late { background: #dc2626; }
+.fin-cp-info { flex: 1; min-width: 0; }
+.fin-cp-desc { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fin-cp-date { font-size: 10px; color: var(--slate-500); margin-top: 1px; }
+.fin-cp-status { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 6px; margin-top: 2px; display: inline-block; }
+.fin-cp-status.ok   { background: #dcfce7; color: #16a34a; }
+.fin-cp-status.warn { background: #fef3c7; color: #d97706; }
+.fin-cp-status.late { background: #fee2e2; color: #dc2626; }
+.fin-cp-right { text-align: right; }
+.fin-cp-val { font-size: 12px; font-weight: 800; }
+.fin-cp-pagar { font-size: 10px; color: #16a34a; font-weight: 700; cursor: pointer; margin-top: 2px; }
+
+/* KPI pagar */
+.fin-kpi-pagar { border-top: 3px solid #d97706; }
+
+/* Categorias chart */
+.fin-cat-item { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--slate-100); }
+.fin-cat-item:last-child { border-bottom: none; }
+.fin-cat-name { font-size: 12px; font-weight: 600; }
+.fin-cat-right { text-align: right; }
+.fin-cat-val { font-size: 11px; font-weight: 700; color: var(--text); }
+.fin-cat-bar-wrap { height: 3px; background: var(--slate-100); border-radius: 2px; width: 70px; margin-top: 3px; }
+.fin-cat-bar { height: 100%; border-radius: 2px; }
+
+/* KPI grid ajuste para 4 colunas */
+@media (min-width: 769px) {
+  .fin-kpi-grid { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .fin-kpi-saldo { grid-column: span 4; }
+}
+@media (max-width: 900px) {
+  .fin-content-grid { grid-template-columns: 1fr; }
+  .fin-col-side { flex-direction: row; flex-wrap: wrap; }
+  .fin-col-side > * { flex: 1; min-width: 260px; }
+}
+@media (max-width: 768px) {
+  .fin-kpi-grid { grid-template-columns: 1fr 1fr; }
+  .fin-kpi-saldo { grid-column: span 2; }
+  .fin-content-grid { padding: 10px 0 24px; }
+}
+
 /* Modal PIN */
 .pin-modal-box { max-width: 320px; text-align: center; padding: 32px 24px; }
 .pin-modal-icon { font-size: 40px; margin-bottom: 12px; }
