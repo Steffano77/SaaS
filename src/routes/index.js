@@ -77,6 +77,7 @@ router.post('/sync/saurus', auth, upload.single('arquivo'), syncCtrl.importarSau
 // Atualização de estoque via planilha Saurus
 router.post('/saurus/preview',   auth, upload.single('arquivo'), saurusCtrl.preview);
 router.post('/saurus/confirmar', auth, saurusCtrl.confirmar);
+router.post('/saurus/limpar-zerados', auth, saurusCtrl.limparZerados);
 
 // Importação genérica
 router.post('/sync/preview',   auth, upload.single('arquivo'), importCtrl.preview);

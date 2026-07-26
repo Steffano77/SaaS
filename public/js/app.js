@@ -1278,6 +1278,18 @@ function abrirImportSaurus() {
   document.getElementById('modal-import-saurus').classList.remove('hidden');
 }
 
+async function limparProdutosZerados() {
+  if (!confirm('Isso vai desativar todos os produtos com estoque zero. Eles podem ser reativados depois. Continuar?')) return;
+  const r = await fetch(`${API}/saurus/limpar-zerados`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${TOKEN}` }
+  });
+  const data = await r.json();
+  if (!r.ok) { mostrarToast('Erro ao limpar zerados.'); return; }
+  mostrarToast(`🗑 ${data.removidos} produtos zerados removidos do estoque.`);
+  carregarProdutos();
+}
+
 function fecharImportSaurus() {
   document.getElementById('modal-import-saurus').classList.add('hidden');
 }
@@ -1374,7 +1386,8 @@ async function saurusConfirmar() {
 
     fecharImportSaurus();
     carregarProdutos();
-    mostrarToast(`✅ ${data.atualizados} produtos atualizados com sucesso!`);
+    const msgZerados = data.zerados > 0 ? ` · ${data.zerados} zerados (ausentes na planilha)` : '';
+    mostrarToast(`✅ ${data.atualizados} produtos atualizados${msgZerados}`);
   } catch (e) {
     alert('Erro de conexão.');
     btn.disabled = false;

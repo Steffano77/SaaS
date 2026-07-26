@@ -1022,7 +1022,7 @@
   .btn-limpar-filtros { width: 100%; grid-column: span 2; }
 
   /* botões de ação estoque em grade 3 colunas iguais */
-  .estoque-actions { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; gap: 8px; }
+  .estoque-actions { display: grid; grid-template-columns: repeat(2, 1fr); width: 100%; gap: 8px; }
   .estoque-action-btn {
     width: 100%;
     display: flex;

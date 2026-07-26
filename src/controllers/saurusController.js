@@ -115,13 +115,16 @@ exports.preview = async (req, res) => {
   }
 };
 
-// Confirmar — aplica as atualizações
+// Confirmar — aplica as atualizações e zera produtos ausentes da planilha
 exports.confirmar = async (req, res) => {
   const { itens } = req.body; // [{id, novo_estoque}]
   if (!itens || !itens.length) return res.status(400).json({ erro: 'Nenhum item para atualizar.' });
 
   const padaria_id = req.padaria.id;
   let atualizados = 0;
+  let zerados = 0;
+
+  const idsAtualizados = [];
 
   for (const item of itens) {
     const novo = parseFloat(item.novo_estoque);
@@ -145,8 +148,42 @@ exports.confirmar = async (req, res) => {
        `Atualização Saurus — ${new Date().toLocaleDateString('pt-BR')}`]
     );
 
+    idsAtualizados.push(item.id);
     atualizados++;
   }
 
-  res.json({ ok: true, atualizados });
+  // Zera produtos ativos que não apareceram na planilha (estavam zerados no Saurus)
+  if (idsAtualizados.length > 0) {
+    const placeholders = idsAtualizados.map(() => '?').join(',');
+    const [produtosAusentes] = await db.query(
+      `SELECT id, custo_unitario FROM produtos WHERE padaria_id = ? AND ativo = 1 AND estoque_atual > 0 AND id NOT IN (${placeholders})`,
+      [padaria_id, ...idsAtualizados]
+    );
+
+    for (const prod of produtosAusentes) {
+      await db.query(
+        'UPDATE produtos SET estoque_atual = 0 WHERE id = ? AND padaria_id = ?',
+        [prod.id, padaria_id]
+      );
+      await db.query(
+        `INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, custo_unit, observacao, data)
+         VALUES (?, ?, 'sync_saurus', 0, ?, ?, NOW())`,
+        [padaria_id, prod.id, prod.custo_unitario || 0,
+         `Zerado automaticamente — ausente na planilha Saurus`]
+      );
+      zerados++;
+    }
+  }
+
+  res.json({ ok: true, atualizados, zerados });
+};
+
+// Limpar produtos zerados — desativa produtos com estoque_atual = 0
+exports.limparZerados = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const [result] = await db.query(
+    'UPDATE produtos SET ativo = 0 WHERE padaria_id = ? AND ativo = 1 AND estoque_atual = 0',
+    [padaria_id]
+  );
+  res.json({ ok: true, removidos: result.affectedRows });
 };
