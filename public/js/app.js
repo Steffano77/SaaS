@@ -242,6 +242,7 @@ function entrar() {
   document.getElementById('app').classList.add('flex');
   history.replaceState({ pg: 'dashboard' }, '', '#dashboard');
   mostrarPagina('dashboard', false);
+  setTimeout(verificarOnboarding, 800);
 }
 
 function mostrarTelaPlanoExpirado() {
@@ -1393,6 +1394,86 @@ async function saurusConfirmar() {
     btn.disabled = false;
     btn.textContent = '✅ Confirmar atualização';
   }
+}
+
+// ── Onboarding ──────────────────────────────────────────────────────────────
+async function verificarOnboarding() {
+  if (localStorage.getItem('onboarding_dispensado')) return;
+
+  const [produtos, fornecedores, compras] = await Promise.all([
+    api('/produtos?limit=1'),
+    api('/fornecedores'),
+    api('/compras/recentes?limit=1'),
+  ]);
+
+  const temProduto    = (produtos || []).length > 0;
+  const temFornecedor = (fornecedores || []).length > 0;
+  const temCompra     = (compras || []).length > 0;
+  const vistoPainel   = !!localStorage.getItem('onboarding_painel_visto');
+
+  if (temProduto && temFornecedor && temCompra && vistoPainel) {
+    localStorage.setItem('onboarding_dispensado', '1');
+    return;
+  }
+
+  const steps = [
+    {
+      icon: '📦', titulo: 'Cadastre seu primeiro produto',
+      desc: 'Adicione os produtos que você vende ou usa na produção.',
+      done: temProduto, acao: () => { fecharOnboarding(); navegarPara('estoque'); setTimeout(abrirModalProduto, 400); }
+    },
+    {
+      icon: '🏭', titulo: 'Adicione um fornecedor',
+      desc: 'Registre quem fornece seus produtos para facilitar pedidos.',
+      done: temFornecedor, acao: () => { fecharOnboarding(); navegarPara('fornecedores'); }
+    },
+    {
+      icon: '🛒', titulo: 'Registre sua primeira compra',
+      desc: 'Lance uma entrada de estoque para manter tudo atualizado.',
+      done: temCompra, acao: () => { fecharOnboarding(); navegarPara('compras'); }
+    },
+    {
+      icon: '📊', titulo: 'Explore o painel',
+      desc: 'Veja o resumo do seu negócio em tempo real.',
+      done: vistoPainel, acao: () => {
+        localStorage.setItem('onboarding_painel_visto', '1');
+        fecharOnboarding();
+        navegarPara('dashboard');
+      }
+    },
+  ];
+
+  const container = document.getElementById('onboarding-steps');
+  if (!container) return;
+  container.innerHTML = steps.map((s, i) => `
+    <div class="onboarding-step ${s.done ? 'done' : ''}" onclick="onboardingStep(${i})">
+      <div class="onboarding-step-icon">${s.icon}</div>
+      <div class="onboarding-step-text">
+        <div class="onboarding-step-title">${s.titulo}</div>
+        <div class="onboarding-step-desc">${s.desc}</div>
+      </div>
+      <div class="onboarding-step-check">${s.done ? '✅' : '→'}</div>
+    </div>
+  `).join('');
+
+  window._onboardingSteps = steps;
+  document.getElementById('modal-onboarding').classList.remove('hidden');
+}
+
+function onboardingStep(i) {
+  const step = window._onboardingSteps?.[i];
+  if (!step || step.done) return;
+  step.acao();
+}
+
+function fecharOnboarding() {
+  document.getElementById('modal-onboarding').classList.add('hidden');
+}
+
+function navegarPara(pg) {
+  document.querySelectorAll('.nav-link').forEach(el => {
+    if (el.dataset.pg === pg) el.click();
+  });
 }
 
 function mostrarToast(msg) {

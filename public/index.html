@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260725h"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260725i"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -1091,7 +1091,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260725g"></script>
+<script src="/js/app.js?v=20260725h"></script>
 
 <!-- Tela Saídas 30 dias -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
@@ -1106,6 +1106,19 @@
     </button>
   </div>
   <div id="saidas-lista" style="flex:1;overflow-y:auto;"></div>
+</div>
+
+<!-- Modal Onboarding -->
+<div id="modal-onboarding" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:480px;">
+    <div style="text-align:center;padding:8px 0 16px;">
+      <div style="font-size:48px;margin-bottom:8px;">🥐</div>
+      <h2 style="font-size:22px;font-weight:800;margin-bottom:6px;">Bem-vindo ao PanificaPro!</h2>
+      <p style="color:var(--slate-500);font-size:14px;">Siga os passos abaixo para configurar seu estoque.</p>
+    </div>
+    <div id="onboarding-steps" style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;"></div>
+    <button onclick="fecharOnboarding()" class="btn-secondary" style="width:100%;padding:10px;">Fazer depois</button>
+  </div>
 </div>
 
 <!-- Modal Importar Saurus -->
