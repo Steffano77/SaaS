@@ -1495,6 +1495,17 @@ tr.tr-saida td { color: var(--red-600); }
 .mobile-topbar .theme-toggle { margin-left: 0; }
 .theme-toggle-sidebar { margin: 4px 0 8px auto; display: none; }
 
+.theme-toggle-topright {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  z-index: 100;
+  display: none;
+}
+@media (min-width: 769px) {
+  .theme-toggle-topright { display: flex; align-items: center; justify-content: center; }
+}
+
 @media (max-width: 768px) {
   .theme-toggle-sidebar { display: none !important; }
 }
