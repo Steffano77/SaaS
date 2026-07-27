@@ -1047,12 +1047,12 @@
 
 /* ── Tabela estoque desktop sem scroll horizontal ── */
 @media (min-width: 769px) {
-  #pg-estoque .table-scroll { overflow-x: hidden; }
+  #pg-estoque .table-scroll { overflow-x: auto; }
   #pg-estoque .table-scroll table,
   #pg-estoque table {
-    min-width: 0;
+    min-width: 900px;
     width: 100%;
-    table-layout: fixed;
+    table-layout: auto;
   }
   #pg-estoque table td,
   #pg-estoque table th {
