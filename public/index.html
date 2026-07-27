@@ -923,42 +923,7 @@
         </div>
       </div>
 
-      <!-- Zona de perigo -->
-      <div class="card" style="margin-top:20px;border:1px solid #fee2e2;">
-        <div class="card-body">
-          <h3 style="color:#dc2626;font-size:15px;font-weight:700;margin:0 0 8px;display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> Zona de perigo</h3>
-          <p style="color:var(--slate-600);font-size:14px;margin-bottom:16px;">Remove todos os produtos e movimentações do seu estoque. Esta ação não pode ser desfeita.</p>
-          <button class="btn-danger" onclick="abrirModalLimpar()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Limpar todos os dados</button>
-        </div>
-      </div>
     </section>
-
-    <!-- Modal confirmação limpar dados -->
-    <div id="modal-limpar" class="modal-overlay hidden" onclick="if(event.target===this)fecharModalLimpar()">
-      <div class="modal-content" style="max-width:420px;">
-        <div class="modal-header">
-          <span class="modal-title" style="color:#dc2626;display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> Limpar todos os dados</span>
-          <button class="modal-close" onclick="fecharModalLimpar()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
-        </div>
-        <div class="modal-body">
-          <p style="font-size:14px;color:var(--slate-600);line-height:1.7;margin-bottom:20px;">
-            Esta ação é <strong>irreversível</strong>. Todos os produtos, movimentações e histórico serão apagados permanentemente.<br><br>
-            Para confirmar, digite exatamente:<br>
-            <strong style="font-size:15px;color:#dc2626;letter-spacing:1px;">APAGAR TUDO</strong>
-          </p>
-          <div class="form-group" style="margin-bottom:20px;">
-            <input type="text" id="input-confirmar-apagar" class="form-control"
-              placeholder="Digite APAGAR TUDO"
-              oninput="verificarSenhaApagar(this.value)"
-              autocomplete="off" spellcheck="false"/>
-          </div>
-          <div style="display:flex;gap:10px;">
-            <button class="btn-secondary" style="flex:1;" onclick="fecharModalLimpar()">Cancelar</button>
-            <button id="btn-confirmar-apagar" class="btn-danger" style="flex:1;opacity:0.4;cursor:not-allowed;" disabled onclick="executarLimparDados()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Apagar tudo</button>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- ── Planos ──────────────────────────────────────────── -->
     <section id="pg-planos" class="hidden page-section">
