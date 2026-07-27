@@ -29,6 +29,12 @@ let _prodFornecedorMap = {}; // produto_id → nome do fornecedor
   if (params.get('cadastro') === '1' && !TOKEN) {
     window.addEventListener('DOMContentLoaded', () => mostrarTab('registro'));
   }
+  // Reset de PIN via link de e-mail
+  const resetPinToken = params.get('reset_pin');
+  if (resetPinToken) {
+    window.addEventListener('DOMContentLoaded', () => confirmarResetPin(resetPinToken));
+    window.history.replaceState({}, '', '/');
+  }
 })();
 
 // ── Dark Mode ──────────────────────────────────────────────────
@@ -422,6 +428,33 @@ async function salvarPin() {
     mostrarToast('✅ PIN alterado com sucesso!');
   } else {
     mostrarToast('❌ ' + (d.erro || 'Erro ao alterar PIN.'));
+  }
+}
+
+async function esqueceuPin() {
+  const r = await fetch(`${API}/financeiro/pin/reset`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${TOKEN}` }
+  });
+  if (r.ok) {
+    fecharAlterarPin();
+    mostrarToast('📧 E-mail enviado! Verifique sua caixa de entrada para redefinir o PIN.');
+  } else {
+    mostrarToast('❌ Erro ao enviar e-mail. Tente novamente.');
+  }
+}
+
+async function confirmarResetPin(token) {
+  const r = await fetch(`${API}/financeiro/pin/confirmar-reset`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token })
+  });
+  if (r.ok) {
+    mostrarToast('✅ PIN redefinido! Acesse "Alterar PIN" para criar um novo.');
+  } else {
+    const d = await r.json();
+    mostrarToast('❌ ' + (d.erro || 'Link inválido ou expirado.'));
   }
 }
 

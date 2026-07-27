@@ -1,5 +1,7 @@
 const db     = require('../database/connection');
 const bcrypt = require('bcryptjs');
+const jwt    = require('jsonwebtoken');
+const crypto = require('crypto');
 
 async function criarTabela() {
   await db.query(`
@@ -220,5 +222,73 @@ exports.excluirContaPagar = async (req, res) => {
   const padaria_id = req.padaria.id;
   const { id } = req.params;
   await db.query(`DELETE FROM contas_pagar WHERE id=? AND padaria_id=?`, [id, padaria_id]);
+  res.json({ ok: true });
+};
+
+// Solicitar reset de PIN — envia e-mail com link
+exports.solicitarResetPin = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const [[padaria]] = await db.query(`SELECT email, nome FROM padarias WHERE id = ?`, [padaria_id]);
+  if (!padaria) return res.status(404).json({ erro: 'Conta não encontrada.' });
+
+  const secret = process.env.JWT_SECRET;
+  if (!secret) return res.status(500).json({ erro: 'Configuração inválida.' });
+
+  const token = jwt.sign({ id: padaria_id, tipo: 'reset_pin', jti: crypto.randomUUID() }, secret, { expiresIn: '1h' });
+  const expires = new Date(Date.now() + 60 * 60 * 1000);
+  await db.query(`UPDATE padarias SET reset_token = ?, reset_expires = ? WHERE id = ?`, [token, expires, padaria_id]);
+
+  const appUrl = process.env.APP_URL || 'https://panificapro-erp.onrender.com';
+  const link = `${appUrl}/?reset_pin=${token}`;
+
+  if (process.env.RESEND_API_KEY) {
+    const { Resend } = require('resend');
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    await resend.emails.send({
+      from: process.env.EMAIL_FROM || 'PanificaPro <onboarding@resend.dev>',
+      to: padaria.email,
+      subject: 'Redefinição de PIN financeiro — PanificaPro',
+      html: `
+        <div style="font-family:Inter,sans-serif;max-width:480px;margin:0 auto;padding:32px;">
+          <img src="${appUrl}/img/logosem%20fundo.png" width="64" style="margin-bottom:16px;"/>
+          <h2 style="color:#1e3a5f;">Olá, ${padaria.nome}!</h2>
+          <p style="color:#475569;">Recebemos uma solicitação para redefinir o PIN do módulo financeiro.</p>
+          <a href="${link}" style="display:inline-block;margin:20px 0;background:#f97316;color:#fff;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:600;">Redefinir meu PIN</a>
+          <p style="color:#94a3b8;font-size:13px;">Link válido por 1 hora. Se não foi você, ignore este e-mail.</p>
+        </div>`
+    }).catch(e => console.error('Erro ao enviar e-mail de reset PIN:', e.message));
+  } else {
+    console.log(`[DEV] Link reset PIN para ${padaria.email}: ${link}`);
+  }
+
+  res.json({ ok: true });
+};
+
+// Confirmar reset de PIN via token do e-mail (rota pública)
+exports.confirmarResetPin = async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ erro: 'Token obrigatório.' });
+
+  const secret = process.env.JWT_SECRET;
+  let payload;
+  try {
+    payload = jwt.verify(token, secret);
+  } catch {
+    return res.status(400).json({ erro: 'Link inválido ou expirado.' });
+  }
+
+  if (payload.tipo !== 'reset_pin') return res.status(400).json({ erro: 'Token inválido.' });
+
+  const [rows] = await db.query(
+    `SELECT id FROM padarias WHERE id = ? AND reset_token = ? AND reset_expires > NOW()`,
+    [payload.id, token]
+  );
+  if (!rows.length) return res.status(400).json({ erro: 'Link inválido, já utilizado ou expirado.' });
+
+  await db.query(
+    `UPDATE padarias SET pin_financeiro = NULL, reset_token = NULL, reset_expires = NULL WHERE id = ?`,
+    [payload.id]
+  );
+
   res.json({ ok: true });
 };

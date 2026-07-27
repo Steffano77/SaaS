@@ -92,6 +92,8 @@ router.get('/financeiro/contas-pagar',      auth, authPro, wrap(financeiroCtrl.l
 router.post('/financeiro/contas-pagar',     auth, authPro, wrap(financeiroCtrl.criarContaPagar));
 router.put('/financeiro/contas-pagar/:id',  auth, authPro, wrap(financeiroCtrl.pagarConta));
 router.delete('/financeiro/contas-pagar/:id', auth, authPro, wrap(financeiroCtrl.excluirContaPagar));
+router.post('/financeiro/pin/reset',          auth, authPro, wrap(financeiroCtrl.solicitarResetPin));
+router.post('/financeiro/pin/confirmar-reset',               wrap(financeiroCtrl.confirmarResetPin));
 
 // Importação genérica
 router.post('/sync/preview',   auth, upload.single('arquivo'), importCtrl.preview);
