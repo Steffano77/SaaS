@@ -52,6 +52,8 @@ function _setThemeIcons(theme) {
     const el = document.getElementById('icon-theme-' + id);
     if (el) el.textContent = emoji;
   });
+  const label = document.getElementById('theme-toggle-label');
+  if (label) label.textContent = theme === 'dark' ? 'Modo claro' : 'Modo escuro';
 }
 
 function togglePass(inputId, btn) {
