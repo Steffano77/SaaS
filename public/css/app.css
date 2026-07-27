@@ -1497,8 +1497,8 @@ tr.tr-saida td { color: var(--red-600); }
 
 .theme-toggle-topright {
   position: fixed;
-  top: 20px;
-  right: 28px;
+  top: 14px;
+  right: 80px;
   z-index: 100;
   display: none;
   width: 36px;
