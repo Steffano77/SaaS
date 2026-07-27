@@ -29,10 +29,10 @@ let _prodFornecedorMap = {}; // produto_id → nome do fornecedor
   if (params.get('cadastro') === '1' && !TOKEN) {
     window.addEventListener('DOMContentLoaded', () => mostrarTab('registro'));
   }
-  // Reset de PIN via link de e-mail
+  // Reset de PIN via link de e-mail — salva token para processar após login
   const resetPinToken = params.get('reset_pin');
   if (resetPinToken) {
-    window.addEventListener('DOMContentLoaded', () => confirmarResetPin(resetPinToken));
+    sessionStorage.setItem('pp_reset_pin_token', resetPinToken);
     window.history.replaceState({}, '', '/');
   }
 })();
@@ -246,6 +246,16 @@ function entrar() {
   document.getElementById('tela-plano-expirado')?.classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   document.getElementById('app').classList.add('flex');
+
+  const resetPinToken = sessionStorage.getItem('pp_reset_pin_token');
+  if (resetPinToken) {
+    sessionStorage.removeItem('pp_reset_pin_token');
+    history.replaceState({ pg: 'financeiro' }, '', '#financeiro');
+    mostrarPagina('financeiro', false);
+    setTimeout(() => confirmarResetPin(resetPinToken), 600);
+    return;
+  }
+
   history.replaceState({ pg: 'dashboard' }, '', '#dashboard');
   mostrarPagina('dashboard', false);
   setTimeout(verificarOnboarding, 800);
@@ -405,6 +415,10 @@ function abrirAlterarPin() {
   fecharModalPin();
   document.getElementById('pin-atual').value = '';
   document.getElementById('pin-novo').value = '';
+  const titulo = document.querySelector('#modal-alterar-pin .modal-title');
+  if (titulo) titulo.textContent = 'Alterar PIN';
+  const labelAtual = document.querySelector('#modal-alterar-pin label');
+  if (labelAtual) labelAtual.closest('.form-group').style.display = '';
   document.getElementById('modal-alterar-pin').classList.remove('hidden');
 }
 
@@ -451,7 +465,14 @@ async function confirmarResetPin(token) {
     body: JSON.stringify({ token })
   });
   if (r.ok) {
-    mostrarToast('✅ PIN redefinido! Acesse "Alterar PIN" para criar um novo.');
+    // Abre modal de alterar PIN já com título personalizado
+    document.getElementById('pin-atual').value = '';
+    document.getElementById('pin-novo').value = '';
+    const titulo = document.querySelector('#modal-alterar-pin .modal-title');
+    if (titulo) titulo.textContent = 'Insira seu novo PIN';
+    const labelAtual = document.querySelector('#modal-alterar-pin label');
+    if (labelAtual) labelAtual.closest('.form-group').style.display = 'none';
+    document.getElementById('modal-alterar-pin').classList.remove('hidden');
   } else {
     const d = await r.json();
     mostrarToast('❌ ' + (d.erro || 'Link inválido ou expirado.'));
