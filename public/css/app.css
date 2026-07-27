@@ -598,7 +598,7 @@
 
     /* Scroll vertical na tabela de produtos */
     .table-scroll {
-      max-height: calc(100vh - 260px);
+      height: calc(100vh - 220px);
       overflow-y: auto;
       border-radius: 10px;
       border: 1px solid var(--slate-100);
