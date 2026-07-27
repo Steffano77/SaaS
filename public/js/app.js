@@ -2545,10 +2545,14 @@ async function carregarRelatorios() {
   const saldo = parseFloat(data.total_entradas||0) - parseFloat(data.total_saidas||0);
   const relOculto = localStorage.getItem('rel-kpi-oculto') === '1';
   const relMask = v => relOculto ? '••••••' : v;
+  const olhoIcon = relOculto
+    ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
+    : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+
   document.getElementById('rel-kpis').innerHTML = `
     <div class="kpi-card" style="position:relative;">
-      <button onclick="toggleRelKpis()" style="position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;color:var(--slate-400);padding:2px;" title="Ocultar/mostrar valores">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${relOculto ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>' : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'}</svg>
+      <button id="btn-rel-ocultar" onclick="toggleRelKpis()" style="position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;color:var(--slate-400);padding:2px;" title="Ocultar/mostrar valores">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${olhoIcon}</svg>
       </button>
       <div class="kpi-label">Total entradas</div>
       <div class="kpi-value" style="color:#16a34a;">${relMask(fmtR$(data.total_entradas))}</div>
@@ -2565,12 +2569,12 @@ async function carregarRelatorios() {
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Movimentações</div>
-      <div class="kpi-value">${data.qtd_movs||0}</div>
+      <div class="kpi-value">${relMask(String(data.qtd_movs||0))}</div>
       ${_pct(data.qtd_movs, ant.qtd_movs)}
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Produtos movimentados</div>
-      <div class="kpi-value">${data.prods_distintos||0}</div>
+      <div class="kpi-value">${relMask(String(data.prods_distintos||0))}</div>
     </div>
   `;
 

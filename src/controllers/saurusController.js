@@ -152,28 +152,7 @@ exports.confirmar = async (req, res) => {
     atualizados++;
   }
 
-  // Zera produtos ativos que não apareceram na planilha (estavam zerados no Saurus)
-  if (idsAtualizados.length > 0) {
-    const placeholders = idsAtualizados.map(() => '?').join(',');
-    const [produtosAusentes] = await db.query(
-      `SELECT id, custo_unitario FROM produtos WHERE padaria_id = ? AND ativo = 1 AND estoque_atual > 0 AND id NOT IN (${placeholders})`,
-      [padaria_id, ...idsAtualizados]
-    );
-
-    for (const prod of produtosAusentes) {
-      await db.query(
-        'UPDATE produtos SET estoque_atual = 0 WHERE id = ? AND padaria_id = ?',
-        [prod.id, padaria_id]
-      );
-      await db.query(
-        `INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, custo_unit, observacao, data)
-         VALUES (?, ?, 'sync_saurus', 0, ?, ?, NOW())`,
-        [padaria_id, prod.id, prod.custo_unitario || 0,
-         `Zerado automaticamente — ausente na planilha Saurus`]
-      );
-      zerados++;
-    }
-  }
+  // Não zera produtos ausentes — importação Saurus atualiza apenas os que aparecem na planilha
 
   res.json({ ok: true, atualizados, zerados });
 };
