@@ -1,4 +1,5 @@
-const db = require('../database/connection');
+const db     = require('../database/connection');
+const bcrypt = require('bcryptjs');
 
 async function criarTabela() {
   await db.query(`
@@ -33,9 +34,8 @@ async function criarTabela() {
   `);
 
   try {
-    await db.query(`ALTER TABLE padarias ADD COLUMN pin_financeiro VARCHAR(4) NOT NULL DEFAULT '1234'`);
+    await db.query(`ALTER TABLE padarias ADD COLUMN pin_financeiro VARCHAR(255) NULL`);
   } catch(e) {}
-  await db.query(`UPDATE padarias SET pin_financeiro = '1234' WHERE pin_financeiro IS NULL OR pin_financeiro = ''`).catch(() => {});
 }
 criarTabela().catch(console.error);
 
@@ -43,12 +43,19 @@ criarTabela().catch(console.error);
 exports.verificarPin = async (req, res) => {
   const padaria_id = req.padaria.id;
   const { pin } = req.body;
-  if (!pin) return res.status(400).json({ erro: 'PIN obrigatório.' });
-  const PIN_MASTER = process.env.PIN_FINANCEIRO_MASTER || '1392';
+  if (!pin || !/^\d{4}$/.test(pin)) return res.status(400).json({ erro: 'PIN obrigatório (4 dígitos).' });
+
   const [[padaria]] = await db.query(`SELECT pin_financeiro FROM padarias WHERE id = ?`, [padaria_id]);
-  const pinSalvo = (padaria?.pin_financeiro || '1234').trim();
-  if (pin.trim() !== pinSalvo && pin.trim() !== PIN_MASTER)
-    return res.status(401).json({ erro: 'PIN incorreto.' });
+
+  // Se não tem PIN cadastrado ainda, bloqueia e pede para definir
+  if (!padaria?.pin_financeiro) return res.status(401).json({ erro: 'PIN não configurado. Acesse "Alterar PIN" para definir.', sem_pin: true });
+
+  // Verifica PIN master (variável de ambiente obrigatória — sem fallback hardcoded)
+  const PIN_MASTER = process.env.PIN_FINANCEIRO_MASTER;
+  if (PIN_MASTER && pin === PIN_MASTER) return res.json({ ok: true });
+
+  const ok = await bcrypt.compare(pin, padaria.pin_financeiro);
+  if (!ok) return res.status(401).json({ erro: 'PIN incorreto.' });
   res.json({ ok: true });
 };
 
@@ -56,14 +63,22 @@ exports.verificarPin = async (req, res) => {
 exports.alterarPin = async (req, res) => {
   const padaria_id = req.padaria.id;
   const { pin_atual, pin_novo } = req.body;
-  if (!pin_atual || !pin_novo) return res.status(400).json({ erro: 'Preencha todos os campos.' });
+  if (!pin_novo) return res.status(400).json({ erro: 'Preencha todos os campos.' });
   if (!/^\d{4}$/.test(pin_novo)) return res.status(400).json({ erro: 'PIN deve ter 4 dígitos.' });
-  const PIN_MASTER = process.env.PIN_FINANCEIRO_MASTER || '1392';
+
   const [[padaria]] = await db.query(`SELECT pin_financeiro FROM padarias WHERE id = ?`, [padaria_id]);
-  const pinSalvo = (padaria?.pin_financeiro || '1234').trim();
-  if (pin_atual.trim() !== pinSalvo && pin_atual.trim() !== PIN_MASTER)
-    return res.status(401).json({ erro: 'PIN atual incorreto.' });
-  await db.query(`UPDATE padarias SET pin_financeiro = ? WHERE id = ?`, [pin_novo, padaria_id]);
+
+  // Se já tem PIN cadastrado, valida o atual
+  if (padaria?.pin_financeiro) {
+    if (!pin_atual) return res.status(400).json({ erro: 'PIN atual obrigatório.' });
+    const PIN_MASTER = process.env.PIN_FINANCEIRO_MASTER;
+    const masterOk = PIN_MASTER && pin_atual === PIN_MASTER;
+    const pinOk = await bcrypt.compare(pin_atual, padaria.pin_financeiro);
+    if (!masterOk && !pinOk) return res.status(401).json({ erro: 'PIN atual incorreto.' });
+  }
+
+  const hash = await bcrypt.hash(pin_novo, 10);
+  await db.query(`UPDATE padarias SET pin_financeiro = ? WHERE id = ?`, [hash, padaria_id]);
   res.json({ ok: true });
 };
 

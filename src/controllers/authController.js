@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt    = require('jsonwebtoken');
+const crypto = require('crypto');
 const db     = require('../database/connection');
 
 const SECRET = process.env.JWT_SECRET;
@@ -16,8 +17,8 @@ exports.registrar = async (req, res) => {
       return res.status(400).json({ erro: 'Nome, email, senha e código de ativação são obrigatórios.' });
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       return res.status(400).json({ erro: 'Email inválido.' });
-    if (senha.length < 6)
-      return res.status(400).json({ erro: 'Senha deve ter pelo menos 6 caracteres.' });
+    if (senha.length < 8)
+      return res.status(400).json({ erro: 'Senha deve ter pelo menos 8 caracteres.' });
 
     // Valida código de ativação
     const [codigos] = await db.query(
@@ -48,7 +49,7 @@ exports.registrar = async (req, res) => {
       [result.insertId, codigoObj.id]
     );
 
-    const token = jwt.sign({ id: result.insertId, nome, email }, SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ jti: crypto.randomUUID(), id: result.insertId, nome, email }, SECRET, { expiresIn: '7d' });
     res.status(201).json({ token, padaria: { id: result.insertId, nome, email, plano: codigoObj.plano } });
   } catch (e) {
     console.error('Erro ao registrar:', e);
@@ -70,7 +71,7 @@ exports.login = async (req, res) => {
     if (!ok) return res.status(401).json({ erro: 'Credenciais inválidas.' });
 
     const token = jwt.sign(
-      { id: padaria.id, nome: padaria.nome, email: padaria.email, role: padaria.role || 'user' },
+      { jti: crypto.randomUUID(), id: padaria.id, nome: padaria.nome, email: padaria.email, role: padaria.role || 'user' },
       SECRET,
       { expiresIn: '7d' }
     );

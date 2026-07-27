@@ -1,7 +1,16 @@
 const router = require('express').Router();
 const auth   = require('../middleware/auth');
 const multer = require('multer');
-const upload = multer({ dest: '/tmp/panificapro/' });
+const upload = multer({
+  dest: '/tmp/panificapro/',
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB máximo
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.xlsx', '.xls', '.csv', '.txt', '.xml'];
+    const ext = require('path').extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) return cb(null, true);
+    cb(new Error('Tipo de arquivo não permitido.'));
+  }
+});
 
 // Wrapper para capturar erros em rotas async inline
 const wrap = fn => async (req, res, next) => {
@@ -21,27 +30,8 @@ const hotmartCtrl    = require('../controllers/hotmartController');
 const saurusCtrl     = require('../controllers/saurusController');
 const financeiroCtrl = require('../controllers/financeiroController');
 
-// Webhook Hotmart (sem auth)
+// Webhook Hotmart (sem auth — validação de assinatura feita dentro do controller)
 router.post('/hotmart/webhook', hotmartCtrl.webhook);
-
-// Rota de teste do webhook (apenas em desenvolvimento ou com token admin)
-router.post('/hotmart/teste', wrap(async (req, res) => {
-  const { email, nome, plano } = req.body;
-  if (!email || !nome || !plano) return res.status(400).json({ erro: 'email, nome e plano obrigatórios.' });
-  const planosValidos = ['essencial', 'pro', 'premium'];
-  if (!planosValidos.includes(plano)) return res.status(400).json({ erro: 'Plano inválido.' });
-
-  // Simula payload da Hotmart para a rota real
-  req.body = {
-    event: 'PURCHASE_APPROVED',
-    data: {
-      purchase: {},
-      buyer: { email, name: nome },
-      product: { id: plano === 'essencial' ? 'P106748886H' : plano === 'pro' ? 'F106749321O' : 'R106749586T' },
-    },
-  };
-  return hotmartCtrl.webhook(req, res);
-}));
 
 // Auth
 router.post('/auth/registrar',     authCtrl.registrar);

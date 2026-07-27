@@ -16,26 +16,59 @@ app.set('trust proxy', 1);
 fs.mkdirSync('/tmp/panificapro', { recursive: true });
 
 // Segurança: cabeçalhos HTTP
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      imgSrc: ["'self'", 'data:', 'blob:'],
+      connectSrc: ["'self'"],
+      frameSrc: ["'none'"],
+      objectSrc: ["'none'"],
+    },
+  },
+}));
 
 // CORS restrito ao domínio de produção
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://panificapro-erp.onrender.com')
   .split(',').map(o => o.trim());
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    // Bloqueia requisições sem origin (exceto webhooks da Hotmart que têm rota própria)
+    if (!origin) return cb(null, false);
+    if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
     cb(null, false);
   },
   credentials: true
 }));
 
-// Rate limiting geral — 600 req/min por IP
+// Rate limiting geral — 200 req/min por IP
 app.use('/api', rateLimit({
   windowMs: 60 * 1000,
-  max: 600,
+  max: 200,
   standardHeaders: true,
   legacyHeaders: false,
   message: { erro: 'Muitas requisições. Tente novamente em alguns segundos.' }
+}));
+
+// Rate limiting no cadastro — 5 tentativas/hora por IP
+app.use('/api/auth/registrar', rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { erro: 'Muitos cadastros. Tente novamente em 1 hora.' }
+}));
+
+// Rate limiting na verificação de código — 20 tentativas/hora por IP
+app.use('/api/auth/verificar-codigo', rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { erro: 'Muitas tentativas. Tente novamente em 1 hora.' }
 }));
 
 // Rate limiting rigoroso no login — 10 tentativas/15min por IP
@@ -56,7 +89,7 @@ app.use('/api/auth/esqueci-senha', rateLimit({
   message: { erro: 'Muitas solicitações de recuperação. Aguarde 1 hora.' }
 }));
 
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ limit: '512kb' }));
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Auto-migrate: adiciona colunas novas sem quebrar instâncias existentes
