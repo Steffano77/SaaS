@@ -2581,7 +2581,7 @@ async function carregarRelatorios() {
   window.toggleRelKpis = function() {
     const oculto = localStorage.getItem('rel-kpi-oculto') === '1';
     localStorage.setItem('rel-kpi-oculto', oculto ? '0' : '1');
-    carregarRelatorio();
+    carregarRelatorios();
   };
 
   // ── Top 5 produtos ──
