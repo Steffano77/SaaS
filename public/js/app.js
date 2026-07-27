@@ -409,7 +409,7 @@ function fecharAlterarPin() {
 async function salvarPin() {
   const pin_atual = document.getElementById('pin-atual').value;
   const pin_novo  = document.getElementById('pin-novo').value;
-  if (!pin_atual || !pin_novo) { mostrarToast('Preencha todos os campos.'); return; }
+  if (!pin_novo) { mostrarToast('Digite o novo PIN.'); return; }
   if (!/^\d{4}$/.test(pin_novo)) { mostrarToast('O novo PIN deve ter exatamente 4 dígitos.'); return; }
   const r = await fetch(`${API}/financeiro/pin`, {
     method: 'PUT',
