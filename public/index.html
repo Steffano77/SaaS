@@ -1634,13 +1634,17 @@
           <option value="pro">Pro</option>
           <option value="premium">Premium</option>
         </select>
-        <select id="admin-novo-meses" class="form-control" style="width:auto;">
-          <option value="1">1 mês</option>
-          <option value="3">3 meses</option>
-          <option value="6">6 meses</option>
-          <option value="12">12 meses</option>
-          <option value="24">24 meses</option>
+        <input id="admin-novo-valor" type="number" min="1" value="1" class="form-control" style="width:80px;" />
+        <select id="admin-novo-unidade" class="form-control" style="width:auto;">
+          <option value="meses">meses</option>
+          <option value="dias">dias</option>
         </select>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button type="button" onclick="presetDuracao(7,'dias')" class="btn-secondary" style="font-size:12px;padding:6px 10px;">7 dias</button>
+          <button type="button" onclick="presetDuracao(15,'dias')" class="btn-secondary" style="font-size:12px;padding:6px 10px;">15 dias</button>
+          <button type="button" onclick="presetDuracao(30,'dias')" class="btn-secondary" style="font-size:12px;padding:6px 10px;">30 dias</button>
+          <button type="button" onclick="presetDuracao(12,'meses')" class="btn-secondary" style="font-size:12px;padding:6px 10px;">12 meses</button>
+        </div>
         <button class="btn-primary" onclick="gerarCodigo()" style="padding:10px 20px;">+ Gerar código</button>
       </div>
       <div id="admin-codigos-lista" style="display:flex;flex-direction:column;gap:10px;"></div>

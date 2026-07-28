@@ -209,9 +209,9 @@ async function verificarCodigo(valor) {
     const d = await r.json();
     if (d.valido) {
       const planoLabel = { essencial: 'Essencial', pro: 'Pro', premium: 'Premium' }[d.plano] || d.plano;
-      const m = d.meses || 1;
+      const duracao = d.dias ? `${d.dias} dia${d.dias === 1 ? '' : 's'}` : `${d.meses || 1} ${(d.meses || 1) === 1 ? 'mês' : 'meses'}`;
       status.style.color = '#16a34a';
-      status.textContent = `✅ Código válido — Plano ${planoLabel} por ${m} ${m === 1 ? 'mês' : 'meses'}`;
+      status.textContent = `✅ Código válido — Plano ${planoLabel} por ${duracao}`;
     } else {
       status.style.color = '#dc2626';
       status.textContent = '❌ Código inválido ou já utilizado';
@@ -3460,7 +3460,7 @@ async function carregarCodigos() {
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <span style="font-family:monospace;font-size:16px;font-weight:700;letter-spacing:0.1em;">${c.codigo}</span>
           <span style="font-size:12px;font-weight:600;color:${planoCor[c.plano] || 'inherit'};background:rgba(0,0,0,0.05);padding:2px 8px;border-radius:20px;">${planoLabel[c.plano] || c.plano}</span>
-          <span style="font-size:12px;font-weight:600;color:var(--slate-600);background:rgba(0,0,0,0.05);padding:2px 8px;border-radius:20px;">${c.meses || 1} ${(c.meses || 1) === 1 ? 'mês' : 'meses'}</span>
+          <span style="font-size:12px;font-weight:600;color:var(--slate-600);background:rgba(0,0,0,0.05);padding:2px 8px;border-radius:20px;">${c.dias ? `${c.dias} dia${c.dias === 1 ? '' : 's'}` : `${c.meses || 1} ${(c.meses || 1) === 1 ? 'mês' : 'meses'}`}</span>
           ${c.usado
             ? `<span style="font-size:12px;color:#16a34a;">✅ Usado por ${c.padaria_nome || '—'} (${c.padaria_email || ''})</span>`
             : `<span style="font-size:12px;color:var(--slate-400);">Disponível</span>`}
@@ -3480,12 +3480,18 @@ async function carregarCodigos() {
   `).join('');
 }
 
+function presetDuracao(valor, unidade) {
+  document.getElementById('admin-novo-valor').value = valor;
+  document.getElementById('admin-novo-unidade').value = unidade;
+}
+
 async function gerarCodigo() {
   const plano = document.getElementById('admin-novo-plano').value;
-  const meses = Number(document.getElementById('admin-novo-meses').value) || 1;
-  const r = await api('/admin/codigos', { method: 'POST', body: { plano, meses } });
+  const unidade = document.getElementById('admin-novo-unidade').value;
+  const valor = Number(document.getElementById('admin-novo-valor').value) || 1;
+  const r = await api('/admin/codigos', { method: 'POST', body: { plano, unidade, valor } });
   if (r) {
-    mostrarToast(`Código ${r.codigo} gerado (${meses} ${meses === 1 ? 'mês' : 'meses'})!`, 'success');
+    mostrarToast(`Código ${r.codigo} gerado (${valor} ${unidade})!`, 'success');
     carregarCodigos();
   }
 }

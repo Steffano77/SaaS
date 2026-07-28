@@ -34,10 +34,13 @@ exports.registrar = async (req, res) => {
     if (existe.length) return res.status(409).json({ erro: 'Email já cadastrado.' });
 
     const hash = await bcrypt.hash(senha, 10);
-    // Duração vem do código de ativação (padrão: 1 mês)
-    const meses = Math.min(Math.max(Number(codigoObj.meses) || 1, 1), 36);
+    // Duração vem do código: dias (trial) tem prioridade; senão meses (assinatura)
     const expira = new Date();
-    expira.setMonth(expira.getMonth() + meses);
+    if (codigoObj.dias) {
+      expira.setDate(expira.getDate() + Math.min(Math.max(Number(codigoObj.dias), 1), 1095));
+    } else {
+      expira.setMonth(expira.getMonth() + Math.min(Math.max(Number(codigoObj.meses) || 1, 1), 36));
+    }
     const expiraStr = expira.toISOString().slice(0, 10);
     const [result] = await db.query(
       'INSERT INTO padarias (nome, email, senha_hash, plano, plano_expira_em) VALUES (?, ?, ?, ?, ?)',
