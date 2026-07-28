@@ -192,6 +192,7 @@ async function fazerLogin(e) {
     const _planoLabels = { trial: '⏳ Trial', essencial: '⚡ Essencial', pro: '⭐ Pro', premium: '💎 Premium' };
     const _planoEl = document.getElementById('sidebar-plano');
     if (_planoEl) _planoEl.textContent = _planoLabels[d.padaria.plano] || d.padaria.plano || '—';
+    atualizarAvisoExpiracao(d.padaria.plano, d.padaria.plano_expira_em);
     PLANO_ATUAL = d.padaria.plano || 'trial';
     if (d.padaria.role === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
     entrar();
@@ -241,6 +242,7 @@ async function fazerRegistro(e) {
     const _planoLabelsReg = { trial: '⏳ Trial', essencial: '⚡ Essencial', pro: '⭐ Pro', premium: '💎 Premium' };
     const _planoElReg = document.getElementById('sidebar-plano');
     if (_planoElReg) _planoElReg.textContent = _planoLabelsReg[d.padaria.plano] || d.padaria.plano || '—';
+    atualizarAvisoExpiracao(d.padaria.plano, d.padaria.plano_expira_em);
     PLANO_ATUAL = d.padaria.plano || 'trial';
     ROLE_ATUAL = d.padaria.role || 'user';
     if (d.padaria.role === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
@@ -266,6 +268,29 @@ function entrar() {
   history.replaceState({ pg: 'dashboard' }, '', '#dashboard');
   mostrarPagina('dashboard', false);
   setTimeout(verificarOnboarding, 800);
+}
+
+function atualizarAvisoExpiracao(plano, planoExpiraEm) {
+  const el = document.getElementById('sidebar-plano-expira');
+  if (!el) return;
+  if (!planoExpiraEm) { el.classList.add('hidden'); return; }
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const expira = new Date(planoExpiraEm + 'T00:00:00');
+  const dias = Math.round((expira - hoje) / 86400000);
+  if (dias < 0) {
+    el.textContent = '🔴 Licença expirada';
+    el.style.color = '#dc2626';
+  } else if (dias === 0) {
+    el.textContent = '🔴 Expira hoje';
+    el.style.color = '#dc2626';
+  } else if (dias <= 7) {
+    el.textContent = `⏳ Expira em ${dias} dia${dias === 1 ? '' : 's'}`;
+    el.style.color = dias <= 3 ? '#dc2626' : '#d97706';
+  } else {
+    el.textContent = `Válido até ${expira.toLocaleDateString('pt-BR')}`;
+    el.style.color = 'var(--slate-400)';
+  }
+  el.classList.remove('hidden');
 }
 
 function mostrarUpgrade(pg, planoNecessario) {
@@ -3154,6 +3179,7 @@ if (TOKEN) {
         const planoLabels = { trial: '⏳ Trial', essencial: '⚡ Essencial', pro: '⭐ Pro', premium: '💎 Premium' };
         const planoEl = document.getElementById('sidebar-plano');
         if (planoEl) planoEl.textContent = planoLabels[d.plano] || d.plano || '—';
+        atualizarAvisoExpiracao(d.plano, d.plano_expira_em);
         PLANO_ATUAL = d.plano || 'trial';
         ROLE_ATUAL = d.role || 'user';
         if (d.role === 'admin') document.getElementById('nav-admin').classList.remove('hidden');

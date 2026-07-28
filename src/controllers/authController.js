@@ -54,7 +54,7 @@ exports.registrar = async (req, res) => {
     );
 
     const token = jwt.sign({ jti: crypto.randomUUID(), id: result.insertId, nome, email }, SECRET, { expiresIn: '7d' });
-    res.status(201).json({ token, padaria: { id: result.insertId, nome, email, plano: codigoObj.plano } });
+    res.status(201).json({ token, padaria: { id: result.insertId, nome, email, plano: codigoObj.plano, plano_expira_em: expiraStr } });
   } catch (e) {
     console.error('Erro ao registrar:', e);
     res.status(500).json({ erro: 'Erro interno ao criar conta.' });
@@ -79,7 +79,7 @@ exports.login = async (req, res) => {
       SECRET,
       { expiresIn: '7d' }
     );
-    res.json({ token, padaria: { id: padaria.id, nome: padaria.nome, email: padaria.email, plano: padaria.plano, role: padaria.role || 'user' } });
+    res.json({ token, padaria: { id: padaria.id, nome: padaria.nome, email: padaria.email, plano: padaria.plano, role: padaria.role || 'user', plano_expira_em: padaria.plano_expira_em } });
   } catch (e) {
     console.error('Erro ao fazer login:', e);
     res.status(500).json({ erro: 'Erro interno ao fazer login.' });
@@ -89,7 +89,7 @@ exports.login = async (req, res) => {
 exports.perfil = async (req, res) => {
   try {
     const [rows] = await db.query(
-      'SELECT id, nome, email, plano, role, criado_em FROM padarias WHERE id = ?',
+      'SELECT id, nome, email, plano, role, plano_expira_em, criado_em FROM padarias WHERE id = ?',
       [req.padaria.id]
     );
     res.json(rows[0]);
