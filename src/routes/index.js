@@ -59,6 +59,17 @@ const authPro = wrap(async (req, res, next) => {
   next();
 });
 
+// Middleware: apenas plano Premium (e admin)
+const authPremium = wrap(async (req, res, next) => {
+  const db = require('../database/connection');
+  if (req.padaria.role === 'admin') return next();
+  const [[p]] = await db.query('SELECT plano FROM padarias WHERE id = ?', [req.padaria.id]);
+  if (!p || p.plano !== 'premium') {
+    return res.status(403).json({ erro: 'plano_insuficiente', plano: p ? p.plano : 'trial' });
+  }
+  next();
+});
+
 // Dashboard
 router.get('/dashboard', auth, prodCtrl.dashboard);
 
@@ -81,18 +92,18 @@ router.post('/saurus/preview',   auth, upload.single('arquivo'), saurusCtrl.prev
 router.post('/saurus/confirmar', auth, saurusCtrl.confirmar);
 router.post('/saurus/limpar-zerados', auth, saurusCtrl.limparZerados);
 
-// Financeiro — Pro/Premium apenas
-router.get('/financeiro',                   auth, authPro, wrap(financeiroCtrl.listar));
-router.post('/financeiro',                  auth, authPro, wrap(financeiroCtrl.criar));
-router.delete('/financeiro/:id',            auth, authPro, wrap(financeiroCtrl.excluir));
-router.get('/financeiro/grafico',           auth, authPro, wrap(financeiroCtrl.grafico));
-router.post('/financeiro/pin',              auth, authPro, wrap(financeiroCtrl.verificarPin));
-router.put('/financeiro/pin',               auth, authPro, wrap(financeiroCtrl.alterarPin));
-router.get('/financeiro/contas-pagar',      auth, authPro, wrap(financeiroCtrl.listarContasPagar));
-router.post('/financeiro/contas-pagar',     auth, authPro, wrap(financeiroCtrl.criarContaPagar));
-router.put('/financeiro/contas-pagar/:id',  auth, authPro, wrap(financeiroCtrl.pagarConta));
-router.delete('/financeiro/contas-pagar/:id', auth, authPro, wrap(financeiroCtrl.excluirContaPagar));
-router.post('/financeiro/pin/reset',          auth, authPro, wrap(financeiroCtrl.solicitarResetPin));
+// Financeiro — Premium apenas
+router.get('/financeiro',                   auth, authPremium, wrap(financeiroCtrl.listar));
+router.post('/financeiro',                  auth, authPremium, wrap(financeiroCtrl.criar));
+router.delete('/financeiro/:id',            auth, authPremium, wrap(financeiroCtrl.excluir));
+router.get('/financeiro/grafico',           auth, authPremium, wrap(financeiroCtrl.grafico));
+router.post('/financeiro/pin',              auth, authPremium, wrap(financeiroCtrl.verificarPin));
+router.put('/financeiro/pin',               auth, authPremium, wrap(financeiroCtrl.alterarPin));
+router.get('/financeiro/contas-pagar',      auth, authPremium, wrap(financeiroCtrl.listarContasPagar));
+router.post('/financeiro/contas-pagar',     auth, authPremium, wrap(financeiroCtrl.criarContaPagar));
+router.put('/financeiro/contas-pagar/:id',  auth, authPremium, wrap(financeiroCtrl.pagarConta));
+router.delete('/financeiro/contas-pagar/:id', auth, authPremium, wrap(financeiroCtrl.excluirContaPagar));
+router.post('/financeiro/pin/reset',          auth, authPremium, wrap(financeiroCtrl.solicitarResetPin));
 router.post('/financeiro/pin/confirmar-reset',               wrap(financeiroCtrl.confirmarResetPin));
 
 // Importação genérica
@@ -925,16 +936,7 @@ router.put('/precificacao/modalidades', auth, authPro, wrap(async (req, res) => 
 }));
 
 // ── Controle de Produção ──────────────────────────────────────────────────
-// Middleware: apenas plano Premium (e admin) acessa produção
-const authPremium = wrap(async (req, res, next) => {
-  const db = require('../database/connection');
-  if (req.padaria.role === 'admin') return next();
-  const [[p]] = await db.query('SELECT plano FROM padarias WHERE id = ?', [req.padaria.id]);
-  if (!p || p.plano !== 'premium') {
-    return res.status(403).json({ erro: 'plano_insuficiente', plano: p ? p.plano : 'trial' });
-  }
-  next();
-});
+// (authPremium definido no topo do arquivo, junto com authPro)
 
 // Listar produções com total de itens
 router.get('/producao', auth, authPremium, wrap(async (req, res) => {

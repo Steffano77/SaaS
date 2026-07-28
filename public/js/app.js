@@ -321,8 +321,8 @@ function sair() {
 
 // ── Navegação ───────────────────────────────────────────────
 const paginas = ['dashboard','estoque','compras','fornecedores','fichas','producao','relatorios','financeiro','sync','planos','404'];
-const PAGINAS_PRO      = ['financeiro', 'relatorios', 'fichas'];
-const PAGINAS_PREMIUM  = ['producao'];
+const PAGINAS_PRO      = ['relatorios', 'fichas'];
+const PAGINAS_PREMIUM  = ['producao', 'financeiro'];
 
 function mostrarPagina(pg, pushHistory = true) {
   if (!paginas.includes(pg)) { mostrarPagina('404'); return; }
