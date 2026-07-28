@@ -179,7 +179,11 @@ async function fazerLogin(e) {
       body: JSON.stringify({ email: document.getElementById('login-email').value, senha: document.getElementById('login-senha').value })
     });
     const d = await r.json();
-    if (!r.ok) { el.textContent = d.erro; el.classList.remove('hidden'); return; }
+    if (!r.ok) {
+      el.innerHTML = d.erro + '<br><a href="#" onclick="mostrarTab(\'registro\');return false;" style="color:#f97316;font-weight:600;font-size:13px;">Não tem conta? Criar conta →</a>';
+      el.classList.remove('hidden');
+      return;
+    }
     TOKEN = d.token;
     const manter = document.getElementById('manter-logado')?.checked !== false;
     if (manter) localStorage.setItem('pptoken', TOKEN);
