@@ -274,8 +274,10 @@ function atualizarAvisoExpiracao(plano, planoExpiraEm) {
   const el = document.getElementById('sidebar-plano-expira');
   if (!el) return;
   if (!planoExpiraEm) { el.classList.add('hidden'); return; }
+  const dataStr = String(planoExpiraEm).slice(0, 10); // aceita "YYYY-MM-DD" ou ISO completo
   const hoje = new Date(); hoje.setHours(0,0,0,0);
-  const expira = new Date(planoExpiraEm + 'T00:00:00');
+  const expira = new Date(dataStr + 'T00:00:00');
+  if (isNaN(expira.getTime())) { el.classList.add('hidden'); return; }
   const dias = Math.round((expira - hoje) / 86400000);
   if (dias < 0) {
     el.textContent = '🔴 Licença expirada';
