@@ -209,8 +209,9 @@ async function verificarCodigo(valor) {
     const d = await r.json();
     if (d.valido) {
       const planoLabel = { essencial: 'Essencial', pro: 'Pro', premium: 'Premium' }[d.plano] || d.plano;
+      const m = d.meses || 1;
       status.style.color = '#16a34a';
-      status.textContent = `✅ Código válido — Plano ${planoLabel}`;
+      status.textContent = `✅ Código válido — Plano ${planoLabel} por ${m} ${m === 1 ? 'mês' : 'meses'}`;
     } else {
       status.style.color = '#dc2626';
       status.textContent = '❌ Código inválido ou já utilizado';
@@ -3374,18 +3375,41 @@ async function abrirTelaAdmin() {
   const rows = await api('/admin/padarias');
   if (!rows) { lista.innerHTML = '<p style="color:red">Erro ao carregar.</p>'; return; }
   const planoLabel = { essencial: 'Essencial', pro: 'Pro', premium: 'Premium' };
-  lista.innerHTML = rows.map(p => {
+
+  // Banner de alerta: contas que vencem nos próximos 7 dias
+  const vencendo = rows.filter(p => p.role !== 'admin' && !p.plano_bloqueado
+    && p.dias_para_expirar !== null && p.dias_para_expirar >= 0 && p.dias_para_expirar <= 7);
+  const expiradas = rows.filter(p => p.role !== 'admin'
+    && p.dias_para_expirar !== null && p.dias_para_expirar < 0);
+  const alerta = (vencendo.length || expiradas.length) ? `
+    <div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:12px;padding:14px 18px;margin-bottom:4px;">
+      <div style="font-weight:700;font-size:14px;color:#92400e;margin-bottom:4px;">⚠️ Atenção às renovações</div>
+      <div style="font-size:13px;color:#92400e;line-height:1.6;">
+        ${vencendo.length ? `<strong>${vencendo.length}</strong> conta(s) vencem nos próximos 7 dias: ${vencendo.map(p => p.nome).join(', ')}.<br>` : ''}
+        ${expiradas.length ? `<strong>${expiradas.length}</strong> conta(s) já expiradas e bloqueadas: ${expiradas.map(p => p.nome).join(', ')}.` : ''}
+      </div>
+    </div>` : '';
+
+  lista.innerHTML = alerta + rows.map(p => {
     const expira = p.plano_expira_em ? new Date(p.plano_expira_em).toLocaleDateString('pt-BR') : '—';
-    const expirado = p.plano_expira_em && new Date(p.plano_expira_em) < new Date();
+    // Usa o cálculo do servidor; se ausente, cai para o cálculo local pela data
+    const dias = p.dias_para_expirar ?? (p.plano_expira_em
+      ? Math.ceil((new Date(p.plano_expira_em) - new Date()) / 86400000) : null);
+    const expirado = dias !== null && dias < 0;
+    const proximo = dias !== null && dias >= 0 && dias <= 7;
     const statusPlano = p.role === 'admin'
       ? `<span style="color:var(--slate-400);">— Admin —</span>`
       : p.plano_bloqueado || expirado
         ? `<span style="color:#dc2626;font-weight:600;">🔴 Expirado (${expira})</span>`
-        : p.plano_expira_em
-          ? `<span style="color:#16a34a;">✅ Ativo até ${expira}</span>`
-          : `<span style="color:var(--slate-400);">Sem validade</span>`;
+        : proximo
+          ? `<span style="color:#d97706;font-weight:600;">⚠️ Vence em ${dias} dia${dias === 1 ? '' : 's'} (${expira})</span>`
+          : p.plano_expira_em
+            ? `<span style="color:#16a34a;">✅ Ativo até ${expira}</span>`
+            : `<span style="color:var(--slate-400);">Sem validade</span>`;
+    const borda = (p.role !== 'admin' && (expirado || p.plano_bloqueado)) ? 'border-left:4px solid #dc2626;'
+                : proximo ? 'border-left:4px solid #f59e0b;' : '';
     return `
-    <div style="background:var(--white);border-radius:12px;padding:16px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.08);display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+    <div style="background:var(--white);border-radius:12px;${borda}padding:16px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.08);display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
       <div style="flex:1;min-width:0;">
         <div style="font-weight:700;font-size:15px;">${p.nome}</div>
         <div style="font-size:13px;color:var(--slate-500);">${p.email}</div>
@@ -3436,6 +3460,7 @@ async function carregarCodigos() {
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <span style="font-family:monospace;font-size:16px;font-weight:700;letter-spacing:0.1em;">${c.codigo}</span>
           <span style="font-size:12px;font-weight:600;color:${planoCor[c.plano] || 'inherit'};background:rgba(0,0,0,0.05);padding:2px 8px;border-radius:20px;">${planoLabel[c.plano] || c.plano}</span>
+          <span style="font-size:12px;font-weight:600;color:var(--slate-600);background:rgba(0,0,0,0.05);padding:2px 8px;border-radius:20px;">${c.meses || 1} ${(c.meses || 1) === 1 ? 'mês' : 'meses'}</span>
           ${c.usado
             ? `<span style="font-size:12px;color:#16a34a;">✅ Usado por ${c.padaria_nome || '—'} (${c.padaria_email || ''})</span>`
             : `<span style="font-size:12px;color:var(--slate-400);">Disponível</span>`}
@@ -3457,9 +3482,10 @@ async function carregarCodigos() {
 
 async function gerarCodigo() {
   const plano = document.getElementById('admin-novo-plano').value;
-  const r = await api('/admin/codigos', { method: 'POST', body: { plano } });
+  const meses = Number(document.getElementById('admin-novo-meses').value) || 1;
+  const r = await api('/admin/codigos', { method: 'POST', body: { plano, meses } });
   if (r) {
-    mostrarToast(`Código ${r.codigo} gerado!`, 'success');
+    mostrarToast(`Código ${r.codigo} gerado (${meses} ${meses === 1 ? 'mês' : 'meses'})!`, 'success');
     carregarCodigos();
   }
 }

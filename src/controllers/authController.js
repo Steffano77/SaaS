@@ -34,9 +34,10 @@ exports.registrar = async (req, res) => {
     if (existe.length) return res.status(409).json({ erro: 'Email já cadastrado.' });
 
     const hash = await bcrypt.hash(senha, 10);
-    // Plano expira em 30 dias
+    // Duração vem do código de ativação (padrão: 1 mês)
+    const meses = Math.min(Math.max(Number(codigoObj.meses) || 1, 1), 36);
     const expira = new Date();
-    expira.setDate(expira.getDate() + 30);
+    expira.setMonth(expira.getMonth() + meses);
     const expiraStr = expira.toISOString().slice(0, 10);
     const [result] = await db.query(
       'INSERT INTO padarias (nome, email, senha_hash, plano, plano_expira_em) VALUES (?, ?, ?, ?, ?)',

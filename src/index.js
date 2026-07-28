@@ -112,11 +112,13 @@ app.use(express.static(path.join(__dirname, '../public')));
         id INT AUTO_INCREMENT PRIMARY KEY,
         codigo VARCHAR(32) NOT NULL UNIQUE,
         plano VARCHAR(20) NOT NULL DEFAULT 'essencial',
+        meses INT NOT NULL DEFAULT 1,
         usado TINYINT(1) NOT NULL DEFAULT 0,
         padaria_id INT NULL,
         criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         usado_em DATETIME NULL
       )`,
+      'ALTER TABLE codigos_ativacao ADD COLUMN meses INT NOT NULL DEFAULT 1',
       `CREATE TABLE IF NOT EXISTS usuarios (
         id INT AUTO_INCREMENT PRIMARY KEY,
         padaria_id INT NOT NULL,

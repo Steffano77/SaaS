@@ -652,8 +652,9 @@ router.get('/admin/padarias', auth, authAdmin, wrap(async (req, res) => {
   const db = require('../database/connection');
   const [rows] = await db.query(`
     SELECT id, nome, email, plano, plano_expira_em, plano_bloqueado, role, ativo, criado_em,
+      DATEDIFF(plano_expira_em, CURDATE()) AS dias_para_expirar,
       (SELECT COUNT(*) FROM produtos WHERE padaria_id = padarias.id) AS total_produtos
-    FROM padarias ORDER BY criado_em DESC`);
+    FROM padarias ORDER BY plano_expira_em IS NULL, plano_expira_em ASC, criado_em DESC`);
   res.json(rows);
 }));
 
@@ -704,7 +705,7 @@ router.delete('/admin/padarias/:id', auth, authAdmin, wrap(async (req, res) => {
 router.get('/admin/codigos', auth, authAdmin, wrap(async (req, res) => {
   const db = require('../database/connection');
   const [rows] = await db.query(`
-    SELECT c.id, c.codigo, c.plano, c.usado, c.criado_em, c.usado_em,
+    SELECT c.id, c.codigo, c.plano, c.meses, c.usado, c.criado_em, c.usado_em,
            p.nome AS padaria_nome, p.email AS padaria_email
     FROM codigos_ativacao c
     LEFT JOIN padarias p ON p.id = c.padaria_id
@@ -718,13 +719,17 @@ router.post('/admin/codigos', auth, authAdmin, wrap(async (req, res) => {
   const planosValidos = ['essencial', 'pro', 'premium'];
   if (!planosValidos.includes(plano)) return res.status(400).json({ erro: 'Plano inválido.' });
 
+  const meses = Number(req.body.meses ?? 1);
+  if (!Number.isInteger(meses) || meses < 1 || meses > 36)
+    return res.status(400).json({ erro: 'Duração inválida (1 a 36 meses).' });
+
   // Gera código único: PP-XXXX-XXXX
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   const rand = (n) => Array.from({ length: n }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
   const codigo = `PP-${rand(4)}-${rand(4)}`;
 
-  await db.query('INSERT INTO codigos_ativacao (codigo, plano) VALUES (?, ?)', [codigo, plano]);
-  res.status(201).json({ codigo, plano });
+  await db.query('INSERT INTO codigos_ativacao (codigo, plano, meses) VALUES (?, ?, ?)', [codigo, plano, meses]);
+  res.status(201).json({ codigo, plano, meses });
 }));
 
 router.delete('/admin/codigos/:id', auth, authAdmin, wrap(async (req, res) => {
@@ -832,9 +837,9 @@ router.delete('/fichas/:id', auth, authPro, wrap(async (req, res) => {
 router.get('/auth/verificar-codigo/:codigo', wrap(async (req, res) => {
   const db = require('../database/connection');
   const codigo = String(req.params.codigo || '').trim().toUpperCase();
-  const [rows] = await db.query('SELECT plano FROM codigos_ativacao WHERE codigo = ? AND usado = 0', [codigo]);
+  const [rows] = await db.query('SELECT plano, meses FROM codigos_ativacao WHERE codigo = ? AND usado = 0', [codigo]);
   if (!rows.length) return res.status(404).json({ valido: false });
-  res.json({ valido: true, plano: rows[0].plano });
+  res.json({ valido: true, plano: rows[0].plano, meses: rows[0].meses || 1 });
 }));
 
 // ── Configurações de Precificação ─────────────────────────────────────────
