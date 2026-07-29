@@ -330,6 +330,7 @@
           <button class="btn-primary estoque-action-btn" onclick="abrirModalProduto()"><span class="btn-emoji">＋</span>Novo produto</button>
           <button class="btn-secondary estoque-action-btn" onclick="abrirImportSaurus()" title="Atualizar estoque via planilha Saurus"><span class="btn-emoji">📥</span>Importar Saurus</button>
           <button class="btn-primary estoque-action-btn" onclick="abrirScanner('estoque')" style="background:var(--navy);"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>Escanear</button>
+          <button class="btn-secondary estoque-action-btn" onclick="abrirModalImprimirEstoque()" title="Imprimir lista de estoque"><span class="btn-emoji">🖨️</span>Imprimir</button>
           <button class="btn-secondary estoque-action-btn" onclick="limparProdutosZerados()" title="Desativar produtos com estoque zero"><span class="btn-emoji">🗑</span>Limpar zerados</button>
         </div>
       </div>
@@ -1305,7 +1306,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260727b"></script>
+<script src="/js/app.js?v=20260728a"></script>
 
 <!-- Tela Saídas 30 dias -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
@@ -1392,6 +1393,26 @@
     </div>
     <div style="padding:16px 20px;border-top:1px solid var(--slate-100);">
       <button id="btn-ir-compras" onclick="irParaCompras()" class="btn-primary full" disabled style="opacity:0.5;">🛒 Ir para Compras</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Imprimir Estoque -->
+<div id="modal-imprimir-estoque" class="modal-overlay hidden" onclick="if(event.target===this)fecharModalImprimirEstoque()">
+  <div class="modal-box" style="max-width:420px;width:95%;">
+    <div class="modal-header">
+      <span class="modal-title">🖨️ Imprimir estoque</span>
+      <button onclick="fecharModalImprimirEstoque()" class="modal-close"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+    </div>
+    <div style="padding:4px 20px 20px;">
+      <p style="font-size:13px;color:var(--slate-500);margin-bottom:14px;">Escolha a categoria que deseja imprimir.</p>
+      <div class="form-group">
+        <label class="form-label">Categoria</label>
+        <select id="imprimir-estoque-categoria" class="form-control">
+          <option value="">Todas as categorias</option>
+        </select>
+      </div>
+      <button onclick="imprimirEstoquePorCategoria()" class="btn-primary full" style="margin-top:16px;">🖨️ Imprimir</button>
     </div>
   </div>
 </div>

@@ -980,6 +980,99 @@ function fecharTelaSaidas() {
   document.getElementById('tela-saidas').classList.add('hidden');
 }
 
+async function abrirModalImprimirEstoque() {
+  const sel = document.getElementById('imprimir-estoque-categoria');
+  const cats = await api('/categorias');
+  if (cats && sel) {
+    sel.innerHTML = '<option value="">Todas as categorias</option>' +
+      cats.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+  }
+  document.getElementById('modal-imprimir-estoque').classList.remove('hidden');
+}
+
+function fecharModalImprimirEstoque() {
+  document.getElementById('modal-imprimir-estoque').classList.add('hidden');
+}
+
+async function imprimirEstoquePorCategoria() {
+  const sel = document.getElementById('imprimir-estoque-categoria');
+  const categoriaId = sel.value;
+  const categoriaNome = categoriaId ? sel.options[sel.selectedIndex].textContent : 'Todas as categorias';
+
+  const url = categoriaId ? `/produtos?categoria_id=${categoriaId}` : '/produtos';
+  const prods = await api(url) || [];
+
+  if (!prods.length) return alert('Nenhum produto encontrado nessa categoria.');
+
+  fecharModalImprimirEstoque();
+
+  const linhas = prods.map(p => `
+    <tr>
+      <td>${p.nome}</td>
+      <td>${p.categoria || '—'}</td>
+      <td>${fmtQtd(p.estoque_atual)} ${p.unidade}</td>
+      <td>${fmtQtd(p.estoque_minimo || 0)} ${p.unidade}</td>
+      <td>R$ ${parseFloat(p.custo_unitario||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td>R$ ${parseFloat(p.preco_venda||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+    </tr>`).join('');
+
+  const logoUrl = window.location.origin + '/img/favicon-192.png';
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=794, initial-scale=1"/>
+    <title> </title>
+    <style>
+      @page { margin: 0.5cm 1cm; size: A4 portrait; }
+      html { font-family: Arial, sans-serif; font-size: 11px; color: #000; }
+      body { padding: 12px; box-sizing: border-box; width: 770px; max-width: 770px; margin: 0 auto; }
+      .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+      .page-header-left h2 { color: #1e3a5f; margin: 0 0 2px; font-size: 16px; }
+      .page-header-left p { color: #1e3a5f; margin: 0; font-size: 10px; font-weight: 600; }
+      .page-header-right { text-align: center; flex-shrink: 0; }
+      .page-header-right img { width: 60px; height: 60px; opacity: 0.75; display: block; margin: 0 auto; }
+      .page-header-right span { font-size: 10px; font-weight: 700; color: #1e3a5f; letter-spacing: 1px; display: block; }
+      table { width: 100%; border-collapse: collapse; }
+      th { background: #fff; color: #1e3a5f; padding: 5px 7px; text-align: left; font-size: 10px; font-weight: 700; border-bottom: 2px solid #1e3a5f; }
+      td { padding: 5px 7px; border-bottom: 1px solid #cbd5e1; color: #000; font-size: 10px; }
+      tr:nth-child(even) td { background: #f1f5f9; }
+    </style></head><body>
+    <div class="page-header">
+      <div class="page-header-left">
+        <h2>${document.getElementById('sidebar-nome').textContent} — Estoque</h2>
+        <p>${categoriaNome} · Impresso em ${new Date().toLocaleDateString('pt-BR')} · ${prods.length} produtos</p>
+      </div>
+      <div class="page-header-right">
+        <img src="${logoUrl}" alt="logo"/>
+        <span>PanificaPro</span>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>Produto</th><th>Categoria</th><th>Saldo</th><th>Mínimo</th><th>Custo</th><th>Venda</th></tr></thead>
+      <tbody>${linhas}</tbody>
+    </table>
+    <script>
+    window.onload = () => {
+      const body = document.body;
+      const pageH = 267;
+      const mmToPx = 3.7795;
+      const pageHpx = pageH * mmToPx;
+      const contentH = body.scrollHeight;
+      if (contentH > pageHpx) {
+        const scale = pageHpx / contentH;
+        body.style.transformOrigin = 'top left';
+        body.style.transform = 'scale(' + scale + ')';
+        body.style.width = Math.round(100 / scale) + '%';
+      }
+      window.print();
+      window.onafterprint = () => window.close();
+    };
+    <\/script>
+    </body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+}
+
 async function abrirModalEstoque(tipo) {
   const prods = await api(`/produtos?alerta=${tipo}`) || [];
   const titulo = tipo === 'zerado' ? '🔴 Produtos sem estoque' : '⚠️ Produtos abaixo do mínimo';
