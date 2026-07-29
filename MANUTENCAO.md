@@ -160,7 +160,10 @@ esse risco de vez.
 
 ## 7. Onde estão as credenciais
 
-Nenhuma credencial fica neste repositório. Local: **[preencher — ex: 1Password / Bitwarden, pasta "PanificaPro"]**.
+Nenhuma credencial fica neste repositório. Estão guardadas num documento
+privado no Google Drive do proprietário (Estefano Mello), acessível somente
+por ele. Se for necessário dar acesso a um novo desenvolvedor, é o
+proprietário quem compartilha o documento diretamente pelo Google Drive.
 
 O que precisa estar guardado lá:
 
