@@ -1259,7 +1259,10 @@ async function carregarProdutos() {
         <div class="td-sub" style="color:${ultimaCompraColor};font-size:11px;">últ. compra: ${ultimaCompraLabel}</div>
       </td>
       <td style="color:var(--slate-600)">${p.categoria || '—'}</td>
-      <td class="right td-mono">${fmtQtd(p.estoque_atual)} ${p.unidade}</td>
+      <td class="right td-mono">
+        ${fmtQtd(p.estoque_atual)} ${p.unidade}
+        ${p.embalagem_qtd > 0 ? `<div class="td-sub" style="color:var(--slate-400);font-size:11px;">≈ ${fmtQtd(p.estoque_atual / p.embalagem_qtd)} embalagem(ns)</div>` : ''}
+      </td>
       <td class="right td-mono" style="color:var(--slate-500)">${fmtQtd(p.estoque_minimo)}</td>
       <td class="right">${parseFloat(p.custo_unitario).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
       <td class="right" style="font-weight:600">${parseFloat(p.preco_venda||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</td>
