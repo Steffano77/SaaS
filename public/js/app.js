@@ -4000,7 +4000,7 @@ function selecionarIngredienteFicha(item) {
   if (produtoId === '__semcusto__') {
     idInput.value = '';
     nomeLivreInput.value = nome;
-    selUnidade.innerHTML = '<option value="un">un</option>';
+    selUnidade.innerHTML = ['ml','L','g','kg','un'].map(u => `<option value="${u}">${u}</option>`).join('');
   } else {
     idInput.value = produtoId;
     nomeLivreInput.value = '';
