@@ -3832,7 +3832,7 @@ async function carregarFichas() {
         <div class="ficha-card-header">
           <div>
             <div class="ficha-nome">${f.nome}</div>
-            <div class="ficha-rendimento">Rende ${f.rendimento} ${f.unidade_rendimento}</div>
+            <div class="ficha-rendimento">Rende ${fmtQtd(f.rendimento)} ${f.unidade_rendimento}</div>
           </div>
           <span class="cmv-pill ${cmvClass}">${cmvLabel}</span>
         </div>
@@ -3868,7 +3868,7 @@ async function verFicha(id) {
     <div class="ficha-detalhe-header">
       <div>
         <div class="ficha-detalhe-nome">🧾 ${ficha.nome}</div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:2px;">Rende ${ficha.rendimento} ${ficha.unidade_rendimento}${ficha.descricao ? ' · '+ficha.descricao : ''}</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:2px;">Rende ${fmtQtd(ficha.rendimento)} ${ficha.unidade_rendimento}${ficha.descricao ? ' · '+ficha.descricao : ''}</div>
       </div>
     </div>
     <div class="ficha-detalhe-summary">
@@ -3888,14 +3888,14 @@ async function verFicha(id) {
       <tbody>
         ${ficha.itens.map(i => `<tr>
           <td style="font-weight:600">${i.produto_nome}</td>
-          <td class="right">${i.quantidade} ${i.unidade}</td>
+          <td class="right">${fmtQtd(i.quantidade)} ${i.unidade}</td>
           <td class="right">R$ ${parseFloat(i.custo_unitario||0).toFixed(4)}</td>
           <td class="right" style="font-weight:700">R$ ${parseFloat(i.custo_item||0).toFixed(2)}</td>
         </tr>`).join('')}
       </tbody>
     </table>
     <div class="ficha-total-row">
-      <span>Custo total (${ficha.rendimento} ${ficha.unidade_rendimento})</span>
+      <span>Custo total (${fmtQtd(ficha.rendimento)} ${ficha.unidade_rendimento})</span>
       <span style="font-size:18px;font-weight:800;color:var(--orange)">R$ ${custoTotal.toFixed(2)}</span>
     </div>
   `;
@@ -3913,7 +3913,7 @@ async function abrirModalFicha(ficha = null) {
   document.getElementById('modal-ficha-titulo').textContent = ficha ? 'Editar Receita' : 'Nova Receita';
   document.getElementById('ficha-nome').value = ficha ? ficha.nome : '';
   document.getElementById('ficha-preco').value = ficha ? (ficha.preco_venda || '') : '';
-  document.getElementById('ficha-rendimento').value = ficha ? ficha.rendimento : '1';
+  document.getElementById('ficha-rendimento').value = ficha ? parseFloat(ficha.rendimento) : 1;
   document.getElementById('ficha-unidade-rendimento').value = ficha ? ficha.unidade_rendimento : 'unidades';
   document.getElementById('ficha-descricao').value = ficha ? (ficha.descricao || '') : '';
   document.getElementById('fichas-ingredientes-lista').innerHTML = '';
@@ -3963,7 +3963,7 @@ function adicionarLinhaIngrediente(item = null) {
       <input type="hidden" class="fi-nome-livre" value="${item && !produtoSelecionado && item.nome_livre ? item.nome_livre : ''}"/>
       <div class="autocomplete-lista fi-lista hidden"></div>
     </div>
-    <input type="number" class="form-control fi-qtd" placeholder="Qtd" min="0" step="any" value="${item ? item.quantidade : ''}">
+    <input type="number" class="form-control fi-qtd" placeholder="Qtd" min="0" step="any" value="${item && item.quantidade != null ? parseFloat(item.quantidade) : ''}">
     <select class="form-control fi-unidade" style="width:70px;">${unidadeOpts}</select>
     <button class="btn-danger" style="padding:6px 10px;font-size:12px;" onclick="this.parentElement.remove()">✕</button>
   `;
