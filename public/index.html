@@ -1261,7 +1261,21 @@
           </div>
           <div class="form-group" id="wrap-saldo">
             <label>Estoque atual</label>
-            <input type="number" id="prod-saldo" step="1" min="0" value="0" class="form-control"/>
+            <input type="number" id="prod-saldo" step="0.001" min="0" value="0" class="form-control"/>
+            <button type="button" onclick="toggleModoEstoquePorEmbalagem()" style="background:none;border:none;color:var(--orange);font-size:11px;font-weight:600;cursor:pointer;padding:4px 0 0;">🧮 Tenho em embalagens (sacas, caixas...)</button>
+          </div>
+          <div id="bloco-estoque-embalagem" class="hidden form-group col-full" style="background:var(--slate-50);border-radius:10px;padding:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
+            <div class="form-group" style="margin:0;flex:1;min-width:130px;">
+              <label style="font-size:12px;">Quantas embalagens?</label>
+              <input type="number" id="prod-estoque-embalagens" step="1" min="0" class="form-control" oninput="calcularSaldoPorEmbalagem()"/>
+            </div>
+            <div class="form-group" style="margin:0;flex:1;min-width:170px;">
+              <label style="font-size:12px;">Tamanho de cada embalagem (<span id="prod-estoque-embalagem-unidade-label"></span>)</label>
+              <input type="number" id="prod-estoque-embalagem-tamanho" step="0.001" min="0" class="form-control" oninput="calcularSaldoPorEmbalagem()"/>
+            </div>
+            <div style="font-size:13px;color:var(--slate-600);white-space:nowrap;padding-bottom:8px;">
+              = <strong id="prod-estoque-embalagem-resultado">—</strong>
+            </div>
           </div>
         </div>
         <div class="modal-actions">
@@ -1320,7 +1334,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260728b"></script>
+<script src="/js/app.js?v=20260728c"></script>
 
 <!-- Tela Saídas 30 dias -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

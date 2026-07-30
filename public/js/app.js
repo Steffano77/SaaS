@@ -2832,6 +2832,10 @@ function abrirModalProduto() {
   document.getElementById('wrap-saldo').classList.remove('hidden');
   document.getElementById('bloco-embalagem').classList.add('hidden');
   document.getElementById('prod-embalagem-resultado').textContent = '—';
+  document.getElementById('bloco-estoque-embalagem').classList.add('hidden');
+  document.getElementById('prod-estoque-embalagens').value = '';
+  document.getElementById('prod-estoque-embalagem-tamanho').value = '';
+  document.getElementById('prod-estoque-embalagem-resultado').textContent = '—';
   atualizarLabelEmbalagem();
   document.getElementById('modal-produto').classList.remove('hidden');
 }
@@ -2864,6 +2868,10 @@ async function editarProduto(id) {
     document.getElementById('prod-embalagem-resultado').textContent = '—';
     document.getElementById('bloco-embalagem').classList.add('hidden');
   }
+  document.getElementById('bloco-estoque-embalagem').classList.add('hidden');
+  document.getElementById('prod-estoque-embalagens').value = '';
+  document.getElementById('prod-estoque-embalagem-tamanho').value = '';
+  document.getElementById('prod-estoque-embalagem-resultado').textContent = '—';
   document.getElementById('modal-titulo').textContent = 'Editar produto';
   document.getElementById('modal-produto').classList.remove('hidden');
 }
@@ -2889,6 +2897,33 @@ function calcularCustoPorEmbalagem(atualizarCusto = true) {
     const custoPorUnidade = preco / qtd;
     resultadoEl.textContent = `R$ ${custoPorUnidade.toFixed(4)} por ${unidade}`;
     if (atualizarCusto) document.getElementById('prod-custo').value = custoPorUnidade.toFixed(4);
+  } else {
+    resultadoEl.textContent = '—';
+  }
+}
+
+function toggleModoEstoquePorEmbalagem() {
+  const bloco = document.getElementById('bloco-estoque-embalagem');
+  bloco.classList.toggle('hidden');
+  if (!bloco.classList.contains('hidden')) {
+    // Reaproveita o tamanho da embalagem já informado no cálculo de custo, se houver
+    const tamanhoEl = document.getElementById('prod-estoque-embalagem-tamanho');
+    const embQtd = parseFloat(document.getElementById('prod-embalagem-qtd').value || 0);
+    if (!tamanhoEl.value && embQtd > 0) tamanhoEl.value = embQtd;
+    document.getElementById('prod-estoque-embalagem-unidade-label').textContent = document.getElementById('prod-unidade').value || 'unidade';
+    calcularSaldoPorEmbalagem();
+  }
+}
+
+function calcularSaldoPorEmbalagem() {
+  const qtdEmb   = parseFloat(document.getElementById('prod-estoque-embalagens').value || 0);
+  const tamanho  = parseFloat(document.getElementById('prod-estoque-embalagem-tamanho').value || 0);
+  const unidade  = document.getElementById('prod-unidade').value || 'unidade';
+  const resultadoEl = document.getElementById('prod-estoque-embalagem-resultado');
+  if (qtdEmb > 0 && tamanho > 0) {
+    const total = qtdEmb * tamanho;
+    resultadoEl.textContent = `${total} ${unidade}`;
+    document.getElementById('prod-saldo').value = total;
   } else {
     resultadoEl.textContent = '—';
   }
