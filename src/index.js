@@ -134,6 +134,8 @@ app.use(express.static(path.join(__dirname, '../public')));
       'ALTER TABLE padarias ADD COLUMN plano_expira_em DATE NULL',
       'ALTER TABLE padarias ADD COLUMN plano_bloqueado TINYINT(1) NOT NULL DEFAULT 0',
       "ALTER TABLE padarias MODIFY COLUMN plano ENUM('trial','basico','essencial','pro','premium') DEFAULT 'trial'",
+      'ALTER TABLE produtos ADD COLUMN embalagem_preco DECIMAL(10,2) NULL',
+      'ALTER TABLE produtos ADD COLUMN embalagem_qtd DECIMAL(10,3) NULL',
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
 

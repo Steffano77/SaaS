@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const auth   = require('../middleware/auth');
+const { converterQtd } = require('../utils/unidades');
 const multer = require('multer');
 const upload = multer({
   dest: '/tmp/panificapro/',
@@ -766,18 +767,29 @@ router.delete('/admin/codigos/:id', auth, authAdmin, wrap(async (req, res) => {
 router.get('/fichas', auth, authPro, wrap(async (req, res) => {
   const db = require('../database/connection');
   const [fichas] = await db.query(
-    `SELECT f.*,
-            COUNT(i.id) AS total_ingredientes,
-            COALESCE(SUM(i.quantidade * p.custo_unitario), 0) AS custo_total
-     FROM fichas_tecnicas f
-     LEFT JOIN itens_ficha i ON i.ficha_id = f.id
-     LEFT JOIN produtos p ON p.id = i.produto_id
-     WHERE f.padaria_id = ? AND f.ativo = 1
-     GROUP BY f.id
-     ORDER BY f.nome`,
+    `SELECT f.* FROM fichas_tecnicas f WHERE f.padaria_id = ? AND f.ativo = 1 ORDER BY f.nome`,
     [req.padaria.id]
   );
-  res.json(fichas);
+  const [itens] = await db.query(
+    `SELECT i.ficha_id, i.quantidade, i.unidade, p.custo_unitario, p.unidade AS produto_unidade
+     FROM itens_ficha i
+     JOIN produtos p ON p.id = i.produto_id
+     JOIN fichas_tecnicas f ON f.id = i.ficha_id
+     WHERE f.padaria_id = ? AND f.ativo = 1`,
+    [req.padaria.id]
+  );
+  const porFicha = {};
+  for (const it of itens) {
+    if (!porFicha[it.ficha_id]) porFicha[it.ficha_id] = { total: 0, count: 0 };
+    const qtdConvertida = converterQtd(it.quantidade, it.unidade, it.produto_unidade);
+    porFicha[it.ficha_id].total += qtdConvertida * (it.custo_unitario || 0);
+    porFicha[it.ficha_id].count += 1;
+  }
+  res.json(fichas.map(f => ({
+    ...f,
+    total_ingredientes: porFicha[f.id]?.count || 0,
+    custo_total: porFicha[f.id]?.total || 0,
+  })));
 }));
 
 // Buscar ficha com ingredientes
@@ -789,15 +801,18 @@ router.get('/fichas/:id', auth, authPro, wrap(async (req, res) => {
   );
   if (!ficha) return res.status(404).json({ erro: 'Ficha não encontrada.' });
 
-  const [itens] = await db.query(
-    `SELECT i.*, p.nome AS produto_nome, p.unidade AS produto_unidade, p.custo_unitario,
-            (i.quantidade * p.custo_unitario) AS custo_item
+  const [itensRaw] = await db.query(
+    `SELECT i.*, p.nome AS produto_nome, p.unidade AS produto_unidade, p.custo_unitario
      FROM itens_ficha i
      JOIN produtos p ON p.id = i.produto_id
      WHERE i.ficha_id = ?
      ORDER BY p.nome`,
     [req.params.id]
   );
+  const itens = itensRaw.map(i => {
+    const qtdConvertida = converterQtd(i.quantidade, i.unidade, i.produto_unidade);
+    return { ...i, custo_item: qtdConvertida * (i.custo_unitario || 0) };
+  });
   res.json({ ...ficha, itens });
 }));
 
@@ -995,7 +1010,7 @@ router.post('/producao', auth, authPremium, wrap(async (req, res) => {
 
     // Buscar ingredientes da ficha
     const [ingredientes] = await db.query(`
-      SELECT ii.produto_id, ii.quantidade AS qtd_por_rendimento,
+      SELECT ii.produto_id, ii.quantidade AS qtd_por_rendimento, ii.unidade AS item_unidade,
              ft.rendimento, p.custo_unitario, p.nome AS prod_nome, p.unidade
       FROM itens_ficha ii
       JOIN fichas_tecnicas ft ON ft.id = ii.ficha_id
@@ -1004,7 +1019,8 @@ router.post('/producao', auth, authPremium, wrap(async (req, res) => {
     `, [ficha_id]);
 
     for (const ing of ingredientes) {
-      const qtdSaida = (ing.qtd_por_rendimento / (ing.rendimento || 1)) * quantidade;
+      const qtdConvertida = converterQtd(ing.qtd_por_rendimento, ing.item_unidade, ing.unidade);
+      const qtdSaida = (qtdConvertida / (ing.rendimento || 1)) * quantidade;
       const valorTotal = qtdSaida * (ing.custo_unitario || 0);
       const obs = `Produção #${producaoId} — ${ing.prod_nome}`;
       await db.query(
@@ -1041,7 +1057,8 @@ router.delete('/producao/:id', auth, authPremium, wrap(async (req, res) => {
 
   for (const item of itens) {
     const [ingredientes] = await db.query(`
-      SELECT ii.produto_id, ii.quantidade AS qtd_por_rendimento, ft.rendimento, p.custo_unitario
+      SELECT ii.produto_id, ii.quantidade AS qtd_por_rendimento, ii.unidade AS item_unidade,
+             ft.rendimento, p.custo_unitario, p.unidade
       FROM itens_ficha ii
       JOIN fichas_tecnicas ft ON ft.id = ii.ficha_id
       JOIN produtos p ON p.id = ii.produto_id
@@ -1049,7 +1066,8 @@ router.delete('/producao/:id', auth, authPremium, wrap(async (req, res) => {
     `, [item.ficha_id]);
 
     for (const ing of ingredientes) {
-      const qtdSaida = (ing.qtd_por_rendimento / (ing.rendimento || 1)) * item.quantidade;
+      const qtdConvertida = converterQtd(ing.qtd_por_rendimento, ing.item_unidade, ing.unidade);
+      const qtdSaida = (qtdConvertida / (ing.rendimento || 1)) * item.quantidade;
       const valorTotal = qtdSaida * (ing.custo_unitario || 0);
       await db.query(
         'INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, custo_unit, data, observacao) VALUES (?, ?, ?, ?, ?, NOW(), ?)',

@@ -2830,6 +2830,9 @@ function abrirModalProduto() {
   document.getElementById('modal-titulo').textContent = 'Novo produto';
   document.getElementById('form-produto').reset();
   document.getElementById('wrap-saldo').classList.remove('hidden');
+  document.getElementById('bloco-embalagem').classList.add('hidden');
+  document.getElementById('prod-embalagem-resultado').textContent = '—';
+  atualizarLabelEmbalagem();
   document.getElementById('modal-produto').classList.remove('hidden');
 }
 
@@ -2841,7 +2844,7 @@ async function editarProduto(id) {
   document.getElementById('prod-cod').value     = p.codigo_barras || '';
   document.getElementById('prod-unidade').value = p.unidade;
   document.getElementById('prod-minimo').value  = Math.round(p.estoque_minimo || 0);
-  document.getElementById('prod-custo').value   = parseFloat(p.custo_unitario || 0).toFixed(2);
+  document.getElementById('prod-custo').value   = parseFloat(p.custo_unitario || 0).toFixed(4);
   document.getElementById('prod-venda').value   = parseFloat(p.preco_venda || 0).toFixed(2);
   document.getElementById('prod-validade').value      = p.validade ? p.validade.slice(0,10) : '';
   document.getElementById('prod-ultima-compra').value = p.ultima_compra ? new Date(p.ultima_compra).toISOString().slice(0,10) : '';
@@ -2849,8 +2852,46 @@ async function editarProduto(id) {
   document.getElementById('prod-fornecedor').value = p.fornecedor_id || '';
   document.getElementById('prod-saldo').value   = parseFloat(p.estoque_atual || 0);
   document.getElementById('wrap-saldo').classList.remove('hidden');
+  atualizarLabelEmbalagem();
+  if (p.embalagem_preco && p.embalagem_qtd) {
+    document.getElementById('prod-embalagem-preco').value = p.embalagem_preco;
+    document.getElementById('prod-embalagem-qtd').value   = p.embalagem_qtd;
+    document.getElementById('bloco-embalagem').classList.remove('hidden');
+    calcularCustoPorEmbalagem(false);
+  } else {
+    document.getElementById('prod-embalagem-preco').value = '';
+    document.getElementById('prod-embalagem-qtd').value   = '';
+    document.getElementById('prod-embalagem-resultado').textContent = '—';
+    document.getElementById('bloco-embalagem').classList.add('hidden');
+  }
   document.getElementById('modal-titulo').textContent = 'Editar produto';
   document.getElementById('modal-produto').classList.remove('hidden');
+}
+
+function toggleModoEmbalagem() {
+  const bloco = document.getElementById('bloco-embalagem');
+  bloco.classList.toggle('hidden');
+  if (!bloco.classList.contains('hidden')) atualizarLabelEmbalagem();
+}
+
+function atualizarLabelEmbalagem() {
+  const unidade = document.getElementById('prod-unidade').value || 'unidade';
+  const label = document.getElementById('prod-embalagem-unidade-label');
+  if (label) label.textContent = unidade;
+}
+
+function calcularCustoPorEmbalagem(atualizarCusto = true) {
+  const preco = parseFloat(document.getElementById('prod-embalagem-preco').value || 0);
+  const qtd   = parseFloat(document.getElementById('prod-embalagem-qtd').value || 0);
+  const unidade = document.getElementById('prod-unidade').value || 'unidade';
+  const resultadoEl = document.getElementById('prod-embalagem-resultado');
+  if (preco > 0 && qtd > 0) {
+    const custoPorUnidade = preco / qtd;
+    resultadoEl.textContent = `R$ ${custoPorUnidade.toFixed(4)} por ${unidade}`;
+    if (atualizarCusto) document.getElementById('prod-custo').value = custoPorUnidade.toFixed(4);
+  } else {
+    resultadoEl.textContent = '—';
+  }
 }
 
 // D) Product edit feedback
@@ -2885,6 +2926,15 @@ async function salvarProduto(e) {
     ultima_compra:  document.getElementById('prod-ultima-compra').value || null,
   };
   body.estoque_atual = parseFloat(document.getElementById('prod-saldo').value) || 0;
+  if (!document.getElementById('bloco-embalagem').classList.contains('hidden')) {
+    const embPreco = parseFloat(document.getElementById('prod-embalagem-preco').value || 0);
+    const embQtd   = parseFloat(document.getElementById('prod-embalagem-qtd').value || 0);
+    body.embalagem_preco = embPreco > 0 ? embPreco : null;
+    body.embalagem_qtd   = embQtd > 0 ? embQtd : null;
+  } else {
+    body.embalagem_preco = null;
+    body.embalagem_qtd   = null;
+  }
   const r = await fetch(`${API}${id ? `/produtos/${id}` : '/produtos'}`, {
     method: id ? 'PUT' : 'POST',
     headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
@@ -3843,10 +3893,28 @@ function fecharModalFicha() {
   document.getElementById('modal-ficha').classList.add('hidden');
 }
 
+// Unidades de entrada compatíveis com a unidade base do produto (ex: produto
+// em kg pode ter a quantidade da receita digitada em kg ou g). Espelha a
+// mesma lógica do backend (src/utils/unidades.js) para o dropdown já vir
+// coerente antes de salvar.
+function unidadesCompativeisFrontend(unidadeProduto) {
+  const n = String(unidadeProduto || '').trim().toLowerCase();
+  if (n === 'kg') return [unidadeProduto, 'g'];
+  if (n === 'g')  return [unidadeProduto, 'kg'];
+  if (n === 'l' || n === 'litro') return [unidadeProduto, 'ml'];
+  if (n === 'ml') return [unidadeProduto, 'L'];
+  return [unidadeProduto];
+}
+
 function adicionarLinhaIngrediente(item = null) {
   const idx = fichaEditandoItens.length;
   fichaEditandoItens.push(item || {});
   const opts = produtosCache.map(p => `<option value="${p.id}" data-unidade="${p.unidade||'un'}" ${item && item.produto_id == p.id ? 'selected' : ''}>${p.nome} (${p.unidade||'un'})</option>`).join('');
+  const produtoSelecionado = item ? produtosCache.find(p => p.id == item.produto_id) : null;
+  const unidadeBase = produtoSelecionado ? produtoSelecionado.unidade : 'un';
+  const unidadeAtual = item ? item.unidade : unidadeBase;
+  const unidadeOpts = unidadesCompativeisFrontend(unidadeBase)
+    .map(u => `<option value="${u}" ${u === unidadeAtual ? 'selected' : ''}>${u}</option>`).join('');
   const div = document.createElement('div');
   div.className = 'ficha-ingrediente-linha';
   div.innerHTML = `
@@ -3854,7 +3922,7 @@ function adicionarLinhaIngrediente(item = null) {
       <option value="">Selecionar produto...</option>${opts}
     </select>
     <input type="number" class="form-control fi-qtd" placeholder="Qtd" min="0" step="any" value="${item ? item.quantidade : ''}">
-    <input type="text" class="form-control fi-unidade" placeholder="un" value="${item ? item.unidade : 'un'}" style="width:70px;">
+    <select class="form-control fi-unidade" style="width:70px;">${unidadeOpts}</select>
     <button class="btn-danger" style="padding:6px 10px;font-size:12px;" onclick="this.parentElement.remove()">✕</button>
   `;
   document.getElementById('fichas-ingredientes-lista').appendChild(div);
@@ -3862,8 +3930,11 @@ function adicionarLinhaIngrediente(item = null) {
 
 function atualizarUnidadeIngrediente(sel, idx) {
   const opt = sel.options[sel.selectedIndex];
-  const unidade = opt.dataset.unidade || 'un';
-  sel.parentElement.querySelector('.fi-unidade').value = unidade;
+  const unidadeBase = opt.dataset.unidade || 'un';
+  const selUnidade = sel.parentElement.querySelector('.fi-unidade');
+  const unidadeOpts = unidadesCompativeisFrontend(unidadeBase)
+    .map(u => `<option value="${u}">${u}</option>`).join('');
+  selUnidade.innerHTML = unidadeOpts;
 }
 
 async function salvarFicha() {

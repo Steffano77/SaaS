@@ -38,6 +38,8 @@ function formatarProduto(p) {
     estoque_minimo: Math.round(parseFloat(p.estoque_minimo || 0)),
     custo_unitario: parseFloat(parseFloat(p.custo_unitario || 0).toFixed(2)),
     preco_venda:    parseFloat(parseFloat(p.preco_venda    || 0).toFixed(2)),
+    embalagem_preco: p.embalagem_preco != null ? parseFloat(p.embalagem_preco) : null,
+    embalagem_qtd:   p.embalagem_qtd   != null ? parseFloat(p.embalagem_qtd)   : null,
   };
 }
 
@@ -62,7 +64,8 @@ const LIMITES_PLANO = { essencial: 50, pro: Infinity, premium: Infinity };
 exports.criar = async (req, res) => {
   try {
     const { codigo_barras, nome, unidade, categoria_id, fornecedor_id, custo_unitario,
-            preco_venda, estoque_atual, estoque_minimo, validade } = req.body;
+            preco_venda, estoque_atual, estoque_minimo, validade,
+            embalagem_preco, embalagem_qtd } = req.body;
     if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório.' });
 
     // Verifica limite do plano
@@ -75,11 +78,13 @@ exports.criar = async (req, res) => {
 
     const [result] = await db.query(
       `INSERT INTO produtos (padaria_id, categoria_id, fornecedor_id, codigo_barras, nome, unidade,
-        custo_unitario, preco_venda, estoque_atual, estoque_minimo, validade)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+        custo_unitario, preco_venda, estoque_atual, estoque_minimo, validade,
+        embalagem_preco, embalagem_qtd)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [req.padaria.id, categoria_id || null, fornecedor_id || null, codigo_barras || null, nome,
        unidade || 'UNIDADE', custo_unitario || 0, preco_venda || 0,
-       estoque_atual || 0, estoque_minimo || 0, validade || null]
+       estoque_atual || 0, estoque_minimo || 0, validade || null,
+       embalagem_preco || null, embalagem_qtd || null]
     );
     const [novo] = await db.query('SELECT * FROM produtos WHERE id = ?', [result.insertId]);
     res.status(201).json(novo[0]);
@@ -92,7 +97,8 @@ exports.criar = async (req, res) => {
 exports.atualizar = async (req, res) => {
   try {
     const campos = ['codigo_barras','nome','unidade','categoria_id','fornecedor_id',
-                    'custo_unitario','preco_venda','estoque_atual','estoque_minimo','validade','ultima_compra'];
+                    'custo_unitario','preco_venda','estoque_atual','estoque_minimo','validade','ultima_compra',
+                    'embalagem_preco','embalagem_qtd'];
     const sets = []; const vals = [];
     for (const c of campos) {
       if (req.body[c] !== undefined) { sets.push(`${c} = ?`); vals.push(req.body[c]); }
