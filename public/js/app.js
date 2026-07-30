@@ -3944,13 +3944,17 @@ function unidadesCompativeisFrontend(unidadeProduto) {
   return [unidadeProduto];
 }
 
+const UNIDADES_SEM_CUSTO = ['ml','L','g','kg','un'];
+
 function adicionarLinhaIngrediente(item = null) {
   const idx = fichaEditandoItens.length;
   fichaEditandoItens.push(item || {});
   const produtoSelecionado = item && item.produto_id ? produtosCache.find(p => p.id == item.produto_id) : null;
+  const ehSemCusto = item && !produtoSelecionado && item.nome_livre;
   const unidadeBase = produtoSelecionado ? produtoSelecionado.unidade : 'un';
   const unidadeAtual = item ? item.unidade : unidadeBase;
-  const unidadeOpts = unidadesCompativeisFrontend(unidadeBase)
+  const listaUnidades = ehSemCusto ? UNIDADES_SEM_CUSTO : unidadesCompativeisFrontend(unidadeBase);
+  const unidadeOpts = (listaUnidades.includes(unidadeAtual) ? listaUnidades : [unidadeAtual, ...listaUnidades])
     .map(u => `<option value="${u}" ${u === unidadeAtual ? 'selected' : ''}>${u}</option>`).join('');
   const nomeExibido = produtoSelecionado ? produtoSelecionado.nome : (item && item.nome_livre ? item.nome_livre : '');
   const div = document.createElement('div');
@@ -4000,7 +4004,7 @@ function selecionarIngredienteFicha(item) {
   if (produtoId === '__semcusto__') {
     idInput.value = '';
     nomeLivreInput.value = nome;
-    selUnidade.innerHTML = ['ml','L','g','kg','un'].map(u => `<option value="${u}">${u}</option>`).join('');
+    selUnidade.innerHTML = UNIDADES_SEM_CUSTO.map(u => `<option value="${u}">${u}</option>`).join('');
   } else {
     idInput.value = produtoId;
     nomeLivreInput.value = '';
