@@ -3947,18 +3947,22 @@ function unidadesCompativeisFrontend(unidadeProduto) {
 function adicionarLinhaIngrediente(item = null) {
   const idx = fichaEditandoItens.length;
   fichaEditandoItens.push(item || {});
-  const opts = produtosCache.map(p => `<option value="${p.id}" data-unidade="${p.unidade||'un'}" ${item && item.produto_id == p.id ? 'selected' : ''}>${p.nome} (${p.unidade||'un'})</option>`).join('');
-  const produtoSelecionado = item ? produtosCache.find(p => p.id == item.produto_id) : null;
+  const produtoSelecionado = item && item.produto_id ? produtosCache.find(p => p.id == item.produto_id) : null;
   const unidadeBase = produtoSelecionado ? produtoSelecionado.unidade : 'un';
   const unidadeAtual = item ? item.unidade : unidadeBase;
   const unidadeOpts = unidadesCompativeisFrontend(unidadeBase)
     .map(u => `<option value="${u}" ${u === unidadeAtual ? 'selected' : ''}>${u}</option>`).join('');
+  const nomeExibido = produtoSelecionado ? produtoSelecionado.nome : (item && item.nome_livre ? item.nome_livre : '');
   const div = document.createElement('div');
   div.className = 'ficha-ingrediente-linha';
   div.innerHTML = `
-    <select class="form-control fi-produto" onchange="atualizarUnidadeIngrediente(this,${idx})">
-      <option value="">Selecionar produto...</option>${opts}
-    </select>
+    <div class="fi-busca-wrap" style="position:relative;flex:1;">
+      <input type="text" class="form-control fi-produto-texto" placeholder="Buscar produto..." autocomplete="off"
+        value="${nomeExibido}" oninput="filtrarIngredienteFicha(this)" onfocus="filtrarIngredienteFicha(this)"/>
+      <input type="hidden" class="fi-produto-id" value="${produtoSelecionado ? produtoSelecionado.id : ''}"/>
+      <input type="hidden" class="fi-nome-livre" value="${item && !produtoSelecionado && item.nome_livre ? item.nome_livre : ''}"/>
+      <div class="autocomplete-lista fi-lista hidden"></div>
+    </div>
     <input type="number" class="form-control fi-qtd" placeholder="Qtd" min="0" step="any" value="${item ? item.quantidade : ''}">
     <select class="form-control fi-unidade" style="width:70px;">${unidadeOpts}</select>
     <button class="btn-danger" style="padding:6px 10px;font-size:12px;" onclick="this.parentElement.remove()">✕</button>
@@ -3966,24 +3970,70 @@ function adicionarLinhaIngrediente(item = null) {
   document.getElementById('fichas-ingredientes-lista').appendChild(div);
 }
 
-function atualizarUnidadeIngrediente(sel, idx) {
-  const opt = sel.options[sel.selectedIndex];
-  const unidadeBase = opt.dataset.unidade || 'un';
-  const selUnidade = sel.parentElement.querySelector('.fi-unidade');
-  const unidadeOpts = unidadesCompativeisFrontend(unidadeBase)
-    .map(u => `<option value="${u}">${u}</option>`).join('');
-  selUnidade.innerHTML = unidadeOpts;
+function filtrarIngredienteFicha(input) {
+  const termo = input.value.trim().toLowerCase();
+  const lista = input.parentElement.querySelector('.fi-lista');
+  if (!termo) { lista.classList.add('hidden'); return; }
+  const filtrados = produtosCache.filter(p => p.nome.toLowerCase().includes(termo)).slice(0, 8);
+  const itensHtml = filtrados.map(p =>
+    `<div class="autocomplete-item fi-item" data-produto-id="${p.id}" data-nome="${p.nome.replace(/"/g,'&quot;')}" data-unidade="${p.unidade||'un'}">${p.nome} <span style="color:var(--slate-400);font-size:12px;">${p.unidade||'un'}</span></div>`
+  );
+  itensHtml.push(`<div class="autocomplete-item fi-item" data-produto-id="__semcusto__" data-nome="${input.value.trim().replace(/"/g,'&quot;')}" data-unidade="un" style="color:var(--slate-500);">💧 Ingrediente sem custo/estoque (ex: água): "${input.value.trim()}"</div>`);
+  lista.innerHTML = itensHtml.join('');
+  lista.classList.remove('hidden');
 }
+
+function selecionarIngredienteFicha(item) {
+  const wrap = item.closest('.fi-busca-wrap');
+  const linha = item.closest('.ficha-ingrediente-linha');
+  const produtoId = item.dataset.produtoId;
+  const nome = item.dataset.nome;
+  const unidadeBase = item.dataset.unidade || 'un';
+  const textoInput = wrap.querySelector('.fi-produto-texto');
+  const idInput = wrap.querySelector('.fi-produto-id');
+  const nomeLivreInput = wrap.querySelector('.fi-nome-livre');
+  const selUnidade = linha.querySelector('.fi-unidade');
+
+  textoInput.value = nome;
+  wrap.querySelector('.fi-lista').classList.add('hidden');
+
+  if (produtoId === '__semcusto__') {
+    idInput.value = '';
+    nomeLivreInput.value = nome;
+    selUnidade.innerHTML = '<option value="un">un</option>';
+  } else {
+    idInput.value = produtoId;
+    nomeLivreInput.value = '';
+    const unidadeOpts = unidadesCompativeisFrontend(unidadeBase)
+      .map(u => `<option value="${u}">${u}</option>`).join('');
+    selUnidade.innerHTML = unidadeOpts;
+  }
+}
+
+document.addEventListener('mousedown', e => {
+  const item = e.target.closest('.fi-item');
+  if (item) {
+    e.preventDefault();
+    selecionarIngredienteFicha(item);
+    return;
+  }
+  if (!e.target.closest('.fi-busca-wrap')) {
+    document.querySelectorAll('.fi-lista').forEach(l => l.classList.add('hidden'));
+  }
+});
 
 async function salvarFicha() {
   const id = document.getElementById('ficha-id').value;
   const linhas = document.querySelectorAll('.ficha-ingrediente-linha');
   const itens = [];
   for (const linha of linhas) {
-    const produto_id = linha.querySelector('.fi-produto').value;
+    const produto_id = linha.querySelector('.fi-produto-id').value;
+    const nome_livre = linha.querySelector('.fi-nome-livre').value;
     const quantidade = parseFloat(linha.querySelector('.fi-qtd').value);
     const unidade = linha.querySelector('.fi-unidade').value;
-    if (produto_id && quantidade > 0) itens.push({ produto_id: parseInt(produto_id), quantidade, unidade });
+    if ((produto_id || nome_livre) && quantidade > 0) {
+      itens.push({ produto_id: produto_id ? parseInt(produto_id) : null, nome_livre: nome_livre || null, quantidade, unidade });
+    }
   }
 
   const body = {

@@ -771,9 +771,9 @@ router.get('/fichas', auth, authPro, wrap(async (req, res) => {
     [req.padaria.id]
   );
   const [itens] = await db.query(
-    `SELECT i.ficha_id, i.quantidade, i.unidade, p.custo_unitario, p.unidade AS produto_unidade
+    `SELECT i.ficha_id, i.quantidade, i.unidade, i.produto_id, p.custo_unitario, p.unidade AS produto_unidade
      FROM itens_ficha i
-     JOIN produtos p ON p.id = i.produto_id
+     LEFT JOIN produtos p ON p.id = i.produto_id
      JOIN fichas_tecnicas f ON f.id = i.ficha_id
      WHERE f.padaria_id = ? AND f.ativo = 1`,
     [req.padaria.id]
@@ -781,8 +781,10 @@ router.get('/fichas', auth, authPro, wrap(async (req, res) => {
   const porFicha = {};
   for (const it of itens) {
     if (!porFicha[it.ficha_id]) porFicha[it.ficha_id] = { total: 0, count: 0 };
-    const qtdConvertida = converterQtd(it.quantidade, it.unidade, it.produto_unidade);
-    porFicha[it.ficha_id].total += qtdConvertida * (it.custo_unitario || 0);
+    if (it.produto_id) {
+      const qtdConvertida = converterQtd(it.quantidade, it.unidade, it.produto_unidade);
+      porFicha[it.ficha_id].total += qtdConvertida * (it.custo_unitario || 0);
+    }
     porFicha[it.ficha_id].count += 1;
   }
   res.json(fichas.map(f => ({
@@ -804,12 +806,15 @@ router.get('/fichas/:id', auth, authPro, wrap(async (req, res) => {
   const [itensRaw] = await db.query(
     `SELECT i.*, p.nome AS produto_nome, p.unidade AS produto_unidade, p.custo_unitario
      FROM itens_ficha i
-     JOIN produtos p ON p.id = i.produto_id
+     LEFT JOIN produtos p ON p.id = i.produto_id
      WHERE i.ficha_id = ?
-     ORDER BY p.nome`,
+     ORDER BY COALESCE(p.nome, i.nome_livre)`,
     [req.params.id]
   );
   const itens = itensRaw.map(i => {
+    if (!i.produto_id) {
+      return { ...i, produto_nome: i.nome_livre || 'Ingrediente sem custo', custo_unitario: 0, custo_item: 0 };
+    }
     const qtdConvertida = converterQtd(i.quantidade, i.unidade, i.produto_unidade);
     return { ...i, custo_item: qtdConvertida * (i.custo_unitario || 0) };
   });
@@ -831,8 +836,8 @@ router.post('/fichas', auth, authPro, wrap(async (req, res) => {
   if (itens && itens.length) {
     for (const item of itens) {
       await db.query(
-        'INSERT INTO itens_ficha (ficha_id, produto_id, quantidade, unidade) VALUES (?,?,?,?)',
-        [fichaId, item.produto_id, item.quantidade, item.unidade || 'un']
+        'INSERT INTO itens_ficha (ficha_id, produto_id, quantidade, unidade, nome_livre) VALUES (?,?,?,?,?)',
+        [fichaId, item.produto_id || null, item.quantidade, item.unidade || 'un', item.produto_id ? null : (item.nome_livre || null)]
       );
     }
   }
@@ -854,8 +859,8 @@ router.put('/fichas/:id', auth, authPro, wrap(async (req, res) => {
   if (itens && itens.length) {
     for (const item of itens) {
       await db.query(
-        'INSERT INTO itens_ficha (ficha_id, produto_id, quantidade, unidade) VALUES (?,?,?,?)',
-        [req.params.id, item.produto_id, item.quantidade, item.unidade || 'un']
+        'INSERT INTO itens_ficha (ficha_id, produto_id, quantidade, unidade, nome_livre) VALUES (?,?,?,?,?)',
+        [req.params.id, item.produto_id || null, item.quantidade, item.unidade || 'un', item.produto_id ? null : (item.nome_livre || null)]
       );
     }
   }
