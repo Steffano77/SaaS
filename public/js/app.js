@@ -2093,12 +2093,13 @@ function mostrarToast(msg) {
   if (!t) {
     t = document.createElement('div');
     t.id = 'toast-global';
-    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#166534;color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.2);';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#166534;color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.2);max-width:90vw;width:max-content;text-align:center;line-height:1.4;';
     document.body.appendChild(t);
   }
   t.textContent = msg;
   t.style.display = 'block';
-  setTimeout(() => { t.style.display = 'none'; }, 3500);
+  clearTimeout(t._t);
+  t._t = setTimeout(() => { t.style.display = 'none'; }, msg.length > 60 ? 5000 : 3500);
 }
 
 function toggleCalcCx() {
@@ -4238,7 +4239,7 @@ async function salvarConfigPrecificacao() {
   ]);
 
   if (r1 && r2 && r3) {
-    mostrarToast('Configurações salvas!', 'ok');
+    mostrarToast('✅ Configuração salva! Agora suas fichas técnicas vão sugerir preço automaticamente com base nesses números.', 'ok');
     fecharConfigPrecificacao();
     // Recarregar fichas para atualizar preços sugeridos
     carregarFichas();
