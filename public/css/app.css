@@ -1402,7 +1402,7 @@ tr.tr-saida td { color: var(--red-600); }
 .saida-item-zebra { background: rgba(100, 116, 139, 0.07); }
 [data-theme="dark"] .saida-item-zebra { background: rgba(255, 255, 255, 0.045); }
 .saida-item-nome { font-weight: 600; font-size: 14px; color: var(--slate-800); }
-.saida-item-sub  { font-size: 12px; color: var(--slate-400); margin-top: 2px; }
+.saida-item-sub  { font-size: 12px; color: var(--slate-500); margin-top: 2px; }
 .saida-item-data { font-size: 11px; color: var(--slate-400); margin-top: 2px; }
 
 /* Pedidos pendentes de recebimento */
