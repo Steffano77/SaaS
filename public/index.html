@@ -1101,6 +1101,11 @@
       </div>
     </div>
 
+    <div id="aviso-producao" class="hidden" style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <span style="color:#92400e;font-size:13px;font-weight:600;">⚠️ Confira se a ficha técnica da receita está certa (quantidades e unidades) antes de registrar a produção — é ela que vai calcular a baixa do estoque.</span>
+      <button onclick="dispensarAvisoProducao()" style="background:#f97316;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">Entendi</button>
+    </div>
+
     <!-- KPIs -->
     <div class="prod-kpis-row">
       <div class="kpi-card"><div class="kpi-label">Produções hoje</div><div class="kpi-value" id="prod-kpi-hoje">—</div></div>
@@ -1334,7 +1339,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260730a"></script>
+<script src="/js/app.js?v=20260730b"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

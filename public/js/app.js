@@ -4288,7 +4288,14 @@ function calcularPrecoSugerido(custoTotal, rendimento) {
 // ── Controle de Produção ──────────────────────────────────────────────────
 let fichasCacheProducao = [];
 
+function dispensarAvisoProducao() {
+  localStorage.setItem('pp_aviso_producao_visto', '1');
+  document.getElementById('aviso-producao')?.classList.add('hidden');
+}
+
 async function carregarProducao() {
+  const avisoEl = document.getElementById('aviso-producao');
+  if (avisoEl) avisoEl.classList.toggle('hidden', localStorage.getItem('pp_aviso_producao_visto') === '1');
   const _btn = document.getElementById('btn-nova-producao');
   if (ROLE_ATUAL !== 'admin' && !['premium'].includes(PLANO_ATUAL)) {
     const lista = document.getElementById('prod-lista');
