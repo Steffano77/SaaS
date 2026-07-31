@@ -283,9 +283,14 @@ router.get('/relatorios/mes', auth, authPro, wrap(async (req, res) => {
   });
 }));
 
-// Saídas últimos 30 dias
+// Saídas de um mês calendário (padrão: mês atual). O histórico de meses
+// anteriores fica sempre acessível — os registros nunca são apagados,
+// só filtrados por mês na consulta.
 router.get('/saidas/recentes', auth, wrap(async (req, res) => {
   const db = require('../database/connection');
+  const mes = /^\d{4}-\d{2}$/.test(req.query.mes || '')
+    ? req.query.mes
+    : new Date().toISOString().slice(0, 7);
   const [rows] = await db.query(`
     SELECT m.id, m.quantidade, m.custo_unit, m.valor_total, m.data, m.observacao,
            p.nome AS produto, p.unidade,
@@ -294,9 +299,9 @@ router.get('/saidas/recentes', auth, wrap(async (req, res) => {
     JOIN produtos p ON p.id = m.produto_id
     LEFT JOIN fornecedores f ON f.id = p.fornecedor_id AND f.padaria_id = m.padaria_id
     WHERE m.padaria_id = ? AND m.tipo = 'saida'
-      AND m.data >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-    ORDER BY COALESCE(f.nome, 'Sem fornecedor'), m.data DESC, m.id DESC
-    LIMIT 200`, [req.padaria.id]);
+      AND DATE_FORMAT(m.data, '%Y-%m') = ?
+    ORDER BY COALESCE(f.nome, 'Sem fornecedor'), m.data DESC, m.id DESC`,
+    [req.padaria.id, mes]);
   res.json(rows);
 }));
 

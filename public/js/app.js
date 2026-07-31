@@ -784,15 +784,35 @@ async function carregarDashboard() {
   } catch(e) {}
 }
 
-async function abrirTelaSaidas() {
+function popularMesesSaidas() {
+  const sel = document.getElementById('saidas-mes');
+  if (sel.options.length > 0) return;
+  const hoje = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+    const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const label = d.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+    const opt = new Option(label.charAt(0).toUpperCase()+label.slice(1), val);
+    sel.appendChild(opt);
+  }
+}
+
+async function abrirTelaSaidas(mes) {
   const tela = document.getElementById('tela-saidas');
   const lista = document.getElementById('saidas-lista');
+  popularMesesSaidas();
+  const selMes = document.getElementById('saidas-mes');
+  if (mes) selMes.value = mes;
+  const mesEscolhido = selMes.value || selMes.options[0]?.value;
+  const labelMes = selMes.options[selMes.selectedIndex]?.text || '';
+  document.getElementById('saidas-titulo').textContent = `Saídas — ${labelMes}`;
   lista.innerHTML = '<p style="padding:20px;color:var(--slate-400);text-align:center;">Carregando...</p>';
   tela.classList.remove('hidden');
 
-  const rows = await api('/saidas/recentes') || [];
+  const rows = await api(`/saidas/recentes?mes=${mesEscolhido}`) || [];
   if (!rows.length) {
-    lista.innerHTML = '<p style="padding:32px;text-align:center;color:var(--slate-400);">Nenhuma saída nos últimos 30 dias.</p>';
+    lista.innerHTML = `<p style="padding:32px;text-align:center;color:var(--slate-400);">Nenhuma saída em ${labelMes}.</p>`;
+    window._saidasRows = [];
     return;
   }
 
@@ -817,7 +837,7 @@ function renderizarSaidas(rows) {
       const data = new Date(r.data).toLocaleDateString('pt-BR');
       const valor = parseFloat(r.valor_total || 0).toLocaleString('pt-BR',{minimumFractionDigits:2});
       const custo = parseFloat(r.custo_unit || 0).toLocaleString('pt-BR',{minimumFractionDigits:2});
-      return `<div class="saida-item">
+      return `<div class="saida-item${r._idx % 2 === 0 ? ' saida-item-zebra' : ''}">
         <input type="checkbox" class="saida-check" data-idx="${r._idx}" style="width:16px;height:16px;flex-shrink:0;accent-color:var(--navy);cursor:pointer;"/>
         <div style="flex:1;min-width:0;">
           <div class="saida-item-nome">${r.produto}</div>
@@ -939,7 +959,7 @@ function imprimirSaidas() {
     </style></head><body>
     <div class="page-header">
       <div class="page-header-left">
-        <h2>${document.getElementById('sidebar-nome').textContent} — Saídas</h2>
+        <h2>${document.getElementById('sidebar-nome').textContent} — ${document.getElementById('saidas-titulo')?.textContent || 'Saídas'}</h2>
         <p>Impresso em ${new Date().toLocaleDateString('pt-BR')} · ${alvo.length} registros</p>
       </div>
       <div class="page-header-right">
