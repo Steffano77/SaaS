@@ -12,6 +12,16 @@ const upload = multer({
     cb(new Error('Tipo de arquivo não permitido.'));
   }
 });
+const uploadImagem = multer({
+  dest: '/tmp/panificapro/',
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB máximo
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.heic'];
+    const ext = require('path').extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) return cb(null, true);
+    cb(new Error('Envie uma imagem (jpg, png ou webp).'));
+  }
+});
 
 // Wrapper para capturar erros em rotas async inline
 const wrap = fn => async (req, res, next) => {
@@ -30,6 +40,7 @@ const senhaCtrl      = require('../controllers/senhaController');
 const hotmartCtrl    = require('../controllers/hotmartController');
 const saurusCtrl     = require('../controllers/saurusController');
 const financeiroCtrl = require('../controllers/financeiroController');
+const maquininhaCtrl = require('../controllers/maquininhaController');
 
 // Webhook Hotmart (sem auth — validação de assinatura feita dentro do controller)
 router.post('/hotmart/webhook', hotmartCtrl.webhook);
@@ -106,6 +117,8 @@ router.put('/financeiro/contas-pagar/:id',  auth, authPremium, wrap(financeiroCt
 router.delete('/financeiro/contas-pagar/:id', auth, authPremium, wrap(financeiroCtrl.excluirContaPagar));
 router.post('/financeiro/pin/reset',          auth, authPremium, wrap(financeiroCtrl.solicitarResetPin));
 router.post('/financeiro/pin/confirmar-reset',               wrap(financeiroCtrl.confirmarResetPin));
+router.post('/financeiro/maquininha/preview',   auth, authPremium, uploadImagem.single('foto'), wrap(maquininhaCtrl.preview));
+router.post('/financeiro/maquininha/confirmar', auth, authPremium, wrap(maquininhaCtrl.confirmar));
 
 // Importação genérica
 router.post('/sync/preview',   auth, upload.single('arquivo'), importCtrl.preview);

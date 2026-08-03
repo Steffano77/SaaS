@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260730a"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260730b"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -539,6 +539,7 @@
           <button onclick="abrirModalFinanceiro('entrada')" class="btn-primary" style="background:#16a34a;font-size:12px;padding:7px 12px;">↑ Entrada</button>
           <button onclick="abrirModalFinanceiro('saida')" class="btn-primary" style="background:#dc2626;font-size:12px;padding:7px 12px;">↓ Saída</button>
           <button onclick="abrirModalContaPagar()" class="btn-secondary" style="font-size:12px;padding:7px 12px;">⚠ Conta a pagar</button>
+          <button onclick="abrirModalMaquininha()" class="btn-secondary" style="font-size:12px;padding:7px 12px;">📸 Fechamento maquininha</button>
         </div>
       </div>
 
@@ -767,6 +768,57 @@
           </select>
         </div>
         <button onclick="salvarContaPagar()" class="fin-confirmar-btn saida" style="margin-top:4px;">💾 Salvar conta</button>
+      </div>
+    </div>
+
+    <!-- Fechamento da maquininha (foto → OCR → lançamento) -->
+    <div id="modal-maquininha" class="modal-overlay hidden">
+      <div class="modal-box maq-box">
+        <div class="modal-header">
+          <span class="modal-title">📸 Fechamento da maquininha</span>
+          <button onclick="fecharModalMaquininha()" class="btn-icon">✕</button>
+        </div>
+
+        <!-- Etapa 1: captura da foto -->
+        <div id="maq-etapa-foto">
+          <label for="maq-input-foto" class="maq-upload-area">
+            <div class="maq-upload-icon">📷</div>
+            <div class="maq-upload-titulo">Tirar foto ou escolher da galeria</div>
+            <div class="maq-upload-sub">Comprovante de fechamento da maquininha (Sicredi, Stone, Cielo...)</div>
+          </label>
+          <input type="file" id="maq-input-foto" accept="image/*" capture="environment" style="display:none;" onchange="processarFotoMaquininha(this.files[0])"/>
+        </div>
+
+        <!-- Etapa 2: carregando -->
+        <div id="maq-etapa-loading" class="hidden maq-loading">
+          <div class="maq-spinner"></div>
+          <div class="maq-loading-texto">Lendo o comprovante...</div>
+        </div>
+
+        <!-- Etapa 3: revisão dos itens extraídos -->
+        <div id="maq-etapa-revisao" class="hidden">
+          <div class="maq-periodo-sub" id="maq-periodo-texto"></div>
+          <div id="maq-itens-lista" class="maq-itens-lista"></div>
+          <div class="form-group" style="margin-top:14px;">
+            <label class="form-label">Data do lançamento</label>
+            <input type="date" id="maq-data" class="form-control"/>
+          </div>
+          <div class="maq-total-row">
+            <span>Total a lançar</span>
+            <strong id="maq-total-geral">R$ 0,00</strong>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:14px;">
+            <button onclick="fecharModalMaquininha()" class="btn-ghost" style="flex:1;">Cancelar</button>
+            <button onclick="confirmarMaquininha()" class="fin-confirmar-btn entrada" style="flex:2;">✅ Confirmar e lançar</button>
+          </div>
+        </div>
+
+        <!-- Erro -->
+        <div id="maq-etapa-erro" class="hidden maq-erro">
+          <div style="font-size:32px;">⚠️</div>
+          <div id="maq-erro-texto" style="margin:8px 0 14px;color:var(--slate-600);font-size:14px;"></div>
+          <button onclick="reiniciarModalMaquininha()" class="btn-secondary">Tentar novamente</button>
+        </div>
       </div>
     </div>
 
@@ -1339,7 +1391,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260730b"></script>
+<script src="/js/app.js?v=20260730c"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

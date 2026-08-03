@@ -2028,6 +2028,134 @@ async function pagarContaDireta(id) {
   if (r.ok) { mostrarToast('✅ Conta baixada!'); carregarFinanceiro(); }
 }
 
+// ── Fechamento da maquininha (foto → OCR → lançamento) ──────────────────────
+const MAQ_ESTILOS = {
+  'Crédito': { icone: '💳', cor: '#f97316' },
+  'Débito':  { icone: '💳', cor: '#0ea5e9' },
+  'Voucher': { icone: '🎫', cor: '#8b5cf6' },
+  'Pix':     { icone: '⚡', cor: '#16a34a' },
+  'Dinheiro':{ icone: '💵', cor: '#64748b' },
+};
+let _maqItens = [];
+let _maqPeriodoLabel = '';
+
+function abrirModalMaquininha() {
+  reiniciarModalMaquininha();
+  document.getElementById('modal-maquininha').classList.remove('hidden');
+}
+
+function fecharModalMaquininha() {
+  document.getElementById('modal-maquininha').classList.add('hidden');
+}
+
+function reiniciarModalMaquininha() {
+  document.getElementById('maq-etapa-foto').classList.remove('hidden');
+  document.getElementById('maq-etapa-loading').classList.add('hidden');
+  document.getElementById('maq-etapa-revisao').classList.add('hidden');
+  document.getElementById('maq-etapa-erro').classList.add('hidden');
+  document.getElementById('maq-input-foto').value = '';
+  _maqItens = [];
+}
+
+async function processarFotoMaquininha(file) {
+  if (!file) return;
+  document.getElementById('maq-etapa-foto').classList.add('hidden');
+  document.getElementById('maq-etapa-loading').classList.remove('hidden');
+
+  const form = new FormData();
+  form.append('foto', file);
+  try {
+    const r = await fetch(`${API}/financeiro/maquininha/preview`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${TOKEN}` },
+      body: form
+    });
+    const d = await r.json();
+    document.getElementById('maq-etapa-loading').classList.add('hidden');
+    if (!r.ok) {
+      document.getElementById('maq-erro-texto').textContent = d.erro || 'Não consegui ler esse comprovante.';
+      document.getElementById('maq-etapa-erro').classList.remove('hidden');
+      return;
+    }
+    renderizarRevisaoMaquininha(d);
+  } catch (e) {
+    document.getElementById('maq-etapa-loading').classList.add('hidden');
+    document.getElementById('maq-erro-texto').textContent = 'Erro de conexão ao processar a imagem.';
+    document.getElementById('maq-etapa-erro').classList.remove('hidden');
+  }
+}
+
+function renderizarRevisaoMaquininha(dados) {
+  _maqItens = dados.itens || [];
+  _maqPeriodoLabel = dados.periodo_inicio && dados.periodo_fim
+    ? (dados.periodo_inicio === dados.periodo_fim ? dados.periodo_inicio : `${dados.periodo_inicio} a ${dados.periodo_fim}`)
+    : '';
+
+  document.getElementById('maq-periodo-texto').textContent = _maqPeriodoLabel
+    ? `Período identificado: ${_maqPeriodoLabel}`
+    : 'Confira os valores identificados abaixo';
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  document.getElementById('maq-data').value = hoje;
+
+  renderizarItensMaquininha();
+  document.getElementById('maq-etapa-revisao').classList.remove('hidden');
+}
+
+function renderizarItensMaquininha() {
+  const lista = document.getElementById('maq-itens-lista');
+  lista.innerHTML = _maqItens.map((item, i) => {
+    const estilo = MAQ_ESTILOS[item.tipo] || { icone: '💰', cor: '#f97316' };
+    return `
+      <div class="maq-item-card" style="--maq-cor:${estilo.cor}">
+        <div class="maq-item-icone">${estilo.icone}</div>
+        <div class="maq-item-info">
+          <div class="maq-item-nome">${item.tipo}</div>
+          <div class="maq-item-qtd">${item.quantidade} transaç${item.quantidade === 1 ? 'ão' : 'ões'}</div>
+          <div class="maq-item-barra-fundo"><div class="maq-item-barra" style="width:${item.percentual}%"></div></div>
+        </div>
+        <div class="maq-item-valores">
+          <input type="number" step="0.01" min="0" class="maq-item-input" value="${item.total}" oninput="atualizarItemMaquininha(${i}, this.value)"/>
+          <div class="maq-item-pct">${item.percentual}%</div>
+        </div>
+      </div>`;
+  }).join('');
+  atualizarTotalMaquininha();
+}
+
+function atualizarItemMaquininha(idx, valor) {
+  _maqItens[idx].total = parseFloat(valor) || 0;
+  const totalGeral = _maqItens.reduce((s, i) => s + i.total, 0);
+  _maqItens.forEach(i => { i.percentual = totalGeral > 0 ? parseFloat((i.total / totalGeral * 100).toFixed(1)) : 0; });
+  renderizarItensMaquininha();
+}
+
+function atualizarTotalMaquininha() {
+  const total = _maqItens.reduce((s, i) => s + (parseFloat(i.total) || 0), 0);
+  document.getElementById('maq-total-geral').textContent = 'R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+}
+
+async function confirmarMaquininha() {
+  const data = document.getElementById('maq-data').value;
+  if (!data) { mostrarToast('Escolha a data do lançamento.'); return; }
+  const itensValidos = _maqItens.filter(i => parseFloat(i.total) > 0);
+  if (!itensValidos.length) { mostrarToast('Nenhum valor pra lançar.'); return; }
+
+  const r = await fetch(`${API}/financeiro/maquininha/confirmar`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ itens: itensValidos, data, periodo_label: _maqPeriodoLabel })
+  });
+  const d = await r.json();
+  if (r.ok) {
+    fecharModalMaquininha();
+    mostrarToast(`✅ ${d.lancados} lançamento(s) registrados no Financeiro!`);
+    carregarFinanceiro();
+  } else {
+    mostrarToast(d.erro || 'Erro ao lançar.');
+  }
+}
+
 // ── Onboarding ──────────────────────────────────────────────────────────────
 async function verificarOnboarding() {
   if (localStorage.getItem('onboarding_dispensado')) return;
