@@ -127,12 +127,17 @@ router.post('/financeiro/resumo-dia/enviar-email', auth, authPremium, wrap(async
 
   const { Resend } = require('resend');
   const resend = new Resend(process.env.RESEND_API_KEY);
-  await resend.emails.send({
+  const { data, error } = await resend.emails.send({
     from: process.env.EMAIL_FROM || 'PanificaPro <onboarding@resend.dev>',
     to: padaria.email_destino,
     subject: `📊 Resumo de hoje — ${padaria.nome}`,
     html: montarHtmlEmail(padaria.nome, dataLabel, resumo),
   });
+  if (error) {
+    console.error('[resumo-dia/enviar-email] Resend recusou o envio:', error);
+    return res.status(502).json({ erro: `Falha ao enviar: ${error.message || error.name || 'erro desconhecido no Resend'}` });
+  }
+  console.log('[resumo-dia/enviar-email] Enviado com sucesso, id:', data?.id);
   res.json({ ok: true, enviado_para: padaria.email_destino });
 }));
 router.post('/financeiro/pin',              auth, authPremium, wrap(financeiroCtrl.verificarPin));

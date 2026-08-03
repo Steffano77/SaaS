@@ -86,13 +86,17 @@ async function enviarResumoDiarioParaTodos() {
       // Não manda email se não teve nenhuma movimentação no dia
       if (resumo.total_entradas === 0 && resumo.total_saidas === 0) continue;
 
-      await resend.emails.send({
+      const { data, error } = await resend.emails.send({
         from: process.env.EMAIL_FROM || 'PanificaPro <onboarding@resend.dev>',
         to: padaria.email_destino,
         subject: `📊 Resumo de hoje — ${padaria.nome}`,
         html: montarHtmlEmail(padaria.nome, dataLabel, resumo),
       });
-      console.log(`[relatorio-diario] Enviado para ${padaria.email_destino} (${padaria.nome}).`);
+      if (error) {
+        console.error(`[relatorio-diario] Resend recusou o envio para ${padaria.email_destino}:`, error);
+        continue;
+      }
+      console.log(`[relatorio-diario] Enviado para ${padaria.email_destino} (${padaria.nome}), id: ${data?.id}`);
     } catch (e) {
       console.error(`[relatorio-diario] Erro ao enviar para padaria ${padaria.id}:`, e.message);
     }
