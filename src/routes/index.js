@@ -679,6 +679,13 @@ const authAdmin = (req, res, next) => {
   next();
 };
 
+// Dispara manualmente o envio do relatório diário por email (para testes)
+router.post('/admin/relatorio-diario/testar', auth, authAdmin, wrap(async (req, res) => {
+  const { enviarResumoDiarioParaTodos } = require('../jobs/relatorioDiario');
+  await enviarResumoDiarioParaTodos();
+  res.json({ ok: true });
+}));
+
 router.get('/admin/padarias', auth, authAdmin, wrap(async (req, res) => {
   const db = require('../database/connection');
   const [rows] = await db.query(`
