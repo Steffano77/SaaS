@@ -182,6 +182,8 @@ app.use(express.static(path.join(__dirname, '../public')));
   }
 })();
 
+require('./jobs/relatorioDiario').iniciarJobRelatorioDiario();
+
 app.use('/api', require('./routes'));
 
 app.get('/api/health', (_, res) => res.json({ ok: true, versao: '1.0.0' }));

@@ -159,6 +159,36 @@ exports.criar = async (req, res) => {
   res.json({ ok: true, id: r.insertId });
 };
 
+// Resumo de um dia (padrão: hoje), com entradas separadas por forma de pagamento
+exports.resumoDia = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const dia = /^\d{4}-\d{2}-\d{2}$/.test(req.query.data || '')
+    ? req.query.data
+    : new Date().toISOString().slice(0, 10);
+
+  const [porForma] = await db.query(
+    `SELECT forma_pagamento, COALESCE(SUM(valor),0) AS total
+     FROM financeiro WHERE padaria_id = ? AND tipo = 'entrada' AND data = ?
+     GROUP BY forma_pagamento ORDER BY total DESC`,
+    [padaria_id, dia]
+  );
+  const [[totais]] = await db.query(
+    `SELECT
+       COALESCE(SUM(CASE WHEN tipo='entrada' THEN valor ELSE 0 END),0) AS total_entradas,
+       COALESCE(SUM(CASE WHEN tipo='saida'   THEN valor ELSE 0 END),0) AS total_saidas
+     FROM financeiro WHERE padaria_id = ? AND data = ?`,
+    [padaria_id, dia]
+  );
+
+  res.json({
+    data: dia,
+    total_entradas: parseFloat(totais.total_entradas),
+    total_saidas: parseFloat(totais.total_saidas),
+    saldo: parseFloat(totais.total_entradas) - parseFloat(totais.total_saidas),
+    entradas_por_forma: porForma.map(p => ({ forma_pagamento: p.forma_pagamento, total: parseFloat(p.total) })),
+  });
+};
+
 // Excluir movimentação
 exports.excluir = async (req, res) => {
   const padaria_id = req.padaria.id;

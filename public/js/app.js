@@ -2169,6 +2169,51 @@ async function confirmarMaquininha() {
   }
 }
 
+// ── Resumo de hoje ───────────────────────────────────────────────────────
+async function abrirModalResumoDia() {
+  document.getElementById('modal-resumo-dia').classList.remove('hidden');
+  const lista = document.getElementById('resumo-dia-lista');
+  lista.innerHTML = '<p style="padding:16px;color:var(--slate-400);text-align:center;">Carregando...</p>';
+
+  const d = await api('/financeiro/resumo-dia');
+  if (!d) { lista.innerHTML = '<p style="padding:16px;color:var(--slate-400);text-align:center;">Erro ao carregar.</p>'; return; }
+
+  const dataLabel = new Date(d.data + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+  document.getElementById('resumo-dia-data').textContent = dataLabel;
+
+  if (!d.entradas_por_forma.length) {
+    lista.innerHTML = '<p style="padding:16px;color:var(--slate-400);text-align:center;">Nenhuma entrada registrada hoje ainda.</p>';
+  } else {
+    const totalEnt = d.total_entradas || 1;
+    lista.innerHTML = d.entradas_por_forma.map(item => {
+      const estilo = MAQ_ESTILOS[item.forma_pagamento] || { icone: '💰', cor: '#f97316' };
+      const pct = totalEnt > 0 ? parseFloat((item.total / totalEnt * 100).toFixed(1)) : 0;
+      return `
+        <div class="maq-item-card" style="--maq-cor:${estilo.cor}">
+          <div class="maq-item-icone">${estilo.icone}</div>
+          <div class="maq-item-info">
+            <div class="maq-item-nome">${item.forma_pagamento}</div>
+            <div class="maq-item-barra-fundo"><div class="maq-item-barra" style="width:${pct}%"></div></div>
+          </div>
+          <div class="maq-item-valores">
+            <div class="maq-item-nome">R$ ${item.total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+            <div class="maq-item-pct">${pct}%</div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  document.getElementById('resumo-dia-entradas').textContent = 'R$ ' + d.total_entradas.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+  document.getElementById('resumo-dia-saidas').textContent   = 'R$ ' + d.total_saidas.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+  const saldoEl = document.getElementById('resumo-dia-saldo');
+  saldoEl.textContent = 'R$ ' + d.saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+  saldoEl.style.color = d.saldo >= 0 ? 'var(--orange)' : '#fca5a5';
+}
+
+function fecharModalResumoDia() {
+  document.getElementById('modal-resumo-dia').classList.add('hidden');
+}
+
 // ── Onboarding ──────────────────────────────────────────────────────────────
 async function verificarOnboarding() {
   if (localStorage.getItem('onboarding_dispensado')) return;

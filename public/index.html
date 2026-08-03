@@ -540,6 +540,7 @@
           <button onclick="abrirModalFinanceiro('saida')" class="btn-primary" style="background:#dc2626;font-size:12px;padding:7px 12px;">↓ Saída</button>
           <button onclick="abrirModalContaPagar()" class="btn-secondary" style="font-size:12px;padding:7px 12px;">⚠ Conta a pagar</button>
           <button onclick="abrirModalMaquininha()" class="btn-secondary" style="font-size:12px;padding:7px 12px;">📸 Fechamento maquininha</button>
+          <button onclick="abrirModalResumoDia()" class="btn-secondary" style="font-size:12px;padding:7px 12px;">📊 Resumo de hoje</button>
         </div>
       </div>
 
@@ -819,6 +820,30 @@
           <div style="font-size:32px;">⚠️</div>
           <div id="maq-erro-texto" style="margin:8px 0 14px;color:var(--slate-600);font-size:14px;"></div>
           <button onclick="reiniciarModalMaquininha()" class="btn-secondary">Tentar novamente</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resumo de hoje -->
+    <div id="modal-resumo-dia" class="modal-overlay hidden">
+      <div class="modal-box maq-box">
+        <div class="modal-header">
+          <span class="modal-title">📊 Resumo de hoje</span>
+          <button onclick="fecharModalResumoDia()" class="btn-icon">✕</button>
+        </div>
+        <div id="resumo-dia-data" class="maq-periodo-sub"></div>
+        <div id="resumo-dia-lista" class="maq-itens-lista"></div>
+        <div class="maq-total-row" style="background:#16a34a;">
+          <span>Total de entradas</span>
+          <strong id="resumo-dia-entradas" style="color:#fff;">R$ 0,00</strong>
+        </div>
+        <div class="maq-total-row" style="background:#dc2626;margin-top:8px;">
+          <span>Total de saídas</span>
+          <strong id="resumo-dia-saidas" style="color:#fff;">R$ 0,00</strong>
+        </div>
+        <div class="maq-total-row" style="margin-top:8px;">
+          <span>Saldo do dia</span>
+          <strong id="resumo-dia-saldo">R$ 0,00</strong>
         </div>
       </div>
     </div>
@@ -1392,7 +1417,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260730d"></script>
+<script src="/js/app.js?v=20260730e"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

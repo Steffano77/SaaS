@@ -109,6 +109,7 @@ router.get('/financeiro',                   auth, authPremium, wrap(financeiroCt
 router.post('/financeiro',                  auth, authPremium, wrap(financeiroCtrl.criar));
 router.delete('/financeiro/:id',            auth, authPremium, wrap(financeiroCtrl.excluir));
 router.get('/financeiro/grafico',           auth, authPremium, wrap(financeiroCtrl.grafico));
+router.get('/financeiro/resumo-dia',        auth, authPremium, wrap(financeiroCtrl.resumoDia));
 router.post('/financeiro/pin',              auth, authPremium, wrap(financeiroCtrl.verificarPin));
 router.put('/financeiro/pin',               auth, authPremium, wrap(financeiroCtrl.alterarPin));
 router.get('/financeiro/contas-pagar',      auth, authPremium, wrap(financeiroCtrl.listarContasPagar));
