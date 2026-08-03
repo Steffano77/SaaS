@@ -74,7 +74,9 @@ exports.preview = async (req, res) => {
   try {
     worker = await createWorker('por');
     const { data: { text } } = await worker.recognize(filePath);
+    console.log('--- OCR maquininha: texto bruto ---\n' + text + '\n--- fim texto bruto ---');
     const resultado = parseRelatorioMaquininha(text);
+    console.log('--- OCR maquininha: itens reconhecidos ---', JSON.stringify(resultado.itens));
 
     if (!resultado.itens.length) {
       return res.status(422).json({
