@@ -1798,7 +1798,7 @@ function renderMovimentacoes(movs) {
   };
   let html = '', dataAtual = '';
   movs.forEach(m => {
-    const d = new Date(m.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'2-digit' });
+    const d = new Date(String(m.data).slice(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'2-digit' });
     if (d !== dataAtual) { dataAtual = d; html += `<div class="fin-date-header">${d}</div>`; }
     const icone = FIN_ICONES[m.categoria] || '💵';
     const sinal = m.tipo === 'entrada' ? '+' : '−';
