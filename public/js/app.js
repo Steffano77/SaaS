@@ -2214,6 +2214,22 @@ function fecharModalResumoDia() {
   document.getElementById('modal-resumo-dia').classList.add('hidden');
 }
 
+async function enviarResumoDiaPorEmail() {
+  const btn = document.getElementById('btn-resumo-dia-email');
+  const textoOriginal = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  const r = await fetch(`${API}/financeiro/resumo-dia/enviar-email`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${TOKEN}` }
+  });
+  const d = await r.json();
+  btn.disabled = false;
+  btn.textContent = textoOriginal;
+  if (r.ok) mostrarToast(`✅ Resumo enviado para ${d.enviado_para}!`);
+  else mostrarToast(d.erro || 'Erro ao enviar e-mail.');
+}
+
 // ── Onboarding ──────────────────────────────────────────────────────────────
 async function verificarOnboarding() {
   if (localStorage.getItem('onboarding_dispensado')) return;

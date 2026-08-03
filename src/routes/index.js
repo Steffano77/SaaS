@@ -110,6 +110,31 @@ router.post('/financeiro',                  auth, authPremium, wrap(financeiroCt
 router.delete('/financeiro/:id',            auth, authPremium, wrap(financeiroCtrl.excluir));
 router.get('/financeiro/grafico',           auth, authPremium, wrap(financeiroCtrl.grafico));
 router.get('/financeiro/resumo-dia',        auth, authPremium, wrap(financeiroCtrl.resumoDia));
+router.post('/financeiro/resumo-dia/enviar-email', auth, authPremium, wrap(async (req, res) => {
+  if (!process.env.RESEND_API_KEY) return res.status(400).json({ erro: 'Envio de e-mail não configurado no servidor.' });
+  const db = require('../database/connection');
+  const { montarResumoDia, montarHtmlEmail } = require('../jobs/relatorioDiario');
+
+  const [[padaria]] = await db.query(
+    `SELECT nome, COALESCE(NULLIF(email_relatorio, ''), email) AS email_destino FROM padarias WHERE id = ?`,
+    [req.padaria.id]
+  );
+  if (!padaria?.email_destino) return res.status(400).json({ erro: 'Nenhum e-mail cadastrado para envio.' });
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  const dataLabel = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const resumo = await montarResumoDia(req.padaria.id, hoje);
+
+  const { Resend } = require('resend');
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  await resend.emails.send({
+    from: process.env.EMAIL_FROM || 'PanificaPro <onboarding@resend.dev>',
+    to: padaria.email_destino,
+    subject: `📊 Resumo de hoje — ${padaria.nome}`,
+    html: montarHtmlEmail(padaria.nome, dataLabel, resumo),
+  });
+  res.json({ ok: true, enviado_para: padaria.email_destino });
+}));
 router.post('/financeiro/pin',              auth, authPremium, wrap(financeiroCtrl.verificarPin));
 router.put('/financeiro/pin',               auth, authPremium, wrap(financeiroCtrl.alterarPin));
 router.get('/financeiro/contas-pagar',      auth, authPremium, wrap(financeiroCtrl.listarContasPagar));
