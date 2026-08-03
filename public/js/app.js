@@ -2038,6 +2038,7 @@ const MAQ_ESTILOS = {
 };
 let _maqItens = [];
 let _maqPeriodoLabel = '';
+let _maqTotalImpresso = null;
 
 function abrirModalMaquininha() {
   reiniciarModalMaquininha();
@@ -2054,7 +2055,9 @@ function reiniciarModalMaquininha() {
   document.getElementById('maq-etapa-revisao').classList.add('hidden');
   document.getElementById('maq-etapa-erro').classList.add('hidden');
   document.getElementById('maq-input-foto').value = '';
+  document.getElementById('maq-aviso-divergencia')?.classList.add('hidden');
   _maqItens = [];
+  _maqTotalImpresso = null;
 }
 
 async function processarFotoMaquininha(file) {
@@ -2087,6 +2090,7 @@ async function processarFotoMaquininha(file) {
 
 function renderizarRevisaoMaquininha(dados) {
   _maqItens = dados.itens || [];
+  _maqTotalImpresso = dados.total_impresso ?? null;
   _maqPeriodoLabel = dados.periodo_inicio && dados.periodo_fim
     ? (dados.periodo_inicio === dados.periodo_fim ? dados.periodo_inicio : `${dados.periodo_inicio} a ${dados.periodo_fim}`)
     : '';
@@ -2133,6 +2137,15 @@ function atualizarItemMaquininha(idx, valor) {
 function atualizarTotalMaquininha() {
   const total = _maqItens.reduce((s, i) => s + (parseFloat(i.total) || 0), 0);
   document.getElementById('maq-total-geral').textContent = 'R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+
+  const avisoEl = document.getElementById('maq-aviso-divergencia');
+  if (!avisoEl) return;
+  if (_maqTotalImpresso !== null && Math.abs(total - _maqTotalImpresso) >= 0.02) {
+    avisoEl.innerHTML = `⚠️ A soma dos itens (R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}) não bate com o total impresso no comprovante (R$ ${_maqTotalImpresso.toLocaleString('pt-BR',{minimumFractionDigits:2})}). Confira os valores com atenção antes de confirmar — o OCR pode ter lido algum dígito errado.`;
+    avisoEl.classList.remove('hidden');
+  } else {
+    avisoEl.classList.add('hidden');
+  }
 }
 
 async function confirmarMaquininha() {

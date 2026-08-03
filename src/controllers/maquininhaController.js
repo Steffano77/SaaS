@@ -57,9 +57,15 @@ function parseRelatorioMaquininha(texto) {
   // Fica com a primeira ocorrência de cada tipo — evita lançar duplicado.
   const vistos = new Set();
   const itens = [];
+  let totalImpresso = null; // valor da linha "TOTAIS" do comprovante, para conferência
   for (const linha of linhas) {
     const m = linha.match(regexLinha);
     if (!m) continue;
+    const nomeNormalizado = normalizarTexto(m[1]);
+    if (totalImpresso === null && nomeNormalizado.startsWith('totais')) {
+      totalImpresso = parseValorOCR(m[3]);
+      continue;
+    }
     const tipo = classificarTipo(m[1]);
     if (!tipo || vistos.has(tipo)) continue;
     const total = parseValorOCR(m[3]);
@@ -74,7 +80,19 @@ function parseRelatorioMaquininha(texto) {
     percentual: totalGeral > 0 ? parseFloat((i.total / totalGeral * 100).toFixed(1)) : 0,
   }));
 
-  return { periodo_inicio, periodo_fim, itens: itensComPct, total_geral: parseFloat(totalGeral.toFixed(2)) };
+  // Confere a soma dos itens lidos com o total impresso no comprovante —
+  // se não bater, o OCR provavelmente errou algum dígito.
+  const bateComTotalImpresso = totalImpresso === null
+    ? null
+    : Math.abs(totalGeral - totalImpresso) < 0.02;
+
+  return {
+    periodo_inicio, periodo_fim,
+    itens: itensComPct,
+    total_geral: parseFloat(totalGeral.toFixed(2)),
+    total_impresso: totalImpresso,
+    bate_com_total_impresso: bateComTotalImpresso,
+  };
 }
 
 // Pré-visualização: lê a foto, faz OCR, devolve os dados extraídos (sem salvar nada)
