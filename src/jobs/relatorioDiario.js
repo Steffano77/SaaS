@@ -72,7 +72,9 @@ async function enviarResumoDiarioParaTodos() {
   const dataLabel = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 
   const [padarias] = await db.query(
-    `SELECT id, nome, email FROM padarias WHERE ativo = 1 AND plano = 'premium' AND email IS NOT NULL AND email <> ''`
+    `SELECT id, nome, COALESCE(NULLIF(email_relatorio, ''), email) AS email_destino
+     FROM padarias WHERE ativo = 1 AND plano = 'premium'
+       AND COALESCE(NULLIF(email_relatorio, ''), email) IS NOT NULL`
   );
 
   const { Resend } = require('resend');
@@ -86,11 +88,11 @@ async function enviarResumoDiarioParaTodos() {
 
       await resend.emails.send({
         from: process.env.EMAIL_FROM || 'PanificaPro <onboarding@resend.dev>',
-        to: padaria.email,
+        to: padaria.email_destino,
         subject: `📊 Resumo de hoje — ${padaria.nome}`,
         html: montarHtmlEmail(padaria.nome, dataLabel, resumo),
       });
-      console.log(`[relatorio-diario] Enviado para ${padaria.email} (${padaria.nome}).`);
+      console.log(`[relatorio-diario] Enviado para ${padaria.email_destino} (${padaria.nome}).`);
     } catch (e) {
       console.error(`[relatorio-diario] Erro ao enviar para padaria ${padaria.id}:`, e.message);
     }

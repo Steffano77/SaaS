@@ -138,6 +138,7 @@ app.use(express.static(path.join(__dirname, '../public')));
       'ALTER TABLE produtos ADD COLUMN embalagem_qtd DECIMAL(10,3) NULL',
       'ALTER TABLE itens_ficha MODIFY COLUMN produto_id INT NULL',
       'ALTER TABLE itens_ficha ADD COLUMN nome_livre VARCHAR(120) NULL',
+      'ALTER TABLE padarias ADD COLUMN email_relatorio VARCHAR(120) NULL',
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
 
