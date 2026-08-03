@@ -2,39 +2,46 @@ const fs = require('fs');
 const { createWorker } = require('tesseract.js');
 const db = require('../database/connection');
 
-// Bandeiras que aparecem como sub-linhas dentro de CRÉDITO/DÉBITO nos relatórios
-// de maquininha — não viram lançamento próprio, só detalhe informativo.
-const BANDEIRAS_CONHECIDAS = ['elo', 'mastercard', 'visa', 'amex', 'hipercard', 'diners', 'discover', 'banescard', 'cabal'];
+// Tipos de pagamento reconhecidos — comparação por "contém", pois o OCR às
+// vezes junta palavras (ex: "PIX COMPRA", "VYoucher") ou erra letras.
+const TIPOS_PAGAMENTO = [
+  { chave: 'credito',  tipo: 'Crédito' },
+  { chave: 'debito',   tipo: 'Débito' },
+  { chave: 'voucher',  tipo: 'Voucher' },
+  { chave: 'pix',      tipo: 'Pix' },
+  { chave: 'dinheiro', tipo: 'Dinheiro' },
+];
 
-// Tipos de pagamento que viram lançamento no Financeiro
-const TIPOS_PAGAMENTO = ['credito', 'debito', 'voucher', 'pix', 'dinheiro'];
-
-function normalizarTipo(t) {
-  return String(t || '').trim().toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, ''); // remove acentos
+function normalizarTexto(t) {
+  return String(t || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
-function labelTipo(t) {
-  const n = normalizarTipo(t);
-  const labels = { credito: 'Crédito', debito: 'Débito', voucher: 'Voucher', pix: 'Pix', dinheiro: 'Dinheiro' };
-  return labels[n] || t;
+// Identifica se a linha corresponde a um tipo de pagamento conhecido.
+// Retorna o rótulo bonito (Crédito/Débito/...) ou null se for bandeira,
+// linha de agregação (TOTAIS/Bandeiras) ou lixo de OCR.
+function classificarTipo(tipoBruto) {
+  const n = normalizarTexto(tipoBruto);
+  if (!n) return null;
+  if (n.startsWith('totais') || n.startsWith('bandeiras')) return null;
+  const match = TIPOS_PAGAMENTO.find(t => n.includes(t.chave));
+  return match ? match.tipo : null;
+}
+
+// Converte um valor monetário lido por OCR, tolerando vírgula, ponto ou
+// espaço como separador decimal (o OCR troca esses símbolos com frequência).
+// Ex: "1.536,49" → 1536.49 | "909 62" → 909.62 | "814.41" → 814.41
+function parseValorOCR(str) {
+  const m = String(str || '').match(/(\d[\d.,\s]*\d)[,.\s](\d{2})\s*$/);
+  if (!m) return null;
+  const inteiro = m[1].replace(/[.,\s]/g, '');
+  const valor = parseFloat(`${inteiro}.${m[2]}`);
+  return isNaN(valor) ? null : valor;
 }
 
 function parseRelatorioMaquininha(texto) {
   const linhas = texto.split('\n').map(l => l.trim()).filter(Boolean);
-  const itensBrutos = [];
-  // Linha típica: "CREDITO    0032    477,95" ou "Mastercard   0015   277,15"
-  const regexLinha = /^([A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ\s]{1,20}?)\s+(\d{1,6})\s+([\d]{1,3}(?:\.\d{3})*,\d{2})$/;
-
-  for (const linha of linhas) {
-    const m = linha.match(regexLinha);
-    if (m) {
-      const tipoBruto = m[1].trim();
-      const qtde = parseInt(m[2], 10);
-      const total = parseFloat(m[3].replace(/\./g, '').replace(',', '.'));
-      itensBrutos.push({ tipoBruto, qtde, total });
-    }
-  }
+  // Linha típica: "DEBITO 0107 1.536,49" ou "PIX COMPRA 0047 909 62"
+  const regexLinha = /^([A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ\s]{1,25}?)\s+(\d{1,6})\s+([\d][\d.,\s]{0,12}\d)/;
 
   // Extrai período de vendas, se existir no texto
   let periodo_inicio = null, periodo_fim = null;
@@ -46,15 +53,19 @@ function parseRelatorioMaquininha(texto) {
     periodo_fim = periodoMatch[3];
   }
 
-  // Separa: categorias de pagamento reais x sub-linhas de bandeira x agregados (TOTAIS/BANDEIRAS)
+  // O comprovante costuma repetir os totais (tabela detalhada + resumo final).
+  // Fica com a primeira ocorrência de cada tipo — evita lançar duplicado.
+  const vistos = new Set();
   const itens = [];
-  for (const it of itensBrutos) {
-    const n = normalizarTipo(it.tipoBruto);
-    if (BANDEIRAS_CONHECIDAS.includes(n)) continue; // sub-detalhe de bandeira, ignora
-    if (n === 'totais' || n === 'bandeiras') continue; // linha de agregação, não é um tipo de pagamento
-    if (!TIPOS_PAGAMENTO.includes(n)) continue; // linha desconhecida, ignora com segurança
-    if (it.total <= 0) continue; // tipo sem movimento no período
-    itens.push({ tipo: labelTipo(it.tipoBruto), quantidade: it.qtde, total: it.total });
+  for (const linha of linhas) {
+    const m = linha.match(regexLinha);
+    if (!m) continue;
+    const tipo = classificarTipo(m[1]);
+    if (!tipo || vistos.has(tipo)) continue;
+    const total = parseValorOCR(m[3]);
+    if (total === null || total <= 0) continue;
+    vistos.add(tipo);
+    itens.push({ tipo, quantidade: parseInt(m[2], 10), total });
   }
 
   const totalGeral = itens.reduce((s, i) => s + i.total, 0);
@@ -93,6 +104,8 @@ exports.preview = async (req, res) => {
     fs.unlink(filePath, () => {});
   }
 };
+
+exports._parseRelatorioMaquininha = parseRelatorioMaquininha; // exposto para testes
 
 // Confirma os itens (já revisados/editados pelo usuário) e lança no Financeiro
 exports.confirmar = async (req, res) => {
