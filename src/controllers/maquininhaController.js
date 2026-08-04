@@ -68,7 +68,10 @@ function parseRelatorioMaquininha(texto) {
   // Linha típica: "DEBITO 0107 1.536,49" ou "PIX COMPRA 0047 909 62"
   // Tolera lixo de OCR no início da linha (traços, pipes, aspas — comum
   // quando a foto pega uma sombra/borda do papel na lateral do recibo).
-  const regexLinha = /^[\s\-—_|=~"'´`.,;:]*([A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ\s]{1,25}?)\s+(\d{1,6})\s+([\d][\d.,\s]{0,12}\d)/;
+  // A quantidade aceita O/D/o/d no lugar de "0" — o OCR troca esses
+  // caracteres com frequência nesse campo (ex: "D001" em vez de "0001").
+  const regexLinha = /^[\s\-—_|=~"'´`.,;:]*([A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ\s]{1,25}?)\s+([\dODod]{1,6})\s+([\d][\d.,\s]{0,12}\d)/;
+  const paraNumero = s => parseInt(String(s).replace(/[ODod]/g, '0'), 10);
 
   // Extrai período de vendas, se existir no texto
   let periodo_inicio = null, periodo_fim = null;
@@ -104,7 +107,7 @@ function parseRelatorioMaquininha(texto) {
       const total = parseValorOCR(m[3]);
       if (total === null || total <= 0) continue;
       vistos.add(tipo);
-      itemAtual = { tipo, quantidade: parseInt(m[2], 10), total, bandeiras: [] };
+      itemAtual = { tipo, quantidade: paraNumero(m[2]), total, bandeiras: [] };
       itens.push(itemAtual);
       continue;
     }
