@@ -31,7 +31,7 @@ function pareceBandeira(nomeNormalizado) {
 function classificarTipo(tipoBruto) {
   const n = normalizarTexto(tipoBruto);
   if (!n) return null;
-  if (n.startsWith('totais') || n.startsWith('bandeiras')) return null;
+  if (n.includes('totais') || n.includes('bandeiras')) return null;
   const match = TIPOS_PAGAMENTO.find(t => n.includes(t.chave));
   return match ? match.tipo : null;
 }
@@ -50,7 +50,9 @@ function parseValorOCR(str) {
 function parseRelatorioMaquininha(texto) {
   const linhas = texto.split('\n').map(l => l.trim()).filter(Boolean);
   // Linha típica: "DEBITO 0107 1.536,49" ou "PIX COMPRA 0047 909 62"
-  const regexLinha = /^([A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ\s]{1,25}?)\s+(\d{1,6})\s+([\d][\d.,\s]{0,12}\d)/;
+  // Tolera lixo de OCR no início da linha (traços, pipes, aspas — comum
+  // quando a foto pega uma sombra/borda do papel na lateral do recibo).
+  const regexLinha = /^[\s\-—_|=~"'´`.,;:]*([A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ\s]{1,25}?)\s+(\d{1,6})\s+([\d][\d.,\s]{0,12}\d)/;
 
   // Extrai período de vendas, se existir no texto
   let periodo_inicio = null, periodo_fim = null;
@@ -73,7 +75,7 @@ function parseRelatorioMaquininha(texto) {
     if (!m) continue;
     const nomeNormalizado = normalizarTexto(m[1]);
 
-    if (totalImpresso === null && nomeNormalizado.startsWith('totais')) {
+    if (totalImpresso === null && nomeNormalizado.includes('totais')) {
       totalImpresso = parseValorOCR(m[3]);
       itemAtual = null; // depois do TOTAIS vem o resumo repetido — não anexar mais bandeiras
       continue;
