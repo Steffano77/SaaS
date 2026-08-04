@@ -1,6 +1,22 @@
 const fs = require('fs');
+const sharp = require('sharp');
 const { createWorker } = require('tesseract.js');
 const db = require('../database/connection');
+
+// Prepara a foto antes do OCR: corrige orientação, aumenta resolução,
+// converte para tons de cinza e realça contraste — ajuda bastante o
+// reconhecimento de texto em recibos de impressora térmica.
+async function prepararImagemParaOCR(filePath) {
+  const destino = `${filePath}_ocr.png`;
+  await sharp(filePath)
+    .rotate() // corrige rotação pela orientação EXIF da foto
+    .resize({ width: 2000, withoutEnlargement: false })
+    .grayscale()
+    .normalize()
+    .sharpen()
+    .toFile(destino);
+  return destino;
+}
 
 // Tipos de pagamento reconhecidos — comparação por "contém", pois o OCR às
 // vezes junta palavras (ex: "PIX COMPRA", "VYoucher") ou erra letras.
@@ -151,10 +167,12 @@ async function anexarTaxasConfiguradas(padaria_id, itens) {
 exports.preview = async (req, res) => {
   if (!req.file) return res.status(400).json({ erro: 'Envie uma foto do comprovante.' });
   const filePath = req.file.path;
+  let imagemProcessada;
   let worker;
   try {
+    imagemProcessada = await prepararImagemParaOCR(filePath);
     worker = await createWorker('por');
-    const { data: { text } } = await worker.recognize(filePath);
+    const { data: { text } } = await worker.recognize(imagemProcessada);
     console.log('--- OCR maquininha: texto bruto ---\n' + text + '\n--- fim texto bruto ---');
     const resultado = parseRelatorioMaquininha(text);
     console.log('--- OCR maquininha: itens reconhecidos ---', JSON.stringify(resultado.itens));
@@ -173,6 +191,7 @@ exports.preview = async (req, res) => {
   } finally {
     if (worker) await worker.terminate().catch(() => {});
     fs.unlink(filePath, () => {});
+    if (imagemProcessada) fs.unlink(imagemProcessada, () => {});
   }
 };
 
