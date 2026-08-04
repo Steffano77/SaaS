@@ -2111,15 +2111,18 @@ function renderizarItensMaquininha() {
   lista.innerHTML = _maqItens.map((item, i) => {
     const estilo = MAQ_ESTILOS[item.tipo] || { icone: '💰', cor: '#f97316' };
     const bandeirasHtml = (item.bandeiras && item.bandeiras.length)
-      ? `<div class="maq-item-bandeiras">${item.bandeiras.map(b =>
-          `<span>${b.nome} <strong>R$ ${b.total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></span>`
-        ).join('')}</div>`
+      ? `<div class="maq-item-bandeiras">${item.bandeiras.map(b => {
+          const taxa = b.taxa_pct != null ? ` <span class="maq-item-taxa">− ${b.taxa_pct}% (R$${b.taxa_valor.toFixed(2)})</span>` : '';
+          return `<span>${b.nome} <strong>R$ ${b.total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong>${taxa}</span>`;
+        }).join('')}</div>`
       : '';
+    const taxaTipoHtml = item.taxa_pct != null
+      ? ` <span class="maq-item-taxa">− ${item.taxa_pct}% (R$${item.taxa_valor.toFixed(2)})</span>` : '';
     return `
       <div class="maq-item-card" style="--maq-cor:${estilo.cor}">
         <div class="maq-item-icone">${estilo.icone}</div>
         <div class="maq-item-info">
-          <div class="maq-item-nome">${item.tipo}</div>
+          <div class="maq-item-nome">${item.tipo}${taxaTipoHtml}</div>
           <div class="maq-item-qtd">${item.quantidade} transaç${item.quantidade === 1 ? 'ão' : 'ões'}</div>
           <div class="maq-item-barra-fundo"><div class="maq-item-barra" style="width:${item.percentual}%"></div></div>
           ${bandeirasHtml}

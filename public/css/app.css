@@ -2527,6 +2527,8 @@ tr.tr-saida td { color: var(--red-600); }
 [data-theme="dark"] .maq-item-bandeiras { border-top-color: rgba(255,255,255,0.08); }
 [data-theme="dark"] .maq-item-bandeiras span { color: #94a3b8; }
 [data-theme="dark"] .maq-item-bandeiras span strong { color: #f1f5f9; }
+.maq-item-taxa { color: #dc2626; font-weight: 600; font-size: 11px; }
+.maq-item-nome .maq-item-taxa { font-size: 11.5px; margin-left: 4px; }
 .maq-item-valores { text-align: right; flex-shrink: 0; }
 .maq-item-input {
   width: 96px; text-align: right; font-weight: 700; font-size: 14px;

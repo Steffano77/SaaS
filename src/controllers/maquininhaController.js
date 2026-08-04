@@ -122,6 +122,29 @@ function parseRelatorioMaquininha(texto) {
   };
 }
 
+// Casa cada tipo/bandeira com uma "Modalidade de Pagamento" cadastrada em
+// Configurações de Precificação (mesmo nome, sem diferenciar maiúsculas/
+// acentos) e anexa a taxa configurada + o valor da taxa naquele período.
+async function anexarTaxasConfiguradas(padaria_id, itens) {
+  const [modalidades] = await db.query(
+    'SELECT nome, taxa_pct FROM modalidades_pagamento WHERE padaria_id = ?', [padaria_id]
+  );
+  if (!modalidades.length) return itens;
+  const mapa = new Map(modalidades.map(m => [normalizarTexto(m.nome), parseFloat(m.taxa_pct) || 0]));
+
+  const comTaxa = (nome, total) => {
+    const taxa_pct = mapa.get(normalizarTexto(nome));
+    if (taxa_pct === undefined) return {};
+    return { taxa_pct, taxa_valor: parseFloat((total * taxa_pct / 100).toFixed(2)) };
+  };
+
+  return itens.map(item => ({
+    ...item,
+    ...comTaxa(item.tipo, item.total),
+    bandeiras: (item.bandeiras || []).map(b => ({ ...b, ...comTaxa(b.nome, b.total) })),
+  }));
+}
+
 // Pré-visualização: lê a foto, faz OCR, devolve os dados extraídos (sem salvar nada)
 exports.preview = async (req, res) => {
   if (!req.file) return res.status(400).json({ erro: 'Envie uma foto do comprovante.' });
@@ -140,6 +163,7 @@ exports.preview = async (req, res) => {
         texto_bruto: text,
       });
     }
+    resultado.itens = await anexarTaxasConfiguradas(req.padaria.id, resultado.itens);
     res.json(resultado);
   } catch (e) {
     console.error('Erro OCR maquininha:', e);
@@ -166,9 +190,13 @@ exports.confirmar = async (req, res) => {
     const valor = parseFloat(item.total);
     if (!item.tipo || isNaN(valor) || valor <= 0) continue;
     const bandeirasTexto = Array.isArray(item.bandeiras) && item.bandeiras.length
-      ? ' [' + item.bandeiras.map(b => `${b.nome} R$${parseFloat(b.total).toFixed(2)}`).join(', ') + ']'
+      ? ' [' + item.bandeiras.map(b => {
+          const taxa = b.taxa_pct != null ? ` taxa ${b.taxa_pct}%=R$${b.taxa_valor.toFixed(2)}` : '';
+          return `${b.nome} R$${parseFloat(b.total).toFixed(2)}${taxa}`;
+        }).join(', ') + ']'
       : '';
-    const descricao = `Fechamento maquininha${periodo_label ? ' — ' + periodo_label : ''} (${item.tipo})${bandeirasTexto}`;
+    const taxaTipoTexto = item.taxa_pct != null ? ` (taxa ${item.taxa_pct}% = R$${item.taxa_valor.toFixed(2)})` : '';
+    const descricao = `Fechamento maquininha${periodo_label ? ' — ' + periodo_label : ''} (${item.tipo})${taxaTipoTexto}${bandeirasTexto}`;
     await db.query(
       `INSERT INTO financeiro (padaria_id, tipo, valor, descricao, categoria, forma_pagamento, data) VALUES (?,?,?,?,?,?,?)`,
       [padaria_id, 'entrada', valor, descricao, 'Vendas', item.tipo, data]
