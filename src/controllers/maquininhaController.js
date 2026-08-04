@@ -165,7 +165,10 @@ exports.confirmar = async (req, res) => {
   for (const item of itens) {
     const valor = parseFloat(item.total);
     if (!item.tipo || isNaN(valor) || valor <= 0) continue;
-    const descricao = `Fechamento maquininha${periodo_label ? ' — ' + periodo_label : ''} (${item.tipo})`;
+    const bandeirasTexto = Array.isArray(item.bandeiras) && item.bandeiras.length
+      ? ' [' + item.bandeiras.map(b => `${b.nome} R$${parseFloat(b.total).toFixed(2)}`).join(', ') + ']'
+      : '';
+    const descricao = `Fechamento maquininha${periodo_label ? ' — ' + periodo_label : ''} (${item.tipo})${bandeirasTexto}`;
     await db.query(
       `INSERT INTO financeiro (padaria_id, tipo, valor, descricao, categoria, forma_pagamento, data) VALUES (?,?,?,?,?,?,?)`,
       [padaria_id, 'entrada', valor, descricao, 'Vendas', item.tipo, data]
