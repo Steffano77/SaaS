@@ -2110,6 +2110,11 @@ function renderizarItensMaquininha() {
   const lista = document.getElementById('maq-itens-lista');
   lista.innerHTML = _maqItens.map((item, i) => {
     const estilo = MAQ_ESTILOS[item.tipo] || { icone: '💰', cor: '#f97316' };
+    const bandeirasHtml = (item.bandeiras && item.bandeiras.length)
+      ? `<div class="maq-item-bandeiras">${item.bandeiras.map(b =>
+          `<span>${b.nome} <strong>R$ ${b.total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></span>`
+        ).join('')}</div>`
+      : '';
     return `
       <div class="maq-item-card" style="--maq-cor:${estilo.cor}">
         <div class="maq-item-icone">${estilo.icone}</div>
@@ -2117,6 +2122,7 @@ function renderizarItensMaquininha() {
           <div class="maq-item-nome">${item.tipo}</div>
           <div class="maq-item-qtd">${item.quantidade} transaç${item.quantidade === 1 ? 'ão' : 'ões'}</div>
           <div class="maq-item-barra-fundo"><div class="maq-item-barra" style="width:${item.percentual}%"></div></div>
+          ${bandeirasHtml}
         </div>
         <div class="maq-item-valores">
           <input type="number" step="0.01" min="0" class="maq-item-input" value="${item.total}" oninput="atualizarItemMaquininha(${i}, this.value)"/>

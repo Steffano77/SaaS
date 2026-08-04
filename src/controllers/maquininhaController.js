@@ -16,6 +16,15 @@ function normalizarTexto(t) {
   return String(t || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
+// Sub-linhas de bandeira/operadora que aparecem dentro de cada tipo de
+// pagamento no comprovante (ex: Elo, Mastercard, Visa dentro de Crédito;
+// Alelo, Ticket, VR dentro de Voucher). Comparação por "contém" tolera
+// ruído do OCR (ex: "ev VR Beneficios").
+const BANDEIRAS_CONHECIDAS = ['elo','mastercard','visa','amex','hipercard','diners','discover','banescard','cabal','alelo','ticket','pluxee','pluxe','vr benef','sodexo'];
+function pareceBandeira(nomeNormalizado) {
+  return BANDEIRAS_CONHECIDAS.some(b => nomeNormalizado.includes(b));
+}
+
 // Identifica se a linha corresponde a um tipo de pagamento conhecido.
 // Retorna o rótulo bonito (Crédito/Débito/...) ou null se for bandeira,
 // linha de agregação (TOTAIS/Bandeiras) ou lixo de OCR.
@@ -31,7 +40,7 @@ function classificarTipo(tipoBruto) {
 // espaço como separador decimal (o OCR troca esses símbolos com frequência).
 // Ex: "1.536,49" → 1536.49 | "909 62" → 909.62 | "814.41" → 814.41
 function parseValorOCR(str) {
-  const m = String(str || '').match(/(\d[\d.,\s]*\d)[,.\s](\d{2})\s*$/);
+  const m = String(str || '').match(/(\d(?:[\d.,\s]*\d)?)[,.\s](\d{2})\s*$/);
   if (!m) return null;
   const inteiro = m[1].replace(/[.,\s]/g, '');
   const valor = parseFloat(`${inteiro}.${m[2]}`);
@@ -58,20 +67,38 @@ function parseRelatorioMaquininha(texto) {
   const vistos = new Set();
   const itens = [];
   let totalImpresso = null; // valor da linha "TOTAIS" do comprovante, para conferência
+  let itemAtual = null; // item de pagamento sendo lido agora, para anexar as bandeiras dele
   for (const linha of linhas) {
     const m = linha.match(regexLinha);
     if (!m) continue;
     const nomeNormalizado = normalizarTexto(m[1]);
+
     if (totalImpresso === null && nomeNormalizado.startsWith('totais')) {
       totalImpresso = parseValorOCR(m[3]);
+      itemAtual = null; // depois do TOTAIS vem o resumo repetido — não anexar mais bandeiras
       continue;
     }
+
     const tipo = classificarTipo(m[1]);
-    if (!tipo || vistos.has(tipo)) continue;
-    const total = parseValorOCR(m[3]);
-    if (total === null || total <= 0) continue;
-    vistos.add(tipo);
-    itens.push({ tipo, quantidade: parseInt(m[2], 10), total });
+    if (tipo) {
+      itemAtual = null;
+      if (vistos.has(tipo)) continue;
+      const total = parseValorOCR(m[3]);
+      if (total === null || total <= 0) continue;
+      vistos.add(tipo);
+      itemAtual = { tipo, quantidade: parseInt(m[2], 10), total, bandeiras: [] };
+      itens.push(itemAtual);
+      continue;
+    }
+
+    // Não é um tipo de pagamento nem TOTAIS — pode ser uma bandeira/operadora
+    // dentro do tipo que estamos lendo agora (ex: Elo, Mastercard, Visa).
+    if (itemAtual && pareceBandeira(nomeNormalizado)) {
+      const totalBandeira = parseValorOCR(m[3]);
+      if (totalBandeira !== null && totalBandeira > 0) {
+        itemAtual.bandeiras.push({ nome: m[1].trim(), total: totalBandeira });
+      }
+    }
   }
 
   const totalGeral = itens.reduce((s, i) => s + i.total, 0);
