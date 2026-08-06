@@ -4371,9 +4371,10 @@ async function abrirModalComanda(id) {
 function renderItensComanda(c) {
   const el = document.getElementById('cmd-detalhe-itens');
   el.innerHTML = c.itens.length
-    ? c.itens.map(i => `
+    ? c.itens.map((i, idx) => `
       <div class="cmd-item-linha">
         <div class="cmd-item-nome">
+          <span class="cmd-item-numero">Item Nº ${idx + 1}</span>
           <strong>${i.nome_produto}</strong>
           <span>${fmtQtd(i.quantidade)} ${i.unidade} × ${fmtMoeda(i.preco_unitario)}</span>
         </div>

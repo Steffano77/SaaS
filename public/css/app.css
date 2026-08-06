@@ -2605,9 +2605,64 @@ tr.tr-saida td { color: var(--red-600); }
 .cmd-add-item { display: flex; gap: 8px; align-items: flex-start; }
 .cmd-item-lista { top: 100%; left: 0; right: 0; }
 
-.cmd-busca-rapida { display: flex; gap: 10px; margin: 16px 0 22px; }
-.cmd-busca-rapida input { flex: 1; font-size: 15px; padding: 12px 14px; }
+/* Busca rápida — estilo barra "Digite ou Passe o Produto/Comanda" do PDV */
+.cmd-busca-rapida {
+  display: flex; align-items: center; gap: 10px;
+  margin: 16px 0 22px;
+  background: linear-gradient(135deg, var(--navy), var(--navy-light));
+  border-radius: 14px;
+  padding: 10px 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+.cmd-busca-rapida-icone { font-size: 18px; opacity: .85; }
+.cmd-busca-rapida-input {
+  flex: 1; font-size: 15px; padding: 12px 14px;
+  border: none; border-radius: 10px;
+  background: #fff; color: var(--slate-800);
+}
+.cmd-busca-rapida-input:focus { outline: 2px solid var(--orange); }
+.cmd-busca-rapida-btn {
+  background: var(--orange); color: #fff; border: none;
+  font-weight: 700; font-size: 14px; padding: 12px 20px;
+  border-radius: 10px; cursor: pointer; transition: background .15s ease;
+}
+.cmd-busca-rapida-btn:hover { background: var(--orange-dark); }
 
+/* Modal de detalhe — cabeçalho navy estilo "Finalização da Venda" */
+.cmd-pdv-box { padding: 0; overflow: hidden; }
+.cmd-pdv-header {
+  display: flex; align-items: center; justify-content: space-between;
+  background: linear-gradient(135deg, var(--navy), var(--navy-light));
+  color: #fff; padding: 16px 20px;
+}
+.cmd-pdv-header .modal-title { color: #fff; font-weight: 700; }
+.cmd-pdv-header .btn-icon { color: #fff; }
+.cmd-pdv-box > *:not(.cmd-pdv-header) { padding-left: 20px; padding-right: 20px; }
+.cmd-pdv-box .cmd-itens-lista { padding-top: 16px; }
+.cmd-pdv-box .cmd-add-item,
+.cmd-pdv-box .cmd-pdv-total-row,
+.cmd-pdv-box #cmd-detalhe-acoes,
+.cmd-pdv-box > .btn-ghost.full { }
+.cmd-pdv-box > .btn-ghost.full { padding-bottom: 20px; }
+
+/* Itens — fundo creme claro, linhas com número, estilo recibo de PDV */
+.cmd-itens-lista { background: #fdfaf3; border-radius: 10px; margin: 0 20px 0; padding: 4px 0; }
+[data-theme="dark"] .cmd-itens-lista { background: rgba(255,255,255,0.03); }
+.cmd-item-numero { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .3px; color: var(--orange-dark); text-transform: uppercase; margin-bottom: 2px; }
+[data-theme="dark"] .cmd-item-numero { color: var(--orange); }
+.cmd-item-linha { border-bottom: 1px dashed var(--slate-200); border-radius: 0; background: transparent; padding: 12px 14px; }
+[data-theme="dark"] .cmd-item-linha { border-bottom-color: rgba(255,255,255,0.08); background: transparent; }
+.cmd-item-linha:last-child { border-bottom: none; }
+
+.cmd-pdv-total-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin: 16px -20px 0; padding: 16px 20px;
+  background: var(--navy); color: #fff;
+  font-size: 15px; font-weight: 600;
+}
+.cmd-pdv-total-row strong { font-size: 24px; color: var(--orange); font-variant-numeric: tabular-nums; }
+
+#cmd-detalhe-acoes { padding-top: 16px; }
 .cmd-pgto-label { font-size: 12.5px; color: var(--slate-400); text-align: center; margin-bottom: 8px; }
 .cmd-pgto-grid {
   display: grid;
@@ -2616,16 +2671,13 @@ tr.tr-saida td { color: var(--red-600); }
 }
 .cmd-pgto-btn {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 14px 6px;
+  padding: 16px 6px;
   border: none; border-radius: 12px;
-  background: var(--slate-50);
-  font-size: 22px;
+  background: var(--navy);
   cursor: pointer;
   transition: transform .1s ease, background .15s ease;
 }
-.cmd-pgto-btn span { font-size: 12px; font-weight: 700; color: var(--slate-700); }
-.cmd-pgto-btn:hover { background: color-mix(in srgb, var(--orange) 14%, var(--slate-50)); transform: translateY(-1px); }
+.cmd-pgto-icone { font-size: 22px; }
+.cmd-pgto-btn span:last-child { font-size: 12px; font-weight: 700; color: #fff; }
+.cmd-pgto-btn:hover { background: var(--navy-light); transform: translateY(-1px); }
 .cmd-pgto-btn:active { transform: scale(0.96); }
-[data-theme="dark"] .cmd-pgto-btn { background: rgba(255,255,255,0.05); }
-[data-theme="dark"] .cmd-pgto-btn span { color: #e2e8f0; }
-[data-theme="dark"] .cmd-pgto-label { color: #64748b; }

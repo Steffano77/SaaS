@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260806b"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260806c"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -544,9 +544,10 @@
       </div>
 
       <div class="cmd-busca-rapida">
-        <input type="text" id="cmd-busca-numero" class="form-control" placeholder="🔎 Digite o número da comanda e aperte Enter..."
+        <span class="cmd-busca-rapida-icone">🔎</span>
+        <input type="text" id="cmd-busca-numero" class="cmd-busca-rapida-input" placeholder="Digite ou passe o número da comanda..."
           inputmode="numeric" onkeydown="if(event.key==='Enter') buscarComandaPorNumero()"/>
-        <button onclick="buscarComandaPorNumero()" class="btn-primary">Abrir</button>
+        <button onclick="buscarComandaPorNumero()" class="cmd-busca-rapida-btn">Abrir</button>
       </div>
 
       <h3 class="cmd-secao-titulo">Abertas</h3>
@@ -573,8 +574,8 @@
 
     <!-- Modal: detalhe da comanda -->
     <div id="modal-comanda" class="modal-overlay hidden">
-      <div class="modal-box maq-box">
-        <div class="modal-header">
+      <div class="modal-box maq-box cmd-pdv-box">
+        <div class="cmd-pdv-header">
           <span class="modal-title" id="cmd-detalhe-titulo">🧾 Comanda</span>
           <button onclick="fecharModalComanda()" class="btn-icon">✕</button>
         </div>
@@ -594,19 +595,19 @@
           <button onclick="adicionarItemComandaUI()" class="btn-primary" style="padding:10px 16px;">+</button>
         </div>
 
-        <div class="maq-total-row" style="margin-top:16px;">
-          <span>Total da comanda</span>
+        <div class="cmd-pdv-total-row">
+          <span>Total a receber</span>
           <strong id="cmd-detalhe-total">R$ 0,00</strong>
         </div>
 
         <div id="cmd-detalhe-acoes">
-          <div class="cmd-pgto-label">Toque na forma de pagamento pra fechar e cobrar:</div>
+          <div class="cmd-pgto-label">Toque na forma de pagamento pra fechar e cobrar</div>
           <div class="cmd-pgto-grid">
-            <button class="cmd-pgto-btn" onclick="fecharComandaUI('Dinheiro')">💵<span>Dinheiro</span></button>
-            <button class="cmd-pgto-btn" onclick="fecharComandaUI('Crédito')">💳<span>Crédito</span></button>
-            <button class="cmd-pgto-btn" onclick="fecharComandaUI('Débito')">💳<span>Débito</span></button>
-            <button class="cmd-pgto-btn" onclick="fecharComandaUI('Pix')">⚡<span>Pix</span></button>
-            <button class="cmd-pgto-btn" onclick="fecharComandaUI('Voucher')">🎫<span>Voucher</span></button>
+            <button class="cmd-pgto-btn" onclick="fecharComandaUI('Dinheiro')"><span class="cmd-pgto-icone">💵</span><span>Dinheiro</span></button>
+            <button class="cmd-pgto-btn" onclick="fecharComandaUI('Crédito')"><span class="cmd-pgto-icone">💳</span><span>Crédito</span></button>
+            <button class="cmd-pgto-btn" onclick="fecharComandaUI('Débito')"><span class="cmd-pgto-icone">💳</span><span>Débito</span></button>
+            <button class="cmd-pgto-btn" onclick="fecharComandaUI('Pix')"><span class="cmd-pgto-icone">⚡</span><span>Pix</span></button>
+            <button class="cmd-pgto-btn" onclick="fecharComandaUI('Voucher')"><span class="cmd-pgto-icone">🎫</span><span>Voucher</span></button>
           </div>
         </div>
         <button onclick="cancelarComandaUI()" class="btn-ghost full" style="margin-top:8px;color:#dc2626;">🗑️ Cancelar comanda</button>
@@ -1500,7 +1501,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260806c"></script>
+<script src="/js/app.js?v=20260806d"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
