@@ -4503,13 +4503,55 @@ function filtrarBuscaComanda(input) {
     return;
   }
   lista.innerHTML = filtrados.map(p => `
-    <div class="cmd-busca-produto-item">
-      <span class="cmd-busca-produto-nome">${p.nome}</span>
-      <span class="cmd-busca-produto-cod">ID ${p.id}${p.codigo_barras ? ' · Cód ' + p.codigo_barras : ''}</span>
-      <span class="cmd-busca-produto-preco">${fmtMoeda(p.preco_venda || 0)}</span>
+    <div class="cmd-busca-produto-item" onclick="selecionarProdutoBuscaComanda(${p.id})">
+      <div class="cmd-busca-produto-texto">
+        <span class="cmd-busca-produto-codigo">Código: ${p.codigo_barras || p.id}</span>
+        <span class="cmd-busca-produto-nome">${p.nome}</span>
+      </div>
+      <div class="cmd-busca-produto-direita">
+        <span class="cmd-busca-produto-un">${p.unidade || 'UN'}</span>
+        <span class="cmd-busca-produto-preco">${fmtMoeda(p.preco_venda || 0)}</span>
+      </div>
     </div>
   `).join('');
   lista.classList.remove('hidden');
+}
+
+// Clicar num produto da busca principal: pergunta em qual comanda lançar (abre/cria) e já adiciona o item.
+async function selecionarProdutoBuscaComanda(produtoId) {
+  const produto = produtosCache.find(p => p.id === produtoId);
+  if (!produto) return;
+
+  const numero = prompt(`Adicionar "${produto.nome}" em qual comanda?`, document.getElementById('cmd-busca-numero').value.trim());
+  if (!numero || !numero.trim()) return;
+  const termo = numero.trim();
+
+  document.getElementById('cmd-busca-produtos-lista').classList.add('hidden');
+  document.getElementById('cmd-busca-numero').value = '';
+
+  const data = await api('/comandas');
+  if (!data) return;
+  const todas = [...data.abertas, ...data.recentes];
+  let alvo = data.abertas.find(c => c.identificador === termo) || todas.find(c => c.identificador === termo);
+
+  if (!alvo) {
+    if (!confirm(`Nenhuma comanda "${termo}" aberta. Abrir uma nova com esse número?`)) return;
+    const r = await api('/comandas', { method: 'POST', body: { identificador: termo } });
+    if (!r) return;
+    alvo = { id: r.id };
+  } else if (alvo.status && alvo.status !== 'aberta') {
+    mostrarToast('Essa comanda já foi fechada.', 'warn');
+    return;
+  }
+
+  const add = await api(`/comandas/${alvo.id}/itens`, {
+    method: 'POST',
+    body: { produto_id: produto.id, nome_produto: produto.nome, quantidade: 1, preco_unitario: produto.preco_venda || 0 }
+  });
+  if (!add) return;
+  mostrarToast(`${produto.nome} adicionado na comanda ${termo}!`, 'ok');
+  await carregarComandas();
+  abrirModalComanda(alvo.id);
 }
 
 document.addEventListener('mousedown', e => {
