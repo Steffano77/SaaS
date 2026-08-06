@@ -122,17 +122,18 @@ exports.importarSaurus = async (req, res) => {
         if (existe.length) {
           await db.query(
             `UPDATE produtos SET custo_unitario = IF(? > 0, ?, custo_unitario),
-             preco_venda = IF(? > 0, ?, preco_venda), categoria_id = COALESCE(?, categoria_id)
+             preco_venda = IF(? > 0, ?, preco_venda), categoria_id = COALESCE(?, categoria_id),
+             codigo_barras = ?
              WHERE id = ?`,
-            [custo, custo, venda, venda, categoria_id, existe[0].id]
+            [custo, custo, venda, venda, categoria_id, cod, existe[0].id]
           );
           balcaoAtualizados++;
         } else {
           await db.query(
             `INSERT INTO produtos (padaria_id, categoria_id, codigo_barras, nome, unidade,
              custo_unitario, preco_venda, estoque_atual, ativo)
-             VALUES (?,?,NULL,?,?,?,?,0,1)`,
-            [padaria_id, categoria_id, nome, med || 'un', custo, venda]
+             VALUES (?,?,?,?,?,?,?,0,1)`,
+            [padaria_id, categoria_id, cod, nome, med || 'un', custo, venda]
           );
           balcaoCriados++;
         }

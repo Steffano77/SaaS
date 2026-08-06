@@ -4418,9 +4418,12 @@ function filtrarProdutoComanda(input) {
   const lista = input.parentElement.querySelector('.cmd-item-lista');
   document.getElementById('cmd-item-produto-id').value = '';
   if (!termo) { lista.classList.add('hidden'); return; }
-  const filtrados = produtosCache.filter(p => p.nome.toLowerCase().includes(termo)).slice(0, 8);
+  const souNumero = /^\d+$/.test(termo);
+  const filtrados = souNumero
+    ? produtosCache.filter(p => String(p.id) === termo || (p.codigo_barras && p.codigo_barras.startsWith(termo))).slice(0, 8)
+    : produtosCache.filter(p => p.nome.toLowerCase().includes(termo)).slice(0, 8);
   const itensHtml = filtrados.map(p =>
-    `<div class="autocomplete-item cmd-item-opt" data-produto-id="${p.id}" data-nome="${p.nome.replace(/"/g,'&quot;')}" data-preco="${p.preco_venda || 0}" data-unidade="${p.unidade||'un'}">${p.nome} <span style="color:var(--slate-400);font-size:12px;">${fmtMoeda(p.preco_venda||0)}</span></div>`
+    `<div class="autocomplete-item cmd-item-opt" data-produto-id="${p.id}" data-nome="${p.nome.replace(/"/g,'&quot;')}" data-preco="${p.preco_venda || 0}" data-unidade="${p.unidade||'un'}">${p.nome} <span style="color:var(--slate-400);font-size:12px;">${p.codigo_barras ? 'Cód '+p.codigo_barras+' · ' : ''}${fmtMoeda(p.preco_venda||0)}</span></div>`
   );
   lista.innerHTML = itensHtml.join('');
   lista.classList.toggle('hidden', !itensHtml.length);
