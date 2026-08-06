@@ -4489,14 +4489,21 @@ async function fecharComandaUI(forma_pagamento) {
 }
 
 // Busca rápida por número/identificação da comanda (estilo "Digite ou passe a comanda" do PDV)
-// Busca produtos por nome enquanto digita no campo principal (ex: "coca" → lista todas as Cocas)
+// Busca produtos por nome ou por ID/código enquanto digita no campo principal
+// (ex: "coca" → lista todas as Cocas; "3967" → acha o produto de ID/código 3967 E ainda permite abrir a comanda 3967)
 function filtrarBuscaComanda(input) {
   const termo = input.value.trim().toLowerCase();
   const lista = document.getElementById('cmd-busca-produtos-lista');
-  // Se for só número, é busca de comanda — não mostra produtos
-  if (!termo || /^\d+$/.test(termo)) { lista.classList.add('hidden'); return; }
+  if (!termo) { lista.classList.add('hidden'); return; }
 
-  const filtrados = produtosCache.filter(p => p.nome.toLowerCase().includes(termo)).slice(0, 10);
+  const souNumero = /^\d+$/.test(termo);
+  const filtrados = souNumero
+    // Número: busca por ID exato ou por código de barras que comece com o número digitado
+    ? produtosCache.filter(p => String(p.id) === termo || (p.codigo_barras && p.codigo_barras.startsWith(termo))).slice(0, 10)
+    // Texto: busca por nome
+    : produtosCache.filter(p => p.nome.toLowerCase().includes(termo)).slice(0, 10);
+
+  if (souNumero && !filtrados.length) { lista.classList.add('hidden'); return; }
   if (!filtrados.length) {
     lista.innerHTML = `<div class="cmd-busca-produtos-vazio">Nenhum produto encontrado para "${input.value.trim()}"</div>`;
     lista.classList.remove('hidden');
