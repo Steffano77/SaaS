@@ -4355,14 +4355,13 @@ async function abrirModalComanda(id) {
   document.getElementById('cmd-item-produto-id').value = '';
   document.getElementById('cmd-item-qtd').value = '1';
   document.getElementById('cmd-item-preco').value = '';
-  if (c.forma_pagamento) document.getElementById('cmd-forma-pagamento').value = c.forma_pagamento;
 
   renderItensComanda(c);
 
   const acoes = document.getElementById('cmd-detalhe-acoes');
   const btnCancelar = document.querySelector('#modal-comanda .btn-ghost');
   const bloqueada = c.status !== 'aberta';
-  acoes.style.display = bloqueada ? 'none' : 'flex';
+  acoes.style.display = bloqueada ? 'none' : 'block';
   document.querySelector('.cmd-add-item').style.display = bloqueada ? 'none' : 'flex';
   if (btnCancelar) btnCancelar.style.display = bloqueada ? 'none' : 'block';
 
@@ -4457,15 +4456,38 @@ async function removerItemComandaUI(itemId) {
   if (c) renderItensComanda(c);
 }
 
-async function fecharComandaUI() {
+async function fecharComandaUI(forma_pagamento) {
   if (!comandaAtualId) return;
-  const forma_pagamento = document.getElementById('cmd-forma-pagamento').value;
-  if (!confirm('Fechar essa comanda e lançar a venda no Financeiro?')) return;
+  const total = document.getElementById('cmd-detalhe-total').textContent;
+  if (!confirm(`Confirmar recebimento de ${total} via ${forma_pagamento}?`)) return;
   const r = await api(`/comandas/${comandaAtualId}/fechar`, { method: 'POST', body: { forma_pagamento } });
   if (!r) return;
-  mostrarToast('Comanda fechada com sucesso!', 'ok');
+  mostrarToast(`Comanda fechada — ${forma_pagamento}!`, 'ok');
   fecharModalComanda();
   await carregarComandas();
+}
+
+// Busca rápida por número/identificação da comanda (estilo "Digite ou passe a comanda" do PDV)
+async function buscarComandaPorNumero() {
+  const termo = document.getElementById('cmd-busca-numero').value.trim();
+  if (!termo) return;
+  const data = await api('/comandas');
+  if (!data) return;
+  const todas = [...data.abertas, ...data.recentes];
+  // Prioriza comanda aberta com esse identificador exato; senão pega a mais recente com esse nome
+  let alvo = data.abertas.find(c => c.identificador === termo)
+    || todas.find(c => c.identificador === termo);
+  if (!alvo) {
+    if (!confirm(`Nenhuma comanda "${termo}" aberta. Abrir uma nova com esse número?`)) return;
+    const r = await api('/comandas', { method: 'POST', body: { identificador: termo } });
+    if (!r) return;
+    document.getElementById('cmd-busca-numero').value = '';
+    await carregarComandas();
+    abrirModalComanda(r.id);
+    return;
+  }
+  document.getElementById('cmd-busca-numero').value = '';
+  abrirModalComanda(alvo.id);
 }
 
 async function cancelarComandaUI() {
