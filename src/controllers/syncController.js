@@ -25,7 +25,7 @@ exports.importarSaurus = async (req, res) => {
     const colCat   = headers['pro_descCategoria'];
     const colMed   = headers['pro_descMedida'];
 
-    let atualizados = 0, criados = 0, ignorados = 0;
+    let atualizados = 0, criados = 0, ignorados = 0, balcaoAtualizados = 0, balcaoCriados = 0;
 
     // Coluna de loja (Saurus exporta com codLoja ou cod_loja)
     const colLoja = headers['codLoja'] || headers['cod_loja'] || headers['loja'] || headers['pro_codLoja'] || null;
@@ -44,15 +44,16 @@ exports.importarSaurus = async (req, res) => {
       const med   = String(row.getCell(colMed).value  || 'UNIDADE').trim();
 
       if (!nome) { ignorados++; continue; }
-      // Só importa EAN-13
-      if (!cod || !/^\d{13}$/.test(cod)) { ignorados++; continue; }
-      // Ignora produtos com saldo zerado ou negativo
-      if (saldo <= 0) { ignorados++; continue; }
+
       // Filtra por loja se solicitado
       if (filtroLoja && colLoja) {
         const lojaRow = String(row.getCell(colLoja).value || '').trim();
         if (lojaRow !== filtroLoja) { ignorados++; continue; }
       }
+
+      const isEAN13   = /^\d{13}$/.test(cod);
+      const isBalcao  = !isEAN13 && /^\d{1,4}$/.test(cod); // código curto = item de balcão (chapa, esfiha, pastel...)
+      if (!isEAN13 && !isBalcao) { ignorados++; continue; }
 
       // Busca categoria
       let [catRows] = await db.query(
@@ -66,49 +67,79 @@ exports.importarSaurus = async (req, res) => {
         categoria_id = r.insertId;
       }
 
-      // Verifica se produto já existe
-      const [existe] = await db.query(
-        'SELECT id, estoque_atual FROM produtos WHERE padaria_id = ? AND codigo_barras = ?',
-        [padaria_id, cod]
-      );
+      if (isEAN13) {
+        // Produtos de mercado — segue a lógica original: ignora saldo ≤ 0, controla estoque pelo EAN
+        if (saldo <= 0) { ignorados++; continue; }
 
-      if (existe.length) {
-        const anterior = parseFloat(existe[0].estoque_atual);
-        const diff     = anterior - saldo;
-
-        await db.query(
-          `UPDATE produtos SET estoque_atual = ?, custo_unitario = IF(? > 0, ?, custo_unitario),
-           preco_venda = IF(? > 0, ?, preco_venda), categoria_id = COALESCE(?, categoria_id), unidade = ?
-           WHERE id = ?`,
-          [saldo, custo, custo, venda, venda, categoria_id, med, existe[0].id]
+        const [existe] = await db.query(
+          'SELECT id, estoque_atual FROM produtos WHERE padaria_id = ? AND codigo_barras = ?',
+          [padaria_id, cod]
         );
 
-        if (diff !== 0) {
+        if (existe.length) {
+          const anterior = parseFloat(existe[0].estoque_atual);
+          const diff     = anterior - saldo;
+
           await db.query(
-            'INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, custo_unit, observacao) VALUES (?,?,?,?,?,?)',
-            [padaria_id, existe[0].id, 'sync_saurus', Math.abs(diff), custo,
-             `Sync Saurus — ${new Date().toLocaleString('pt-BR')}`]
+            `UPDATE produtos SET estoque_atual = ?, custo_unitario = IF(? > 0, ?, custo_unitario),
+             preco_venda = IF(? > 0, ?, preco_venda), categoria_id = COALESCE(?, categoria_id), unidade = ?
+             WHERE id = ?`,
+            [saldo, custo, custo, venda, venda, categoria_id, med, existe[0].id]
           );
+
+          if (diff !== 0) {
+            await db.query(
+              'INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, custo_unit, observacao) VALUES (?,?,?,?,?,?)',
+              [padaria_id, existe[0].id, 'sync_saurus', Math.abs(diff), custo,
+               `Sync Saurus — ${new Date().toLocaleString('pt-BR')}`]
+            );
+          }
+          atualizados++;
+        } else {
+          const [r] = await db.query(
+            `INSERT INTO produtos (padaria_id, categoria_id, codigo_barras, nome, unidade,
+             custo_unitario, preco_venda, estoque_atual)
+             VALUES (?,?,?,?,?,?,?,?)`,
+            [padaria_id, categoria_id, cod, nome, med, custo, venda, saldo]
+          );
+          if (saldo > 0) {
+            await db.query(
+              'INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, custo_unit, observacao) VALUES (?,?,?,?,?,?)',
+              [padaria_id, r.insertId, 'entrada', saldo, custo, 'Importação inicial Saurus']
+            );
+          }
+          criados++;
         }
-        atualizados++;
       } else {
-        const [r] = await db.query(
-          `INSERT INTO produtos (padaria_id, categoria_id, codigo_barras, nome, unidade,
-           custo_unitario, preco_venda, estoque_atual)
-           VALUES (?,?,?,?,?,?,?,?)`,
-          [padaria_id, categoria_id, cod, nome, med, custo, venda, saldo]
+        // Itens de balcão (feitos na hora) — código curto sem EAN. Não têm controle de estoque
+        // real no Saurus (saldo costuma vir negativo/zerado), então aqui só cadastramos/atualizamos
+        // nome e preço de venda, sem mexer em estoque nem gerar movimentação.
+        const [existe] = await db.query(
+          'SELECT id FROM produtos WHERE padaria_id = ? AND LOWER(nome) = LOWER(?)',
+          [padaria_id, nome]
         );
-        if (saldo > 0) {
+
+        if (existe.length) {
           await db.query(
-            'INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, custo_unit, observacao) VALUES (?,?,?,?,?,?)',
-            [padaria_id, r.insertId, 'entrada', saldo, custo, 'Importação inicial Saurus']
+            `UPDATE produtos SET custo_unitario = IF(? > 0, ?, custo_unitario),
+             preco_venda = IF(? > 0, ?, preco_venda), categoria_id = COALESCE(?, categoria_id)
+             WHERE id = ?`,
+            [custo, custo, venda, venda, categoria_id, existe[0].id]
           );
+          balcaoAtualizados++;
+        } else {
+          await db.query(
+            `INSERT INTO produtos (padaria_id, categoria_id, codigo_barras, nome, unidade,
+             custo_unitario, preco_venda, estoque_atual, ativo)
+             VALUES (?,?,NULL,?,?,?,?,0,1)`,
+            [padaria_id, categoria_id, nome, med || 'un', custo, venda]
+          );
+          balcaoCriados++;
         }
-        criados++;
       }
     }
 
-    res.json({ ok: true, atualizados, criados, ignorados });
+    res.json({ ok: true, atualizados, criados, ignorados, balcaoAtualizados, balcaoCriados });
   } finally {
     fs.unlink(filePath, () => {});
   }

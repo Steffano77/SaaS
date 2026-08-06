@@ -3478,7 +3478,10 @@ async function sincronizarSaurus(e) {
   if (r.ok) {
     el.className = 'result-ok';
     const lojaInfo = loja ? ` (loja ${loja})` : '';
-    el.textContent = `✅ Sync concluído${lojaInfo}! ${d.atualizados} atualizados, ${d.criados} novos, ${d.ignorados} ignorados.`;
+    const balcaoInfo = (d.balcaoCriados || d.balcaoAtualizados)
+      ? ` · Balcão: ${d.balcaoCriados || 0} novos, ${d.balcaoAtualizados || 0} atualizados.`
+      : '';
+    el.textContent = `✅ Sync concluído${lojaInfo}! Mercado: ${d.atualizados} atualizados, ${d.criados} novos.${balcaoInfo} ${d.ignorados} ignorados.`;
   } else {
     el.className = 'result-err';
     el.textContent = `❌ Erro: ${d.erro}`;
