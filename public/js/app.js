@@ -4312,11 +4312,15 @@ async function carregarComandas() {
 function cardComandaHtml(c) {
   const statusLabel = { aberta: '🟢 Aberta', fechada: '✅ Fechada', cancelada: '🚫 Cancelada' }[c.status] || c.status;
   const dataRef = (c.status === 'aberta' ? c.aberta_em : c.fechada_em || c.aberta_em || '').slice(0, 16).replace('T', ' ');
+  const podeExcluir = c.status !== 'aberta';
   return `
     <div class="cmd-card" onclick="abrirModalComanda(${c.id})">
       <div class="cmd-card-topo">
         <strong>${c.identificador}</strong>
-        <span class="cmd-card-status">${statusLabel}</span>
+        <span class="cmd-card-topo-direita">
+          <span class="cmd-card-status">${statusLabel}</span>
+          ${podeExcluir ? `<button class="cmd-card-excluir" onclick="event.stopPropagation();excluirComandaUI(${c.id})" title="Excluir comanda">🗑️</button>` : ''}
+        </span>
       </div>
       <div class="cmd-card-info">
         <span>${c.qtd_itens} ${c.qtd_itens === 1 ? 'item' : 'itens'}</span>
@@ -4325,6 +4329,14 @@ function cardComandaHtml(c) {
       <div class="cmd-card-data">${dataRef}</div>
     </div>
   `;
+}
+
+async function excluirComandaUI(id) {
+  if (!confirm('Excluir essa comanda definitivamente? Essa ação não pode ser desfeita.')) return;
+  const r = await api(`/comandas/${id}`, { method: 'DELETE' });
+  if (!r) return;
+  mostrarToast('Comanda excluída.', 'ok');
+  await carregarComandas();
 }
 
 function abrirModalNovaComanda() {

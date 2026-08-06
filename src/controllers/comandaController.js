@@ -165,3 +165,19 @@ exports.cancelar = async (req, res) => {
   await db.query(`UPDATE comandas SET status = 'cancelada', fechada_em = NOW() WHERE id = ?`, [comanda.id]);
   res.json({ ok: true });
 };
+
+// Exclui definitivamente uma comanda já fechada ou cancelada (limpeza de testes/erros).
+// Comandas abertas precisam ser fechadas ou canceladas primeiro, pra não sumir com uma venda em andamento.
+exports.excluir = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const [[comanda]] = await db.query(
+    `SELECT id, status FROM comandas WHERE id = ? AND padaria_id = ?`, [req.params.id, padaria_id]
+  );
+  if (!comanda) return res.status(404).json({ erro: 'Comanda não encontrada.' });
+  if (comanda.status === 'aberta') {
+    return res.status(400).json({ erro: 'Cancele ou feche a comanda antes de excluí-la.' });
+  }
+
+  await db.query(`DELETE FROM comandas WHERE id = ? AND padaria_id = ?`, [comanda.id, padaria_id]);
+  res.json({ ok: true });
+};

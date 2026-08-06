@@ -160,6 +160,7 @@ router.post('/comandas/:id/itens',     auth, authPremium, wrap(comandaCtrl.adici
 router.delete('/comandas/:id/itens/:itemId', auth, authPremium, wrap(comandaCtrl.removerItem));
 router.post('/comandas/:id/fechar',    auth, authPremium, wrap(comandaCtrl.fechar));
 router.post('/comandas/:id/cancelar',  auth, authPremium, wrap(comandaCtrl.cancelar));
+router.delete('/comandas/:id',         auth, authPremium, wrap(comandaCtrl.excluir));
 
 // Importação genérica
 router.post('/sync/preview',   auth, upload.single('arquivo'), importCtrl.preview);
