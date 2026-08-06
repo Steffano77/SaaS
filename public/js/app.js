@@ -4295,6 +4295,11 @@ let comandaAtualId = null;
 function fmtMoeda(v) { return parseFloat(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
 
 async function carregarComandas() {
+  // Modo Balcão pula o dashboard, então a lista de produtos nunca seria carregada — garante aqui.
+  if (!produtosCache.length) {
+    const prods = await api('/produtos');
+    produtosCache = prods || [];
+  }
   const data = await api('/comandas');
   if (!data) return;
   const elAbertas = document.getElementById('cmd-lista-abertas');
@@ -4481,6 +4486,35 @@ async function fecharComandaUI(forma_pagamento) {
 }
 
 // Busca rápida por número/identificação da comanda (estilo "Digite ou passe a comanda" do PDV)
+// Busca produtos por nome enquanto digita no campo principal (ex: "coca" → lista todas as Cocas)
+function filtrarBuscaComanda(input) {
+  const termo = input.value.trim().toLowerCase();
+  const lista = document.getElementById('cmd-busca-produtos-lista');
+  // Se for só número, é busca de comanda — não mostra produtos
+  if (!termo || /^\d+$/.test(termo)) { lista.classList.add('hidden'); return; }
+
+  const filtrados = produtosCache.filter(p => p.nome.toLowerCase().includes(termo)).slice(0, 10);
+  if (!filtrados.length) {
+    lista.innerHTML = `<div class="cmd-busca-produtos-vazio">Nenhum produto encontrado para "${input.value.trim()}"</div>`;
+    lista.classList.remove('hidden');
+    return;
+  }
+  lista.innerHTML = filtrados.map(p => `
+    <div class="cmd-busca-produto-item">
+      <span class="cmd-busca-produto-nome">${p.nome}</span>
+      <span class="cmd-busca-produto-cod">ID ${p.id}${p.codigo_barras ? ' · Cód ' + p.codigo_barras : ''}</span>
+      <span class="cmd-busca-produto-preco">${fmtMoeda(p.preco_venda || 0)}</span>
+    </div>
+  `).join('');
+  lista.classList.remove('hidden');
+}
+
+document.addEventListener('mousedown', e => {
+  if (!e.target.closest('#cmd-busca-produtos-lista') && !e.target.closest('#cmd-busca-numero')) {
+    document.getElementById('cmd-busca-produtos-lista')?.classList.add('hidden');
+  }
+});
+
 async function buscarComandaPorNumero() {
   const termo = document.getElementById('cmd-busca-numero').value.trim();
   if (!termo) return;

@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260806d"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260806e"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -543,11 +543,14 @@
         <button onclick="abrirModalNovaComanda()" class="btn-primary">+ Nova Comanda</button>
       </div>
 
-      <div class="cmd-busca-rapida">
-        <span class="cmd-busca-rapida-icone">🔎</span>
-        <input type="text" id="cmd-busca-numero" class="cmd-busca-rapida-input" placeholder="Digite ou passe o número da comanda..."
-          inputmode="numeric" onkeydown="if(event.key==='Enter') buscarComandaPorNumero()"/>
-        <button onclick="buscarComandaPorNumero()" class="cmd-busca-rapida-btn">Abrir</button>
+      <div class="cmd-busca-rapida-wrap">
+        <div class="cmd-busca-rapida">
+          <span class="cmd-busca-rapida-icone">🔎</span>
+          <input type="text" id="cmd-busca-numero" class="cmd-busca-rapida-input" placeholder="Digite o número da comanda ou o nome de um produto..."
+            autocomplete="off" oninput="filtrarBuscaComanda(this)" onkeydown="if(event.key==='Enter') buscarComandaPorNumero()"/>
+          <button onclick="buscarComandaPorNumero()" class="cmd-busca-rapida-btn">Abrir</button>
+        </div>
+        <div id="cmd-busca-produtos-lista" class="cmd-busca-produtos-lista hidden"></div>
       </div>
 
       <h3 class="cmd-secao-titulo">Abertas</h3>
@@ -1501,7 +1504,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260806e"></script>
+<script src="/js/app.js?v=20260806f"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
