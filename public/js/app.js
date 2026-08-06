@@ -35,7 +35,12 @@ let _prodFornecedorMap = {}; // produto_id → nome do fornecedor
     sessionStorage.setItem('pp_reset_pin_token', resetPinToken);
     window.history.replaceState({}, '', '/');
   }
+  // Modo Balcão (tablet do caixa) — ?balcao=1 trava a tela só em Comandas.
+  // Fica salvo no aparelho; usar ?balcao=0 uma vez pra desativar.
+  if (params.get('balcao') === '1') localStorage.setItem('pp_modo_balcao', '1');
+  if (params.get('balcao') === '0') localStorage.removeItem('pp_modo_balcao');
 })();
+const MODO_BALCAO = localStorage.getItem('pp_modo_balcao') === '1';
 
 // ── Dark Mode ──────────────────────────────────────────────────
 (function() {
@@ -265,9 +270,33 @@ function entrar() {
     return;
   }
 
+  if (MODO_BALCAO) {
+    aplicarModoBalcao();
+    history.replaceState({ pg: 'comandas' }, '', '#comandas');
+    mostrarPagina('comandas', false);
+    return;
+  }
+
   history.replaceState({ pg: 'dashboard' }, '', '#dashboard');
   mostrarPagina('dashboard', false);
   setTimeout(verificarOnboarding, 800);
+}
+
+// Modo Balcão: esconde tudo da barra lateral, exceto Comandas e Sair.
+function aplicarModoBalcao() {
+  document.querySelectorAll('.sidebar-link').forEach(el => {
+    const onclick = el.getAttribute('onclick') || '';
+    // Esconde só os links de navegação de página que não sejam Comandas.
+    // Mantém visível "Sair" e qualquer outro botão que não chame mostrarPagina().
+    if (onclick.includes('mostrarPagina') && !onclick.includes("'comandas'")) {
+      el.style.display = 'none';
+    }
+  });
+  document.getElementById('nav-admin')?.classList.add('hidden');
+  const aviso = document.createElement('div');
+  aviso.style.cssText = 'padding:8px 14px;font-size:11px;color:var(--slate-400);text-align:center;';
+  aviso.textContent = '🔒 Modo Balcão';
+  document.querySelector('.sidebar-nav')?.prepend(aviso);
 }
 
 function atualizarAvisoExpiracao(plano, planoExpiraEm) {
@@ -352,6 +381,8 @@ const PAGINAS_PRO      = ['relatorios', 'fichas'];
 const PAGINAS_PREMIUM  = ['producao', 'financeiro', 'comandas'];
 
 function mostrarPagina(pg, pushHistory = true) {
+  // Modo Balcão: só existe a tela de Comandas
+  if (MODO_BALCAO && pg !== 'comandas') pg = 'comandas';
   if (!paginas.includes(pg)) { mostrarPagina('404'); return; }
 
   // Bloqueio por plano (apenas para usuários não-admin)
