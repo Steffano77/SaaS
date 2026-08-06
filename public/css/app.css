@@ -2663,11 +2663,13 @@ tr.tr-saida td { color: var(--red-600); }
 .cmd-busca-produtos-vazio { padding: 14px; text-align: center; font-size: 13px; color: rgba(255,255,255,0.6); }
 
 /* Modal de detalhe — cabeçalho navy estilo "Finalização da Venda" */
-.cmd-pdv-box { padding: 0; overflow: hidden; }
+.cmd-pdv-box { padding: 0; }
 .cmd-pdv-header {
   display: flex; align-items: center; justify-content: space-between;
   background: linear-gradient(135deg, var(--navy), var(--navy-light));
   color: #fff; padding: 16px 20px;
+  border-radius: 16px 16px 0 0;
+  position: sticky; top: 0; z-index: 2;
 }
 .cmd-pdv-header .modal-title { color: #fff; font-weight: 700; }
 .cmd-pdv-header .btn-icon { color: #fff; }
