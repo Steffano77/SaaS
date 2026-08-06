@@ -347,9 +347,9 @@ function sair() {
 }
 
 // ── Navegação ───────────────────────────────────────────────
-const paginas = ['dashboard','estoque','compras','fornecedores','fichas','producao','relatorios','financeiro','sync','planos','404'];
+const paginas = ['dashboard','estoque','compras','fornecedores','fichas','producao','relatorios','comandas','financeiro','sync','planos','404'];
 const PAGINAS_PRO      = ['relatorios', 'fichas'];
-const PAGINAS_PREMIUM  = ['producao', 'financeiro'];
+const PAGINAS_PREMIUM  = ['producao', 'financeiro', 'comandas'];
 
 function mostrarPagina(pg, pushHistory = true) {
   if (!paginas.includes(pg)) { mostrarPagina('404'); return; }
@@ -386,6 +386,7 @@ function mostrarPagina(pg, pushHistory = true) {
   if (pg === 'financeiro')     { carregarFinanceiro(); }
   if (pg === 'fichas')         { carregarFichas(); }
   if (pg === 'producao')       { carregarProducao(); }
+  if (pg === 'comandas')       { carregarComandas(); }
 }
 
 // ── PIN Financeiro ───────────────────────────────────────────
@@ -4257,6 +4258,194 @@ document.addEventListener('mousedown', e => {
     document.querySelectorAll('.fi-lista').forEach(l => l.classList.add('hidden'));
   }
 });
+
+/* ===================== COMANDAS ===================== */
+let comandaAtualId = null;
+function fmtMoeda(v) { return parseFloat(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
+
+async function carregarComandas() {
+  const data = await api('/comandas');
+  if (!data) return;
+  const elAbertas = document.getElementById('cmd-lista-abertas');
+  const elRecentes = document.getElementById('cmd-lista-recentes');
+
+  elAbertas.innerHTML = data.abertas.length
+    ? data.abertas.map(cardComandaHtml).join('')
+    : `<div class="cmd-vazio">Nenhuma comanda aberta no momento.</div>`;
+
+  elRecentes.innerHTML = data.recentes.length
+    ? data.recentes.map(cardComandaHtml).join('')
+    : `<div class="cmd-vazio">Sem histórico ainda.</div>`;
+}
+
+function cardComandaHtml(c) {
+  const statusLabel = { aberta: '🟢 Aberta', fechada: '✅ Fechada', cancelada: '🚫 Cancelada' }[c.status] || c.status;
+  const dataRef = (c.status === 'aberta' ? c.aberta_em : c.fechada_em || c.aberta_em || '').slice(0, 16).replace('T', ' ');
+  return `
+    <div class="cmd-card" onclick="abrirModalComanda(${c.id})">
+      <div class="cmd-card-topo">
+        <strong>${c.identificador}</strong>
+        <span class="cmd-card-status">${statusLabel}</span>
+      </div>
+      <div class="cmd-card-info">
+        <span>${c.qtd_itens} ${c.qtd_itens === 1 ? 'item' : 'itens'}</span>
+        <span>${fmtMoeda(c.total)}</span>
+      </div>
+      <div class="cmd-card-data">${dataRef}</div>
+    </div>
+  `;
+}
+
+function abrirModalNovaComanda() {
+  document.getElementById('cmd-novo-identificador').value = '';
+  document.getElementById('modal-nova-comanda').classList.remove('hidden');
+  setTimeout(() => document.getElementById('cmd-novo-identificador').focus(), 100);
+}
+
+function fecharModalNovaComanda() {
+  document.getElementById('modal-nova-comanda').classList.add('hidden');
+}
+
+async function criarComanda() {
+  const identificador = document.getElementById('cmd-novo-identificador').value.trim() || 'Comanda';
+  const r = await api('/comandas', { method: 'POST', body: { identificador } });
+  if (!r) return;
+  fecharModalNovaComanda();
+  await carregarComandas();
+  abrirModalComanda(r.id);
+}
+
+async function abrirModalComanda(id) {
+  const c = await api(`/comandas/${id}`);
+  if (!c) return;
+  comandaAtualId = c.id;
+  document.getElementById('cmd-detalhe-titulo').textContent = `🧾 ${c.identificador}`;
+  document.getElementById('cmd-item-busca').value = '';
+  document.getElementById('cmd-item-produto-id').value = '';
+  document.getElementById('cmd-item-qtd').value = '1';
+  document.getElementById('cmd-item-preco').value = '';
+  if (c.forma_pagamento) document.getElementById('cmd-forma-pagamento').value = c.forma_pagamento;
+
+  renderItensComanda(c);
+
+  const acoes = document.getElementById('cmd-detalhe-acoes');
+  const btnCancelar = document.querySelector('#modal-comanda .btn-ghost');
+  const bloqueada = c.status !== 'aberta';
+  acoes.style.display = bloqueada ? 'none' : 'flex';
+  document.querySelector('.cmd-add-item').style.display = bloqueada ? 'none' : 'flex';
+  if (btnCancelar) btnCancelar.style.display = bloqueada ? 'none' : 'block';
+
+  document.getElementById('modal-comanda').classList.remove('hidden');
+}
+
+function renderItensComanda(c) {
+  const el = document.getElementById('cmd-detalhe-itens');
+  el.innerHTML = c.itens.length
+    ? c.itens.map(i => `
+      <div class="cmd-item-linha">
+        <div class="cmd-item-nome">
+          <strong>${i.nome_produto}</strong>
+          <span>${fmtQtd(i.quantidade)} ${i.unidade} × ${fmtMoeda(i.preco_unitario)}</span>
+        </div>
+        <div class="cmd-item-direita">
+          <span class="cmd-item-subtotal">${fmtMoeda(i.subtotal)}</span>
+          ${c.status === 'aberta' ? `<button class="btn-icon" onclick="removerItemComandaUI(${i.id})">✕</button>` : ''}
+        </div>
+      </div>
+    `).join('')
+    : `<div class="cmd-vazio">Nenhum item adicionado ainda.</div>`;
+  document.getElementById('cmd-detalhe-total').textContent = fmtMoeda(c.total);
+}
+
+function fecharModalComanda() {
+  document.getElementById('modal-comanda').classList.add('hidden');
+  comandaAtualId = null;
+}
+
+function filtrarProdutoComanda(input) {
+  const termo = input.value.trim().toLowerCase();
+  const lista = input.parentElement.querySelector('.cmd-item-lista');
+  document.getElementById('cmd-item-produto-id').value = '';
+  if (!termo) { lista.classList.add('hidden'); return; }
+  const filtrados = produtosCache.filter(p => p.nome.toLowerCase().includes(termo)).slice(0, 8);
+  const itensHtml = filtrados.map(p =>
+    `<div class="autocomplete-item cmd-item-opt" data-produto-id="${p.id}" data-nome="${p.nome.replace(/"/g,'&quot;')}" data-preco="${p.preco_venda || 0}" data-unidade="${p.unidade||'un'}">${p.nome} <span style="color:var(--slate-400);font-size:12px;">${fmtMoeda(p.preco_venda||0)}</span></div>`
+  );
+  lista.innerHTML = itensHtml.join('');
+  lista.classList.toggle('hidden', !itensHtml.length);
+}
+
+document.addEventListener('mousedown', e => {
+  const opt = e.target.closest('.cmd-item-opt');
+  if (opt) {
+    e.preventDefault();
+    const wrap = opt.closest('.fi-busca-wrap');
+    wrap.querySelector('#cmd-item-busca').value = opt.dataset.nome;
+    document.getElementById('cmd-item-produto-id').value = opt.dataset.produtoId;
+    document.getElementById('cmd-item-preco').value = parseFloat(opt.dataset.preco).toFixed(2);
+    wrap.querySelector('.cmd-item-lista').classList.add('hidden');
+    return;
+  }
+  if (!e.target.closest('#cmd-item-busca')) {
+    const lista = document.querySelector('.cmd-item-lista');
+    if (lista) lista.classList.add('hidden');
+  }
+});
+
+async function adicionarItemComandaUI() {
+  if (!comandaAtualId) return;
+  const nome = document.getElementById('cmd-item-busca').value.trim();
+  const produto_id = document.getElementById('cmd-item-produto-id').value || null;
+  const quantidade = parseFloat(document.getElementById('cmd-item-qtd').value);
+  const precoInput = document.getElementById('cmd-item-preco').value;
+  const preco_unitario = precoInput !== '' ? parseFloat(precoInput) : null;
+
+  if (!nome) { mostrarToast('Digite ou selecione um item.', 'warn'); return; }
+  if (!quantidade || quantidade <= 0) { mostrarToast('Quantidade inválida.', 'warn'); return; }
+
+  const r = await api(`/comandas/${comandaAtualId}/itens`, {
+    method: 'POST',
+    body: { produto_id, nome_produto: nome, quantidade, preco_unitario }
+  });
+  if (!r) return;
+
+  document.getElementById('cmd-item-busca').value = '';
+  document.getElementById('cmd-item-produto-id').value = '';
+  document.getElementById('cmd-item-qtd').value = '1';
+  document.getElementById('cmd-item-preco').value = '';
+
+  const c = await api(`/comandas/${comandaAtualId}`);
+  if (c) renderItensComanda(c);
+}
+
+async function removerItemComandaUI(itemId) {
+  if (!comandaAtualId) return;
+  const r = await api(`/comandas/${comandaAtualId}/itens/${itemId}`, { method: 'DELETE' });
+  if (!r) return;
+  const c = await api(`/comandas/${comandaAtualId}`);
+  if (c) renderItensComanda(c);
+}
+
+async function fecharComandaUI() {
+  if (!comandaAtualId) return;
+  const forma_pagamento = document.getElementById('cmd-forma-pagamento').value;
+  if (!confirm('Fechar essa comanda e lançar a venda no Financeiro?')) return;
+  const r = await api(`/comandas/${comandaAtualId}/fechar`, { method: 'POST', body: { forma_pagamento } });
+  if (!r) return;
+  mostrarToast('Comanda fechada com sucesso!', 'ok');
+  fecharModalComanda();
+  await carregarComandas();
+}
+
+async function cancelarComandaUI() {
+  if (!comandaAtualId) return;
+  if (!confirm('Cancelar essa comanda? Nenhum valor será lançado.')) return;
+  const r = await api(`/comandas/${comandaAtualId}/cancelar`, { method: 'POST' });
+  if (!r) return;
+  mostrarToast('Comanda cancelada.', 'ok');
+  fecharModalComanda();
+  await carregarComandas();
+}
 
 async function salvarFicha() {
   const id = document.getElementById('ficha-id').value;

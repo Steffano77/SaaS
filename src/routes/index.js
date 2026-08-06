@@ -41,6 +41,7 @@ const hotmartCtrl    = require('../controllers/hotmartController');
 const saurusCtrl     = require('../controllers/saurusController');
 const financeiroCtrl = require('../controllers/financeiroController');
 const maquininhaCtrl = require('../controllers/maquininhaController');
+const comandaCtrl    = require('../controllers/comandaController');
 
 // Webhook Hotmart (sem auth — validação de assinatura feita dentro do controller)
 router.post('/hotmart/webhook', hotmartCtrl.webhook);
@@ -150,6 +151,15 @@ router.post('/financeiro/pin/reset',          auth, authPremium, wrap(financeiro
 router.post('/financeiro/pin/confirmar-reset',               wrap(financeiroCtrl.confirmarResetPin));
 router.post('/financeiro/maquininha/preview',   auth, authPremium, uploadImagem.single('foto'), wrap(maquininhaCtrl.preview));
 router.post('/financeiro/maquininha/confirmar', auth, authPremium, wrap(maquininhaCtrl.confirmar));
+
+// Comandas — Premium apenas
+router.get('/comandas',                auth, authPremium, wrap(comandaCtrl.listar));
+router.post('/comandas',               auth, authPremium, wrap(comandaCtrl.abrir));
+router.get('/comandas/:id',            auth, authPremium, wrap(comandaCtrl.buscar));
+router.post('/comandas/:id/itens',     auth, authPremium, wrap(comandaCtrl.adicionarItem));
+router.delete('/comandas/:id/itens/:itemId', auth, authPremium, wrap(comandaCtrl.removerItem));
+router.post('/comandas/:id/fechar',    auth, authPremium, wrap(comandaCtrl.fechar));
+router.post('/comandas/:id/cancelar',  auth, authPremium, wrap(comandaCtrl.cancelar));
 
 // Importação genérica
 router.post('/sync/preview',   auth, upload.single('arquivo'), importCtrl.preview);

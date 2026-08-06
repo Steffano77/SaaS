@@ -139,6 +139,29 @@ app.use(express.static(path.join(__dirname, '../public')));
       'ALTER TABLE itens_ficha MODIFY COLUMN produto_id INT NULL',
       'ALTER TABLE itens_ficha ADD COLUMN nome_livre VARCHAR(120) NULL',
       'ALTER TABLE padarias ADD COLUMN email_relatorio VARCHAR(120) NULL',
+      `CREATE TABLE IF NOT EXISTS comandas (
+        id           INT AUTO_INCREMENT PRIMARY KEY,
+        padaria_id   INT NOT NULL,
+        identificador VARCHAR(60) NOT NULL DEFAULT 'Comanda',
+        status       ENUM('aberta','fechada','cancelada') NOT NULL DEFAULT 'aberta',
+        total        DECIMAL(10,2) NOT NULL DEFAULT 0,
+        forma_pagamento VARCHAR(50) NULL,
+        aberta_em    DATETIME DEFAULT CURRENT_TIMESTAMP,
+        fechada_em   DATETIME NULL,
+        INDEX idx_comandas_padaria (padaria_id, status)
+      )`,
+      `CREATE TABLE IF NOT EXISTS itens_comanda (
+        id           INT AUTO_INCREMENT PRIMARY KEY,
+        comanda_id   INT NOT NULL,
+        produto_id   INT NULL,
+        nome_produto VARCHAR(150) NOT NULL,
+        unidade      VARCHAR(20) NOT NULL DEFAULT 'un',
+        quantidade   DECIMAL(10,3) NOT NULL,
+        preco_unitario DECIMAL(10,2) NOT NULL,
+        subtotal     DECIMAL(10,2) GENERATED ALWAYS AS (quantidade * preco_unitario) STORED,
+        criado_em    DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (comanda_id) REFERENCES comandas(id) ON DELETE CASCADE
+      )`,
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
 

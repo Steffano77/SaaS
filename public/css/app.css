@@ -2552,3 +2552,55 @@ tr.tr-saida td { color: var(--red-600); }
 [data-theme="dark"] .maq-item-card { background: #1e293b; box-shadow: none; border: 1px solid rgba(255,255,255,0.06); border-left: 4px solid var(--maq-cor, var(--orange)); }
 [data-theme="dark"] .maq-item-nome { color: #f1f5f9; }
 [data-theme="dark"] .maq-item-input { background: #0f172a; border-color: rgba(255,255,255,0.12); color: #f1f5f9; }
+
+/* ===================== COMANDAS ===================== */
+.cmd-secao-titulo { font-size: 15px; font-weight: 700; color: var(--slate-700); margin: 0 0 12px; }
+[data-theme="dark"] .cmd-secao-titulo { color: #e2e8f0; }
+
+.cmd-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+}
+.cmd-vazio { color: var(--slate-400); font-size: 13.5px; padding: 10px 2px; grid-column: 1 / -1; }
+
+.cmd-card {
+  background: var(--white);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  border-left: 4px solid var(--orange);
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.cmd-card:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.09); }
+.cmd-card-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.cmd-card-topo strong { font-size: 14.5px; color: var(--slate-800); }
+.cmd-card-status { font-size: 11px; font-weight: 600; color: var(--slate-500); white-space: nowrap; }
+.cmd-card-info { display: flex; justify-content: space-between; margin-top: 8px; font-size: 13px; color: var(--slate-500); }
+.cmd-card-info span:last-child { font-weight: 700; color: var(--orange); }
+.cmd-card-data { font-size: 11px; color: var(--slate-400); margin-top: 6px; }
+
+[data-theme="dark"] .cmd-card { background: #1e293b; box-shadow: none; border: 1px solid rgba(255,255,255,0.06); border-left: 4px solid var(--orange); }
+[data-theme="dark"] .cmd-card-topo strong { color: #f1f5f9; }
+[data-theme="dark"] .cmd-card-status { color: #94a3b8; }
+[data-theme="dark"] .cmd-card-info { color: #94a3b8; }
+[data-theme="dark"] .cmd-card-data { color: #64748b; }
+
+.cmd-itens-lista { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; margin-bottom: 12px; }
+.cmd-item-linha {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 12px; border-radius: 10px; background: var(--slate-50);
+}
+.cmd-item-nome { display: flex; flex-direction: column; gap: 2px; }
+.cmd-item-nome strong { font-size: 13.5px; color: var(--slate-800); }
+.cmd-item-nome span { font-size: 11.5px; color: var(--slate-400); }
+.cmd-item-direita { display: flex; align-items: center; gap: 10px; }
+.cmd-item-subtotal { font-weight: 700; font-size: 13.5px; color: var(--slate-800); }
+[data-theme="dark"] .cmd-item-linha { background: rgba(255,255,255,0.04); }
+[data-theme="dark"] .cmd-item-nome strong { color: #f1f5f9; }
+[data-theme="dark"] .cmd-item-nome span { color: #94a3b8; }
+[data-theme="dark"] .cmd-item-subtotal { color: #f1f5f9; }
+
+.cmd-add-item { display: flex; gap: 8px; align-items: flex-start; }
+.cmd-item-lista { top: 100%; left: 0; right: 0; }

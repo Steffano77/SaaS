@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260804b"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260806a"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -224,6 +224,11 @@
         </span>
         <span class="nav-label" translate="no">Relatórios</span>
         <span class="nav-badge-pro">PRO</span>
+      </button>
+      <button class="sidebar-link" onclick="mostrarPagina('comandas');fecharSidebar()" spellcheck="false" autocorrect="off" autocapitalize="off">
+        <span class="nav-icon">🧾</span>
+        <span class="nav-label" translate="no">Comandas</span>
+        <span class="nav-badge" style="background:#7c3aed;color:#fff;font-size:10px;padding:2px 6px;border-radius:6px;margin-left:auto;">PREMIUM</span>
       </button>
       <button class="sidebar-link" onclick="mostrarPagina('financeiro');fecharSidebar()" spellcheck="false" autocorrect="off" autocapitalize="off">
         <span class="nav-icon">💰</span>
@@ -530,6 +535,77 @@
         </div>
       </div>
     </section>
+
+    <!-- COMANDAS -->
+    <section id="pg-comandas" class="hidden page-section">
+      <div class="page-header">
+        <h2 class="page-title">🧾 Comandas</h2>
+        <button onclick="abrirModalNovaComanda()" class="btn-primary">+ Nova Comanda</button>
+      </div>
+
+      <h3 class="cmd-secao-titulo">Abertas</h3>
+      <div id="cmd-lista-abertas" class="cmd-grid"></div>
+
+      <h3 class="cmd-secao-titulo" style="margin-top:24px;">Histórico recente</h3>
+      <div id="cmd-lista-recentes" class="cmd-grid"></div>
+    </section>
+
+    <!-- Modal: nova comanda -->
+    <div id="modal-nova-comanda" class="modal-overlay hidden">
+      <div class="modal-box" style="max-width:380px;">
+        <div class="modal-header">
+          <span class="modal-title">🧾 Nova comanda</span>
+          <button onclick="fecharModalNovaComanda()" class="btn-icon">✕</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Identificação</label>
+          <input id="cmd-novo-identificador" type="text" class="form-control" placeholder="Ex: Mesa 3, Balcão, João..."/>
+        </div>
+        <button onclick="criarComanda()" class="btn-primary full" style="margin-top:6px;">Abrir comanda</button>
+      </div>
+    </div>
+
+    <!-- Modal: detalhe da comanda -->
+    <div id="modal-comanda" class="modal-overlay hidden">
+      <div class="modal-box maq-box">
+        <div class="modal-header">
+          <span class="modal-title" id="cmd-detalhe-titulo">🧾 Comanda</span>
+          <button onclick="fecharModalComanda()" class="btn-icon">✕</button>
+        </div>
+
+        <div id="cmd-detalhe-itens" class="cmd-itens-lista"></div>
+
+        <!-- Adicionar item -->
+        <div class="cmd-add-item">
+          <div class="fi-busca-wrap" style="position:relative;flex:1;">
+            <input type="text" id="cmd-item-busca" class="form-control" placeholder="Buscar produto ou digitar item avulso..." autocomplete="off"
+              oninput="filtrarProdutoComanda(this)" onfocus="filtrarProdutoComanda(this)"/>
+            <input type="hidden" id="cmd-item-produto-id"/>
+            <div class="autocomplete-lista cmd-item-lista hidden"></div>
+          </div>
+          <input type="number" id="cmd-item-qtd" class="form-control" placeholder="Qtd" value="1" min="0.01" step="0.01" style="width:70px;"/>
+          <input type="number" id="cmd-item-preco" class="form-control" placeholder="R$" min="0" step="0.01" style="width:90px;"/>
+          <button onclick="adicionarItemComandaUI()" class="btn-primary" style="padding:10px 16px;">+</button>
+        </div>
+
+        <div class="maq-total-row" style="margin-top:16px;">
+          <span>Total da comanda</span>
+          <strong id="cmd-detalhe-total">R$ 0,00</strong>
+        </div>
+
+        <div id="cmd-detalhe-acoes" style="display:flex;gap:10px;margin-top:14px;">
+          <select id="cmd-forma-pagamento" class="form-control" style="flex:1;">
+            <option value="Dinheiro">💵 Dinheiro</option>
+            <option value="Crédito">💳 Crédito</option>
+            <option value="Débito">💳 Débito</option>
+            <option value="Pix">⚡ Pix</option>
+            <option value="Voucher">🎫 Voucher</option>
+          </select>
+          <button onclick="fecharComandaUI()" class="fin-confirmar-btn entrada" style="flex:1;margin:0;">✅ Fechar e cobrar</button>
+        </div>
+        <button onclick="cancelarComandaUI()" class="btn-ghost full" style="margin-top:8px;color:#dc2626;">🗑️ Cancelar comanda</button>
+      </div>
+    </div>
 
     <!-- FINANCEIRO -->
     <section id="pg-financeiro" class="hidden page-section">
@@ -1418,7 +1494,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260804b"></script>
+<script src="/js/app.js?v=20260806a"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
