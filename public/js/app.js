@@ -4295,6 +4295,7 @@ document.addEventListener('mousedown', e => {
 
 /* ===================== COMANDAS ===================== */
 let comandaAtualId = null;
+let comandaAtualDados = null; // guarda o último objeto da comanda carregada, usado na impressão
 function fmtMoeda(v) { return parseFloat(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
 
 async function carregarComandas() {
@@ -4389,6 +4390,7 @@ async function abrirModalComanda(id) {
 }
 
 function renderItensComanda(c) {
+  comandaAtualDados = c;
   const el = document.getElementById('cmd-detalhe-itens');
   el.innerHTML = c.itens.length
     ? c.itens.map((i, idx) => `
@@ -4484,11 +4486,88 @@ async function fecharComandaUI(forma_pagamento) {
   if (!comandaAtualId) return;
   const total = document.getElementById('cmd-detalhe-total').textContent;
   if (!confirm(`Confirmar recebimento de ${total} via ${forma_pagamento}?`)) return;
+  const snapshot = comandaAtualDados; // guarda os itens antes de fechar, pro recibo
   const r = await api(`/comandas/${comandaAtualId}/fechar`, { method: 'POST', body: { forma_pagamento } });
   if (!r) return;
   mostrarToast(`Comanda fechada — ${forma_pagamento}!`, 'ok');
   fecharModalComanda();
   await carregarComandas();
+  if (snapshot && confirm('Imprimir o recibo dessa comanda?')) {
+    imprimirReciboComanda(snapshot, forma_pagamento);
+  }
+}
+
+// ── Impressão térmica (80mm) ─────────────────────────────────────
+function abrirJanelaImpressaoTermica(bodyHtml) {
+  const html = `<!doctype html><html><head><meta charset="utf-8">
+    <title>Imprimir</title>
+    <style>
+      @page { size: 80mm auto; margin: 0; }
+      * { box-sizing: border-box; }
+      body { width: 80mm; margin: 0; padding: 6px 8px; font-family: 'Courier New', monospace; font-size: 12px; color: #000; }
+      h1 { font-size: 15px; text-align: center; margin: 0 0 2px; }
+      .sub { text-align: center; font-size: 11px; margin-bottom: 8px; }
+      hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
+      .linha { display: flex; justify-content: space-between; gap: 6px; margin: 3px 0; }
+      .linha .qtd { flex-shrink: 0; }
+      .linha .nome { flex: 1; }
+      .linha .valor { flex-shrink: 0; text-align: right; }
+      .total { font-size: 14px; font-weight: bold; display: flex; justify-content: space-between; margin-top: 6px; }
+      .rodape { text-align: center; font-size: 10px; margin-top: 10px; }
+    </style></head><body>
+    ${bodyHtml}
+    <script>
+      window.onload = () => { window.print(); window.onafterprint = () => window.close(); };
+    <\/script>
+    </body></html>`;
+  const w = window.open('', '_blank', 'width=380,height=600');
+  w.document.write(html);
+  w.document.close();
+}
+
+// Ficha pra cozinha/produção — sem valores, só os itens pra separar/preparar
+function imprimirFichaCozinha() {
+  const c = comandaAtualDados;
+  if (!c || !c.itens || !c.itens.length) { mostrarToast('Adicione itens antes de imprimir.', 'warn'); return; }
+  const agora = new Date().toLocaleString('pt-BR');
+  const linhas = c.itens.map(i => `
+    <div class="linha">
+      <span class="qtd">${fmtQtd(i.quantidade)}x</span>
+      <span class="nome">${i.nome_produto}</span>
+    </div>
+  `).join('');
+  abrirJanelaImpressaoTermica(`
+    <h1>🧾 COMANDA ${c.identificador}</h1>
+    <div class="sub">${agora}</div>
+    <hr/>
+    ${linhas}
+    <hr/>
+    <div class="rodape">PanificaPro</div>
+  `);
+}
+
+// Recibo do cliente — com valores e forma de pagamento, impresso após o fechamento
+function imprimirReciboComanda(c, forma_pagamento) {
+  const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
+  const agora = new Date().toLocaleString('pt-BR');
+  const linhas = c.itens.map(i => `
+    <div class="linha">
+      <span class="qtd">${fmtQtd(i.quantidade)}x</span>
+      <span class="nome">${i.nome_produto}</span>
+      <span class="valor">${fmtMoeda(i.subtotal)}</span>
+    </div>
+  `).join('');
+  const total = c.itens.reduce((s, i) => s + parseFloat(i.subtotal), 0);
+  abrirJanelaImpressaoTermica(`
+    <h1>${nomePadaria}</h1>
+    <div class="sub">Comanda ${c.identificador} · ${agora}</div>
+    <hr/>
+    ${linhas}
+    <hr/>
+    <div class="total"><span>TOTAL</span><span>${fmtMoeda(total)}</span></div>
+    <div class="sub" style="margin-top:4px;">Pagamento: ${forma_pagamento}</div>
+    <div class="rodape">Obrigado pela preferência!</div>
+  `);
 }
 
 // Busca rápida por número/identificação da comanda (estilo "Digite ou passe a comanda" do PDV)

@@ -580,7 +580,10 @@
       <div class="modal-box maq-box cmd-pdv-box">
         <div class="cmd-pdv-header">
           <span class="modal-title" id="cmd-detalhe-titulo">🧾 Comanda</span>
-          <button onclick="fecharModalComanda()" class="btn-icon">✕</button>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <button onclick="imprimirFichaCozinha()" class="btn-icon" title="Imprimir ficha pra cozinha">🖨️</button>
+            <button onclick="fecharModalComanda()" class="btn-icon">✕</button>
+          </div>
         </div>
 
         <div id="cmd-detalhe-itens" class="cmd-itens-lista"></div>
@@ -1504,7 +1507,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260806j"></script>
+<script src="/js/app.js?v=20260806k"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
