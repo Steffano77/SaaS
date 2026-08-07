@@ -4388,6 +4388,9 @@ async function abrirModalCaixa(modo) {
     const caixa = caixaAtualCache;
     const r = caixa?.resumo;
     const linhasForma = (r?.porForma || []).map(f => `<div class="cmd-resumo-linha"><span>${f.forma_pagamento}</span><span>${fmtMoeda(f.total)}</span></div>`).join('');
+    const naoDinheiro = (r?.porForma || []).filter(f => f.forma_pagamento !== 'Dinheiro');
+    const linhasNaoDinheiro = naoDinheiro.map(f => `<div class="cmd-resumo-linha"><span>${f.forma_pagamento}</span><span>${fmtMoeda(f.total)}</span></div>`).join('');
+    const totalNaoDinheiro = naoDinheiro.reduce((s, f) => s + parseFloat(f.total), 0);
     corpo.innerHTML = `
       <div class="cmd-resumo-caixa">
         <div class="cmd-resumo-linha"><span>Abertura</span><span>${fmtMoeda(caixa?.valor_abertura)}</span></div>
@@ -4397,6 +4400,11 @@ async function abrirModalCaixa(modo) {
         <div class="cmd-resumo-linha"><span>Sangrias</span><span>-${fmtMoeda(r?.totalSangrias)}</span></div>
         <div class="cmd-resumo-linha"><span>Suprimentos</span><span>+${fmtMoeda(r?.totalSuprimentos)}</span></div>
         <div class="cmd-resumo-linha total"><span>Esperado em dinheiro na gaveta</span><span>${fmtMoeda(r?.esperadoEmDinheiro)}</span></div>
+        ${naoDinheiro.length ? `
+          <div class="cmd-resumo-secao">Recebido fora da gaveta (não conferir na conta física)</div>
+          ${linhasNaoDinheiro}
+          <div class="cmd-resumo-linha subtotal"><span>Total fora da gaveta</span><span>${fmtMoeda(totalNaoDinheiro)}</span></div>
+        ` : ''}
       </div>
       <div class="form-group" style="margin-top:10px;">
         <label class="form-label">Valor contado em dinheiro</label>
