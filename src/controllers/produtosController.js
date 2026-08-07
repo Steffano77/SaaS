@@ -98,7 +98,7 @@ exports.atualizar = async (req, res) => {
   try {
     const campos = ['codigo_barras','nome','unidade','categoria_id','fornecedor_id',
                     'custo_unitario','preco_venda','estoque_atual','estoque_minimo','validade','ultima_compra',
-                    'embalagem_preco','embalagem_qtd','venda_rapida'];
+                    'embalagem_preco','embalagem_qtd','venda_rapida','controla_estoque'];
     const sets = []; const vals = [];
     for (const c of campos) {
       if (req.body[c] !== undefined) { sets.push(`${c} = ?`); vals.push(req.body[c]); }
@@ -130,8 +130,8 @@ exports.dashboard = async (req, res) => {
     const [[kpis]] = await db.query(`
       SELECT
         COUNT(*) AS total_produtos,
-        COALESCE(SUM(estoque_atual <= 0), 0) AS zerados,
-        COALESCE(SUM(estoque_atual > 0 AND estoque_minimo > 0 AND estoque_atual <= estoque_minimo), 0) AS abaixo_minimo,
+        COALESCE(SUM(controla_estoque = 1 AND estoque_atual <= 0), 0) AS zerados,
+        COALESCE(SUM(controla_estoque = 1 AND estoque_atual > 0 AND estoque_minimo > 0 AND estoque_atual <= estoque_minimo), 0) AS abaixo_minimo,
         COALESCE(SUM(validade IS NOT NULL AND validade <= DATE_ADD(CURDATE(), INTERVAL 10 DAY) AND estoque_atual > 0), 0) AS vencendo,
         COALESCE(SUM(estoque_atual * custo_unitario), 0) AS valor_total_estoque
       FROM produtos WHERE padaria_id = ? AND ativo = 1`, [pid]);
@@ -139,7 +139,7 @@ exports.dashboard = async (req, res) => {
     const [repor] = await db.query(`
       SELECT nome, codigo_barras, estoque_atual, estoque_minimo,
              GREATEST(0, estoque_minimo - estoque_atual) AS falta, unidade
-      FROM produtos WHERE padaria_id = ? AND ativo = 1
+      FROM produtos WHERE padaria_id = ? AND ativo = 1 AND controla_estoque = 1
         AND (estoque_atual <= 0 OR estoque_atual <= estoque_minimo)
       ORDER BY estoque_atual <= 0 DESC, falta DESC LIMIT 20`, [pid]);
 

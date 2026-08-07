@@ -3131,6 +3131,7 @@ async function editarProduto(id) {
   document.getElementById('prod-fornecedor').value = p.fornecedor_id || '';
   document.getElementById('prod-saldo').value   = parseFloat(p.estoque_atual || 0);
   document.getElementById('prod-venda-rapida').checked = !!p.venda_rapida;
+  document.getElementById('prod-controla-estoque').checked = p.controla_estoque !== 0;
   document.getElementById('wrap-saldo').classList.remove('hidden');
   atualizarLabelEmbalagem();
   if (p.embalagem_preco && p.embalagem_qtd) {
@@ -3236,6 +3237,7 @@ async function salvarProduto(e) {
     validade:       document.getElementById('prod-validade').value || null,
     ultima_compra:  document.getElementById('prod-ultima-compra').value || null,
     venda_rapida:   document.getElementById('prod-venda-rapida').checked ? 1 : 0,
+    controla_estoque: document.getElementById('prod-controla-estoque').checked ? 1 : 0,
   };
   body.estoque_atual = parseFloat(document.getElementById('prod-saldo').value) || 0;
   if (!document.getElementById('bloco-embalagem').classList.contains('hidden')) {
