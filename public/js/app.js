@@ -4391,10 +4391,12 @@ async function abrirModalCaixa(modo) {
     corpo.innerHTML = `
       <div class="cmd-resumo-caixa">
         <div class="cmd-resumo-linha"><span>Abertura</span><span>${fmtMoeda(caixa?.valor_abertura)}</span></div>
-        ${linhasForma}
+        <div class="cmd-resumo-secao">Vendas por forma de pagamento</div>
+        ${linhasForma || '<div class="cmd-resumo-linha"><span>Nenhuma venda nesse caixa</span><span>—</span></div>'}
+        <div class="cmd-resumo-linha subtotal"><span>Total geral de vendas</span><span>${fmtMoeda(r?.totalVendas)}</span></div>
         <div class="cmd-resumo-linha"><span>Sangrias</span><span>-${fmtMoeda(r?.totalSangrias)}</span></div>
         <div class="cmd-resumo-linha"><span>Suprimentos</span><span>+${fmtMoeda(r?.totalSuprimentos)}</span></div>
-        <div class="cmd-resumo-linha total"><span>Esperado em dinheiro</span><span>${fmtMoeda(r?.esperadoEmDinheiro)}</span></div>
+        <div class="cmd-resumo-linha total"><span>Esperado em dinheiro na gaveta</span><span>${fmtMoeda(r?.esperadoEmDinheiro)}</span></div>
       </div>
       <div class="form-group" style="margin-top:10px;">
         <label class="form-label">Valor contado em dinheiro</label>
@@ -4435,6 +4437,7 @@ async function confirmarFecharCaixa() {
   const valor_fechamento = document.getElementById('caixa-valor-fechamento').value;
   const observacao = document.getElementById('caixa-fechamento-obs').value;
   if (!confirm('Fechar o caixa agora? Confira o valor contado antes de confirmar.')) return;
+  const caixaSnapshot = caixaAtualCache; // guarda o resumo antes de fechar, pro comprovante impresso
   const r = await api(`/caixa/${caixaAtualCache.id}/fechar`, { method: 'POST', body: { valor_fechamento, observacao } });
   if (!r) return;
   const dif = r.diferenca;
@@ -4444,6 +4447,39 @@ async function confirmarFecharCaixa() {
   mostrarToast(msg, Math.abs(dif) < 0.01 ? 'ok' : 'warn');
   document.getElementById('modal-caixa').classList.add('hidden');
   await carregarCaixaFaixa();
+  if (confirm('Imprimir o comprovante de fechamento de caixa?')) {
+    imprimirFechamentoCaixa(caixaSnapshot, parseFloat(valor_fechamento) || 0, dif);
+  }
+}
+
+// Comprovante impresso do fechamento de caixa (registro físico pra conferência)
+function imprimirFechamentoCaixa(caixa, informado, diferenca) {
+  const r = caixa?.resumo;
+  const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
+  const agora = new Date().toLocaleString('pt-BR');
+  const linhasForma = (r?.porForma || []).map(f => `
+    <div class="linha"><span class="nome">${f.forma_pagamento}</span><span class="valor">${fmtMoeda(f.total)}</span></div>
+  `).join('');
+  const difLabel = Math.abs(diferenca) < 0.01 ? 'OK (bateu certinho)' : (diferenca > 0 ? `+${fmtMoeda(diferenca)} (sobrou)` : `${fmtMoeda(diferenca)} (faltou)`);
+  abrirJanelaImpressaoTermica(`
+    <h1>${nomePadaria}</h1>
+    <div class="sub">Fechamento de Caixa</div>
+    <div class="sub">${agora}${caixa?.atendente ? ' · ' + caixa.atendente : ''}</div>
+    <hr/>
+    <div class="linha"><span class="nome">Abertura</span><span class="valor">${fmtMoeda(caixa?.valor_abertura)}</span></div>
+    <hr/>
+    ${linhasForma}
+    <hr/>
+    <div class="linha"><span class="nome">Total geral vendas</span><span class="valor">${fmtMoeda(r?.totalVendas)}</span></div>
+    <div class="linha"><span class="nome">Sangrias</span><span class="valor">-${fmtMoeda(r?.totalSangrias)}</span></div>
+    <div class="linha"><span class="nome">Suprimentos</span><span class="valor">+${fmtMoeda(r?.totalSuprimentos)}</span></div>
+    <hr/>
+    <div class="total"><span>Esperado em dinheiro</span><span>${fmtMoeda(r?.esperadoEmDinheiro)}</span></div>
+    <div class="linha"><span class="nome">Contado em dinheiro</span><span class="valor">${fmtMoeda(informado)}</span></div>
+    <div class="linha"><span class="nome">Diferença</span><span class="valor">${difLabel}</span></div>
+    <hr/>
+    <div class="rodape">PanificaPro</div>
+  `);
 }
 
 /* ===================== ATENDENTES ===================== */
