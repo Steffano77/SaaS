@@ -23,18 +23,25 @@ exports.listar = async (req, res) => {
 };
 
 // Abre uma nova comanda
+// Abre uma nova comanda. O caixa_id vem do tablet (cada aparelho sabe qual é o seu caixa aberto);
+// o atendente da comanda é herdado automaticamente do atendente que abriu esse caixa.
 exports.abrir = async (req, res) => {
   const padaria_id = req.padaria.id;
   const identificador = String(req.body.identificador || '').trim() || 'Comanda';
-  const atendente = req.body.atendente ? String(req.body.atendente).trim() : null;
+  const caixa_id = req.body.caixa_id || null;
 
-  const [[caixa]] = await db.query(
-    `SELECT id FROM caixas WHERE padaria_id = ? AND status = 'aberto'`, [padaria_id]
-  );
+  let atendente = null;
+  if (caixa_id) {
+    const [[caixa]] = await db.query(
+      `SELECT atendente FROM caixas WHERE id = ? AND padaria_id = ? AND status = 'aberto'`,
+      [caixa_id, padaria_id]
+    );
+    if (caixa) atendente = caixa.atendente;
+  }
 
   const [r] = await db.query(
     `INSERT INTO comandas (padaria_id, identificador, atendente, caixa_id) VALUES (?, ?, ?, ?)`,
-    [padaria_id, identificador, atendente, caixa ? caixa.id : null]
+    [padaria_id, identificador, atendente, caixa_id]
   );
   res.status(201).json({ id: r.insertId, identificador });
 };
@@ -165,12 +172,8 @@ exports.fechar = async (req, res) => {
     return res.status(400).json({ erro: `A soma dos pagamentos (${somaPagamentos.toFixed(2)}) não bate com o total da comanda (${totalGeral.toFixed(2)}).` });
   }
 
-  // Vincula a um caixa aberto, se ainda não estiver vinculada a um
-  let caixa_id = comanda.caixa_id;
-  if (!caixa_id) {
-    const [[caixa]] = await db.query(`SELECT id FROM caixas WHERE padaria_id = ? AND status = 'aberto'`, [padaria_id]);
-    caixa_id = caixa ? caixa.id : null;
-  }
+  // A comanda já nasce vinculada ao caixa do tablet que a abriu — mantém esse vínculo ao fechar.
+  const caixa_id = comanda.caixa_id;
 
   // Grava cada pagamento e lança no Financeiro (um lançamento por forma de pagamento)
   const formasResumo = [];

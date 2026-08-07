@@ -207,6 +207,9 @@ app.use(express.static(path.join(__dirname, '../public')));
       'ALTER TABLE comandas ADD COLUMN acrescimo DECIMAL(10,2) NOT NULL DEFAULT 0',
       'ALTER TABLE comandas ADD COLUMN atendente VARCHAR(80) NULL',
       'ALTER TABLE produtos ADD COLUMN venda_rapida TINYINT(1) NOT NULL DEFAULT 0',
+      // Múltiplos caixas simultâneos (um por tablet/aparelho) + PIN por atendente
+      "ALTER TABLE caixas ADD COLUMN nome VARCHAR(40) NOT NULL DEFAULT 'Caixa 1'",
+      'ALTER TABLE atendentes ADD COLUMN pin_hash VARCHAR(255) NULL',
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
 

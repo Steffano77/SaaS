@@ -1,14 +1,23 @@
+const bcrypt = require('bcryptjs');
 const db = require('../database/connection');
 
-// Retorna o caixa aberto no momento (ou null se não houver nenhum aberto)
-exports.atual = async (req, res) => {
+// Lista todos os caixas abertos da padaria (pode haver mais de um — um por tablet/aparelho)
+exports.abertos = async (req, res) => {
   const padaria_id = req.padaria.id;
-  const [[caixa]] = await db.query(
-    `SELECT * FROM caixas WHERE padaria_id = ? AND status = 'aberto' ORDER BY aberto_em DESC LIMIT 1`,
+  const [caixas] = await db.query(
+    `SELECT * FROM caixas WHERE padaria_id = ? AND status = 'aberto' ORDER BY aberto_em`,
     [padaria_id]
   );
-  if (!caixa) return res.json(null);
+  res.json(caixas);
+};
 
+// Detalhe de um caixa específico (com resumo), usado pelo tablet que já sabe qual é o seu
+exports.buscar = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const [[caixa]] = await db.query(
+    `SELECT * FROM caixas WHERE id = ? AND padaria_id = ?`, [req.params.id, padaria_id]
+  );
+  if (!caixa) return res.status(404).json({ erro: 'Caixa não encontrado.' });
   const resumo = await montarResumoCaixa(caixa);
   res.json({ ...caixa, resumo });
 };
@@ -25,29 +34,31 @@ exports.historico = async (req, res) => {
 
 exports.abrir = async (req, res) => {
   const padaria_id = req.padaria.id;
-  const { valor_abertura, atendente, observacao } = req.body;
+  const { valor_abertura, atendente_id, pin, observacao } = req.body;
+  const nome = String(req.body.nome || '').trim() || 'Caixa 1';
 
-  const [[jaAberto]] = await db.query(
-    `SELECT id FROM caixas WHERE padaria_id = ? AND status = 'aberto'`, [padaria_id]
-  );
-  if (jaAberto) return res.status(400).json({ erro: 'Já existe um caixa aberto.' });
+  let atendenteNome = null;
+  if (atendente_id) {
+    const [[atendente]] = await db.query(
+      `SELECT id, nome, pin_hash FROM atendentes WHERE id = ? AND padaria_id = ? AND ativo = 1`,
+      [atendente_id, padaria_id]
+    );
+    if (!atendente) return res.status(404).json({ erro: 'Atendente não encontrado.' });
+    if (atendente.pin_hash) {
+      const ok = await bcrypt.compare(String(pin || ''), atendente.pin_hash);
+      if (!ok) return res.status(401).json({ erro: 'PIN incorreto.' });
+    }
+    atendenteNome = atendente.nome;
+  }
 
   const [r] = await db.query(
-    `INSERT INTO caixas (padaria_id, atendente, valor_abertura, observacao) VALUES (?,?,?,?)`,
-    [padaria_id, atendente || null, parseFloat(valor_abertura) || 0, observacao || null]
+    `INSERT INTO caixas (padaria_id, nome, atendente, valor_abertura, observacao) VALUES (?,?,?,?,?)`,
+    [padaria_id, nome, atendenteNome, parseFloat(valor_abertura) || 0, observacao || null]
   );
-  res.status(201).json({ id: r.insertId });
+  res.status(201).json({ id: r.insertId, nome, atendente: atendenteNome });
 };
 
 async function montarResumoCaixa(caixa) {
-  const [[vendas]] = await db.query(
-    `SELECT COALESCE(SUM(cp.valor), 0) AS total, cp.forma_pagamento
-     FROM comanda_pagamentos cp
-     JOIN comandas c ON c.id = cp.comanda_id
-     WHERE c.caixa_id = ?
-     GROUP BY cp.forma_pagamento`,
-    [caixa.id]
-  );
   const [porForma] = await db.query(
     `SELECT cp.forma_pagamento, COALESCE(SUM(cp.valor), 0) AS total
      FROM comanda_pagamentos cp
@@ -129,9 +140,9 @@ exports.sangria = async (req, res) => {
   if (!valor || valor <= 0) return res.status(400).json({ erro: 'Valor inválido.' });
 
   const [[caixa]] = await db.query(
-    `SELECT id FROM caixas WHERE padaria_id = ? AND status = 'aberto'`, [padaria_id]
+    `SELECT id FROM caixas WHERE id = ? AND padaria_id = ? AND status = 'aberto'`, [req.params.id, padaria_id]
   );
-  if (!caixa) return res.status(400).json({ erro: 'Nenhum caixa aberto.' });
+  if (!caixa) return res.status(404).json({ erro: 'Caixa não encontrado ou já fechado.' });
 
   await db.query(
     `INSERT INTO caixa_movimentos (caixa_id, tipo, valor, observacao) VALUES (?, 'sangria', ?, ?)`,
@@ -146,9 +157,9 @@ exports.suprimento = async (req, res) => {
   if (!valor || valor <= 0) return res.status(400).json({ erro: 'Valor inválido.' });
 
   const [[caixa]] = await db.query(
-    `SELECT id FROM caixas WHERE padaria_id = ? AND status = 'aberto'`, [padaria_id]
+    `SELECT id FROM caixas WHERE id = ? AND padaria_id = ? AND status = 'aberto'`, [req.params.id, padaria_id]
   );
-  if (!caixa) return res.status(400).json({ erro: 'Nenhum caixa aberto.' });
+  if (!caixa) return res.status(404).json({ erro: 'Caixa não encontrado ou já fechado.' });
 
   await db.query(
     `INSERT INTO caixa_movimentos (caixa_id, tipo, valor, observacao) VALUES (?, 'suprimento', ?, ?)`,

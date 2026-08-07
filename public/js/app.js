@@ -4323,32 +4323,62 @@ async function carregarComandas() {
 }
 
 /* ===================== CAIXA ===================== */
+// Cada tablet/aparelho lembra qual é o "seu" caixa (podem existir vários abertos ao mesmo tempo).
 let caixaAtualCache = null;
+let CAIXA_LOCAL_ID = localStorage.getItem('pp_caixa_id') || null;
 
 async function carregarCaixaFaixa() {
-  const caixa = await api('/caixa/atual');
-  caixaAtualCache = caixa;
   const el = document.getElementById('cmd-caixa-faixa');
   if (!el) return;
 
-  if (!caixa) {
+  if (CAIXA_LOCAL_ID) {
+    const caixa = await api(`/caixa/${CAIXA_LOCAL_ID}`);
+    if (caixa && caixa.status === 'aberto') {
+      caixaAtualCache = caixa;
+      const desde = String(caixa.aberto_em || '').slice(0, 16).replace('T', ' ');
+      el.innerHTML = `
+        <div class="cmd-caixa-card aberto">
+          <span>🟢 ${caixa.nome} aberto ${caixa.atendente ? 'por ' + caixa.atendente : ''} desde ${desde}</span>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn-ghost" style="padding:7px 12px;font-size:12.5px;" onclick="abrirModalCaixa('sangria')">💸 Sangria</button>
+            <button class="btn-ghost" style="padding:7px 12px;font-size:12.5px;" onclick="abrirModalCaixa('suprimento')">💰 Suprimento</button>
+            <button class="btn-primary" style="padding:7px 12px;font-size:12.5px;" onclick="abrirModalCaixa('fechar')">Fechar caixa</button>
+          </div>
+        </div>`;
+      return;
+    }
+    // Caixa local não existe mais ou já foi fechado noutro lugar — esquece e reavalia.
+    localStorage.removeItem('pp_caixa_id');
+    CAIXA_LOCAL_ID = null;
+    caixaAtualCache = null;
+  }
+
+  // Esse tablet não tem caixa próprio ainda — confere se já tem algum caixa aberto (de outro aparelho)
+  // que essa pessoa queira assumir aqui, ou se precisa abrir um novo.
+  const abertos = await api('/caixa/abertos');
+  if (abertos && abertos.length) {
     el.innerHTML = `
       <div class="cmd-caixa-card fechado">
-        <span>🔒 Caixa fechado — abra o caixa pra começar a vender</span>
-        <button class="btn-primary" style="padding:8px 16px;" onclick="abrirModalCaixa('abrir')">Abrir caixa</button>
+        <span>🔒 Nenhum caixa aberto neste aparelho</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          ${abertos.map(c => `<button class="btn-ghost" style="padding:8px 14px;" onclick="usarCaixaLocal(${c.id})">Usar ${c.nome}</button>`).join('')}
+          <button class="btn-primary" style="padding:8px 16px;" onclick="abrirModalCaixa('abrir')">+ Abrir novo caixa</button>
+        </div>
       </div>`;
     return;
   }
-  const desde = String(caixa.aberto_em || '').slice(0, 16).replace('T', ' ');
+
   el.innerHTML = `
-    <div class="cmd-caixa-card aberto">
-      <span>🟢 Caixa aberto ${caixa.atendente ? 'por ' + caixa.atendente : ''} desde ${desde}</span>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn-ghost" style="padding:7px 12px;font-size:12.5px;" onclick="abrirModalCaixa('sangria')">💸 Sangria</button>
-        <button class="btn-ghost" style="padding:7px 12px;font-size:12.5px;" onclick="abrirModalCaixa('suprimento')">💰 Suprimento</button>
-        <button class="btn-primary" style="padding:7px 12px;font-size:12.5px;" onclick="abrirModalCaixa('fechar')">Fechar caixa</button>
-      </div>
+    <div class="cmd-caixa-card fechado">
+      <span>🔒 Caixa fechado — abra o caixa pra começar a vender</span>
+      <button class="btn-primary" style="padding:8px 16px;" onclick="abrirModalCaixa('abrir')">Abrir caixa</button>
     </div>`;
+}
+
+function usarCaixaLocal(id) {
+  localStorage.setItem('pp_caixa_id', id);
+  CAIXA_LOCAL_ID = id;
+  carregarCaixaFaixa();
 }
 
 async function abrirModalCaixa(modo) {
@@ -4357,14 +4387,23 @@ async function abrirModalCaixa(modo) {
 
   if (modo === 'abrir') {
     titulo.textContent = '💰 Abrir caixa';
+    const sugestao = await sugerirNomeCaixa();
     corpo.innerHTML = `
+      <div class="form-group">
+        <label class="form-label">Nome deste caixa</label>
+        <input id="caixa-nome" type="text" class="form-control" value="${sugestao}" placeholder="Ex: Caixa 1"/>
+      </div>
       <div class="form-group">
         <label class="form-label">Valor inicial (troco em caixa)</label>
         <input id="caixa-valor-abertura" type="number" class="form-control" min="0" step="0.01" placeholder="0,00"/>
       </div>
       <div class="form-group">
-        <label class="form-label">Atendente (opcional)</label>
-        <select id="caixa-atendente" class="form-control"></select>
+        <label class="form-label">Atendente</label>
+        <select id="caixa-atendente" class="form-control" onchange="if(this.value==='__novo__') adicionarAtendenteInline(this)"></select>
+      </div>
+      <div class="form-group" id="caixa-pin-wrap">
+        <label class="form-label">PIN do atendente (4 dígitos)</label>
+        <input id="caixa-pin" type="password" inputmode="numeric" maxlength="4" class="form-control" placeholder="••••"/>
       </div>
       <button class="btn-primary full" style="margin-top:6px;" onclick="confirmarAbrirCaixa()">Abrir caixa</button>
     `;
@@ -4425,11 +4464,29 @@ async function abrirModalCaixa(modo) {
   document.getElementById('modal-caixa').classList.remove('hidden');
 }
 
+// Sugere "Caixa 1", "Caixa 2"... olhando quantos já estão abertos agora
+async function sugerirNomeCaixa() {
+  const abertos = await api('/caixa/abertos');
+  const n = (abertos ? abertos.length : 0) + 1;
+  return `Caixa ${n}`;
+}
+
 async function confirmarAbrirCaixa() {
+  const nome = document.getElementById('caixa-nome').value.trim() || 'Caixa 1';
   const valor_abertura = document.getElementById('caixa-valor-abertura').value;
-  const atendente = document.getElementById('caixa-atendente').value;
-  const r = await api('/caixa/abrir', { method: 'POST', body: { valor_abertura, atendente: atendente === '__novo__' ? null : atendente } });
+  const atendente_id = document.getElementById('caixa-atendente').value;
+  const pin = document.getElementById('caixa-pin').value.trim();
+  if (atendente_id && atendente_id !== '__novo__' && !/^\d{4}$/.test(pin)) {
+    mostrarToast('Digite o PIN de 4 dígitos do atendente.', 'warn');
+    return;
+  }
+  const r = await api('/caixa/abrir', {
+    method: 'POST',
+    body: { nome, valor_abertura, atendente_id: atendente_id && atendente_id !== '__novo__' ? atendente_id : null, pin }
+  });
   if (!r) return;
+  localStorage.setItem('pp_caixa_id', r.id);
+  CAIXA_LOCAL_ID = r.id;
   mostrarToast('Caixa aberto!', 'ok');
   document.getElementById('modal-caixa').classList.add('hidden');
   await carregarCaixaFaixa();
@@ -4439,7 +4496,7 @@ async function confirmarMovimentoCaixa(tipo) {
   const valor = document.getElementById('caixa-mov-valor').value;
   const observacao = document.getElementById('caixa-mov-obs').value;
   if (!valor || parseFloat(valor) <= 0) { mostrarToast('Informe um valor válido.', 'warn'); return; }
-  const r = await api(`/caixa/${tipo}`, { method: 'POST', body: { valor, observacao } });
+  const r = await api(`/caixa/${CAIXA_LOCAL_ID}/${tipo}`, { method: 'POST', body: { valor, observacao } });
   if (!r) return;
   mostrarToast(tipo === 'sangria' ? 'Sangria registrada.' : 'Suprimento registrado.', 'ok');
   document.getElementById('modal-caixa').classList.add('hidden');
@@ -4451,8 +4508,10 @@ async function confirmarFecharCaixa() {
   const observacao = document.getElementById('caixa-fechamento-obs').value;
   if (!confirm('Fechar o caixa agora? Confira o valor contado antes de confirmar.')) return;
   const caixaSnapshot = caixaAtualCache; // guarda o resumo antes de fechar, pro comprovante impresso
-  const r = await api(`/caixa/${caixaAtualCache.id}/fechar`, { method: 'POST', body: { valor_fechamento, observacao } });
+  const r = await api(`/caixa/${CAIXA_LOCAL_ID}/fechar`, { method: 'POST', body: { valor_fechamento, observacao } });
   if (!r) return;
+  localStorage.removeItem('pp_caixa_id');
+  CAIXA_LOCAL_ID = null;
   const dif = r.diferenca;
   const msg = Math.abs(dif) < 0.01
     ? 'Caixa fechado — valores batem certinho! ✅'
@@ -4501,25 +4560,28 @@ function imprimirFechamentoCaixa(caixa, informado, diferenca) {
 let atendentesCache = [];
 
 async function carregarAtendentesSelect(selectId) {
-  if (!atendentesCache.length) {
-    const r = await api('/atendentes');
-    atendentesCache = r || [];
-  }
+  const r = await api('/atendentes');
+  atendentesCache = r || [];
   const sel = document.getElementById(selectId);
   if (!sel) return;
-  sel.innerHTML = '<option value="">Sem atendente</option>' +
-    atendentesCache.map(a => `<option value="${a.nome}">${a.nome}</option>`).join('') +
+  sel.innerHTML = '<option value="">— Selecione —</option>' +
+    atendentesCache.map(a => `<option value="${a.id}">${a.nome}</option>`).join('') +
     '<option value="__novo__">+ Novo atendente...</option>';
 }
 
 async function adicionarAtendenteInline(selectEl) {
   const nome = prompt('Nome do atendente:');
   if (!nome || !nome.trim()) { selectEl.value = ''; return; }
-  const r = await api('/atendentes', { method: 'POST', body: { nome: nome.trim() } });
+  const pin = prompt(`Crie um PIN de 4 números pra ${nome.trim()} (usado pra abrir caixa em nome dele):`);
+  if (!pin || !/^\d{4}$/.test(pin.trim())) {
+    mostrarToast('PIN precisa ter exatamente 4 números. Atendente não criado.', 'warn');
+    selectEl.value = '';
+    return;
+  }
+  const r = await api('/atendentes', { method: 'POST', body: { nome: nome.trim(), pin: pin.trim() } });
   if (!r) { selectEl.value = ''; return; }
-  atendentesCache.push(r);
   await carregarAtendentesSelect(selectEl.id);
-  selectEl.value = r.nome;
+  selectEl.value = r.id;
 }
 
 function cardComandaHtml(c) {
@@ -4552,10 +4614,13 @@ async function excluirComandaUI(id) {
   await carregarComandas();
 }
 
-async function abrirModalNovaComanda() {
+function abrirModalNovaComanda() {
+  if (!CAIXA_LOCAL_ID) {
+    mostrarToast('Abra o caixa antes de criar uma comanda.', 'warn');
+    return;
+  }
   document.getElementById('cmd-novo-identificador').value = '';
   document.getElementById('modal-nova-comanda').classList.remove('hidden');
-  await carregarAtendentesSelect('cmd-novo-atendente');
   setTimeout(() => document.getElementById('cmd-novo-identificador').focus(), 100);
 }
 
@@ -4565,9 +4630,7 @@ function fecharModalNovaComanda() {
 
 async function criarComanda() {
   const identificador = document.getElementById('cmd-novo-identificador').value.trim() || 'Comanda';
-  const atendenteSel = document.getElementById('cmd-novo-atendente').value;
-  const atendente = atendenteSel === '__novo__' ? '' : atendenteSel;
-  const r = await api('/comandas', { method: 'POST', body: { identificador, atendente } });
+  const r = await api('/comandas', { method: 'POST', body: { identificador, caixa_id: CAIXA_LOCAL_ID } });
   if (!r) return;
   fecharModalNovaComanda();
   await carregarComandas();
@@ -4933,7 +4996,8 @@ async function selecionarProdutoBuscaComanda(produtoId) {
 
   if (!alvo) {
     if (!confirm(`Nenhuma comanda "${termo}" aberta. Abrir uma nova com esse número?`)) return;
-    const r = await api('/comandas', { method: 'POST', body: { identificador: termo } });
+    if (!CAIXA_LOCAL_ID) { mostrarToast('Abra o caixa antes de criar uma comanda.', 'warn'); return; }
+    const r = await api('/comandas', { method: 'POST', body: { identificador: termo, caixa_id: CAIXA_LOCAL_ID } });
     if (!r) return;
     alvo = { id: r.id };
   } else if (alvo.status && alvo.status !== 'aberta') {
@@ -4968,7 +5032,8 @@ async function buscarComandaPorNumero() {
     || todas.find(c => c.identificador === termo);
   if (!alvo) {
     if (!confirm(`Nenhuma comanda "${termo}" aberta. Abrir uma nova com esse número?`)) return;
-    const r = await api('/comandas', { method: 'POST', body: { identificador: termo } });
+    if (!CAIXA_LOCAL_ID) { mostrarToast('Abra o caixa antes de criar uma comanda.', 'warn'); return; }
+    const r = await api('/comandas', { method: 'POST', body: { identificador: termo, caixa_id: CAIXA_LOCAL_ID } });
     if (!r) return;
     document.getElementById('cmd-busca-numero').value = '';
     await carregarComandas();

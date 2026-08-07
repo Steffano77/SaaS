@@ -165,18 +165,20 @@ router.post('/comandas/:id/cancelar',  auth, authPremium, wrap(comandaCtrl.cance
 router.delete('/comandas/:id',         auth, authPremium, wrap(comandaCtrl.excluir));
 router.patch('/comandas/:id/ajuste',   auth, authPremium, wrap(comandaCtrl.definirAjuste));
 
-// Caixa — Premium apenas
-router.get('/caixa/atual',       auth, authPremium, wrap(caixaCtrl.atual));
-router.get('/caixa/historico',   auth, authPremium, wrap(caixaCtrl.historico));
-router.post('/caixa/abrir',      auth, authPremium, wrap(caixaCtrl.abrir));
-router.post('/caixa/:id/fechar', auth, authPremium, wrap(caixaCtrl.fechar));
-router.post('/caixa/sangria',    auth, authPremium, wrap(caixaCtrl.sangria));
-router.post('/caixa/suprimento', auth, authPremium, wrap(caixaCtrl.suprimento));
+// Caixa — Premium apenas (permite múltiplos caixas abertos ao mesmo tempo, um por tablet)
+router.get('/caixa/abertos',        auth, authPremium, wrap(caixaCtrl.abertos));
+router.get('/caixa/historico',      auth, authPremium, wrap(caixaCtrl.historico));
+router.get('/caixa/:id',            auth, authPremium, wrap(caixaCtrl.buscar));
+router.post('/caixa/abrir',         auth, authPremium, wrap(caixaCtrl.abrir));
+router.post('/caixa/:id/fechar',    auth, authPremium, wrap(caixaCtrl.fechar));
+router.post('/caixa/:id/sangria',   auth, authPremium, wrap(caixaCtrl.sangria));
+router.post('/caixa/:id/suprimento',auth, authPremium, wrap(caixaCtrl.suprimento));
 
 // Atendentes — Premium apenas
-router.get('/atendentes',        auth, authPremium, wrap(atendenteCtrl.listar));
-router.post('/atendentes',       auth, authPremium, wrap(atendenteCtrl.criar));
-router.delete('/atendentes/:id', auth, authPremium, wrap(atendenteCtrl.remover));
+router.get('/atendentes',                auth, authPremium, wrap(atendenteCtrl.listar));
+router.post('/atendentes',               auth, authPremium, wrap(atendenteCtrl.criar));
+router.post('/atendentes/:id/verificar-pin', auth, authPremium, wrap(atendenteCtrl.verificarPin));
+router.delete('/atendentes/:id',         auth, authPremium, wrap(atendenteCtrl.remover));
 
 // Importação genérica
 router.post('/sync/preview',   auth, upload.single('arquivo'), importCtrl.preview);
