@@ -4397,6 +4397,11 @@ async function abrirModalCaixa(modo) {
         <div class="cmd-resumo-secao">Vendas por forma de pagamento</div>
         ${linhasForma || '<div class="cmd-resumo-linha"><span>Nenhuma venda nesse caixa</span><span>—</span></div>'}
         <div class="cmd-resumo-linha subtotal"><span>Total geral de vendas</span><span>${fmtMoeda(r?.totalVendas)}</span></div>
+        ${(r?.totalDescontos > 0 || r?.totalAcrescimos > 0) ? `
+          <div class="cmd-resumo-secao">Ajustes concedidos nas comandas</div>
+          ${r.totalDescontos > 0 ? `<div class="cmd-resumo-linha"><span>Descontos dados</span><span>-${fmtMoeda(r.totalDescontos)}</span></div>` : ''}
+          ${r.totalAcrescimos > 0 ? `<div class="cmd-resumo-linha"><span>Acréscimos cobrados</span><span>+${fmtMoeda(r.totalAcrescimos)}</span></div>` : ''}
+        ` : ''}
         <div class="cmd-resumo-linha"><span>Sangrias</span><span>-${fmtMoeda(r?.totalSangrias)}</span></div>
         <div class="cmd-resumo-linha"><span>Suprimentos</span><span>+${fmtMoeda(r?.totalSuprimentos)}</span></div>
         <div class="cmd-resumo-linha total"><span>Esperado em dinheiro na gaveta</span><span>${fmtMoeda(r?.esperadoEmDinheiro)}</span></div>
@@ -4479,6 +4484,8 @@ function imprimirFechamentoCaixa(caixa, informado, diferenca) {
     ${linhasForma}
     <hr/>
     <div class="linha"><span class="nome">Total geral vendas</span><span class="valor">${fmtMoeda(r?.totalVendas)}</span></div>
+    ${r?.totalDescontos > 0 ? `<div class="linha"><span class="nome">Descontos dados</span><span class="valor">-${fmtMoeda(r.totalDescontos)}</span></div>` : ''}
+    ${r?.totalAcrescimos > 0 ? `<div class="linha"><span class="nome">Acréscimos cobrados</span><span class="valor">+${fmtMoeda(r.totalAcrescimos)}</span></div>` : ''}
     <div class="linha"><span class="nome">Sangrias</span><span class="valor">-${fmtMoeda(r?.totalSangrias)}</span></div>
     <div class="linha"><span class="nome">Suprimentos</span><span class="valor">+${fmtMoeda(r?.totalSuprimentos)}</span></div>
     <hr/>

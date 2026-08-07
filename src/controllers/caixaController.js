@@ -76,6 +76,12 @@ async function montarResumoCaixa(caixa) {
   const totalSangrias = movimentos.filter(m => m.tipo === 'sangria').reduce((s, m) => s + parseFloat(m.valor), 0);
   const totalSuprimentos = movimentos.filter(m => m.tipo === 'suprimento').reduce((s, m) => s + parseFloat(m.valor), 0);
 
+  const [[ajustes]] = await db.query(
+    `SELECT COALESCE(SUM(desconto), 0) AS totalDescontos, COALESCE(SUM(acrescimo), 0) AS totalAcrescimos
+     FROM comandas WHERE caixa_id = ? AND status = 'fechada'`,
+    [caixa.id]
+  );
+
   const esperadoEmDinheiro = parseFloat(caixa.valor_abertura) + parseFloat(totalDinheiro.total)
     + totalSuprimentos - totalSangrias;
 
@@ -83,6 +89,8 @@ async function montarResumoCaixa(caixa) {
     porForma,
     totalVendas: parseFloat(totalVendas.total),
     totalDinheiro: parseFloat(totalDinheiro.total),
+    totalDescontos: parseFloat(ajustes.totalDescontos),
+    totalAcrescimos: parseFloat(ajustes.totalAcrescimos),
     totalSangrias, totalSuprimentos,
     movimentos,
     esperadoEmDinheiro,
