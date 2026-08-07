@@ -22,26 +22,15 @@ exports.listar = async (req, res) => {
   res.json({ abertas, recentes });
 };
 
-// Abre uma nova comanda
-// Abre uma nova comanda. O caixa_id vem do tablet (cada aparelho sabe qual é o seu caixa aberto);
-// o atendente da comanda é herdado automaticamente do atendente que abriu esse caixa.
+// Abre uma nova comanda. Não precisa de caixa aberto pra isso — o lançamento do pedido acontece
+// no tablet do salão/balcão, e o vínculo com o caixa só é feito na hora de cobrar (fechar).
 exports.abrir = async (req, res) => {
   const padaria_id = req.padaria.id;
   const identificador = String(req.body.identificador || '').trim() || 'Comanda';
-  const caixa_id = req.body.caixa_id || null;
-
-  let atendente = null;
-  if (caixa_id) {
-    const [[caixa]] = await db.query(
-      `SELECT atendente FROM caixas WHERE id = ? AND padaria_id = ? AND status = 'aberto'`,
-      [caixa_id, padaria_id]
-    );
-    if (caixa) atendente = caixa.atendente;
-  }
 
   const [r] = await db.query(
-    `INSERT INTO comandas (padaria_id, identificador, atendente, caixa_id) VALUES (?, ?, ?, ?)`,
-    [padaria_id, identificador, atendente, caixa_id]
+    `INSERT INTO comandas (padaria_id, identificador) VALUES (?, ?)`,
+    [padaria_id, identificador]
   );
   res.status(201).json({ id: r.insertId, identificador });
 };
@@ -143,6 +132,15 @@ async function recalcularTotal(comanda_id) {
 exports.fechar = async (req, res) => {
   const padaria_id = req.padaria.id;
 
+  // Cobrança só pode acontecer num PC/caixa com caixa aberto — é dali que sai o vínculo da comanda.
+  const caixa_id = req.body.caixa_id || null;
+  if (!caixa_id) return res.status(400).json({ erro: 'Abra o caixa antes de cobrar.' });
+  const [[caixa]] = await db.query(
+    `SELECT id, atendente FROM caixas WHERE id = ? AND padaria_id = ? AND status = 'aberto'`,
+    [caixa_id, padaria_id]
+  );
+  if (!caixa) return res.status(400).json({ erro: 'Esse caixa não está mais aberto.' });
+
   // Aceita { pagamentos: [{forma_pagamento, valor}, ...] } ou, por compatibilidade, { forma_pagamento } sozinho.
   let pagamentos = Array.isArray(req.body.pagamentos) ? req.body.pagamentos : null;
   if (!pagamentos) {
@@ -172,8 +170,8 @@ exports.fechar = async (req, res) => {
     return res.status(400).json({ erro: `A soma dos pagamentos (${somaPagamentos.toFixed(2)}) não bate com o total da comanda (${totalGeral.toFixed(2)}).` });
   }
 
-  // A comanda já nasce vinculada ao caixa do tablet que a abriu — mantém esse vínculo ao fechar.
-  const caixa_id = comanda.caixa_id;
+  // Atendente registrado na venda é o do caixa que efetivamente cobrou.
+  const atendente = caixa.atendente;
 
   // Grava cada pagamento e lança no Financeiro (um lançamento por forma de pagamento)
   const formasResumo = [];
@@ -211,8 +209,8 @@ exports.fechar = async (req, res) => {
 
   const forma_pagamento_resumo = formasResumo.join(' + ');
   await db.query(
-    `UPDATE comandas SET status = 'fechada', total = ?, forma_pagamento = ?, caixa_id = ?, fechada_em = NOW() WHERE id = ?`,
-    [totalGeral, forma_pagamento_resumo, caixa_id, comanda.id]
+    `UPDATE comandas SET status = 'fechada', total = ?, forma_pagamento = ?, caixa_id = ?, atendente = ?, fechada_em = NOW() WHERE id = ?`,
+    [totalGeral, forma_pagamento_resumo, caixa_id, atendente, comanda.id]
   );
 
   res.json({ ok: true, total: totalGeral });

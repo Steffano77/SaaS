@@ -39,8 +39,13 @@ let _prodFornecedorMap = {}; // produto_id → nome do fornecedor
   // Fica salvo no aparelho; usar ?balcao=0 uma vez pra desativar.
   if (params.get('balcao') === '1') localStorage.setItem('pp_modo_balcao', '1');
   if (params.get('balcao') === '0') localStorage.removeItem('pp_modo_balcao');
+  // Modo Lançamento (tablet do salão) — ?lancamento=1 esconde cobrança e controle de caixa,
+  // só permite abrir comanda e lançar itens. A cobrança fica só nos PCs do caixa.
+  if (params.get('lancamento') === '1') localStorage.setItem('pp_modo_lancamento', '1');
+  if (params.get('lancamento') === '0') localStorage.removeItem('pp_modo_lancamento');
 })();
 const MODO_BALCAO = localStorage.getItem('pp_modo_balcao') === '1';
+const MODO_LANCAMENTO = localStorage.getItem('pp_modo_lancamento') === '1';
 
 // ── Dark Mode ──────────────────────────────────────────────────
 (function() {
@@ -4331,6 +4336,12 @@ async function carregarCaixaFaixa() {
   const el = document.getElementById('cmd-caixa-faixa');
   if (!el) return;
 
+  // Tablet de lançamento não mexe com caixa — só lança pedido, cobrança é nos PCs.
+  if (MODO_LANCAMENTO) {
+    el.innerHTML = `<div class="cmd-caixa-card fechado"><span>📋 Modo Lançamento — só cadastro de pedidos. A cobrança é feita no caixa.</span></div>`;
+    return;
+  }
+
   if (CAIXA_LOCAL_ID) {
     const caixa = await api(`/caixa/${CAIXA_LOCAL_ID}`);
     if (caixa && caixa.status === 'aberto') {
@@ -4615,10 +4626,6 @@ async function excluirComandaUI(id) {
 }
 
 function abrirModalNovaComanda() {
-  if (!CAIXA_LOCAL_ID) {
-    mostrarToast('Abra o caixa antes de criar uma comanda.', 'warn');
-    return;
-  }
   document.getElementById('cmd-novo-identificador').value = '';
   document.getElementById('modal-nova-comanda').classList.remove('hidden');
   setTimeout(() => document.getElementById('cmd-novo-identificador').focus(), 100);
@@ -4630,7 +4637,7 @@ function fecharModalNovaComanda() {
 
 async function criarComanda() {
   const identificador = document.getElementById('cmd-novo-identificador').value.trim() || 'Comanda';
-  const r = await api('/comandas', { method: 'POST', body: { identificador, caixa_id: CAIXA_LOCAL_ID } });
+  const r = await api('/comandas', { method: 'POST', body: { identificador } });
   if (!r) return;
   fecharModalNovaComanda();
   await carregarComandas();
@@ -4656,9 +4663,10 @@ async function abrirModalComanda(id) {
   const acoes = document.getElementById('cmd-detalhe-acoes');
   const btnCancelar = document.querySelector('#modal-comanda .btn-ghost');
   const bloqueada = c.status !== 'aberta';
-  acoes.style.display = bloqueada ? 'none' : 'block';
+  // Modo Lançamento: tablet do salão só lança pedido, sem cobrança nem desconto/acréscimo.
+  acoes.style.display = (bloqueada || MODO_LANCAMENTO) ? 'none' : 'block';
   document.querySelector('.cmd-add-item').style.display = bloqueada ? 'none' : 'flex';
-  document.getElementById('cmd-ajuste-row').style.display = bloqueada ? 'none' : 'flex';
+  document.getElementById('cmd-ajuste-row').style.display = (bloqueada || MODO_LANCAMENTO) ? 'none' : 'flex';
   if (bloqueada) document.getElementById('cmd-rapido-grid').style.display = 'none';
   if (btnCancelar) btnCancelar.style.display = bloqueada ? 'none' : 'block';
 
@@ -4854,11 +4862,15 @@ function atualizarPagamentoUI() {
 
 async function finalizarVendaUI() {
   if (!comandaAtualId || !comandaPagamentosPendentes.length) return;
+  if (!CAIXA_LOCAL_ID) {
+    mostrarToast('Abra o caixa deste aparelho antes de cobrar.', 'warn');
+    return;
+  }
   const resumo = comandaPagamentosPendentes.map(p => `${p.forma_pagamento}: ${fmtMoeda(p.valor)}`).join(' + ');
   if (!confirm(`Confirmar recebimento — ${resumo}?`)) return;
   const snapshot = comandaAtualDados; // guarda os itens antes de fechar, pro recibo
   const formaResumo = comandaPagamentosPendentes.map(p => p.forma_pagamento).join(' + ');
-  const r = await api(`/comandas/${comandaAtualId}/fechar`, { method: 'POST', body: { pagamentos: comandaPagamentosPendentes } });
+  const r = await api(`/comandas/${comandaAtualId}/fechar`, { method: 'POST', body: { pagamentos: comandaPagamentosPendentes, caixa_id: CAIXA_LOCAL_ID } });
   if (!r) return;
   mostrarToast(`Comanda fechada — ${formaResumo}!`, 'ok');
   fecharModalComanda();
@@ -4996,8 +5008,7 @@ async function selecionarProdutoBuscaComanda(produtoId) {
 
   if (!alvo) {
     if (!confirm(`Nenhuma comanda "${termo}" aberta. Abrir uma nova com esse número?`)) return;
-    if (!CAIXA_LOCAL_ID) { mostrarToast('Abra o caixa antes de criar uma comanda.', 'warn'); return; }
-    const r = await api('/comandas', { method: 'POST', body: { identificador: termo, caixa_id: CAIXA_LOCAL_ID } });
+    const r = await api('/comandas', { method: 'POST', body: { identificador: termo } });
     if (!r) return;
     alvo = { id: r.id };
   } else if (alvo.status && alvo.status !== 'aberta') {
@@ -5032,8 +5043,7 @@ async function buscarComandaPorNumero() {
     || todas.find(c => c.identificador === termo);
   if (!alvo) {
     if (!confirm(`Nenhuma comanda "${termo}" aberta. Abrir uma nova com esse número?`)) return;
-    if (!CAIXA_LOCAL_ID) { mostrarToast('Abra o caixa antes de criar uma comanda.', 'warn'); return; }
-    const r = await api('/comandas', { method: 'POST', body: { identificador: termo, caixa_id: CAIXA_LOCAL_ID } });
+    const r = await api('/comandas', { method: 'POST', body: { identificador: termo } });
     if (!r) return;
     document.getElementById('cmd-busca-numero').value = '';
     await carregarComandas();
