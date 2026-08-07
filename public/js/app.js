@@ -4310,6 +4310,15 @@ let comandaAtualId = null;
 let comandaAtualDados = null; // guarda o último objeto da comanda carregada, usado na impressão
 function fmtMoeda(v) { return parseFloat(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
 
+// Converte data/hora vinda do banco (UTC) pro fuso do navegador, no formato DD/MM/AAAA HH:MM.
+// Substitui o corte de string ingênuo que mostrava a hora errada (não convertia de UTC).
+function fmtDataHoraBR(valor) {
+  if (!valor) return '';
+  const d = new Date(valor);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '');
+}
+
 async function carregarComandas() {
   // Modo Balcão pula o dashboard, então a lista de produtos nunca seria carregada — garante aqui.
   if (!produtosCache.length) {
@@ -4351,7 +4360,7 @@ async function carregarCaixaFaixa() {
     const caixa = await api(`/caixa/${CAIXA_LOCAL_ID}`);
     if (caixa && caixa.status === 'aberto') {
       caixaAtualCache = caixa;
-      const desde = String(caixa.aberto_em || '').slice(0, 16).replace('T', ' ');
+      const desde = fmtDataHoraBR(caixa.aberto_em);
       el.innerHTML = `
         <div class="cmd-caixa-card aberto">
           <span>🟢 ${caixa.nome} aberto ${caixa.atendente ? 'por ' + caixa.atendente : ''} desde ${desde}</span>
@@ -4602,7 +4611,7 @@ async function adicionarAtendenteInline(selectEl) {
 
 function cardComandaHtml(c) {
   const statusLabel = { aberta: '🟢 Aberta', fechada: '✅ Fechada', cancelada: '🚫 Cancelada' }[c.status] || c.status;
-  const dataRef = (c.status === 'aberta' ? c.aberta_em : c.fechada_em || c.aberta_em || '').slice(0, 16).replace('T', ' ');
+  const dataRef = fmtDataHoraBR(c.status === 'aberta' ? c.aberta_em : (c.fechada_em || c.aberta_em));
   const podeExcluir = c.status !== 'aberta';
   return `
     <div class="cmd-card" onclick="abrirModalComanda(${c.id})">
