@@ -298,7 +298,10 @@ function aplicarModoBalcao() {
     }
   });
   document.getElementById('nav-admin')?.classList.add('hidden');
+  // Evita duplicar o aviso se essa função rodar mais de uma vez na mesma sessão (ex: login de novo sem recarregar a página).
+  document.querySelectorAll('.cmd-aviso-modo-balcao').forEach(el => el.remove());
   const aviso = document.createElement('div');
+  aviso.className = 'cmd-aviso-modo-balcao';
   aviso.style.cssText = 'padding:8px 14px;font-size:11px;color:var(--slate-400);text-align:center;';
   aviso.textContent = '🔒 Modo Balcão';
   document.querySelector('.sidebar-nav')?.prepend(aviso);
