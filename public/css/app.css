@@ -2762,6 +2762,14 @@ tr.tr-saida td { color: var(--red-600); }
 .cmd-ajuste-campo label { display: block; font-size: 11px; font-weight: 700; color: var(--slate-400); margin-bottom: 3px; }
 .cmd-ajuste-campo input { width: 100%; }
 
+/* Resumo da Venda — estilo Saurus (Valor Total / Desconto / Acréscimo / Total Recebido) */
+.cmd-resumo-venda {
+  background: var(--slate-50); border-radius: 10px; padding: 10px 14px; margin-bottom: 10px;
+}
+.cmd-resumo-venda:empty { display: none; }
+[data-theme="dark"] .cmd-resumo-venda { background: rgba(255,255,255,0.04); }
+.cmd-resumo-venda-titulo { font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: var(--slate-400); margin-bottom: 4px; }
+
 /* Pagamentos lançados (parcial) */
 .cmd-pagamentos-lista { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
 .cmd-pagamento-linha {

@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260806i"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260807a"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -633,7 +633,9 @@
         </div>
 
         <div id="cmd-detalhe-acoes">
+          <div id="cmd-resumo-venda" class="cmd-resumo-venda"></div>
           <div id="cmd-pagamentos-lista" class="cmd-pagamentos-lista"></div>
+          <button id="cmd-btn-refazer" onclick="refazerPagamentos()" class="btn-ghost full hidden" style="color:#dc2626;margin-bottom:8px;">↺ Refazer Pagamentos</button>
           <div class="cmd-pgto-label" id="cmd-pgto-label">Toque na forma de pagamento pra lançar</div>
           <div class="cmd-pgto-grid">
             <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Dinheiro')"><span class="cmd-pgto-icone">💵</span><span>Dinheiro</span></button>
@@ -1546,7 +1548,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260807c"></script>
+<script src="/js/app.js?v=20260807d"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

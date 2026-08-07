@@ -4845,6 +4845,8 @@ function atualizarPagamentoUI() {
   const lista = document.getElementById('cmd-pagamentos-lista');
   const label = document.getElementById('cmd-pgto-label');
   const btnFinalizar = document.getElementById('cmd-btn-finalizar');
+  const btnRefazer = document.getElementById('cmd-btn-refazer');
+  const resumoEl = document.getElementById('cmd-resumo-venda');
   if (!lista || !label || !btnFinalizar) return;
 
   lista.innerHTML = comandaPagamentosPendentes.map((p, idx) => `
@@ -4855,6 +4857,23 @@ function atualizarPagamentoUI() {
     </div>
   `).join('');
 
+  // Resumo da Venda — Valor Total / Desconto / Acréscimo / Total Recebido
+  if (resumoEl && comandaAtualDados) {
+    const subtotal = (comandaAtualDados.itens || []).reduce((s, i) => s + parseFloat(i.subtotal), 0);
+    const desconto = parseFloat(comandaAtualDados.desconto || 0);
+    const acrescimo = parseFloat(comandaAtualDados.acrescimo || 0);
+    const totalRecebido = comandaPagamentosPendentes.reduce((s, p) => s + p.valor, 0);
+    resumoEl.innerHTML = `
+      <div class="cmd-resumo-venda-titulo">Resumo da Venda</div>
+      <div class="cmd-resumo-linha"><span>Valor Total</span><span>${fmtMoeda(subtotal)}</span></div>
+      <div class="cmd-resumo-linha"><span>Desconto Total</span><span>-${fmtMoeda(desconto)}</span></div>
+      <div class="cmd-resumo-linha"><span>Acréscimo Total</span><span>+${fmtMoeda(acrescimo)}</span></div>
+      <div class="cmd-resumo-linha total"><span>Total Recebido</span><span>${fmtMoeda(totalRecebido)}</span></div>
+    `;
+  }
+
+  btnRefazer?.classList.toggle('hidden', !comandaPagamentosPendentes.length);
+
   const restante = calcularRestante();
   if (restante <= 0 && comandaPagamentosPendentes.length) {
     label.textContent = '✅ Pagamento completo';
@@ -4863,6 +4882,11 @@ function atualizarPagamentoUI() {
     label.textContent = `Restante: ${fmtMoeda(restante)} — toque na forma de pagamento`;
     btnFinalizar.classList.add('hidden');
   }
+}
+
+function refazerPagamentos() {
+  comandaPagamentosPendentes = [];
+  atualizarPagamentoUI();
 }
 
 async function finalizarVendaUI() {
