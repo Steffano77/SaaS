@@ -729,7 +729,7 @@ async function carregarDashboard() {
     ? d.repor.map(p => `
         <div class="repor-item">
           <div><div class="repor-item-name">${p.nome}</div>
-          <div class="repor-item-sub">Falta: <b>${fmtQtd(p.falta)} ${p.unidade}</b></div></div>
+          <div class="repor-item-sub">${p.falta > 0 ? `Falta: <b>${fmtQtd(p.falta)} ${p.unidade}</b>` : `<b>No limite mínimo</b>`}</div></div>
           <span class="badge ${p.estoque_atual <= 0 ? 'badge-zero' : 'badge-min'}">${p.estoque_atual <= 0 ? '🔴 Zerado' : '⚠️ Baixo'}</span>
         </div>`).join('')
     : '<p style="color:var(--slate-400);font-size:14px">Nenhum produto para repor ✅</p>';
@@ -1449,7 +1449,7 @@ async function carregarCompras() {
       return `<div class="repor-item">
         <div>
           <div class="repor-item-name">${p.nome}</div>
-          <div class="repor-item-sub">Atual: ${fmtQtd(p.estoque_atual)} ${p.unidade} · Falta: <b>${fmtQtd(falta)} ${p.unidade}</b></div>
+          <div class="repor-item-sub">Atual: ${fmtQtd(p.estoque_atual)} ${p.unidade} · ${falta > 0 ? `Falta: <b>${fmtQtd(falta)} ${p.unidade}</b>` : '<b>No limite mínimo</b>'}</div>
         </div>
         ${badge}
       </div>`;
