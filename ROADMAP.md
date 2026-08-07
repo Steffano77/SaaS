@@ -16,6 +16,19 @@ tablet (IndexedDB/service worker) enquanto não tem internet, e sincroniza sozin
 volta. É trabalho grande (fila de sincronização, resolução de conflito se duas comandas usarem o
 mesmo número offline, etc.), não é uma tarde de trabalho.
 
+### Limpeza de produtos duplicados
+Descoberto em 07/08: dezenas de produtos duplicados no catálogo (mesmo item, nomes com pequena
+diferença de grafia/espaçamento — ex: "Coca Cola 600ml" vs "Coca Cola 600  ml", "Gergelim" x2).
+Afeta praticamente toda a linha de Coca-Cola (2 litros, 350ml, 600ml, KS, lata, pet, zero,
+Caçulinha...) e provavelmente outros produtos também. Causa provável: exportação do Saurus com
+entradas duplicadas, ou nome batendo diferente em importações separadas.
+
+Não é urgente, mas polui os alertas de estoque e o catálogo. Quando for resolver: escrever um
+script que agrupa produtos por nome normalizado (trim + espaços colapsados + minúsculo) e mesma
+unidade, soma o estoque automaticamente nos casos óbvios (mesma unidade), e lista separadamente
+os casos que precisam de decisão manual (ex: um registro em "fardo" e outro em "unidade" — precisa
+saber o fator de conversão, tipo 1 fardo de Coca-Cola 600ml = 12 unidades, antes de somar).
+
 ### Nota Fiscal (NFC-e)
 Emitir cupom fiscal de verdade nas Comandas. Precisa escolher um gateway pago primeiro
 (Nuvem Fiscal, Focus NFe, eNotas são os cotados). As padarias já têm certificado digital pelo
