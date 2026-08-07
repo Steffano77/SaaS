@@ -162,6 +162,51 @@ app.use(express.static(path.join(__dirname, '../public')));
         criado_em    DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (comanda_id) REFERENCES comandas(id) ON DELETE CASCADE
       )`,
+      // Caixa (sessão de caixa do dia) + sangria/suprimento
+      `CREATE TABLE IF NOT EXISTS caixas (
+        id             INT AUTO_INCREMENT PRIMARY KEY,
+        padaria_id     INT NOT NULL,
+        status         ENUM('aberto','fechado') NOT NULL DEFAULT 'aberto',
+        atendente      VARCHAR(80) NULL,
+        valor_abertura DECIMAL(10,2) NOT NULL DEFAULT 0,
+        valor_fechamento DECIMAL(10,2) NULL,
+        valor_esperado DECIMAL(10,2) NULL,
+        observacao     VARCHAR(255) NULL,
+        aberto_em      DATETIME DEFAULT CURRENT_TIMESTAMP,
+        fechado_em     DATETIME NULL,
+        INDEX idx_caixas_padaria (padaria_id, status)
+      )`,
+      `CREATE TABLE IF NOT EXISTS caixa_movimentos (
+        id          INT AUTO_INCREMENT PRIMARY KEY,
+        caixa_id    INT NOT NULL,
+        tipo        ENUM('sangria','suprimento') NOT NULL,
+        valor       DECIMAL(10,2) NOT NULL,
+        observacao  VARCHAR(255) NULL,
+        criado_em   DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (caixa_id) REFERENCES caixas(id) ON DELETE CASCADE
+      )`,
+      // Pagamentos da comanda — permite dividir o valor em mais de uma forma de pagamento
+      `CREATE TABLE IF NOT EXISTS comanda_pagamentos (
+        id          INT AUTO_INCREMENT PRIMARY KEY,
+        comanda_id  INT NOT NULL,
+        forma_pagamento VARCHAR(50) NOT NULL,
+        valor       DECIMAL(10,2) NOT NULL,
+        criado_em   DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (comanda_id) REFERENCES comandas(id) ON DELETE CASCADE
+      )`,
+      `CREATE TABLE IF NOT EXISTS atendentes (
+        id          INT AUTO_INCREMENT PRIMARY KEY,
+        padaria_id  INT NOT NULL,
+        nome        VARCHAR(80) NOT NULL,
+        ativo       TINYINT(1) NOT NULL DEFAULT 1,
+        criado_em   DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_atendentes_padaria (padaria_id, ativo)
+      )`,
+      'ALTER TABLE comandas ADD COLUMN caixa_id INT NULL',
+      'ALTER TABLE comandas ADD COLUMN desconto DECIMAL(10,2) NOT NULL DEFAULT 0',
+      'ALTER TABLE comandas ADD COLUMN acrescimo DECIMAL(10,2) NOT NULL DEFAULT 0',
+      'ALTER TABLE comandas ADD COLUMN atendente VARCHAR(80) NULL',
+      'ALTER TABLE produtos ADD COLUMN venda_rapida TINYINT(1) NOT NULL DEFAULT 0',
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
 

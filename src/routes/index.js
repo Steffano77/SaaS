@@ -42,6 +42,8 @@ const saurusCtrl     = require('../controllers/saurusController');
 const financeiroCtrl = require('../controllers/financeiroController');
 const maquininhaCtrl = require('../controllers/maquininhaController');
 const comandaCtrl    = require('../controllers/comandaController');
+const caixaCtrl       = require('../controllers/caixaController');
+const atendenteCtrl   = require('../controllers/atendenteController');
 
 // Webhook Hotmart (sem auth — validação de assinatura feita dentro do controller)
 router.post('/hotmart/webhook', hotmartCtrl.webhook);
@@ -161,6 +163,20 @@ router.delete('/comandas/:id/itens/:itemId', auth, authPremium, wrap(comandaCtrl
 router.post('/comandas/:id/fechar',    auth, authPremium, wrap(comandaCtrl.fechar));
 router.post('/comandas/:id/cancelar',  auth, authPremium, wrap(comandaCtrl.cancelar));
 router.delete('/comandas/:id',         auth, authPremium, wrap(comandaCtrl.excluir));
+router.patch('/comandas/:id/ajuste',   auth, authPremium, wrap(comandaCtrl.definirAjuste));
+
+// Caixa — Premium apenas
+router.get('/caixa/atual',       auth, authPremium, wrap(caixaCtrl.atual));
+router.get('/caixa/historico',   auth, authPremium, wrap(caixaCtrl.historico));
+router.post('/caixa/abrir',      auth, authPremium, wrap(caixaCtrl.abrir));
+router.post('/caixa/:id/fechar', auth, authPremium, wrap(caixaCtrl.fechar));
+router.post('/caixa/sangria',    auth, authPremium, wrap(caixaCtrl.sangria));
+router.post('/caixa/suprimento', auth, authPremium, wrap(caixaCtrl.suprimento));
+
+// Atendentes — Premium apenas
+router.get('/atendentes',        auth, authPremium, wrap(atendenteCtrl.listar));
+router.post('/atendentes',       auth, authPremium, wrap(atendenteCtrl.criar));
+router.delete('/atendentes/:id', auth, authPremium, wrap(atendenteCtrl.remover));
 
 // Importação genérica
 router.post('/sync/preview',   auth, upload.single('arquivo'), importCtrl.preview);

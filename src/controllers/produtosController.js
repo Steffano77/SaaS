@@ -98,7 +98,7 @@ exports.atualizar = async (req, res) => {
   try {
     const campos = ['codigo_barras','nome','unidade','categoria_id','fornecedor_id',
                     'custo_unitario','preco_venda','estoque_atual','estoque_minimo','validade','ultima_compra',
-                    'embalagem_preco','embalagem_qtd'];
+                    'embalagem_preco','embalagem_qtd','venda_rapida'];
     const sets = []; const vals = [];
     for (const c of campos) {
       if (req.body[c] !== undefined) { sets.push(`${c} = ?`); vals.push(req.body[c]); }

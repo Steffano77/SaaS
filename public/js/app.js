@@ -3122,6 +3122,7 @@ async function editarProduto(id) {
   document.getElementById('prod-categoria').value  = p.categoria_id || '';
   document.getElementById('prod-fornecedor').value = p.fornecedor_id || '';
   document.getElementById('prod-saldo').value   = parseFloat(p.estoque_atual || 0);
+  document.getElementById('prod-venda-rapida').checked = !!p.venda_rapida;
   document.getElementById('wrap-saldo').classList.remove('hidden');
   atualizarLabelEmbalagem();
   if (p.embalagem_preco && p.embalagem_qtd) {
@@ -3226,6 +3227,7 @@ async function salvarProduto(e) {
     preco_venda:   parseFloat(document.getElementById('prod-venda').value) || 0,
     validade:       document.getElementById('prod-validade').value || null,
     ultima_compra:  document.getElementById('prod-ultima-compra').value || null,
+    venda_rapida:   document.getElementById('prod-venda-rapida').checked ? 1 : 0,
   };
   body.estoque_atual = parseFloat(document.getElementById('prod-saldo').value) || 0;
   if (!document.getElementById('bloco-embalagem').classList.contains('hidden')) {
@@ -4316,6 +4318,157 @@ async function carregarComandas() {
   elRecentes.innerHTML = data.recentes.length
     ? data.recentes.map(cardComandaHtml).join('')
     : `<div class="cmd-vazio">Sem histórico ainda.</div>`;
+
+  await carregarCaixaFaixa();
+}
+
+/* ===================== CAIXA ===================== */
+let caixaAtualCache = null;
+
+async function carregarCaixaFaixa() {
+  const caixa = await api('/caixa/atual');
+  caixaAtualCache = caixa;
+  const el = document.getElementById('cmd-caixa-faixa');
+  if (!el) return;
+
+  if (!caixa) {
+    el.innerHTML = `
+      <div class="cmd-caixa-card fechado">
+        <span>🔒 Caixa fechado — abra o caixa pra começar a vender</span>
+        <button class="btn-primary" style="padding:8px 16px;" onclick="abrirModalCaixa('abrir')">Abrir caixa</button>
+      </div>`;
+    return;
+  }
+  const desde = String(caixa.aberto_em || '').slice(0, 16).replace('T', ' ');
+  el.innerHTML = `
+    <div class="cmd-caixa-card aberto">
+      <span>🟢 Caixa aberto ${caixa.atendente ? 'por ' + caixa.atendente : ''} desde ${desde}</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn-ghost" style="padding:7px 12px;font-size:12.5px;" onclick="abrirModalCaixa('sangria')">💸 Sangria</button>
+        <button class="btn-ghost" style="padding:7px 12px;font-size:12.5px;" onclick="abrirModalCaixa('suprimento')">💰 Suprimento</button>
+        <button class="btn-primary" style="padding:7px 12px;font-size:12.5px;" onclick="abrirModalCaixa('fechar')">Fechar caixa</button>
+      </div>
+    </div>`;
+}
+
+async function abrirModalCaixa(modo) {
+  const corpo = document.getElementById('cmd-caixa-corpo');
+  const titulo = document.getElementById('cmd-caixa-titulo');
+
+  if (modo === 'abrir') {
+    titulo.textContent = '💰 Abrir caixa';
+    corpo.innerHTML = `
+      <div class="form-group">
+        <label class="form-label">Valor inicial (troco em caixa)</label>
+        <input id="caixa-valor-abertura" type="number" class="form-control" min="0" step="0.01" placeholder="0,00"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Atendente (opcional)</label>
+        <select id="caixa-atendente" class="form-control"></select>
+      </div>
+      <button class="btn-primary full" style="margin-top:6px;" onclick="confirmarAbrirCaixa()">Abrir caixa</button>
+    `;
+    await carregarAtendentesSelect('caixa-atendente');
+  } else if (modo === 'sangria' || modo === 'suprimento') {
+    const label = modo === 'sangria' ? 'Sangria (retirar dinheiro do caixa)' : 'Suprimento (colocar dinheiro no caixa)';
+    titulo.textContent = modo === 'sangria' ? '💸 Sangria' : '💰 Suprimento';
+    corpo.innerHTML = `
+      <div class="form-group">
+        <label class="form-label">${label}</label>
+        <input id="caixa-mov-valor" type="number" class="form-control" min="0.01" step="0.01" placeholder="0,00"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Motivo (opcional)</label>
+        <input id="caixa-mov-obs" type="text" class="form-control" placeholder="Ex: pagamento fornecedor, troco..."/>
+      </div>
+      <button class="btn-primary full" style="margin-top:6px;" onclick="confirmarMovimentoCaixa('${modo}')">Confirmar</button>
+    `;
+  } else if (modo === 'fechar') {
+    titulo.textContent = '💰 Fechar caixa';
+    const caixa = caixaAtualCache;
+    const r = caixa?.resumo;
+    const linhasForma = (r?.porForma || []).map(f => `<div class="cmd-resumo-linha"><span>${f.forma_pagamento}</span><span>${fmtMoeda(f.total)}</span></div>`).join('');
+    corpo.innerHTML = `
+      <div class="cmd-resumo-caixa">
+        <div class="cmd-resumo-linha"><span>Abertura</span><span>${fmtMoeda(caixa?.valor_abertura)}</span></div>
+        ${linhasForma}
+        <div class="cmd-resumo-linha"><span>Sangrias</span><span>-${fmtMoeda(r?.totalSangrias)}</span></div>
+        <div class="cmd-resumo-linha"><span>Suprimentos</span><span>+${fmtMoeda(r?.totalSuprimentos)}</span></div>
+        <div class="cmd-resumo-linha total"><span>Esperado em dinheiro</span><span>${fmtMoeda(r?.esperadoEmDinheiro)}</span></div>
+      </div>
+      <div class="form-group" style="margin-top:10px;">
+        <label class="form-label">Valor contado em dinheiro</label>
+        <input id="caixa-valor-fechamento" type="number" class="form-control" min="0" step="0.01" placeholder="0,00"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observação (opcional)</label>
+        <input id="caixa-fechamento-obs" type="text" class="form-control"/>
+      </div>
+      <button class="btn-primary full" style="margin-top:6px;background:#dc2626;" onclick="confirmarFecharCaixa()">Fechar caixa</button>
+    `;
+  }
+  document.getElementById('modal-caixa').classList.remove('hidden');
+}
+
+async function confirmarAbrirCaixa() {
+  const valor_abertura = document.getElementById('caixa-valor-abertura').value;
+  const atendente = document.getElementById('caixa-atendente').value;
+  const r = await api('/caixa/abrir', { method: 'POST', body: { valor_abertura, atendente: atendente === '__novo__' ? null : atendente } });
+  if (!r) return;
+  mostrarToast('Caixa aberto!', 'ok');
+  document.getElementById('modal-caixa').classList.add('hidden');
+  await carregarCaixaFaixa();
+}
+
+async function confirmarMovimentoCaixa(tipo) {
+  const valor = document.getElementById('caixa-mov-valor').value;
+  const observacao = document.getElementById('caixa-mov-obs').value;
+  if (!valor || parseFloat(valor) <= 0) { mostrarToast('Informe um valor válido.', 'warn'); return; }
+  const r = await api(`/caixa/${tipo}`, { method: 'POST', body: { valor, observacao } });
+  if (!r) return;
+  mostrarToast(tipo === 'sangria' ? 'Sangria registrada.' : 'Suprimento registrado.', 'ok');
+  document.getElementById('modal-caixa').classList.add('hidden');
+  await carregarCaixaFaixa();
+}
+
+async function confirmarFecharCaixa() {
+  const valor_fechamento = document.getElementById('caixa-valor-fechamento').value;
+  const observacao = document.getElementById('caixa-fechamento-obs').value;
+  if (!confirm('Fechar o caixa agora? Confira o valor contado antes de confirmar.')) return;
+  const r = await api(`/caixa/${caixaAtualCache.id}/fechar`, { method: 'POST', body: { valor_fechamento, observacao } });
+  if (!r) return;
+  const dif = r.diferenca;
+  const msg = Math.abs(dif) < 0.01
+    ? 'Caixa fechado — valores batem certinho! ✅'
+    : `Caixa fechado. Diferença: ${dif > 0 ? '+' : ''}${fmtMoeda(dif)} (${dif > 0 ? 'sobrou' : 'faltou'})`;
+  mostrarToast(msg, Math.abs(dif) < 0.01 ? 'ok' : 'warn');
+  document.getElementById('modal-caixa').classList.add('hidden');
+  await carregarCaixaFaixa();
+}
+
+/* ===================== ATENDENTES ===================== */
+let atendentesCache = [];
+
+async function carregarAtendentesSelect(selectId) {
+  if (!atendentesCache.length) {
+    const r = await api('/atendentes');
+    atendentesCache = r || [];
+  }
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Sem atendente</option>' +
+    atendentesCache.map(a => `<option value="${a.nome}">${a.nome}</option>`).join('') +
+    '<option value="__novo__">+ Novo atendente...</option>';
+}
+
+async function adicionarAtendenteInline(selectEl) {
+  const nome = prompt('Nome do atendente:');
+  if (!nome || !nome.trim()) { selectEl.value = ''; return; }
+  const r = await api('/atendentes', { method: 'POST', body: { nome: nome.trim() } });
+  if (!r) { selectEl.value = ''; return; }
+  atendentesCache.push(r);
+  await carregarAtendentesSelect(selectEl.id);
+  selectEl.value = r.nome;
 }
 
 function cardComandaHtml(c) {
@@ -4348,9 +4501,10 @@ async function excluirComandaUI(id) {
   await carregarComandas();
 }
 
-function abrirModalNovaComanda() {
+async function abrirModalNovaComanda() {
   document.getElementById('cmd-novo-identificador').value = '';
   document.getElementById('modal-nova-comanda').classList.remove('hidden');
+  await carregarAtendentesSelect('cmd-novo-atendente');
   setTimeout(() => document.getElementById('cmd-novo-identificador').focus(), 100);
 }
 
@@ -4360,7 +4514,9 @@ function fecharModalNovaComanda() {
 
 async function criarComanda() {
   const identificador = document.getElementById('cmd-novo-identificador').value.trim() || 'Comanda';
-  const r = await api('/comandas', { method: 'POST', body: { identificador } });
+  const atendenteSel = document.getElementById('cmd-novo-atendente').value;
+  const atendente = atendenteSel === '__novo__' ? '' : atendenteSel;
+  const r = await api('/comandas', { method: 'POST', body: { identificador, atendente } });
   if (!r) return;
   fecharModalNovaComanda();
   await carregarComandas();
@@ -4371,22 +4527,67 @@ async function abrirModalComanda(id) {
   const c = await api(`/comandas/${id}`);
   if (!c) return;
   comandaAtualId = c.id;
-  document.getElementById('cmd-detalhe-titulo').textContent = `🧾 ${c.identificador}`;
+  comandaPagamentosPendentes = [];
+  document.getElementById('cmd-detalhe-titulo').textContent = `🧾 ${c.identificador}${c.atendente ? ' · ' + c.atendente : ''}`;
   document.getElementById('cmd-item-busca').value = '';
   document.getElementById('cmd-item-produto-id').value = '';
   document.getElementById('cmd-item-qtd').value = '1';
   document.getElementById('cmd-item-preco').value = '';
+  document.getElementById('cmd-desconto').value = c.desconto > 0 ? parseFloat(c.desconto) : '';
+  document.getElementById('cmd-acrescimo').value = c.acrescimo > 0 ? parseFloat(c.acrescimo) : '';
 
   renderItensComanda(c);
+  renderRapidoGrid();
 
   const acoes = document.getElementById('cmd-detalhe-acoes');
   const btnCancelar = document.querySelector('#modal-comanda .btn-ghost');
   const bloqueada = c.status !== 'aberta';
   acoes.style.display = bloqueada ? 'none' : 'block';
   document.querySelector('.cmd-add-item').style.display = bloqueada ? 'none' : 'flex';
+  document.getElementById('cmd-ajuste-row').style.display = bloqueada ? 'none' : 'flex';
+  if (bloqueada) document.getElementById('cmd-rapido-grid').style.display = 'none';
   if (btnCancelar) btnCancelar.style.display = bloqueada ? 'none' : 'block';
 
   document.getElementById('modal-comanda').classList.remove('hidden');
+}
+
+// Grid de toque rápido — produtos marcados como "venda rápida" no Estoque
+function renderRapidoGrid() {
+  const el = document.getElementById('cmd-rapido-grid');
+  if (!el) return;
+  const rapidos = produtosCache.filter(p => p.venda_rapida);
+  if (!rapidos.length) { el.innerHTML = ''; el.style.display = 'none'; return; }
+  el.style.display = 'grid';
+  el.innerHTML = rapidos.map(p => `
+    <button class="cmd-rapido-btn" onclick="adicionarItemRapido(${p.id})">
+      <span class="cmd-rapido-nome">${p.nome}</span>
+      <span class="cmd-rapido-preco">${fmtMoeda(p.preco_venda || 0)}</span>
+    </button>
+  `).join('');
+}
+
+async function adicionarItemRapido(produtoId) {
+  if (!comandaAtualId) return;
+  const produto = produtosCache.find(p => p.id === produtoId);
+  if (!produto) return;
+  const r = await api(`/comandas/${comandaAtualId}/itens`, {
+    method: 'POST',
+    body: { produto_id: produto.id, nome_produto: produto.nome, quantidade: 1, preco_unitario: produto.preco_venda || 0 }
+  });
+  if (!r) return;
+  const c = await api(`/comandas/${comandaAtualId}`);
+  if (c) renderItensComanda(c);
+}
+
+// Desconto/acréscimo
+async function salvarAjusteComanda() {
+  if (!comandaAtualId) return;
+  const desconto = document.getElementById('cmd-desconto').value || 0;
+  const acrescimo = document.getElementById('cmd-acrescimo').value || 0;
+  const r = await api(`/comandas/${comandaAtualId}/ajuste`, { method: 'PATCH', body: { desconto, acrescimo } });
+  if (!r) return;
+  const c = await api(`/comandas/${comandaAtualId}`);
+  if (c) renderItensComanda(c);
 }
 
 function renderItensComanda(c) {
@@ -4408,6 +4609,7 @@ function renderItensComanda(c) {
     `).join('')
     : `<div class="cmd-vazio">Nenhum item adicionado ainda.</div>`;
   document.getElementById('cmd-detalhe-total').textContent = fmtMoeda(c.total);
+  atualizarPagamentoUI();
 }
 
 function fecharModalComanda() {
@@ -4482,18 +4684,73 @@ async function removerItemComandaUI(itemId) {
   if (c) renderItensComanda(c);
 }
 
-async function fecharComandaUI(forma_pagamento) {
-  if (!comandaAtualId) return;
-  const total = document.getElementById('cmd-detalhe-total').textContent;
-  if (!confirm(`Confirmar recebimento de ${total} via ${forma_pagamento}?`)) return;
+// ── Pagamento dividido (estilo Saurus: toca a forma, informa o valor, pode repetir com outra forma) ──
+let comandaPagamentosPendentes = [];
+
+function calcularRestante() {
+  const total = comandaAtualDados ? parseFloat(comandaAtualDados.total) : 0;
+  const pago = comandaPagamentosPendentes.reduce((s, p) => s + p.valor, 0);
+  return Math.max(0, Math.round((total - pago) * 100) / 100);
+}
+
+function adicionarPagamentoUI(forma) {
+  if (!comandaAtualDados || !comandaAtualDados.itens || !comandaAtualDados.itens.length) {
+    mostrarToast('Adicione itens antes de lançar pagamento.', 'warn');
+    return;
+  }
+  const restante = calcularRestante();
+  if (restante <= 0) { mostrarToast('Essa comanda já está totalmente paga.', 'warn'); return; }
+  const valorStr = prompt(`Valor recebido em ${forma}:`, restante.toFixed(2).replace('.', ','));
+  if (valorStr === null) return;
+  const valor = parseFloat(valorStr.replace(',', '.'));
+  if (!valor || valor <= 0) { mostrarToast('Valor inválido.', 'warn'); return; }
+  if (valor > restante + 0.01) { mostrarToast(`O valor não pode passar do restante (${fmtMoeda(restante)}).`, 'warn'); return; }
+  comandaPagamentosPendentes.push({ forma_pagamento: forma, valor });
+  atualizarPagamentoUI();
+}
+
+function removerPagamentoPendente(idx) {
+  comandaPagamentosPendentes.splice(idx, 1);
+  atualizarPagamentoUI();
+}
+
+function atualizarPagamentoUI() {
+  const lista = document.getElementById('cmd-pagamentos-lista');
+  const label = document.getElementById('cmd-pgto-label');
+  const btnFinalizar = document.getElementById('cmd-btn-finalizar');
+  if (!lista || !label || !btnFinalizar) return;
+
+  lista.innerHTML = comandaPagamentosPendentes.map((p, idx) => `
+    <div class="cmd-pagamento-linha">
+      <span>${p.forma_pagamento}</span>
+      <span>${fmtMoeda(p.valor)}</span>
+      <button class="btn-icon" onclick="removerPagamentoPendente(${idx})">✕</button>
+    </div>
+  `).join('');
+
+  const restante = calcularRestante();
+  if (restante <= 0 && comandaPagamentosPendentes.length) {
+    label.textContent = '✅ Pagamento completo';
+    btnFinalizar.classList.remove('hidden');
+  } else {
+    label.textContent = `Restante: ${fmtMoeda(restante)} — toque na forma de pagamento`;
+    btnFinalizar.classList.add('hidden');
+  }
+}
+
+async function finalizarVendaUI() {
+  if (!comandaAtualId || !comandaPagamentosPendentes.length) return;
+  const resumo = comandaPagamentosPendentes.map(p => `${p.forma_pagamento}: ${fmtMoeda(p.valor)}`).join(' + ');
+  if (!confirm(`Confirmar recebimento — ${resumo}?`)) return;
   const snapshot = comandaAtualDados; // guarda os itens antes de fechar, pro recibo
-  const r = await api(`/comandas/${comandaAtualId}/fechar`, { method: 'POST', body: { forma_pagamento } });
+  const formaResumo = comandaPagamentosPendentes.map(p => p.forma_pagamento).join(' + ');
+  const r = await api(`/comandas/${comandaAtualId}/fechar`, { method: 'POST', body: { pagamentos: comandaPagamentosPendentes } });
   if (!r) return;
-  mostrarToast(`Comanda fechada — ${forma_pagamento}!`, 'ok');
+  mostrarToast(`Comanda fechada — ${formaResumo}!`, 'ok');
   fecharModalComanda();
   await carregarComandas();
   if (snapshot && confirm('Imprimir o recibo dessa comanda?')) {
-    imprimirReciboComanda(snapshot, forma_pagamento);
+    imprimirReciboComanda(snapshot, formaResumo);
   }
 }
 

@@ -2717,3 +2717,52 @@ tr.tr-saida td { color: var(--red-600); }
 .cmd-pgto-btn span:last-child { font-size: 12px; font-weight: 700; color: #fff; }
 .cmd-pgto-btn:hover { background: var(--navy-light); transform: translateY(-1px); }
 .cmd-pgto-btn:active { transform: scale(0.96); }
+
+/* Caixa */
+.cmd-caixa-faixa { margin: 16px 0; }
+.cmd-caixa-card {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  padding: 12px 16px; border-radius: 12px; font-size: 13.5px; font-weight: 600;
+}
+.cmd-caixa-card.fechado { background: #fef3c7; color: #92400e; }
+.cmd-caixa-card.aberto { background: #dcfce7; color: #166534; }
+[data-theme="dark"] .cmd-caixa-card.fechado { background: rgba(245,158,11,0.15); color: #fbbf24; }
+[data-theme="dark"] .cmd-caixa-card.aberto { background: rgba(22,163,74,0.15); color: #4ade80; }
+
+.cmd-resumo-caixa { background: var(--slate-50); border-radius: 10px; padding: 10px 14px; }
+[data-theme="dark"] .cmd-resumo-caixa { background: rgba(255,255,255,0.04); }
+.cmd-resumo-linha { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; color: var(--slate-600); }
+[data-theme="dark"] .cmd-resumo-linha { color: #cbd5e1; }
+.cmd-resumo-linha.total { font-weight: 800; font-size: 14.5px; color: var(--slate-800); border-top: 1px dashed var(--slate-200); margin-top: 4px; padding-top: 8px; }
+[data-theme="dark"] .cmd-resumo-linha.total { color: #f1f5f9; border-top-color: rgba(255,255,255,0.12); }
+
+/* Grid de toque rápido */
+.cmd-rapido-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px;
+  margin-bottom: 10px;
+}
+.cmd-rapido-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 10px 6px; border: 1px solid var(--slate-200); border-radius: 10px;
+  background: var(--white); cursor: pointer; transition: transform .1s ease, border-color .15s ease;
+}
+.cmd-rapido-btn:hover { border-color: var(--orange); transform: translateY(-1px); }
+.cmd-rapido-btn:active { transform: scale(0.96); }
+.cmd-rapido-nome { font-size: 11px; font-weight: 700; color: var(--slate-700); text-align: center; line-height: 1.25; }
+.cmd-rapido-preco { font-size: 11px; font-weight: 800; color: var(--orange); }
+[data-theme="dark"] .cmd-rapido-btn { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1); }
+[data-theme="dark"] .cmd-rapido-nome { color: #e2e8f0; }
+
+/* Desconto/acréscimo */
+.cmd-ajuste-row { display: flex; gap: 10px; margin: 10px 0; }
+.cmd-ajuste-campo { flex: 1; }
+.cmd-ajuste-campo label { display: block; font-size: 11px; font-weight: 700; color: var(--slate-400); margin-bottom: 3px; }
+.cmd-ajuste-campo input { width: 100%; }
+
+/* Pagamentos lançados (parcial) */
+.cmd-pagamentos-lista { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.cmd-pagamento-linha {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: var(--slate-50); border-radius: 8px; padding: 7px 12px; font-size: 13px; font-weight: 600; color: var(--slate-700);
+}
+[data-theme="dark"] .cmd-pagamento-linha { background: rgba(255,255,255,0.05); color: #e2e8f0; }

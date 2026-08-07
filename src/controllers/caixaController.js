@@ -1,0 +1,150 @@
+const db = require('../database/connection');
+
+// Retorna o caixa aberto no momento (ou null se não houver nenhum aberto)
+exports.atual = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const [[caixa]] = await db.query(
+    `SELECT * FROM caixas WHERE padaria_id = ? AND status = 'aberto' ORDER BY aberto_em DESC LIMIT 1`,
+    [padaria_id]
+  );
+  if (!caixa) return res.json(null);
+
+  const resumo = await montarResumoCaixa(caixa);
+  res.json({ ...caixa, resumo });
+};
+
+// Histórico de caixas já fechados
+exports.historico = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const [caixas] = await db.query(
+    `SELECT * FROM caixas WHERE padaria_id = ? AND status = 'fechado' ORDER BY fechado_em DESC LIMIT 30`,
+    [padaria_id]
+  );
+  res.json(caixas);
+};
+
+exports.abrir = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const { valor_abertura, atendente, observacao } = req.body;
+
+  const [[jaAberto]] = await db.query(
+    `SELECT id FROM caixas WHERE padaria_id = ? AND status = 'aberto'`, [padaria_id]
+  );
+  if (jaAberto) return res.status(400).json({ erro: 'Já existe um caixa aberto.' });
+
+  const [r] = await db.query(
+    `INSERT INTO caixas (padaria_id, atendente, valor_abertura, observacao) VALUES (?,?,?,?)`,
+    [padaria_id, atendente || null, parseFloat(valor_abertura) || 0, observacao || null]
+  );
+  res.status(201).json({ id: r.insertId });
+};
+
+async function montarResumoCaixa(caixa) {
+  const [[vendas]] = await db.query(
+    `SELECT COALESCE(SUM(cp.valor), 0) AS total, cp.forma_pagamento
+     FROM comanda_pagamentos cp
+     JOIN comandas c ON c.id = cp.comanda_id
+     WHERE c.caixa_id = ?
+     GROUP BY cp.forma_pagamento`,
+    [caixa.id]
+  );
+  const [porForma] = await db.query(
+    `SELECT cp.forma_pagamento, COALESCE(SUM(cp.valor), 0) AS total
+     FROM comanda_pagamentos cp
+     JOIN comandas c ON c.id = cp.comanda_id
+     WHERE c.caixa_id = ?
+     GROUP BY cp.forma_pagamento`,
+    [caixa.id]
+  );
+  const [[totalVendas]] = await db.query(
+    `SELECT COALESCE(SUM(cp.valor), 0) AS total
+     FROM comanda_pagamentos cp
+     JOIN comandas c ON c.id = cp.comanda_id
+     WHERE c.caixa_id = ?`,
+    [caixa.id]
+  );
+  const [[totalDinheiro]] = await db.query(
+    `SELECT COALESCE(SUM(cp.valor), 0) AS total
+     FROM comanda_pagamentos cp
+     JOIN comandas c ON c.id = cp.comanda_id
+     WHERE c.caixa_id = ? AND cp.forma_pagamento = 'Dinheiro'`,
+    [caixa.id]
+  );
+  const [movimentos] = await db.query(
+    `SELECT * FROM caixa_movimentos WHERE caixa_id = ? ORDER BY criado_em`, [caixa.id]
+  );
+  const totalSangrias = movimentos.filter(m => m.tipo === 'sangria').reduce((s, m) => s + parseFloat(m.valor), 0);
+  const totalSuprimentos = movimentos.filter(m => m.tipo === 'suprimento').reduce((s, m) => s + parseFloat(m.valor), 0);
+
+  const esperadoEmDinheiro = parseFloat(caixa.valor_abertura) + parseFloat(totalDinheiro.total)
+    + totalSuprimentos - totalSangrias;
+
+  return {
+    porForma,
+    totalVendas: parseFloat(totalVendas.total),
+    totalDinheiro: parseFloat(totalDinheiro.total),
+    totalSangrias, totalSuprimentos,
+    movimentos,
+    esperadoEmDinheiro,
+  };
+}
+
+exports.fechar = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const { valor_fechamento, observacao } = req.body;
+  const [[caixa]] = await db.query(
+    `SELECT * FROM caixas WHERE id = ? AND padaria_id = ? AND status = 'aberto'`,
+    [req.params.id, padaria_id]
+  );
+  if (!caixa) return res.status(404).json({ erro: 'Caixa não encontrado ou já fechado.' });
+
+  const resumo = await montarResumoCaixa(caixa);
+
+  await db.query(
+    `UPDATE caixas SET status = 'fechado', valor_fechamento = ?, valor_esperado = ?, observacao = COALESCE(?, observacao), fechado_em = NOW()
+     WHERE id = ?`,
+    [parseFloat(valor_fechamento) || 0, resumo.esperadoEmDinheiro, observacao || null, caixa.id]
+  );
+
+  res.json({
+    ok: true,
+    esperado: resumo.esperadoEmDinheiro,
+    informado: parseFloat(valor_fechamento) || 0,
+    diferenca: (parseFloat(valor_fechamento) || 0) - resumo.esperadoEmDinheiro,
+    resumo,
+  });
+};
+
+exports.sangria = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const { valor, observacao } = req.body;
+  if (!valor || valor <= 0) return res.status(400).json({ erro: 'Valor inválido.' });
+
+  const [[caixa]] = await db.query(
+    `SELECT id FROM caixas WHERE padaria_id = ? AND status = 'aberto'`, [padaria_id]
+  );
+  if (!caixa) return res.status(400).json({ erro: 'Nenhum caixa aberto.' });
+
+  await db.query(
+    `INSERT INTO caixa_movimentos (caixa_id, tipo, valor, observacao) VALUES (?, 'sangria', ?, ?)`,
+    [caixa.id, valor, observacao || null]
+  );
+  res.status(201).json({ ok: true });
+};
+
+exports.suprimento = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const { valor, observacao } = req.body;
+  if (!valor || valor <= 0) return res.status(400).json({ erro: 'Valor inválido.' });
+
+  const [[caixa]] = await db.query(
+    `SELECT id FROM caixas WHERE padaria_id = ? AND status = 'aberto'`, [padaria_id]
+  );
+  if (!caixa) return res.status(400).json({ erro: 'Nenhum caixa aberto.' });
+
+  await db.query(
+    `INSERT INTO caixa_movimentos (caixa_id, tipo, valor, observacao) VALUES (?, 'suprimento', ?, ?)`,
+    [caixa.id, valor, observacao || null]
+  );
+  res.status(201).json({ ok: true });
+};
