@@ -883,9 +883,12 @@ function renderizarSaidas(rows) {
           <div class="saida-item-nome">${r.produto}</div>
           <div class="saida-item-sub">${fmtQtd(r.quantidade)} ${r.unidade} × R$ ${custo}${r.observacao ? ' · ' + r.observacao : ''}</div>
         </div>
-        <div style="text-align:right;flex-shrink:0;">
-          <div style="font-weight:700;color:var(--red-500);">R$ ${valor}</div>
-          <div class="saida-item-data">${data}</div>
+        <div style="text-align:right;flex-shrink:0;display:flex;align-items:center;gap:6px;">
+          <div>
+            <div style="font-weight:700;color:var(--red-500);">R$ ${valor}</div>
+            <div class="saida-item-data">${data}</div>
+          </div>
+          <button class="btn-icon" title="Corrigir esta saída" onclick="event.stopPropagation();abrirModalEditarMovimentacao(${r.id})">✏️</button>
         </div>
       </div>`;
     }).join('');
@@ -1038,6 +1041,33 @@ function imprimirSaidas() {
 
 function fecharTelaSaidas() {
   document.getElementById('tela-saidas').classList.add('hidden');
+}
+
+// Corrigir uma saída (erro de digitação: quantidade, data ou destino/observação)
+function abrirModalEditarMovimentacao(id) {
+  const r = (window._saidasRows || []).find(x => x.id === id);
+  if (!r) { mostrarToast('Registro não encontrado.', 'err'); return; }
+  document.getElementById('mov-editar-id').value = r.id;
+  document.getElementById('mov-editar-produto').value = r.produto;
+  document.getElementById('mov-editar-qtd').value = parseFloat(r.quantidade);
+  document.getElementById('mov-editar-data').value = String(r.data).slice(0, 10);
+  document.getElementById('mov-editar-obs').value = r.observacao || '';
+  document.getElementById('modal-editar-mov').classList.remove('hidden');
+}
+
+async function salvarEdicaoMovimentacao() {
+  const id = document.getElementById('mov-editar-id').value;
+  const quantidade = document.getElementById('mov-editar-qtd').value;
+  const data = document.getElementById('mov-editar-data').value;
+  const observacao = document.getElementById('mov-editar-obs').value.trim();
+  if (!quantidade || parseFloat(quantidade) <= 0) { mostrarToast('Quantidade inválida.', 'warn'); return; }
+
+  const r = await api(`/movimentacoes/${id}`, { method: 'PUT', body: { quantidade, data, observacao } });
+  if (!r) return;
+  mostrarToast('Saída corrigida!', 'ok');
+  document.getElementById('modal-editar-mov').classList.add('hidden');
+  const mesAtual = document.getElementById('saidas-mes').value;
+  abrirTelaSaidas(mesAtual);
 }
 
 async function abrirModalImprimirEstoque() {

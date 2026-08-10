@@ -98,6 +98,7 @@ router.delete('/produtos/:id',auth, prodCtrl.remover);
 // Movimentações
 router.get('/movimentacoes',  auth, movCtrl.listar);
 router.post('/movimentacoes', auth, movCtrl.registrar);
+router.put('/movimentacoes/:id', auth, movCtrl.editar);
 
 // Sync Saurus
 router.post('/sync/saurus', auth, upload.single('arquivo'), syncCtrl.importarSaurus);

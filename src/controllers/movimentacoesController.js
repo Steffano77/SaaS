@@ -20,6 +20,47 @@ exports.listar = async (req, res) => {
   }
 };
 
+// Corrige uma movimentação já registrada (erro de digitação: quantidade, observação ou data).
+// Se a quantidade mudar, ajusta o estoque do produto pela diferença, sem duplicar o efeito.
+exports.editar = async (req, res) => {
+  try {
+    const padaria_id = req.padaria.id;
+    const { quantidade, observacao, data } = req.body;
+
+    const [[mov]] = await db.query(
+      'SELECT * FROM movimentacoes WHERE id = ? AND padaria_id = ?',
+      [req.params.id, padaria_id]
+    );
+    if (!mov) return res.status(404).json({ erro: 'Movimentação não encontrada.' });
+
+    const novaQtd = quantidade !== undefined && quantidade !== null && quantidade !== ''
+      ? parseFloat(quantidade) : parseFloat(mov.quantidade);
+    if (isNaN(novaQtd) || novaQtd <= 0) return res.status(400).json({ erro: 'Quantidade inválida.' });
+
+    // Se a quantidade mudou, corrige o estoque pela diferença (desfaz o efeito antigo e aplica o novo)
+    if (novaQtd !== parseFloat(mov.quantidade)) {
+      const sinal = ['entrada', 'ajuste'].includes(mov.tipo) ? 1 : -1;
+      const diferenca = (novaQtd - parseFloat(mov.quantidade)) * sinal;
+      await db.query(
+        'UPDATE produtos SET estoque_atual = GREATEST(0, estoque_atual + ?) WHERE id = ? AND padaria_id = ?',
+        [diferenca, mov.produto_id, padaria_id]
+      );
+    }
+
+    const sets = ['quantidade = ?'];
+    const vals = [novaQtd];
+    if (observacao !== undefined) { sets.push('observacao = ?'); vals.push(observacao || null); }
+    if (data) { sets.push('data = ?'); vals.push(data); }
+    vals.push(mov.id, padaria_id);
+
+    await db.query(`UPDATE movimentacoes SET ${sets.join(', ')} WHERE id = ? AND padaria_id = ?`, vals);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Erro ao editar movimentação:', e);
+    res.status(500).json({ erro: 'Erro interno ao editar movimentação.' });
+  }
+};
+
 exports.registrar = async (req, res) => {
   try {
     const { produto_id, tipo, quantidade, custo_unit, observacao, data } = req.body;
