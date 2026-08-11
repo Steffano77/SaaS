@@ -212,6 +212,23 @@ app.use(express.static(path.join(__dirname, '../public')));
       'ALTER TABLE atendentes ADD COLUMN pin_hash VARCHAR(255) NULL',
       // Produtos de balcão (feitos na hora) não entram nos alertas de estoque zerado/reposição
       'ALTER TABLE produtos ADD COLUMN controla_estoque TINYINT(1) NOT NULL DEFAULT 1',
+      // Encomendas — pedidos combinados com antecedência (bolo, festa etc.), pra não se perderem
+      `CREATE TABLE IF NOT EXISTS encomendas (
+        id             INT AUTO_INCREMENT PRIMARY KEY,
+        padaria_id     INT NOT NULL,
+        cliente_nome   VARCHAR(120) NOT NULL,
+        cliente_telefone VARCHAR(30) NULL,
+        descricao      TEXT NOT NULL,
+        data_entrega   DATE NOT NULL,
+        hora_entrega   TIME NULL,
+        valor          DECIMAL(10,2) NOT NULL DEFAULT 0,
+        sinal_pago     DECIMAL(10,2) NOT NULL DEFAULT 0,
+        status         ENUM('pendente','producao','pronta','entregue','cancelada') NOT NULL DEFAULT 'pendente',
+        observacao     VARCHAR(255) NULL,
+        criado_em      DATETIME DEFAULT CURRENT_TIMESTAMP,
+        atualizado_em  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_encomendas_padaria (padaria_id, status, data_entrega)
+      )`,
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
 

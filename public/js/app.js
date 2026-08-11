@@ -384,9 +384,9 @@ function sair() {
 }
 
 // ── Navegação ───────────────────────────────────────────────
-const paginas = ['dashboard','estoque','compras','fornecedores','fichas','producao','relatorios','comandas','financeiro','sync','planos','404'];
+const paginas = ['dashboard','estoque','compras','fornecedores','fichas','producao','relatorios','comandas','encomendas','financeiro','sync','planos','404'];
 const PAGINAS_PRO      = ['relatorios', 'fichas'];
-const PAGINAS_PREMIUM  = ['producao', 'financeiro', 'comandas'];
+const PAGINAS_PREMIUM  = ['producao', 'financeiro', 'comandas', 'encomendas'];
 
 function mostrarPagina(pg, pushHistory = true) {
   // Modo Balcão: só existe a tela de Comandas
@@ -426,6 +426,7 @@ function mostrarPagina(pg, pushHistory = true) {
   if (pg === 'fichas')         { carregarFichas(); }
   if (pg === 'producao')       { carregarProducao(); }
   if (pg === 'comandas')       { carregarComandas(); }
+  if (pg === 'encomendas')     { carregarEncomendas(); }
 }
 
 // ── PIN Financeiro ───────────────────────────────────────────
@@ -724,6 +725,7 @@ async function carregarDashboard() {
   _aplicarVisibilidadeValor();
   const onb = document.getElementById('onboarding-vazio');
   if (onb) onb.classList.toggle('hidden', k.total_produtos > 0);
+  carregarPainelEncomendas();
 
   document.getElementById('lista-repor').innerHTML = d.repor.length
     ? d.repor.map(p => `
@@ -5130,6 +5132,202 @@ async function cancelarComandaUI() {
   mostrarToast('Comanda cancelada.', 'ok');
   fecharModalComanda();
   await carregarComandas();
+}
+
+/* ===================== ENCOMENDAS ===================== */
+const ENC_STATUS_LABEL = { pendente: '🕐 Pendente', producao: '👨‍🍳 Em produção', pronta: '✅ Pronta', entregue: '📦 Entregue', cancelada: '🚫 Cancelada' };
+const ENC_PROXIMO_STATUS = { pendente: 'producao', producao: 'pronta', pronta: 'entregue' };
+const ENC_PROXIMO_LABEL  = { pendente: 'Iniciar produção', producao: 'Marcar como pronta', pronta: 'Marcar como entregue' };
+
+async function carregarEncomendas() {
+  const data = await api('/encomendas');
+  if (!data) return;
+  const hojeStr = new Date().toISOString().slice(0, 10);
+
+  document.getElementById('enc-lista-abertas').innerHTML = data.abertas.length
+    ? data.abertas.map(e => cardEncomendaHtml(e, hojeStr)).join('')
+    : `<div class="cmd-vazio">Nenhuma encomenda em aberto.</div>`;
+
+  document.getElementById('enc-lista-recentes').innerHTML = data.recentes.length
+    ? data.recentes.map(e => cardEncomendaHtml(e, hojeStr)).join('')
+    : `<div class="cmd-vazio">Sem histórico ainda.</div>`;
+}
+
+function cardEncomendaHtml(e, hojeStr) {
+  const atrasada = e.data_entrega < hojeStr && !['entregue', 'cancelada'].includes(e.status);
+  const ehHoje = e.data_entrega === hojeStr;
+  const dataFmt = new Date(e.data_entrega + 'T00:00:00').toLocaleDateString('pt-BR');
+  const horaFmt = e.hora_entrega ? ' às ' + e.hora_entrega.slice(0, 5) : '';
+  const classeExtra = atrasada ? 'enc-card-atrasada' : (ehHoje ? 'enc-card-hoje' : '');
+  return `
+    <div class="enc-card ${classeExtra}" onclick="abrirModalDetalheEncomenda(${e.id})">
+      <div class="enc-card-topo">
+        <strong>${e.cliente_nome}</strong>
+        <span class="enc-card-status">${ENC_STATUS_LABEL[e.status] || e.status}</span>
+      </div>
+      <div class="enc-card-desc">${e.descricao}</div>
+      <div class="enc-card-rodape">
+        <span>${atrasada ? '🔴 Atrasada — ' : (ehHoje ? '🟠 Hoje — ' : '')}${dataFmt}${horaFmt}</span>
+        <span class="enc-card-valor">${fmtMoeda(e.valor)}</span>
+      </div>
+    </div>
+  `;
+}
+
+async function carregarPainelEncomendas() {
+  const el = document.getElementById('painel-encomendas-faixa');
+  if (!el) return;
+  if (!['premium'].includes(PLANO_ATUAL) && PLANO_ATUAL !== 'admin') { el.innerHTML = ''; return; }
+  const r = await api('/encomendas/resumo');
+  if (!r || (!r.hoje && !r.atrasadas)) { el.innerHTML = ''; return; }
+  const partes = [];
+  if (r.atrasadas > 0) partes.push(`🔴 ${r.atrasadas} atrasada${r.atrasadas > 1 ? 's' : ''}`);
+  if (r.hoje > 0) partes.push(`🟠 ${r.hoje} pra hoje`);
+  el.innerHTML = `
+    <div class="cmd-caixa-card ${r.atrasadas > 0 ? 'fechado' : 'aberto'}" style="margin-bottom:20px;cursor:pointer;" onclick="mostrarPagina('encomendas')">
+      <span>📋 Encomendas: ${partes.join(' · ')}</span>
+      <span style="font-size:12px;opacity:.8;">Ver encomendas →</span>
+    </div>`;
+}
+
+function abrirModalNovaEncomenda() {
+  document.getElementById('enc-modal-titulo').textContent = '📋 Nova encomenda';
+  document.getElementById('enc-id').value = '';
+  document.getElementById('enc-cliente-nome').value = '';
+  document.getElementById('enc-cliente-telefone').value = '';
+  document.getElementById('enc-descricao').value = '';
+  document.getElementById('enc-data-entrega').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('enc-hora-entrega').value = '';
+  document.getElementById('enc-valor').value = '';
+  document.getElementById('enc-sinal').value = '';
+  document.getElementById('enc-observacao').value = '';
+  document.getElementById('enc-acoes-extra')?.remove();
+  document.getElementById('modal-encomenda').classList.remove('hidden');
+  setTimeout(() => document.getElementById('enc-cliente-nome').focus(), 100);
+}
+
+function fecharModalEncomenda() {
+  document.getElementById('modal-encomenda').classList.add('hidden');
+}
+
+async function salvarEncomenda() {
+  const id = document.getElementById('enc-id').value;
+  const cliente_nome = document.getElementById('enc-cliente-nome').value.trim();
+  const descricao = document.getElementById('enc-descricao').value.trim();
+  const data_entrega = document.getElementById('enc-data-entrega').value;
+  if (!cliente_nome) { mostrarToast('Informe o nome do cliente.', 'warn'); return; }
+  if (!descricao) { mostrarToast('Descreva o que foi encomendado.', 'warn'); return; }
+  if (!data_entrega) { mostrarToast('Informe a data de entrega.', 'warn'); return; }
+
+  const body = {
+    cliente_nome,
+    cliente_telefone: document.getElementById('enc-cliente-telefone').value.trim(),
+    descricao,
+    data_entrega,
+    hora_entrega: document.getElementById('enc-hora-entrega').value || null,
+    valor: document.getElementById('enc-valor').value || 0,
+    sinal_pago: document.getElementById('enc-sinal').value || 0,
+    observacao: document.getElementById('enc-observacao').value.trim(),
+  };
+
+  const r = id
+    ? await api(`/encomendas/${id}`, { method: 'PUT', body })
+    : await api('/encomendas', { method: 'POST', body });
+  if (!r) return;
+  mostrarToast(id ? 'Encomenda atualizada!' : 'Encomenda cadastrada!', 'ok');
+  fecharModalEncomenda();
+  await carregarEncomendas();
+}
+
+let encomendaDetalheAtual = null;
+
+async function abrirModalDetalheEncomenda(id) {
+  const e = await api(`/encomendas/${id}`);
+  if (!e) return;
+  encomendaDetalheAtual = e;
+
+  document.getElementById('enc-modal-titulo').textContent = `📋 ${e.cliente_nome}`;
+  document.getElementById('enc-id').value = e.id;
+  document.getElementById('enc-cliente-nome').value = e.cliente_nome;
+  document.getElementById('enc-cliente-telefone').value = e.cliente_telefone || '';
+  document.getElementById('enc-descricao').value = e.descricao;
+  document.getElementById('enc-data-entrega').value = String(e.data_entrega).slice(0, 10);
+  document.getElementById('enc-hora-entrega').value = e.hora_entrega ? e.hora_entrega.slice(0, 5) : '';
+  document.getElementById('enc-valor').value = parseFloat(e.valor) || '';
+  document.getElementById('enc-sinal').value = parseFloat(e.sinal_pago) || '';
+  document.getElementById('enc-observacao').value = e.observacao || '';
+
+  const modalBox = document.querySelector('#modal-encomenda .modal-box');
+  let acoes = document.getElementById('enc-acoes-extra');
+  if (!acoes) {
+    acoes = document.createElement('div');
+    acoes.id = 'enc-acoes-extra';
+    acoes.style.cssText = 'display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;';
+    modalBox.appendChild(acoes);
+  }
+  const proximo = ENC_PROXIMO_STATUS[e.status];
+  acoes.innerHTML = `
+    ${proximo ? `<button class="btn-secondary" style="flex:1;min-width:140px;" onclick="mudarStatusEncomendaUI(${e.id}, '${proximo}')">${ENC_PROXIMO_LABEL[e.status]}</button>` : ''}
+    <button class="btn-secondary" style="flex:1;min-width:100px;" onclick="imprimirFichaEncomenda(${e.id})">🖨️ Imprimir</button>
+    ${e.status !== 'cancelada' && e.status !== 'entregue' ? `<button class="btn-ghost" style="flex:1;min-width:100px;color:#dc2626;" onclick="mudarStatusEncomendaUI(${e.id}, 'cancelada')">Cancelar</button>` : ''}
+    <button class="btn-ghost" style="flex:1;min-width:100px;color:#dc2626;" onclick="excluirEncomendaUI(${e.id})">🗑️ Excluir</button>
+  `;
+
+  document.getElementById('modal-encomenda').classList.remove('hidden');
+}
+
+async function mudarStatusEncomendaUI(id, status) {
+  const r = await api(`/encomendas/${id}/status`, { method: 'PATCH', body: { status } });
+  if (!r) return;
+  mostrarToast(`Status atualizado: ${ENC_STATUS_LABEL[status]}`, 'ok');
+  fecharModalEncomenda();
+  await carregarEncomendas();
+}
+
+async function excluirEncomendaUI(id) {
+  if (!confirm('Excluir essa encomenda definitivamente?')) return;
+  const r = await api(`/encomendas/${id}`, { method: 'DELETE' });
+  if (!r) return;
+  mostrarToast('Encomenda excluída.', 'ok');
+  fecharModalEncomenda();
+  await carregarEncomendas();
+}
+
+// Ficha grande pra fixar no mural — não é o recibo de 80mm, é uma folha A4 com letra grande
+function imprimirFichaEncomenda(id) {
+  const e = encomendaDetalheAtual;
+  if (!e || e.id !== id) return;
+  const dataFmt = new Date(String(e.data_entrega).slice(0, 10) + 'T00:00:00').toLocaleDateString('pt-BR');
+  const horaFmt = e.hora_entrega ? e.hora_entrega.slice(0, 5) : '—';
+  const restante = Math.max(0, parseFloat(e.valor || 0) - parseFloat(e.sinal_pago || 0));
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Encomenda</title>
+    <style>
+      @page { size: A4; margin: 20mm; }
+      body { font-family: Arial, sans-serif; color: #000; }
+      h1 { font-size: 28px; text-align: center; margin: 0 0 4px; }
+      .sub { text-align: center; font-size: 14px; color: #555; margin-bottom: 24px; }
+      .linha { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding: 10px 0; font-size: 20px; }
+      .linha span:first-child { font-weight: bold; }
+      .desc-box { border: 3px solid #000; border-radius: 10px; padding: 16px; margin: 20px 0; font-size: 22px; }
+      .datahora { text-align: center; font-size: 40px; font-weight: 900; margin: 24px 0; padding: 14px; border: 4px solid #000; border-radius: 12px; }
+      .rodape { text-align: center; font-size: 12px; color: #777; margin-top: 30px; }
+    </style></head><body>
+    <h1>🧾 FICHA DE ENCOMENDA</h1>
+    <div class="sub">PanificaPro — impresso em ${new Date().toLocaleString('pt-BR')}</div>
+    <div class="linha"><span>Cliente</span><span>${e.cliente_nome}</span></div>
+    ${e.cliente_telefone ? `<div class="linha"><span>Telefone</span><span>${e.cliente_telefone}</span></div>` : ''}
+    <div class="desc-box">${e.descricao}</div>
+    <div class="datahora">📅 ${dataFmt} ${horaFmt !== '—' ? ' — ' + horaFmt : ''}</div>
+    <div class="linha"><span>Valor combinado</span><span>${fmtMoeda(e.valor)}</span></div>
+    <div class="linha"><span>Sinal pago</span><span>${fmtMoeda(e.sinal_pago)}</span></div>
+    <div class="linha"><span>Restante a pagar</span><span>${fmtMoeda(restante)}</span></div>
+    ${e.observacao ? `<div class="linha"><span>Observação</span><span>${e.observacao}</span></div>` : ''}
+    <div class="rodape">Fixar no mural até a entrega</div>
+    <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();};<\/script>
+    </body></html>`;
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
 }
 
 async function salvarFicha() {

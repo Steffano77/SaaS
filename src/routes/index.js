@@ -44,6 +44,7 @@ const maquininhaCtrl = require('../controllers/maquininhaController');
 const comandaCtrl    = require('../controllers/comandaController');
 const caixaCtrl       = require('../controllers/caixaController');
 const atendenteCtrl   = require('../controllers/atendenteController');
+const encomendaCtrl   = require('../controllers/encomendaController');
 
 // Webhook Hotmart (sem auth — validação de assinatura feita dentro do controller)
 router.post('/hotmart/webhook', hotmartCtrl.webhook);
@@ -180,6 +181,15 @@ router.get('/atendentes',                auth, authPremium, wrap(atendenteCtrl.l
 router.post('/atendentes',               auth, authPremium, wrap(atendenteCtrl.criar));
 router.post('/atendentes/:id/verificar-pin', auth, authPremium, wrap(atendenteCtrl.verificarPin));
 router.delete('/atendentes/:id',         auth, authPremium, wrap(atendenteCtrl.remover));
+
+// Encomendas — Premium apenas
+router.get('/encomendas',           auth, authPremium, wrap(encomendaCtrl.listar));
+router.get('/encomendas/resumo',    auth, authPremium, wrap(encomendaCtrl.resumo));
+router.get('/encomendas/:id',       auth, authPremium, wrap(encomendaCtrl.buscar));
+router.post('/encomendas',          auth, authPremium, wrap(encomendaCtrl.criar));
+router.put('/encomendas/:id',       auth, authPremium, wrap(encomendaCtrl.atualizar));
+router.patch('/encomendas/:id/status', auth, authPremium, wrap(encomendaCtrl.mudarStatus));
+router.delete('/encomendas/:id',    auth, authPremium, wrap(encomendaCtrl.excluir));
 
 // Importação genérica
 router.post('/sync/preview',   auth, upload.single('arquivo'), importCtrl.preview);
