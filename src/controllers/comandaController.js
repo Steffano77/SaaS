@@ -47,7 +47,7 @@ exports.relatorioProdutos = async (req, res) => {
   }
 
   const [produtos] = await db.query(
-    `SELECT LOWER(TRIM(i.nome_produto)) AS chave, i.nome_produto AS produto, i.unidade,
+    `SELECT LOWER(TRIM(i.nome_produto)) AS chave, MIN(i.nome_produto) AS produto, i.unidade,
        SUM(i.quantidade) AS quantidade, SUM(i.subtotal) AS receita, COUNT(DISTINCT i.comanda_id) AS comandas
      FROM itens_comanda i
      JOIN comandas c ON c.id = i.comanda_id
