@@ -95,6 +95,7 @@ router.get('/produtos/:id',   auth, prodCtrl.buscar);
 router.post('/produtos',      auth, prodCtrl.criar);
 router.put('/produtos/:id',   auth, prodCtrl.atualizar);
 router.delete('/produtos/:id',auth, prodCtrl.remover);
+router.post('/produtos/:id/mesclar', auth, prodCtrl.mesclarDuplicados);
 
 // Movimentações
 router.get('/movimentacoes',  auth, movCtrl.listar);
@@ -104,9 +105,7 @@ router.put('/movimentacoes/:id', auth, movCtrl.editar);
 // Sync Saurus
 router.post('/sync/saurus', auth, upload.single('arquivo'), syncCtrl.importarSaurus);
 
-// Atualização de estoque via planilha Saurus
-router.post('/saurus/preview',   auth, upload.single('arquivo'), saurusCtrl.preview);
-router.post('/saurus/confirmar', auth, saurusCtrl.confirmar);
+// Limpeza de produtos zerados (usado no botão "Limpar zerados" do Estoque)
 router.post('/saurus/limpar-zerados', auth, saurusCtrl.limparZerados);
 
 // Financeiro — Premium apenas

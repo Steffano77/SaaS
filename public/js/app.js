@@ -74,6 +74,21 @@ function togglePass(inputId, btn) {
   btn.querySelector('.eye-off').classList.toggle('hidden', showing);
 }
 
+// Configuração do aparelho — alternativa mais amigável aos links ?balcao=1&lancamento=1
+function abrirModalConfigAparelho() {
+  document.getElementById('cfg-modo-balcao').checked = MODO_BALCAO;
+  document.getElementById('cfg-modo-lancamento').checked = MODO_LANCAMENTO;
+  document.getElementById('modal-config-aparelho').classList.remove('hidden');
+}
+
+function salvarConfigAparelho() {
+  const balcao = document.getElementById('cfg-modo-balcao').checked;
+  const lancamento = document.getElementById('cfg-modo-lancamento').checked;
+  if (balcao) localStorage.setItem('pp_modo_balcao', '1'); else localStorage.removeItem('pp_modo_balcao');
+  if (lancamento) localStorage.setItem('pp_modo_lancamento', '1'); else localStorage.removeItem('pp_modo_lancamento');
+  location.reload();
+}
+
 function toggleTheme() {
   const html = document.documentElement;
   const isDark = html.getAttribute('data-theme') === 'dark';
@@ -1402,10 +1417,13 @@ function detectarDuplicatas(prods) {
 
 function abrirModalDuplicatas() {
   const lista = document.getElementById('modal-duplicatas-lista');
-  lista.innerHTML = _duplicatas.map(grupo => `
+  lista.innerHTML = _duplicatas.map((grupo, gi) => {
+    const unidadesDoGrupo = new Set(grupo.map(p => p.unidade));
+    const mesmaUnidade = unidadesDoGrupo.size === 1;
+    return `
     <div style="border:1px solid var(--slate-200);border-radius:10px;margin-bottom:12px;overflow:hidden;">
       <div style="background:var(--slate-50);padding:10px 14px;font-size:12px;font-weight:700;color:var(--slate-500);text-transform:uppercase;letter-spacing:.05em;">
-        "${grupo[0].nome}"
+        "${grupo[0].nome}" ${!mesmaUnidade ? '<span style="color:#d97706;text-transform:none;font-weight:600;">— unidades diferentes, mesclar exige atenção</span>' : ''}
       </div>
       ${grupo.map(p => `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid var(--slate-100);gap:8px;">
@@ -1413,15 +1431,39 @@ function abrirModalDuplicatas() {
             <div style="font-size:13px;font-weight:600;color:var(--slate-800);">${p.nome}</div>
             <div style="font-size:12px;color:var(--slate-400);">${p.unidade} · Estoque: ${fmtQtd(p.estoque_atual)} · R$ ${parseFloat(p.custo_unitario).toFixed(2)}</div>
           </div>
-          <div style="display:flex;gap:6px;flex-shrink:0;">
+          <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
             <button onclick="fecharModalDuplicatas();editarProduto(${p.id})" style="background:var(--slate-100);color:var(--slate-700);border:none;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;">Editar</button>
+            <button onclick="mesclarDuplicataGrupo(this,${gi},${p.id})" style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;" title="Soma o estoque dos outros deste grupo aqui e desativa os demais">🔗 Mesclar aqui</button>
             <button onclick="excluirDuplicata(this,${p.id},'${p.nome.replace(/'/g,"\\'")}',${grupo.length})" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;">Desativar</button>
           </div>
         </div>
       `).join('')}
     </div>
-  `).join('');
+  `;
+  }).join('');
   document.getElementById('modal-duplicatas').classList.remove('hidden');
+}
+
+// Mescla todos os produtos do grupo dentro do escolhido (soma estoque dos que têm a mesma unidade,
+// avisa sobre os que ficaram de fora por unidade diferente).
+async function mesclarDuplicataGrupo(btn, grupoIndex, principalId) {
+  const grupo = _duplicatas[grupoIndex];
+  if (!grupo) return;
+  const outrosIds = grupo.map(p => p.id).filter(id => id !== principalId);
+  if (!outrosIds.length) return;
+  if (!confirm(`Mesclar os ${outrosIds.length + 1} produtos "${grupo[0].nome}" neste? O estoque dos que têm a mesma unidade será somado, e os outros ficarão inativos (histórico preservado).`)) return;
+
+  btn.disabled = true;
+  btn.textContent = '...';
+  const r = await api(`/produtos/${principalId}/mesclar`, { method: 'POST', body: { ids: outrosIds } });
+  if (!r) { btn.disabled = false; btn.textContent = '🔗 Mesclar aqui'; return; }
+
+  let msg = `✅ ${r.mesclados} produto${r.mesclados === 1 ? '' : 's'} mesclado${r.mesclados === 1 ? '' : 's'}${r.estoqueSomado > 0 ? ` (+${fmtQtd(r.estoqueSomado)} no estoque)` : ''}`;
+  if (r.ignorados && r.ignorados.length) msg += ` · ${r.ignorados.length} ficaram de fora (unidade diferente, precisam de decisão manual)`;
+  mostrarToast(msg, 'ok');
+  await carregarProdutos();
+  if (_duplicatas.length) abrirModalDuplicatas();
+  else fecharModalDuplicatas();
 }
 
 function fecharModalDuplicatas() {
@@ -1670,23 +1712,6 @@ function selecionarNovoProdutoCompra(nome) {
   }
 }
 
-// ── Importação Saurus ─────────────────────────────────────────────────────
-let _saurusArquivo = null;
-let _saurusPreview = [];
-
-function abrirImportSaurus() {
-  _saurusArquivo = null;
-  _saurusPreview = [];
-  document.getElementById('import-filename').textContent = 'Clique para selecionar o arquivo';
-  document.getElementById('input-saurus').value = '';
-  document.getElementById('import-step1-msg').textContent = '';
-  document.getElementById('btn-saurus-preview').disabled = true;
-  document.getElementById('btn-saurus-preview').style.opacity = '0.5';
-  document.getElementById('import-step-1').classList.remove('hidden');
-  document.getElementById('import-step-2').classList.add('hidden');
-  document.getElementById('modal-import-saurus').classList.remove('hidden');
-}
-
 async function limparProdutosZerados() {
   if (!confirm('Isso vai desativar todos os produtos com estoque zero. Eles podem ser reativados depois. Continuar?')) return;
   const r = await fetch(`${API}/saurus/limpar-zerados`, {
@@ -1697,111 +1722,6 @@ async function limparProdutosZerados() {
   if (!r.ok) { mostrarToast('Erro ao limpar zerados.'); return; }
   mostrarToast(`🗑 ${data.removidos} produtos zerados removidos do estoque.`);
   carregarProdutos();
-}
-
-function fecharImportSaurus() {
-  document.getElementById('modal-import-saurus').classList.add('hidden');
-}
-
-function voltarStep1() {
-  document.getElementById('import-step-1').classList.remove('hidden');
-  document.getElementById('import-step-2').classList.add('hidden');
-}
-
-function saurusArquivoSelecionado(input) {
-  if (!input.files.length) return;
-  _saurusArquivo = input.files[0];
-  document.getElementById('import-filename').textContent = _saurusArquivo.name;
-  document.getElementById('btn-saurus-preview').disabled = false;
-  document.getElementById('btn-saurus-preview').style.opacity = '1';
-}
-
-async function saurusGerarPreview() {
-  if (!_saurusArquivo) return;
-  const msg = document.getElementById('import-step1-msg');
-  msg.textContent = '🔍 Lendo planilha...';
-  msg.style.color = 'var(--slate-500)';
-
-  const form = new FormData();
-  form.append('arquivo', _saurusArquivo);
-
-  try {
-    const r = await fetch(`${API}/saurus/preview`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${TOKEN}` },
-      body: form
-    });
-    const data = await r.json();
-    if (!r.ok) { msg.textContent = '❌ ' + (data.erro || 'Erro ao ler planilha.'); msg.style.color = '#dc2626'; return; }
-
-    _saurusPreview = data.preview;
-    document.getElementById('import-resumo').innerHTML =
-      `Planilha: <strong>${data.total_planilha}</strong> itens com saldo · Encontrados no cadastro: <strong>${data.total_encontrados}</strong>`;
-
-    let listaHTML = _saurusPreview.map(p => {
-      const diff = p.novo_estoque - p.estoque_atual;
-      const cor = diff > 0 ? '#16a34a' : diff < 0 ? '#dc2626' : 'var(--slate-400)';
-      const sinal = diff > 0 ? '+' : '';
-      const nomeDiff = p.nome_planilha && p.nome_planilha !== p.nome
-        ? `<span style="font-size:11px;color:var(--slate-400);display:block;">planilha: ${p.nome_planilha}</span>` : '';
-      return `<div style="display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--slate-100);font-size:14px;gap:8px;">
-        <span style="flex:1;">${p.nome}${nomeDiff}</span>
-        <span style="min-width:70px;text-align:right;color:var(--slate-500);">${p.estoque_atual}<br><small>${p.unidade}</small></span>
-        <span style="color:var(--slate-300);">→</span>
-        <span style="min-width:70px;text-align:right;font-weight:600;color:${cor};">${p.novo_estoque}<br><small style="font-weight:400;">${sinal}${diff}</small></span>
-      </div>`;
-    }).join('');
-
-    if (!listaHTML && data.amostra && data.amostra.length) {
-      const colunasInfo = data._debug
-        ? `<p style="font-size:12px;color:var(--slate-400);margin-bottom:8px;">Colunas encontradas na planilha: <strong>${(data._debug.colunas||[]).filter(Boolean).join(', ')}</strong></p>`
-        : '';
-      listaHTML = `<div style="padding:16px;">
-        <p style="color:#dc2626;font-weight:600;margin-bottom:8px;">Nenhum produto encontrado no cadastro.</p>
-        ${colunasInfo}
-        <p style="font-size:13px;color:var(--slate-500);margin-bottom:8px;">Primeiros itens da planilha:</p>
-        ${data.amostra.map(i => `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid var(--slate-100);">
-          <strong>${i.nome || '(sem nome)'}</strong>${i.ean ? ` · EAN: ${i.ean}` : ''} · Saldo: ${i.saldo}
-        </div>`).join('')}
-      </div>`;
-    } else if (!listaHTML) {
-      listaHTML = '<p style="padding:20px;text-align:center;color:var(--slate-400);">Nenhum produto encontrado no cadastro.</p>';
-    }
-
-    document.getElementById('import-preview-lista').innerHTML = listaHTML;
-
-    document.getElementById('import-step-1').classList.add('hidden');
-    document.getElementById('import-step-2').classList.remove('hidden');
-    msg.textContent = '';
-  } catch (e) {
-    msg.textContent = '❌ Erro de conexão.';
-    msg.style.color = '#dc2626';
-  }
-}
-
-async function saurusConfirmar() {
-  const btn = document.getElementById('btn-saurus-confirmar');
-  btn.disabled = true;
-  btn.textContent = 'Atualizando...';
-
-  try {
-    const r = await fetch(`${API}/saurus/confirmar`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ itens: _saurusPreview.map(p => ({ id: p.id, novo_estoque: p.novo_estoque })) })
-    });
-    const data = await r.json();
-    if (!r.ok) { alert('Erro: ' + (data.erro || 'Tente novamente.')); btn.disabled = false; btn.textContent = '✅ Confirmar atualização'; return; }
-
-    fecharImportSaurus();
-    carregarProdutos();
-    const msgZerados = data.zerados > 0 ? ` · ${data.zerados} zerados (ausentes na planilha)` : '';
-    mostrarToast(`✅ ${data.atualizados} produtos atualizados${msgZerados}`);
-  } catch (e) {
-    alert('Erro de conexão.');
-    btn.disabled = false;
-    btn.textContent = '✅ Confirmar atualização';
-  }
 }
 
 // ── Financeiro ──────────────────────────────────────────────────────────────

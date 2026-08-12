@@ -124,6 +124,54 @@ exports.remover = async (req, res) => {
   }
 };
 
+// Mescla produtos duplicados: soma o estoque dos que têm a MESMA unidade do principal
+// dentro do produto principal, e desativa os demais (histórico de movimentação preservado).
+// Ids com unidade diferente do principal são ignorados (precisam de decisão manual).
+exports.mesclarDuplicados = async (req, res) => {
+  try {
+    const padaria_id = req.padaria.id;
+    const principalId = req.params.id;
+    const outrosIds = Array.isArray(req.body.ids) ? req.body.ids.filter(id => String(id) !== String(principalId)) : [];
+    if (!outrosIds.length) return res.status(400).json({ erro: 'Informe ao menos um produto pra mesclar.' });
+
+    const [[principal]] = await db.query(
+      'SELECT id, unidade, estoque_atual FROM produtos WHERE id = ? AND padaria_id = ? AND ativo = 1',
+      [principalId, padaria_id]
+    );
+    if (!principal) return res.status(404).json({ erro: 'Produto principal não encontrado.' });
+
+    const [outros] = await db.query(
+      `SELECT id, unidade, estoque_atual FROM produtos WHERE id IN (?) AND padaria_id = ? AND ativo = 1`,
+      [outrosIds, padaria_id]
+    );
+
+    let somaEstoque = 0;
+    const mesclados = [];
+    const ignorados = [];
+    for (const o of outros) {
+      if (o.unidade === principal.unidade) {
+        somaEstoque += parseFloat(o.estoque_atual || 0);
+        mesclados.push(o.id);
+      } else {
+        ignorados.push({ id: o.id, motivo: `unidade diferente (${o.unidade} ≠ ${principal.unidade})` });
+      }
+    }
+
+    if (somaEstoque > 0) {
+      await db.query('UPDATE produtos SET estoque_atual = estoque_atual + ? WHERE id = ? AND padaria_id = ?',
+        [somaEstoque, principal.id, padaria_id]);
+    }
+    if (mesclados.length) {
+      await db.query('UPDATE produtos SET ativo = 0 WHERE id IN (?) AND padaria_id = ?', [mesclados, padaria_id]);
+    }
+
+    res.json({ ok: true, mesclados: mesclados.length, estoqueSomado: somaEstoque, ignorados });
+  } catch (e) {
+    console.error('Erro ao mesclar duplicados:', e);
+    res.status(500).json({ erro: 'Erro interno ao mesclar produtos.' });
+  }
+};
+
 exports.dashboard = async (req, res) => {
   try {
     const pid = req.padaria.id;
