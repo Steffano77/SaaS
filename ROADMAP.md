@@ -23,11 +23,13 @@ Afeta praticamente toda a linha de Coca-Cola (2 litros, 350ml, 600ml, KS, lata, 
 Caçulinha...) e provavelmente outros produtos também. Causa provável: exportação do Saurus com
 entradas duplicadas, ou nome batendo diferente em importações separadas.
 
-Não é urgente, mas polui os alertas de estoque e o catálogo. Quando for resolver: escrever um
-script que agrupa produtos por nome normalizado (trim + espaços colapsados + minúsculo) e mesma
-unidade, soma o estoque automaticamente nos casos óbvios (mesma unidade), e lista separadamente
-os casos que precisam de decisão manual (ex: um registro em "fardo" e outro em "unidade" — precisa
-saber o fator de conversão, tipo 1 fardo de Coca-Cola 600ml = 12 unidades, antes de somar).
+**Ferramenta pronta (08/08):** Estoque já detecta duplicatas automaticamente (aviso no topo da
+tela) e o botão "🔗 Mesclar aqui" soma o estoque de verdade (não só descarta) quando os produtos
+têm a mesma unidade. Pares com unidade diferente (ex: um em "fardo" e outro em "unidade") ficam
+de fora automaticamente e avisam que precisam de decisão manual (é preciso saber o fator de
+conversão, tipo 1 fardo de Coca-Cola 600ml = 12 unidades, antes de mesclar esses).
+Falta só: passar pela lista real e ir mesclando/decidindo caso a caso — trabalho manual, não é
+mais trabalho de programação.
 
 ### Nota Fiscal (NFC-e)
 Emitir cupom fiscal de verdade nas Comandas. Precisa escolher um gateway pago primeiro
@@ -49,3 +51,7 @@ sistema antigo (Saurus), então esse pré-requisito já está resolvido — falt
 - Importação Saurus: reconhece item de balcão (código curto) x item de mercado (EAN), cria produto
   automaticamente quando não existe. Exportação do Saurus tem limite de ~500 registros por vez —
   pra importar o catálogo inteiro, precisa exportar por categoria
+- Módulo de Encomendas: pedidos combinados com antecedência, com status e impressão pra mural
+- Simplificações (08/08): removido o botão antigo "Importar Saurus" do Estoque (só o novo
+  "Importar Dados" ficou), tela "⚙️ Este aparelho" pra ligar Modo Balcão/Lançamento sem link,
+  ferramenta de mesclar produtos duplicados de verdade (soma estoque)
