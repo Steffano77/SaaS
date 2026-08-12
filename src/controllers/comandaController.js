@@ -22,6 +22,51 @@ exports.listar = async (req, res) => {
   res.json({ abertas, recentes });
 };
 
+// Relatório de vendas por produto — o que mais vende no balcão, num período.
+// Aceita ?periodo=hoje|semana|mes|mes_passado ou ?inicio=YYYY-MM-DD&fim=YYYY-MM-DD.
+exports.relatorioProdutos = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  let { inicio, fim, periodo } = req.query;
+
+  if (!inicio || !fim) {
+    const hoje = new Date();
+    const fmt = d => d.toISOString().slice(0, 10);
+    if (periodo === 'semana') {
+      const seteDiasAtras = new Date(hoje); seteDiasAtras.setDate(hoje.getDate() - 6);
+      inicio = fmt(seteDiasAtras); fim = fmt(hoje);
+    } else if (periodo === 'mes_passado') {
+      const primeiroDiaMesPassado = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+      const ultimoDiaMesPassado = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
+      inicio = fmt(primeiroDiaMesPassado); fim = fmt(ultimoDiaMesPassado);
+    } else if (periodo === 'mes') {
+      const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+      inicio = fmt(primeiroDiaMes); fim = fmt(hoje);
+    } else {
+      inicio = fmt(hoje); fim = fmt(hoje);
+    }
+  }
+
+  const [produtos] = await db.query(
+    `SELECT LOWER(TRIM(i.nome_produto)) AS chave, i.nome_produto AS produto, i.unidade,
+       SUM(i.quantidade) AS quantidade, SUM(i.subtotal) AS receita, COUNT(DISTINCT i.comanda_id) AS comandas
+     FROM itens_comanda i
+     JOIN comandas c ON c.id = i.comanda_id
+     WHERE c.padaria_id = ? AND c.status = 'fechada' AND DATE(c.fechada_em) BETWEEN ? AND ?
+     GROUP BY chave, i.unidade
+     ORDER BY receita DESC`,
+    [padaria_id, inicio, fim]
+  );
+
+  const [[totais]] = await db.query(
+    `SELECT COUNT(DISTINCT c.id) AS total_comandas, COALESCE(SUM(c.total), 0) AS receita_total
+     FROM comandas c
+     WHERE c.padaria_id = ? AND c.status = 'fechada' AND DATE(c.fechada_em) BETWEEN ? AND ?`,
+    [padaria_id, inicio, fim]
+  );
+
+  res.json({ inicio, fim, produtos, totais });
+};
+
 // Abre uma nova comanda. Não precisa de caixa aberto pra isso — o lançamento do pedido acontece
 // no tablet do salão/balcão, e o vínculo com o caixa só é feito na hora de cobrar (fechar).
 exports.abrir = async (req, res) => {

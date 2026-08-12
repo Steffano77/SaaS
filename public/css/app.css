@@ -2815,3 +2815,18 @@ tr.tr-saida td { color: var(--red-600); }
 .enc-card-rodape { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 12px; color: var(--slate-500); }
 [data-theme="dark"] .enc-card-rodape { color: #94a3b8; }
 .enc-card-valor { font-weight: 700; color: var(--orange); }
+
+/* Relatório de vendas por produto */
+.rel-vendas-resumo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  padding: 16px;
+  background: var(--slate-50);
+  border-bottom: 1px solid var(--slate-200);
+}
+[data-theme="dark"] .rel-vendas-resumo { background: rgba(255,255,255,0.03); border-bottom-color: rgba(255,255,255,0.08); }
+.rel-vendas-kpi { display: flex; flex-direction: column; gap: 2px; }
+.rel-vendas-kpi strong { font-size: 18px; font-weight: 800; color: var(--orange); }
+.rel-vendas-kpi span { font-size: 11.5px; color: var(--slate-500); }
+[data-theme="dark"] .rel-vendas-kpi span { color: #94a3b8; }

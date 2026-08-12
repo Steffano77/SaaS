@@ -5110,6 +5110,95 @@ async function carregarPainelEncomendas() {
     </div>`;
 }
 
+/* ===================== RELATÓRIO DE VENDAS (Comandas) ===================== */
+const REL_VENDAS_PERIODO_LABEL = { hoje: 'Hoje', semana: 'Últimos 7 dias', mes: 'Este mês', mes_passado: 'Mês passado' };
+let _relVendasDados = null;
+
+function abrirRelatorioVendas() {
+  document.getElementById('tela-relatorio-vendas').classList.remove('hidden');
+  carregarRelatorioVendas();
+}
+
+async function carregarRelatorioVendas() {
+  const periodo = document.getElementById('rel-vendas-periodo').value;
+  document.getElementById('rel-vendas-periodo-label').textContent = REL_VENDAS_PERIODO_LABEL[periodo] || '';
+
+  const r = await api(`/comandas/relatorio?periodo=${periodo}`);
+  if (!r) return;
+  _relVendasDados = r;
+
+  const dataFmt = d => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR');
+  document.getElementById('rel-vendas-resumo').innerHTML = `
+    <div class="rel-vendas-kpi"><strong>${fmtMoeda(r.totais.receita_total)}</strong><span>Receita total</span></div>
+    <div class="rel-vendas-kpi"><strong>${r.totais.total_comandas}</strong><span>Comandas fechadas</span></div>
+    <div class="rel-vendas-kpi"><strong>${r.totais.total_comandas > 0 ? fmtMoeda(r.totais.receita_total / r.totais.total_comandas) : fmtMoeda(0)}</strong><span>Ticket médio</span></div>
+    <div class="rel-vendas-kpi"><strong>${dataFmt(r.inicio)} — ${dataFmt(r.fim)}</strong><span>Período</span></div>
+  `;
+
+  document.getElementById('rel-vendas-lista').innerHTML = r.produtos.length
+    ? `
+      <div style="display:flex;padding:10px 16px;border-bottom:2px solid var(--slate-200);font-size:11.5px;font-weight:700;color:var(--slate-500);text-transform:uppercase;">
+        <span style="flex:1;">Produto</span>
+        <span style="min-width:90px;text-align:right;">Qtd. vendida</span>
+        <span style="min-width:110px;text-align:right;">Receita</span>
+      </div>
+      ${r.produtos.map((p, i) => `
+        <div class="saida-item${i % 2 === 0 ? ' saida-item-zebra' : ''}">
+          <div style="flex:1;min-width:0;">
+            <div class="saida-item-nome">${i < 3 ? ['🥇','🥈','🥉'][i] + ' ' : ''}${p.produto}</div>
+            <div class="saida-item-sub">${p.comandas} comanda${p.comandas === 1 ? '' : 's'}</div>
+          </div>
+          <div style="min-width:90px;text-align:right;font-weight:600;color:var(--slate-700);">${fmtQtd(p.quantidade)} ${p.unidade}</div>
+          <div style="min-width:110px;text-align:right;font-weight:700;color:var(--orange);">${fmtMoeda(p.receita)}</div>
+        </div>
+      `).join('')}
+    `
+    : `<div class="cmd-vazio" style="padding:24px;">Nenhuma venda nesse período.</div>`;
+}
+
+function imprimirRelatorioVendas() {
+  const r = _relVendasDados;
+  if (!r) return;
+  const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
+  const dataFmt = d => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR');
+  const linhas = r.produtos.map((p, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${p.produto}</td>
+      <td style="text-align:right;">${fmtQtd(p.quantidade)} ${p.unidade}</td>
+      <td style="text-align:right;">${fmtMoeda(p.receita)}</td>
+    </tr>
+  `).join('');
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Vendas</title>
+    <style>
+      @page { size: A4; margin: 15mm; }
+      body { font-family: Arial, sans-serif; color: #000; }
+      h1 { font-size: 22px; margin: 0 0 4px; }
+      .sub { color: #555; font-size: 13px; margin-bottom: 16px; }
+      table { width: 100%; border-collapse: collapse; }
+      th { text-align: left; font-size: 11px; text-transform: uppercase; color: #555; border-bottom: 2px solid #000; padding: 6px 8px; }
+      td { padding: 6px 8px; border-bottom: 1px solid #ddd; font-size: 13px; }
+      .resumo { display: flex; gap: 24px; margin: 16px 0 20px; }
+      .resumo div { font-size: 13px; }
+      .resumo strong { display: block; font-size: 18px; }
+    </style></head><body>
+    <h1>📊 Vendas por produto — ${nomePadaria}</h1>
+    <div class="sub">Período: ${dataFmt(r.inicio)} a ${dataFmt(r.fim)} · Impresso em ${new Date().toLocaleString('pt-BR')}</div>
+    <div class="resumo">
+      <div><strong>${fmtMoeda(r.totais.receita_total)}</strong>Receita total</div>
+      <div><strong>${r.totais.total_comandas}</strong>Comandas fechadas</div>
+    </div>
+    <table>
+      <thead><tr><th>#</th><th>Produto</th><th style="text-align:right;">Qtd.</th><th style="text-align:right;">Receita</th></tr></thead>
+      <tbody>${linhas || '<tr><td colspan="4">Nenhuma venda nesse período.</td></tr>'}</tbody>
+    </table>
+    <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();};<\/script>
+    </body></html>`;
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+}
+
 function abrirModalNovaEncomenda() {
   document.getElementById('enc-modal-titulo').textContent = '📋 Nova encomenda';
   document.getElementById('enc-id').value = '';

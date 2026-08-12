@@ -157,6 +157,7 @@ router.post('/financeiro/maquininha/confirmar', auth, authPremium, wrap(maquinin
 
 // Comandas — Premium apenas
 router.get('/comandas',                auth, authPremium, wrap(comandaCtrl.listar));
+router.get('/comandas/relatorio',      auth, authPremium, wrap(comandaCtrl.relatorioProdutos));
 router.post('/comandas',               auth, authPremium, wrap(comandaCtrl.abrir));
 router.get('/comandas/:id',            auth, authPremium, wrap(comandaCtrl.buscar));
 router.post('/comandas/:id/itens',     auth, authPremium, wrap(comandaCtrl.adicionarItem));

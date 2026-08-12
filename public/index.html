@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260807d"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260807e"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -549,7 +549,10 @@
     <section id="pg-comandas" class="hidden page-section">
       <div class="page-header">
         <h2 class="page-title">🧾 Comandas</h2>
-        <button onclick="abrirModalNovaComanda()" class="btn-primary">+ Nova Comanda</button>
+        <div style="display:flex;gap:8px;">
+          <button onclick="abrirRelatorioVendas()" class="btn-secondary">📊 Relatório de vendas</button>
+          <button onclick="abrirModalNovaComanda()" class="btn-primary">+ Nova Comanda</button>
+        </div>
       </div>
 
       <div id="cmd-caixa-faixa" class="cmd-caixa-faixa"></div>
@@ -584,6 +587,26 @@
         </div>
         <button onclick="criarComanda()" class="btn-primary full" style="margin-top:6px;">Abrir comanda</button>
       </div>
+    </div>
+
+    <!-- Tela: relatório de vendas por produto -->
+    <div id="tela-relatorio-vendas" class="hidden tela-fullscreen">
+      <div class="tela-fullscreen-header" style="flex-wrap:wrap;">
+        <button onclick="document.getElementById('tela-relatorio-vendas').classList.add('hidden')" class="tela-fullscreen-back">←</button>
+        <div style="flex:1;min-width:160px;">
+          <div class="tela-fullscreen-titulo">📊 Vendas por produto</div>
+          <div class="tela-fullscreen-sub" id="rel-vendas-periodo-label">Hoje</div>
+        </div>
+        <select id="rel-vendas-periodo" class="form-control" style="width:auto;" onchange="carregarRelatorioVendas()">
+          <option value="hoje">Hoje</option>
+          <option value="semana">Últimos 7 dias</option>
+          <option value="mes" selected>Este mês</option>
+          <option value="mes_passado">Mês passado</option>
+        </select>
+        <button onclick="imprimirRelatorioVendas()" class="btn-primary" style="padding:8px 16px;font-size:13px;">🖨️ Imprimir</button>
+      </div>
+      <div id="rel-vendas-resumo" class="rel-vendas-resumo"></div>
+      <div id="rel-vendas-lista" style="flex:1;overflow-y:auto;"></div>
     </div>
 
     <!-- Modal: caixa (abrir/fechar/sangria/suprimento) -->
@@ -1619,7 +1642,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260807h"></script>
+<script src="/js/app.js?v=20260807i"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
