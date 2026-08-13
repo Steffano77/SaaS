@@ -704,21 +704,26 @@ function _aplicarVisibilidadeValor() {
   const el = document.getElementById('kpi-valor-estoque');
   const olho = document.getElementById('icon-olho');
   const fechado = document.getElementById('icon-olho-fechado');
-  if (!el) return;
-  if (_valorEstoqueOculto) {
-    if (el.textContent !== '••••••') _valorEstoqueReal = el.textContent;
-    el.textContent = '••••••';
-    el.style.letterSpacing = '4px';
-    if (olho) olho.style.display = 'none';
-    if (fechado) fechado.style.display = '';
-  } else {
-    if (_valorEstoqueReal) {
-      el.textContent = _valorEstoqueReal;
-      el.style.letterSpacing = '-0.5px';
+  if (el) {
+    if (_valorEstoqueOculto) {
+      if (el.textContent !== '••••••') _valorEstoqueReal = el.textContent;
+      el.textContent = '••••••';
+      el.style.letterSpacing = '4px';
+      if (olho) olho.style.display = 'none';
+      if (fechado) fechado.style.display = '';
+    } else {
+      if (_valorEstoqueReal) {
+        el.textContent = _valorEstoqueReal;
+        el.style.letterSpacing = '-0.5px';
+      }
+      if (olho) olho.style.display = '';
+      if (fechado) fechado.style.display = 'none';
     }
-    if (olho) olho.style.display = '';
-    if (fechado) fechado.style.display = 'none';
   }
+  // Esconde/mostra também os valores em R$ das Últimas movimentações
+  document.querySelectorAll('.valor-sensivel').forEach(v => {
+    v.textContent = _valorEstoqueOculto ? '••••' : v.dataset.valor;
+  });
 }
 
 // ── Dashboard ────────────────────────────────────────────────
@@ -778,15 +783,20 @@ async function carregarDashboard() {
         const icon = isEntrada ? '📥' : isAjuste ? '⚙️' : '📤';
         const cor = isEntrada ? '#16a34a' : isAjuste ? '#2563eb' : '#dc2626';
         const data = new Date(m.data).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' });
+        const valor = parseFloat(m.quantidade) * parseFloat(m.custo_unit || 0);
         return `<div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--slate-100);">
           <span style="font-size:18px;">${icon}</span>
           <div style="flex:1;min-width:0;">
             <div style="font-size:13px;font-weight:600;color:var(--slate-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.produto || '—'}</div>
             <div style="font-size:12px;color:var(--slate-500);">${data} · ${m.observacao || m.tipo}</div>
           </div>
-          <div style="font-size:13px;font-weight:700;color:${cor};white-space:nowrap;">${isEntrada ? '+' : isAjuste ? '~' : '−'}${fmtQtd(m.quantidade)} ${m.unidade||''}</div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-size:13px;font-weight:700;color:${cor};white-space:nowrap;">${isEntrada ? '+' : isAjuste ? '~' : '−'}${fmtQtd(m.quantidade)} ${m.unidade||''}</div>
+            <div class="valor-sensivel" data-valor="${fmtMoeda(valor)}" style="font-size:11.5px;color:var(--slate-400);white-space:nowrap;">${fmtMoeda(valor)}</div>
+          </div>
         </div>`;
       }).join('');
+      _aplicarVisibilidadeValor();
     } else if (elMovs) {
       elMovs.innerHTML = '<p style="padding:24px;text-align:center;color:var(--slate-400);font-size:14px;">Nenhuma movimentação ainda.</p>';
     }
