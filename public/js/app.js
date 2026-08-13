@@ -306,13 +306,16 @@ function entrar() {
 function aplicarModoBalcao() {
   document.querySelectorAll('.sidebar-link').forEach(el => {
     const onclick = el.getAttribute('onclick') || '';
-    // Esconde só os links de navegação de página que não sejam Comandas.
-    // Mantém visível "Sair" e qualquer outro botão que não chame mostrarPagina().
-    if (onclick.includes('mostrarPagina') && !onclick.includes("'comandas'")) {
+    // Esconde os links de navegação de página que não sejam Comandas, e a configuração
+    // do aparelho (pra quem está no balcão não conseguir reconfigurar o tablet sozinho).
+    // Mantém visível "Sair" e qualquer outro botão que não se encaixe nesses casos.
+    if ((onclick.includes('mostrarPagina') && !onclick.includes("'comandas'")) || onclick.includes('abrirModalConfigAparelho')) {
       el.style.display = 'none';
     }
   });
   document.getElementById('nav-admin')?.classList.add('hidden');
+  // Esconde o botão de relatório de vendas na tela de Comandas (só o PC do caixa deve ver isso)
+  document.querySelectorAll('[onclick="abrirRelatorioVendas()"]').forEach(el => el.style.display = 'none');
   // Evita duplicar o aviso se essa função rodar mais de uma vez na mesma sessão (ex: login de novo sem recarregar a página).
   document.querySelectorAll('.cmd-aviso-modo-balcao').forEach(el => el.remove());
   const aviso = document.createElement('div');
