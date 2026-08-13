@@ -3448,7 +3448,29 @@ async function sincronizarSaurus(e) {
     const balcaoInfo = (d.balcaoCriados || d.balcaoAtualizados)
       ? ` · Balcão: ${d.balcaoCriados || 0} novos, ${d.balcaoAtualizados || 0} atualizados.`
       : '';
-    el.textContent = `✅ Sync concluído${lojaInfo}! Mercado: ${d.atualizados} atualizados, ${d.criados} novos.${balcaoInfo} ${d.ignorados} ignorados.`;
+    const resumo = `✅ Sync concluído${lojaInfo}! Mercado: ${d.atualizados} atualizados, ${d.criados} novos.${balcaoInfo} ${d.ignorados} ignorados.`;
+
+    const vendidos = d.vendidos || [];
+    let vendidosHtml = '';
+    if (vendidos.length) {
+      vendidosHtml = `
+        <div class="sync-vendidos">
+          <div class="sync-vendidos-titulo">🧾 O que passou pelo caixa desde a última atualização</div>
+          <div class="sync-vendidos-total">${fmtMoeda(d.totalVendidoEstimado)} <span>estimado em vendas</span></div>
+          <div class="sync-vendidos-lista">
+            ${vendidos.slice(0, 30).map(v => `
+              <div class="sync-vendido-item">
+                <span class="sync-vendido-nome">${v.nome}</span>
+                <span class="sync-vendido-qtd">${fmtQtd(v.quantidade)} ${v.unidade}</span>
+                <span class="sync-vendido-valor">${fmtMoeda(v.valorEstimado)}</span>
+              </div>
+            `).join('')}
+            ${vendidos.length > 30 ? `<div class="sync-vendido-mais">+ ${vendidos.length - 30} outros produtos</div>` : ''}
+          </div>
+        </div>`;
+    }
+
+    el.innerHTML = `<div>${resumo}</div>${vendidosHtml}`;
   } else {
     el.className = 'result-err';
     el.textContent = `❌ Erro: ${d.erro}`;

@@ -2830,3 +2830,27 @@ tr.tr-saida td { color: var(--red-600); }
 .rel-vendas-kpi strong { font-size: 18px; font-weight: 800; color: var(--orange); }
 .rel-vendas-kpi span { font-size: 11.5px; color: var(--slate-500); }
 [data-theme="dark"] .rel-vendas-kpi span { color: #94a3b8; }
+
+/* Importar Dados: "o que passou pelo caixa" (estoque que baixou desde a última importação) */
+.sync-vendidos {
+  margin-top: 14px;
+  background: var(--slate-50);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+[data-theme="dark"] .sync-vendidos { background: rgba(255,255,255,0.04); }
+.sync-vendidos-titulo { font-size: 13px; font-weight: 700; color: var(--slate-700); margin-bottom: 4px; }
+[data-theme="dark"] .sync-vendidos-titulo { color: #e2e8f0; }
+.sync-vendidos-total { font-size: 22px; font-weight: 800; color: var(--orange); margin-bottom: 10px; }
+.sync-vendidos-total span { font-size: 12px; font-weight: 600; color: var(--slate-500); margin-left: 4px; }
+.sync-vendidos-lista { display: flex; flex-direction: column; gap: 4px; max-height: 280px; overflow-y: auto; }
+.sync-vendido-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px; border-radius: 8px; background: var(--white); font-size: 12.5px;
+}
+[data-theme="dark"] .sync-vendido-item { background: rgba(255,255,255,0.03); }
+.sync-vendido-nome { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--slate-700); font-weight: 600; }
+[data-theme="dark"] .sync-vendido-nome { color: #e2e8f0; }
+.sync-vendido-qtd { color: var(--slate-500); white-space: nowrap; }
+.sync-vendido-valor { font-weight: 700; color: var(--orange); white-space: nowrap; min-width: 68px; text-align: right; }
+.sync-vendido-mais { text-align: center; font-size: 11.5px; color: var(--slate-400); padding: 4px; }

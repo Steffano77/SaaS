@@ -26,6 +26,7 @@ exports.importarSaurus = async (req, res) => {
     const colMed   = headers['pro_descMedida'];
 
     let atualizados = 0, criados = 0, ignorados = 0, balcaoAtualizados = 0, balcaoCriados = 0;
+    const vendidos = []; // produtos cujo estoque diminuiu desde a última importação (o que passou pelo caixa)
 
     // Coluna de loja (Saurus exporta com codLoja ou cod_loja)
     const colLoja = headers['codLoja'] || headers['cod_loja'] || headers['loja'] || headers['pro_codLoja'] || null;
@@ -94,6 +95,10 @@ exports.importarSaurus = async (req, res) => {
                `Sync Saurus — ${new Date().toLocaleString('pt-BR')}`]
             );
           }
+          // Estoque caiu desde a última importação = passou pelo caixa (venda no Saurus)
+          if (diff > 0) {
+            vendidos.push({ nome, quantidade: diff, unidade: med, valorEstimado: diff * venda });
+          }
           atualizados++;
         } else {
           const [r] = await db.query(
@@ -140,7 +145,13 @@ exports.importarSaurus = async (req, res) => {
       }
     }
 
-    res.json({ ok: true, atualizados, criados, ignorados, balcaoAtualizados, balcaoCriados });
+    vendidos.sort((a, b) => b.valorEstimado - a.valorEstimado);
+    const totalVendidoEstimado = vendidos.reduce((s, v) => s + v.valorEstimado, 0);
+
+    res.json({
+      ok: true, atualizados, criados, ignorados, balcaoAtualizados, balcaoCriados,
+      vendidos, totalVendidoEstimado,
+    });
   } finally {
     fs.unlink(filePath, () => {});
   }
