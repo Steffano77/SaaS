@@ -14,7 +14,7 @@ module.exports = async (req, res, next) => {
   }
 
   try {
-    const payload = jwt.verify(token, secret);
+    const payload = jwt.verify(token, secret, { algorithms: ['HS256'] });
     if (payload.tipo === 'reset') return res.status(401).json({ erro: 'Token inválido.' });
 
     // Admin nunca é bloqueado

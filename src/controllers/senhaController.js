@@ -87,7 +87,7 @@ exports.redefinirSenha = async (req, res) => {
 
     let payload;
     try {
-      payload = jwt.verify(token, getSecret());
+      payload = jwt.verify(token, getSecret(), { algorithms: ['HS256'] });
     } catch {
       return res.status(400).json({ erro: 'Link inválido ou expirado.' });
     }

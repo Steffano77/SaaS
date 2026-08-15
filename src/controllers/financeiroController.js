@@ -302,7 +302,7 @@ exports.confirmarResetPin = async (req, res) => {
   const secret = process.env.JWT_SECRET;
   let payload;
   try {
-    payload = jwt.verify(token, secret);
+    payload = jwt.verify(token, secret, { algorithms: ['HS256'] });
   } catch {
     return res.status(400).json({ erro: 'Link inválido ou expirado.' });
   }
