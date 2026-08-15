@@ -90,6 +90,18 @@ app.use('/api/auth/esqueci-senha', rateLimit({
   message: { erro: 'Muitas solicitações de recuperação. Aguarde 1 hora.' }
 }));
 
+// Rate limiting em conferência de PIN (4 dígitos = só 10.000 combinações) — Financeiro, Caixa e Atendente
+const limitePin = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { erro: 'Muitas tentativas de PIN. Aguarde 15 minutos.' }
+});
+app.use('/api/financeiro/pin', limitePin);
+app.use('/api/caixa/abrir', limitePin);
+app.use(/^\/api\/atendentes\/\d+\/verificar-pin$/, limitePin);
+
 app.use(express.json({ limit: '512kb' }));
 app.use(express.static(path.join(__dirname, '../public')));
 
