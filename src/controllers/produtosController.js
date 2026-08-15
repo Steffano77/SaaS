@@ -61,12 +61,29 @@ exports.buscar = async (req, res) => {
 
 const LIMITES_PLANO = { essencial: 50, pro: Infinity, premium: Infinity };
 
+// Campos numéricos do produto que não podem ser negativos nem inválidos.
+// Validação no navegador pode ser pulada por quem chama a API direto — precisa checar aqui também.
+const CAMPOS_NUMERICOS_NAO_NEGATIVOS = ['custo_unitario', 'preco_venda', 'estoque_atual', 'estoque_minimo', 'embalagem_preco', 'embalagem_qtd'];
+
+function validarNumerosProduto(body) {
+  for (const campo of CAMPOS_NUMERICOS_NAO_NEGATIVOS) {
+    const valor = body[campo];
+    if (valor === undefined || valor === null || valor === '') continue;
+    const n = Number(valor);
+    if (!Number.isFinite(n)) return `Campo "${campo}" precisa ser um número válido.`;
+    if (n < 0) return `Campo "${campo}" não pode ser negativo.`;
+  }
+  return null;
+}
+
 exports.criar = async (req, res) => {
   try {
     const { codigo_barras, nome, unidade, categoria_id, fornecedor_id, custo_unitario,
             preco_venda, estoque_atual, estoque_minimo, validade,
             embalagem_preco, embalagem_qtd } = req.body;
     if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório.' });
+    const erroNumero = validarNumerosProduto(req.body);
+    if (erroNumero) return res.status(400).json({ erro: erroNumero });
 
     // Verifica limite do plano
     const [[padaria]] = await db.query('SELECT plano FROM padarias WHERE id = ?', [req.padaria.id]);
@@ -96,6 +113,9 @@ exports.criar = async (req, res) => {
 
 exports.atualizar = async (req, res) => {
   try {
+    const erroNumero = validarNumerosProduto(req.body);
+    if (erroNumero) return res.status(400).json({ erro: erroNumero });
+
     const campos = ['codigo_barras','nome','unidade','categoria_id','fornecedor_id',
                     'custo_unitario','preco_venda','estoque_atual','estoque_minimo','validade','ultima_compra',
                     'embalagem_preco','embalagem_qtd','venda_rapida','controla_estoque'];

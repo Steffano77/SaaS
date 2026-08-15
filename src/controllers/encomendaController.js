@@ -49,6 +49,12 @@ exports.criar = async (req, res) => {
   if (!cliente_nome || !cliente_nome.trim()) return res.status(400).json({ erro: 'Nome do cliente é obrigatório.' });
   if (!descricao || !descricao.trim()) return res.status(400).json({ erro: 'Descreva o que foi encomendado.' });
   if (!data_entrega) return res.status(400).json({ erro: 'Data de entrega é obrigatória.' });
+  if (valor !== undefined && valor !== null && valor !== '' && (isNaN(valor) || parseFloat(valor) < 0)) {
+    return res.status(400).json({ erro: 'Valor combinado inválido.' });
+  }
+  if (sinal_pago !== undefined && sinal_pago !== null && sinal_pago !== '' && (isNaN(sinal_pago) || parseFloat(sinal_pago) < 0)) {
+    return res.status(400).json({ erro: 'Sinal pago inválido.' });
+  }
 
   const [r] = await db.query(
     `INSERT INTO encomendas (padaria_id, cliente_nome, cliente_telefone, descricao, data_entrega, hora_entrega, valor, sinal_pago, observacao)
@@ -61,6 +67,12 @@ exports.criar = async (req, res) => {
 
 exports.atualizar = async (req, res) => {
   const padaria_id = req.padaria.id;
+  for (const c of ['valor', 'sinal_pago']) {
+    const v = req.body[c];
+    if (v !== undefined && v !== null && v !== '' && (isNaN(v) || parseFloat(v) < 0)) {
+      return res.status(400).json({ erro: `Campo "${c}" inválido.` });
+    }
+  }
   const campos = ['cliente_nome', 'cliente_telefone', 'descricao', 'data_entrega', 'hora_entrega', 'valor', 'sinal_pago', 'observacao'];
   const sets = []; const vals = [];
   for (const c of campos) {

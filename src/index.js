@@ -32,6 +32,14 @@ app.use(helmet({
   },
 }));
 
+// Permissões de navegador: só câmera (scanner de código de barras / foto da maquininha),
+// nada mais — bloqueia geolocalização, microfone, pagamento, USB, etc.
+app.use((req, res, next) => {
+  res.setHeader('Permissions-Policy',
+    'camera=(self), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), interest-cohort=()');
+  next();
+});
+
 // CORS restrito ao domínio de produção
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://panificapro-erp.onrender.com')
   .split(',').map(o => o.trim());
