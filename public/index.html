@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260813a"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260818a"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -639,7 +639,7 @@
         <div class="cmd-add-item">
           <div class="fi-busca-wrap" style="position:relative;flex:1;">
             <input type="text" id="cmd-item-busca" class="form-control" placeholder="Buscar produto ou digitar item avulso..." autocomplete="off"
-              oninput="filtrarProdutoComanda(this)" onfocus="filtrarProdutoComanda(this)"/>
+              oninput="filtrarProdutoComanda(this)" onfocus="filtrarProdutoComanda(this)" onkeydown="onKeydownBuscaComanda(event, this)"/>
             <input type="hidden" id="cmd-item-produto-id"/>
             <div class="autocomplete-lista cmd-item-lista hidden"></div>
           </div>
@@ -1503,6 +1503,10 @@
             <input type="text" id="prod-cod" placeholder="EAN-13" class="form-control"/>
           </div>
           <div class="form-group">
+            <label>Código da balança <span style="color:var(--slate-400);font-weight:400;">(opcional, pra produtos pesados)</span></label>
+            <input type="text" id="prod-cod-balanca" placeholder="Ex: 052000" maxlength="10" class="form-control"/>
+          </div>
+          <div class="form-group">
             <label>Unidade</label>
             <select id="prod-unidade" class="form-control" onchange="atualizarLabelEmbalagem()">
               <option>UNIDADE</option><option>KG</option><option>LITRO</option>
@@ -1642,7 +1646,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260813c"></script>
+<script src="/js/app.js?v=20260818a"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

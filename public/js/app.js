@@ -3086,6 +3086,7 @@ async function editarProduto(id) {
   document.getElementById('prod-id').value      = p.id;
   document.getElementById('prod-nome').value    = p.nome;
   document.getElementById('prod-cod').value     = p.codigo_barras || '';
+  document.getElementById('prod-cod-balanca').value = p.codigo_balanca || '';
   document.getElementById('prod-unidade').value = p.unidade;
   document.getElementById('prod-minimo').value  = Math.round(p.estoque_minimo || 0);
   document.getElementById('prod-custo').value   = parseFloat(p.custo_unitario || 0).toFixed(4);
@@ -3193,6 +3194,7 @@ async function salvarProduto(e) {
   const body = {
     nome:          document.getElementById('prod-nome').value,
     codigo_barras: document.getElementById('prod-cod').value || null,
+    codigo_balanca: document.getElementById('prod-cod-balanca').value.trim() || null,
     unidade:       document.getElementById('prod-unidade').value,
     categoria_id:  document.getElementById('prod-categoria').value || null,
     fornecedor_id: document.getElementById('prod-fornecedor').value || null,
@@ -4739,6 +4741,54 @@ function fecharModalComanda() {
   document.getElementById('modal-comanda').classList.add('hidden');
   comandaAtualId = null;
 }
+
+// ── Código de balança (peso variável) ────────────────────
+// Formato usado pela maioria das balanças de padaria/açougue (Toledo, Filizola, Urano):
+// EAN-13 começando com "2", seguido de 6 dígitos de código interno do produto,
+// 5 dígitos de preço em centavos, e 1 dígito verificador. Ex: 2 052000 01400 4 = R$14,00.
+function decodificarCodigoBalanca(codigo) {
+  const c = String(codigo || '').trim();
+  if (!/^2\d{12}$/.test(c)) return null;
+  const codigoProduto = c.slice(1, 7);
+  const precoCentavos = parseInt(c.slice(7, 12), 10);
+  if (isNaN(precoCentavos)) return null;
+  return { codigoProduto, preco: precoCentavos / 100 };
+}
+
+// Enter no campo de busca da comanda: se for um código de balança, resolve e lança direto.
+async function onKeydownBuscaComanda(e, input) {
+  if (e.key !== 'Enter') return;
+  const info = decodificarCodigoBalanca(input.value.trim());
+  if (!info) return; // texto normal, deixa o autocomplete/usuário decidir
+  e.preventDefault();
+
+  const produto = produtosCache.find(p => p.codigo_balanca && p.codigo_balanca.trim() === info.codigoProduto);
+  input.parentElement.querySelector('.cmd-item-lista')?.classList.add('hidden');
+
+  if (produto) {
+    document.getElementById('cmd-item-busca').value = produto.nome;
+    document.getElementById('cmd-item-produto-id').value = produto.id;
+    document.getElementById('cmd-item-qtd').value = '1';
+    document.getElementById('cmd-item-preco').value = info.preco.toFixed(2);
+    await adicionarItemComandaUI();
+    return;
+  }
+
+  // Código da balança ainda não vinculado a nenhum produto cadastrado
+  const vincular = confirm(
+    `Etiqueta com código de balança "${info.codigoProduto}" (R$ ${info.preco.toFixed(2)}) não está vinculada a nenhum produto.\n\n` +
+    `Deseja abrir o cadastro de produtos pra vincular esse código agora?`
+  );
+  input.value = '';
+  if (vincular) {
+    _codigoBalancaPendente = info.codigoProduto;
+    fecharModalComanda();
+    mostrarPagina('estoque');
+    abrirModalProduto();
+    setTimeout(() => { document.getElementById('prod-cod-balanca').value = info.codigoProduto; }, 50);
+  }
+}
+let _codigoBalancaPendente = null;
 
 function filtrarProdutoComanda(input) {
   const termo = input.value.trim().toLowerCase();

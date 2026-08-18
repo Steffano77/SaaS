@@ -249,6 +249,10 @@ app.use(express.static(path.join(__dirname, '../public')));
         atualizado_em  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         INDEX idx_encomendas_padaria (padaria_id, status, data_entrega)
       )`,
+      // Código interno da balança (peso variável) — vincula o produto do estoque ao código
+      // gravado na etiqueta impressa pela balança (Toledo/Filizola/Urano), pra leitura automática no Comandas.
+      'ALTER TABLE produtos ADD COLUMN codigo_balanca VARCHAR(10) NULL',
+      'ALTER TABLE produtos ADD INDEX idx_produtos_codigo_balanca (padaria_id, codigo_balanca)',
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
 
