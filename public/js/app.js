@@ -4793,7 +4793,9 @@ function abrirModalVinculoBalanca(codigo, preco, callback) {
   document.getElementById('vinc-balanca-codigo').textContent = codigo;
   document.getElementById('vinc-balanca-preco').textContent = fmtMoeda(preco);
   document.getElementById('vinc-busca-produto').value = '';
-  document.getElementById('vinc-lista').innerHTML = '';
+  const lista = document.getElementById('vinc-lista');
+  lista.innerHTML = '';
+  lista.classList.add('hidden');
   document.getElementById('modal-vinculo-balanca').classList.remove('hidden');
   setTimeout(() => document.getElementById('vinc-busca-produto').focus(), 100);
 }
@@ -4801,13 +4803,19 @@ function abrirModalVinculoBalanca(codigo, preco, callback) {
 function filtrarVinculoBalanca(input) {
   const termo = input.value.trim().toLowerCase();
   const lista = document.getElementById('vinc-lista');
-  if (!termo) { lista.innerHTML = ''; return; }
+  if (!termo) { lista.classList.add('hidden'); lista.innerHTML = ''; return; }
   const filtrados = produtosCache.filter(p => p.nome.toLowerCase().includes(termo)).slice(0, 8);
+  if (!filtrados.length) {
+    lista.innerHTML = `<div class="autocomplete-item" style="color:var(--slate-400);cursor:default;">Nenhum produto encontrado.</div>`;
+    lista.classList.remove('hidden');
+    return;
+  }
   lista.innerHTML = filtrados.map(p => `
-    <div class="autocomplete-item" style="cursor:pointer;padding:8px 10px;" onclick="vincularProdutoBalanca(${p.id})">
-      ${p.nome} <span style="color:var(--slate-400);font-size:12px;">${p.codigo_balanca ? '· já tem cód ' + p.codigo_balanca : ''}</span>
+    <div class="autocomplete-item" onclick="vincularProdutoBalanca(${p.id})">
+      ${p.nome}${p.codigo_balanca ? ` <span style="color:var(--slate-400);font-size:12px;">· já tem cód ${p.codigo_balanca}</span>` : ''}
     </div>
   `).join('');
+  lista.classList.remove('hidden');
 }
 
 async function vincularProdutoBalanca(produtoId) {

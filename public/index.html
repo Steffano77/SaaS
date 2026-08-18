@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260818c"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260818d"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -623,19 +623,22 @@
     <!-- Modal: vincular código de balança a um produto -->
     <div id="modal-vinculo-balanca" class="modal-overlay hidden">
       <div class="modal-box" style="max-width:420px;">
-        <h3 style="margin-top:0;">⚖️ Vincular código da balança</h3>
-        <p style="color:var(--slate-500);font-size:14px;margin-top:-8px;">
-          Código <strong id="vinc-balanca-codigo"></strong> · <span id="vinc-balanca-preco"></span><br/>
-          Escolha a qual produto cadastrado ele corresponde.
-        </p>
-        <div class="fi-busca-wrap" style="position:relative;">
-          <input type="text" id="vinc-busca-produto" class="form-control" placeholder="Digite o nome do produto..."
-            autocomplete="off" oninput="filtrarVinculoBalanca(this)"/>
-          <div id="vinc-lista" class="autocomplete-lista" style="max-height:220px;overflow-y:auto;"></div>
+        <div class="modal-header">
+          <span class="modal-title">⚖️ Vincular código da balança</span>
+          <button onclick="fecharModal('modal-vinculo-balanca')" class="btn-icon">✕</button>
         </div>
-        <div style="display:flex;gap:8px;margin-top:16px;">
-          <button class="btn-ghost" onclick="fecharModal('modal-vinculo-balanca')" style="flex:1;">Cancelar</button>
-          <button class="btn-primary" onclick="criarProdutoParaVinculoBalanca()" style="flex:1;">+ Criar produto novo</button>
+        <div style="padding:20px;">
+          <p style="color:var(--slate-500);font-size:14px;margin:0 0 16px;">
+            Código <strong id="vinc-balanca-codigo" style="color:var(--slate-800);"></strong> · <strong id="vinc-balanca-preco" style="color:var(--orange);"></strong><br/>
+            Escolha a qual produto cadastrado ele corresponde.
+          </p>
+          <div class="form-group" style="position:relative;margin-bottom:0;">
+            <label class="form-label">Produto</label>
+            <input type="text" id="vinc-busca-produto" class="form-control" placeholder="Digite o nome do produto..."
+              autocomplete="off" oninput="filtrarVinculoBalanca(this)"/>
+            <div id="vinc-lista" class="autocomplete-lista hidden"></div>
+          </div>
+          <button class="btn-ghost full" onclick="criarProdutoParaVinculoBalanca()" style="margin-top:16px;">+ Criar produto novo com esse código</button>
         </div>
       </div>
     </div>
@@ -1666,7 +1669,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260818c"></script>
+<script src="/js/app.js?v=20260818d"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
