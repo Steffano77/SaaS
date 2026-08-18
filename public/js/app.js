@@ -4761,10 +4761,9 @@ async function onKeydownBuscaComanda(e, input) {
   const info = decodificarCodigoBalanca(input.value.trim());
   if (!info) return; // texto normal, deixa o autocomplete/usuário decidir
   e.preventDefault();
-
-  const produto = produtosCache.find(p => p.codigo_balanca && p.codigo_balanca.trim() === info.codigoProduto);
   input.parentElement.querySelector('.cmd-item-lista')?.classList.add('hidden');
 
+  const produto = produtosCache.find(p => p.codigo_balanca && p.codigo_balanca.trim() === info.codigoProduto);
   if (produto) {
     document.getElementById('cmd-item-busca').value = produto.nome;
     document.getElementById('cmd-item-produto-id').value = produto.id;
@@ -4774,21 +4773,60 @@ async function onKeydownBuscaComanda(e, input) {
     return;
   }
 
-  // Código da balança ainda não vinculado a nenhum produto cadastrado
-  const vincular = confirm(
-    `Etiqueta com código de balança "${info.codigoProduto}" (R$ ${info.preco.toFixed(2)}) não está vinculada a nenhum produto.\n\n` +
-    `Deseja abrir o cadastro de produtos pra vincular esse código agora?`
-  );
   input.value = '';
-  if (vincular) {
-    _codigoBalancaPendente = info.codigoProduto;
-    fecharModalComanda();
-    mostrarPagina('estoque');
-    abrirModalProduto();
-    setTimeout(() => { document.getElementById('prod-cod-balanca').value = info.codigoProduto; }, 50);
-  }
+  abrirModalVinculoBalanca(info.codigoProduto, info.preco, async (produtoVinculado) => {
+    document.getElementById('cmd-item-busca').value = produtoVinculado.nome;
+    document.getElementById('cmd-item-produto-id').value = produtoVinculado.id;
+    document.getElementById('cmd-item-qtd').value = '1';
+    document.getElementById('cmd-item-preco').value = info.preco.toFixed(2);
+    await adicionarItemComandaUI();
+  });
 }
-let _codigoBalancaPendente = null;
+
+// ── Vinculação rápida de código de balança a um produto ──
+let _vincCodigoBalanca = null;
+let _vincCallback = null;
+
+function abrirModalVinculoBalanca(codigo, preco, callback) {
+  _vincCodigoBalanca = codigo;
+  _vincCallback = callback;
+  document.getElementById('vinc-balanca-codigo').textContent = codigo;
+  document.getElementById('vinc-balanca-preco').textContent = fmtMoeda(preco);
+  document.getElementById('vinc-busca-produto').value = '';
+  document.getElementById('vinc-lista').innerHTML = '';
+  document.getElementById('modal-vinculo-balanca').classList.remove('hidden');
+  setTimeout(() => document.getElementById('vinc-busca-produto').focus(), 100);
+}
+
+function filtrarVinculoBalanca(input) {
+  const termo = input.value.trim().toLowerCase();
+  const lista = document.getElementById('vinc-lista');
+  if (!termo) { lista.innerHTML = ''; return; }
+  const filtrados = produtosCache.filter(p => p.nome.toLowerCase().includes(termo)).slice(0, 8);
+  lista.innerHTML = filtrados.map(p => `
+    <div class="autocomplete-item" style="cursor:pointer;padding:8px 10px;" onclick="vincularProdutoBalanca(${p.id})">
+      ${p.nome} <span style="color:var(--slate-400);font-size:12px;">${p.codigo_balanca ? '· já tem cód ' + p.codigo_balanca : ''}</span>
+    </div>
+  `).join('');
+}
+
+async function vincularProdutoBalanca(produtoId) {
+  const r = await api(`/produtos/${produtoId}`, { method: 'PUT', body: { codigo_balanca: _vincCodigoBalanca } });
+  if (!r) return;
+  const produto = produtosCache.find(p => p.id === produtoId);
+  if (produto) produto.codigo_balanca = _vincCodigoBalanca;
+  fecharModal('modal-vinculo-balanca');
+  mostrarToast(`Código ${_vincCodigoBalanca} vinculado a "${produto?.nome}"!`, 'ok');
+  if (_vincCallback && produto) await _vincCallback(produto);
+}
+
+function criarProdutoParaVinculoBalanca() {
+  const codigo = _vincCodigoBalanca;
+  fecharModal('modal-vinculo-balanca');
+  mostrarPagina('estoque');
+  abrirModalProduto();
+  setTimeout(() => { document.getElementById('prod-cod-balanca').value = codigo; }, 50);
+}
 
 function filtrarProdutoComanda(input) {
   const termo = input.value.trim().toLowerCase();
@@ -5117,34 +5155,25 @@ async function onKeydownBuscaRapidaComanda(e) {
   if (!info) { buscarComandaPorNumero(); return; }
   e.preventDefault();
 
-  const produto = produtosCache.find(p => p.codigo_balanca && p.codigo_balanca.trim() === info.codigoProduto);
   input.value = '';
+  const produto = produtosCache.find(p => p.codigo_balanca && p.codigo_balanca.trim() === info.codigoProduto);
 
-  if (!produto) {
-    const vincular = confirm(
-      `Etiqueta com código de balança "${info.codigoProduto}" (R$ ${info.preco.toFixed(2)}) não está vinculada a nenhum produto.\n\n` +
-      `Deseja abrir o cadastro de produtos pra vincular esse código agora?`
-    );
-    if (vincular) {
-      _codigoBalancaPendente = info.codigoProduto;
-      mostrarPagina('estoque');
-      abrirModalProduto();
-      setTimeout(() => { document.getElementById('prod-cod-balanca').value = info.codigoProduto; }, 50);
-    }
-    return;
-  }
+  const lancar = async (produtoFinal) => {
+    const identificador = 'Balcão ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const nova = await api('/comandas', { method: 'POST', body: { identificador } });
+    if (!nova) return;
+    const add = await api(`/comandas/${nova.id}/itens`, {
+      method: 'POST',
+      body: { produto_id: produtoFinal.id, nome_produto: produtoFinal.nome, quantidade: 1, preco_unitario: info.preco }
+    });
+    if (!add) return;
+    await carregarComandas();
+    abrirModalComanda(nova.id);
+    mostrarToast(`${produtoFinal.nome} — ${fmtMoeda(info.preco)}`, 'ok');
+  };
 
-  const identificador = 'Balcão ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  const nova = await api('/comandas', { method: 'POST', body: { identificador } });
-  if (!nova) return;
-  const add = await api(`/comandas/${nova.id}/itens`, {
-    method: 'POST',
-    body: { produto_id: produto.id, nome_produto: produto.nome, quantidade: 1, preco_unitario: info.preco }
-  });
-  if (!add) return;
-  await carregarComandas();
-  abrirModalComanda(nova.id);
-  mostrarToast(`${produto.nome} — ${fmtMoeda(info.preco)}`, 'ok');
+  if (produto) { await lancar(produto); return; }
+  abrirModalVinculoBalanca(info.codigoProduto, info.preco, lancar);
 }
 
 async function buscarComandaPorNumero() {
