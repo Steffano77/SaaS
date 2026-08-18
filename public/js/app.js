@@ -5107,6 +5107,46 @@ document.addEventListener('mousedown', e => {
   }
 });
 
+// Enter na busca rápida da tela de Comandas: se for etiqueta de balança, abre uma comanda
+// nova de balcão na hora e já lança o item — pro cliente que vem direto do setor de pães,
+// sem passar por atendimento de mesa/comanda prévia.
+async function onKeydownBuscaRapidaComanda(e) {
+  if (e.key !== 'Enter') return;
+  const input = document.getElementById('cmd-busca-numero');
+  const info = decodificarCodigoBalanca(input.value.trim());
+  if (!info) { buscarComandaPorNumero(); return; }
+  e.preventDefault();
+
+  const produto = produtosCache.find(p => p.codigo_balanca && p.codigo_balanca.trim() === info.codigoProduto);
+  input.value = '';
+
+  if (!produto) {
+    const vincular = confirm(
+      `Etiqueta com código de balança "${info.codigoProduto}" (R$ ${info.preco.toFixed(2)}) não está vinculada a nenhum produto.\n\n` +
+      `Deseja abrir o cadastro de produtos pra vincular esse código agora?`
+    );
+    if (vincular) {
+      _codigoBalancaPendente = info.codigoProduto;
+      mostrarPagina('estoque');
+      abrirModalProduto();
+      setTimeout(() => { document.getElementById('prod-cod-balanca').value = info.codigoProduto; }, 50);
+    }
+    return;
+  }
+
+  const identificador = 'Balcão ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const nova = await api('/comandas', { method: 'POST', body: { identificador } });
+  if (!nova) return;
+  const add = await api(`/comandas/${nova.id}/itens`, {
+    method: 'POST',
+    body: { produto_id: produto.id, nome_produto: produto.nome, quantidade: 1, preco_unitario: info.preco }
+  });
+  if (!add) return;
+  await carregarComandas();
+  abrirModalComanda(nova.id);
+  mostrarToast(`${produto.nome} — ${fmtMoeda(info.preco)}`, 'ok');
+}
+
 async function buscarComandaPorNumero() {
   const termo = document.getElementById('cmd-busca-numero').value.trim();
   if (!termo) return;
