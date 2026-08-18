@@ -4919,6 +4919,17 @@ function adicionarPagamentoUI(forma) {
   }
   const restante = calcularRestante();
   if (restante <= 0) { mostrarToast('Essa comanda já está totalmente paga.', 'warn'); return; }
+
+  // Primeiro toque numa forma de pagamento: assume que é o valor total (caso mais comum,
+  // venda de balcão à vista numa forma só) e já cobra tudo, sem precisar digitar nada.
+  // Só pede o valor manualmente a partir do 2º toque, quando é de fato uma divisão de pagamento.
+  if (comandaPagamentosPendentes.length === 0) {
+    comandaPagamentosPendentes.push({ forma_pagamento: forma, valor: restante });
+    atualizarPagamentoUI();
+    if (calcularRestante() <= 0) finalizarVendaUI();
+    return;
+  }
+
   const valorStr = prompt(`Valor recebido em ${forma}:`, restante.toFixed(2).replace('.', ','));
   if (valorStr === null) return;
   const valor = parseFloat(valorStr.replace(',', '.'));
@@ -4926,6 +4937,7 @@ function adicionarPagamentoUI(forma) {
   if (valor > restante + 0.01) { mostrarToast(`O valor não pode passar do restante (${fmtMoeda(restante)}).`, 'warn'); return; }
   comandaPagamentosPendentes.push({ forma_pagamento: forma, valor });
   atualizarPagamentoUI();
+  if (calcularRestante() <= 0) finalizarVendaUI();
 }
 
 function removerPagamentoPendente(idx) {
