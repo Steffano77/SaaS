@@ -4993,6 +4993,7 @@ async function finalizarVendaUI() {
   const formaResumo = comandaPagamentosPendentes.map(p => p.forma_pagamento).join(' + ');
   const r = await api(`/comandas/${comandaAtualId}/fechar`, { method: 'POST', body: { pagamentos: comandaPagamentosPendentes, caixa_id: CAIXA_LOCAL_ID } });
   if (!r) return;
+  if (comandaAtualId === _balcaoComandaAtiva) _balcaoComandaAtiva = null;
   mostrarToast(`Comanda fechada — ${formaResumo}!`, 'ok');
   fecharModalComanda();
   await carregarComandas();
@@ -5167,22 +5168,31 @@ async function onKeydownBuscaRapidaComanda(e) {
   const produto = produtosCache.find(p => p.codigo_balanca && p.codigo_balanca.trim() === info.codigoProduto);
 
   const lancar = async (produtoFinal) => {
-    const identificador = 'Balcão ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    const nova = await api('/comandas', { method: 'POST', body: { identificador } });
-    if (!nova) return;
-    const add = await api(`/comandas/${nova.id}/itens`, {
+    // Se já tem uma venda de balcão em aberto (cliente bipando vários produtos seguidos),
+    // soma nela em vez de abrir uma comanda nova a cada item.
+    let comandaId = _balcaoComandaAtiva;
+    if (!comandaId) {
+      const identificador = 'Balcão ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      const nova = await api('/comandas', { method: 'POST', body: { identificador } });
+      if (!nova) return;
+      comandaId = nova.id;
+      _balcaoComandaAtiva = comandaId;
+    }
+    const add = await api(`/comandas/${comandaId}/itens`, {
       method: 'POST',
       body: { produto_id: produtoFinal.id, nome_produto: produtoFinal.nome, quantidade: 1, preco_unitario: info.preco }
     });
     if (!add) return;
     await carregarComandas();
-    abrirModalComanda(nova.id);
+    abrirModalComanda(comandaId);
     mostrarToast(`${produtoFinal.nome} — ${fmtMoeda(info.preco)}`, 'ok');
+    document.getElementById('cmd-busca-numero').focus();
   };
 
   if (produto) { await lancar(produto); return; }
   abrirModalVinculoBalanca(info.codigoProduto, info.preco, lancar);
 }
+let _balcaoComandaAtiva = null;
 
 async function buscarComandaPorNumero() {
   const termo = document.getElementById('cmd-busca-numero').value.trim();
@@ -5211,6 +5221,7 @@ async function cancelarComandaUI() {
   if (!confirm('Cancelar essa comanda? Nenhum valor será lançado.')) return;
   const r = await api(`/comandas/${comandaAtualId}/cancelar`, { method: 'POST' });
   if (!r) return;
+  if (comandaAtualId === _balcaoComandaAtiva) _balcaoComandaAtiva = null;
   mostrarToast('Comanda cancelada.', 'ok');
   fecharModalComanda();
   await carregarComandas();
