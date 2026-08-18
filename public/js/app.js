@@ -4755,6 +4755,51 @@ function decodificarCodigoBalanca(codigo) {
   return { codigoProduto, preco: precoCentavos / 100 };
 }
 
+// ── Leitor de código de barras "global" na tela de Comandas ──
+// O leitor físico digita rápido e manda Enter no final, como um teclado. Isso captura
+// esse bipe em qualquer lugar da tela (sem precisar clicar no campo de busca antes),
+// desde que o cursor não esteja dentro de outro campo de texto sendo usado pra digitar algo.
+let _scanBuffer = '';
+let _scanBufferTimer = null;
+
+document.addEventListener('keydown', (e) => {
+  const telaComandas = !document.getElementById('pg-comandas')?.classList.contains('hidden');
+  if (!telaComandas) return;
+
+  const ae = document.activeElement;
+  const emCampoTexto = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA');
+  // Campo de busca já tem seu próprio handler (onkeydown) — não duplica aqui.
+  if (emCampoTexto && (ae.id === 'cmd-busca-numero' || ae.id === 'cmd-item-busca')) return;
+  // Cursor em outro campo (ex: desconto, nome de cliente) — é digitação de verdade, não intercepta.
+  if (emCampoTexto) return;
+
+  if (e.key === 'Enter') {
+    const codigo = _scanBuffer;
+    _scanBuffer = '';
+    if (!codigo) return;
+    e.preventDefault();
+    processarScanGlobalComandas(codigo);
+    return;
+  }
+  if (/^[0-9]$/.test(e.key)) {
+    _scanBuffer += e.key;
+    clearTimeout(_scanBufferTimer);
+    _scanBufferTimer = setTimeout(() => { _scanBuffer = ''; }, 300);
+  }
+});
+
+async function processarScanGlobalComandas(codigo) {
+  const modalComandaAberto = !document.getElementById('modal-comanda')?.classList.contains('hidden');
+  if (modalComandaAberto) {
+    const input = document.getElementById('cmd-item-busca');
+    input.value = codigo;
+    await onKeydownBuscaComanda({ key: 'Enter', preventDefault(){} }, input);
+  } else {
+    document.getElementById('cmd-busca-numero').value = codigo;
+    await onKeydownBuscaRapidaComanda({ key: 'Enter', preventDefault(){} });
+  }
+}
+
 // Enter no campo de busca da comanda: se for um código de balança, resolve e lança direto.
 async function onKeydownBuscaComanda(e, input) {
   if (e.key !== 'Enter') return;
