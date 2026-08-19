@@ -290,7 +290,7 @@ function entrar() {
     return;
   }
 
-  if (MODO_BALCAO) {
+  if (MODO_BALCAO || MODO_LANCAMENTO) {
     aplicarModoBalcao();
     history.replaceState({ pg: 'comandas' }, '', '#comandas');
     mostrarPagina('comandas', false);
@@ -321,7 +321,7 @@ function aplicarModoBalcao() {
   const aviso = document.createElement('div');
   aviso.className = 'cmd-aviso-modo-balcao';
   aviso.style.cssText = 'padding:8px 14px;font-size:11px;color:var(--slate-400);text-align:center;cursor:pointer;';
-  aviso.textContent = '🔒 Modo Balcão';
+  aviso.textContent = MODO_LANCAMENTO ? '📋 Modo Lançamento' : '🔒 Modo Balcão';
   aviso.title = 'Toque pra reconfigurar este aparelho';
   aviso.onclick = abrirModalConfigAparelho;
   document.querySelector('.sidebar-nav')?.prepend(aviso);
@@ -409,8 +409,8 @@ const PAGINAS_PRO      = ['relatorios', 'fichas'];
 const PAGINAS_PREMIUM  = ['producao', 'financeiro', 'comandas', 'encomendas'];
 
 function mostrarPagina(pg, pushHistory = true) {
-  // Modo Balcão: só existe a tela de Comandas
-  if (MODO_BALCAO && pg !== 'comandas') pg = 'comandas';
+  // Modo Balcão/Lançamento: só existe a tela de Comandas
+  if ((MODO_BALCAO || MODO_LANCAMENTO) && pg !== 'comandas') pg = 'comandas';
   if (!paginas.includes(pg)) { mostrarPagina('404'); return; }
 
   // Bloqueio por plano (apenas para usuários não-admin)
