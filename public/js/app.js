@@ -4985,6 +4985,52 @@ function criarProdutoParaVinculoBalanca() {
   setTimeout(() => { document.getElementById('prod-cod-balanca').value = codigo; }, 50);
 }
 
+// ── Categorias/produtos em grade colorida (estilo Saurus) ──
+const CAT_COMANDA_CORES = ['#0f172a','#7c3aed','#0891b2','#dc2626','#16a34a','#ca8a04','#db2777','#4f46e5','#0d9488','#ea580c','#65a30d','#9333ea'];
+
+function abrirCategoriasComanda() {
+  const categorias = [...new Set(produtosCache.map(p => p.categoria || 'Sem categoria'))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const grid = document.getElementById('cat-comanda-grid');
+  grid.innerHTML = categorias.map((c, i) => `
+    <button class="cat-tile" style="background:${CAT_COMANDA_CORES[i % CAT_COMANDA_CORES.length]}" onclick="abrirProdutosDaCategoria('${c.replace(/'/g, "\\'")}')">
+      <span class="cat-tile-nome">${c}</span>
+    </button>
+  `).join('') || '<div class="cmd-vazio">Nenhum produto cadastrado ainda.</div>';
+  document.getElementById('cat-comanda-titulo').textContent = 'Categorias Disponíveis';
+  document.getElementById('cat-comanda-voltar').classList.add('hidden');
+  document.getElementById('modal-categorias-comanda').classList.remove('hidden');
+}
+
+function abrirProdutosDaCategoria(categoria) {
+  const produtos = produtosCache
+    .filter(p => (p.categoria || 'Sem categoria') === categoria)
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  const grid = document.getElementById('cat-comanda-grid');
+  grid.innerHTML = produtos.map((p, i) => `
+    <button class="cat-tile" style="background:${CAT_COMANDA_CORES[i % CAT_COMANDA_CORES.length]}" onclick="adicionarProdutoCategoriaUI(${p.id})">
+      <span class="cat-tile-nome">${p.nome}</span>
+      <span class="cat-tile-preco">${fmtMoeda(p.preco_venda || 0)}</span>
+    </button>
+  `).join('') || '<div class="cmd-vazio">Nenhum produto nessa categoria.</div>';
+  document.getElementById('cat-comanda-titulo').textContent = categoria;
+  document.getElementById('cat-comanda-voltar').classList.remove('hidden');
+}
+
+async function adicionarProdutoCategoriaUI(produtoId) {
+  const produto = produtosCache.find(p => p.id === produtoId);
+  if (!produto) return;
+  const comandaId = await garantirComandaBalcaoAtiva();
+  if (!comandaId) return;
+  const r = await api(`/comandas/${comandaId}/itens`, {
+    method: 'POST',
+    body: { produto_id: produto.id, nome_produto: produto.nome, quantidade: 1, preco_unitario: produto.preco_venda || 0 }
+  });
+  if (!r) return;
+  const c = await api(`/comandas/${comandaId}`);
+  if (c) renderItensComanda(c);
+  mostrarToast(`${produto.nome} adicionado!`, 'ok');
+}
+
 function filtrarProdutoComanda(input) {
   const termo = input.value.trim().toLowerCase();
   const lista = input.parentElement.querySelector('.cmd-item-lista');
