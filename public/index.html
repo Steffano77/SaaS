@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260819c"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260819d"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -571,8 +571,11 @@
       <h3 class="cmd-secao-titulo">Abertas</h3>
       <div id="cmd-lista-abertas" class="cmd-grid"></div>
 
-      <h3 class="cmd-secao-titulo" style="margin-top:24px;">Histórico recente</h3>
-      <div id="cmd-lista-recentes" class="cmd-grid"></div>
+      <button onclick="toggleHistoricoComandas()" id="btn-toggle-historico-cmd" class="btn-link" style="margin-top:24px;">📜 Ver histórico recente</button>
+      <div id="bloco-historico-cmd" class="hidden">
+        <h3 class="cmd-secao-titulo" style="margin-top:12px;">Histórico recente</h3>
+        <div id="cmd-lista-recentes" class="cmd-grid"></div>
+      </div>
     </section>
 
     <!-- Modal: nova comanda -->
@@ -1688,7 +1691,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260819j"></script>
+<script src="/js/app.js?v=20260819k"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

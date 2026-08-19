@@ -2736,6 +2736,13 @@ tr.tr-saida td { color: var(--red-600); }
 }
 .cmd-pdv-busca-numero-btn:hover { background: var(--orange-dark); }
 
+.btn-link {
+  background: none; border: none; cursor: pointer;
+  color: var(--slate-500); font-size: 13px; font-weight: 600;
+  padding: 6px 0; text-decoration: underline; text-underline-offset: 2px;
+}
+.btn-link:hover { color: var(--orange); }
+
 /* Modal de detalhe — cabeçalho navy estilo "Finalização da Venda" */
 .cmd-pdv-box { padding: 0; }
 .cmd-pdv-header {

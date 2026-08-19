@@ -4324,6 +4324,16 @@ function fmtDataHoraBR(valor) {
   return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '');
 }
 
+// Histórico de comandas fechadas fica escondido por padrão — não faz sentido pra
+// operação do dia a dia e só confunde o caixa (pode clicar sem querer numa venda já paga).
+function toggleHistoricoComandas() {
+  const bloco = document.getElementById('bloco-historico-cmd');
+  const btn = document.getElementById('btn-toggle-historico-cmd');
+  const abrindo = bloco.classList.contains('hidden');
+  bloco.classList.toggle('hidden', !abrindo);
+  btn.textContent = abrindo ? '📜 Esconder histórico recente' : '📜 Ver histórico recente';
+}
+
 async function carregarComandas() {
   // Modo Balcão pula o dashboard, então a lista de produtos nunca seria carregada — garante aqui.
   if (!produtosCache.length) {
