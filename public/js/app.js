@@ -640,6 +640,72 @@ function mostrarToast(msg, tipo) {
   toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 3500);
 }
 
+// ── Modo Resiliente: quedas curtas de internet na tela de venda ──
+// Não é modo offline completo — é pra internet "piscar" (Wi-Fi soluçando, alguns
+// minutos): continua deixando lançar item na comanda já aberta (guarda localmente
+// e sincroniza sozinho quando voltar), mas bloqueia cobrança até confirmar conexão.
+let MODO_OFFLINE = false;
+let _filaOfflineItens = []; // [{comandaId, produto_id, nome_produto, quantidade, preco_unitario}]
+
+function atualizarFaixaOffline(estado) {
+  const faixa = document.getElementById('cmd-pdv-faixa-offline');
+  if (!faixa) return;
+  const btnsPagamento = document.querySelectorAll('.cmd-pgto-btn, #cmd-btn-finalizar');
+  if (estado === 'offline') {
+    faixa.className = 'cmd-pdv-faixa-offline offline';
+    faixa.textContent = `🔴 Sem conexão — os itens continuam sendo lançados e ficam guardados aqui, sincroniza sozinho quando a internet voltar.${_filaOfflineItens.length ? ` (${_filaOfflineItens.length} pendente${_filaOfflineItens.length > 1 ? 's' : ''})` : ''}`;
+    btnsPagamento.forEach(b => b.disabled = true);
+  } else if (estado === 'reconectando') {
+    faixa.className = 'cmd-pdv-faixa-offline reconectando';
+    faixa.textContent = '🟠 Conexão voltou — sincronizando itens pendentes...';
+  } else if (estado === 'ok') {
+    faixa.className = 'cmd-pdv-faixa-offline ok';
+    faixa.textContent = '✅ Reconectado, tudo sincronizado!';
+    btnsPagamento.forEach(b => b.disabled = false);
+    setTimeout(() => faixa.classList.add('hidden'), 3000);
+  } else {
+    faixa.classList.add('hidden');
+  }
+}
+
+function entrarModoOffline() {
+  if (MODO_OFFLINE) { atualizarFaixaOffline('offline'); return; }
+  MODO_OFFLINE = true;
+  atualizarFaixaOffline('offline');
+}
+
+async function tentarReconectar() {
+  if (!MODO_OFFLINE) return;
+  atualizarFaixaOffline('reconectando');
+  // Confirma que dá pra falar com o servidor de verdade antes de sincronizar
+  // (o evento "online" do navegador só garante rede local, não que o servidor responde).
+  const teste = await fetch(`${API}/comandas`, { headers: { 'Authorization': `Bearer ${TOKEN}` } }).catch(() => null);
+  if (!teste || !teste.ok) { atualizarFaixaOffline('offline'); return; }
+
+  for (const item of [..._filaOfflineItens]) {
+    const r = await fetch(`${API}/comandas/${item.comandaId}/itens`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(item)
+    }).catch(() => null);
+    if (r && r.ok) _filaOfflineItens.shift();
+    else break; // ainda instável — para e tenta de novo depois
+  }
+
+  if (_filaOfflineItens.length) { atualizarFaixaOffline('offline'); return; }
+
+  MODO_OFFLINE = false;
+  atualizarFaixaOffline('ok');
+  // Recarrega a comanda atual do servidor pra refletir os itens sincronizados de verdade
+  if (comandaAtualId) {
+    const c = await api(`/comandas/${comandaAtualId}`);
+    if (c) renderItensComanda(c);
+  }
+}
+
+window.addEventListener('online', tentarReconectar);
+window.addEventListener('offline', entrarModoOffline);
+
 // ── API helpers ──────────────────────────────────────────────
 // B) 401 -> remove token + reload; C) network error -> toast
 async function api(path, opts = {}) {
@@ -671,9 +737,12 @@ async function api(path, opts = {}) {
       console.error(`[API] ${opts.method || 'GET'} ${path} →`, r.status, data);
       return null;
     }
+    if (MODO_OFFLINE) tentarReconectar(); // essa chamada deu certo — aproveita pra sincronizar a fila
     return data;
   } catch (err) {
-    mostrarToast('Sem conexão. Verifique sua internet.', 'err');
+    const jaEstavaOffline = MODO_OFFLINE;
+    entrarModoOffline();
+    if (!jaEstavaOffline) mostrarToast('Sem conexão. Verifique sua internet.', 'err');
     return null;
   }
 }
@@ -4821,15 +4890,15 @@ function renderItensComanda(c) {
   const ultimoIdx = c.itens.length - 1;
   el.innerHTML = c.itens.length
     ? c.itens.map((i, idx) => `
-      <div class="cmd-item-linha${idx === ultimoIdx ? ' cmd-item-atual' : ''}">
+      <div class="cmd-item-linha${idx === ultimoIdx ? ' cmd-item-atual' : ''}${i._pendente ? ' cmd-item-pendente' : ''}">
         <div class="cmd-item-nome">
-          <span class="cmd-item-numero">Item Nº: ${idx + 1}${i.produto_id ? ' · Cód: ' + i.produto_id : ''}</span>
+          <span class="cmd-item-numero">Item Nº: ${idx + 1}${i.produto_id ? ' · Cód: ' + i.produto_id : ''}${i._pendente ? ' · ⏳ sem conexão' : ''}</span>
           <strong>${i.nome_produto}</strong>
         </div>
         <div class="cmd-item-qtdpreco">${fmtQtd(i.quantidade)} ${i.unidade} × ${fmtMoeda(i.preco_unitario)}</div>
         <div class="cmd-item-direita">
           <span class="cmd-item-subtotal">${fmtMoeda(i.subtotal)}</span>
-          ${c.status === 'aberta' ? `<button class="btn-icon" onclick="removerItemComandaUI(${i.id})">✕</button>` : ''}
+          ${c.status === 'aberta' ? `<button class="btn-icon" onclick="removerItemComandaUI('${i.id}')">✕</button>` : ''}
         </div>
       </div>
     `).join('')
@@ -5074,6 +5143,29 @@ async function adicionarItemComandaUI() {
   if (!nome) { mostrarToast('Digite ou selecione um item.', 'warn'); return; }
   if (!quantidade || quantidade <= 0) { mostrarToast('Quantidade inválida.', 'warn'); return; }
 
+  // Modo Resiliente: sem conexão, mas a comanda já existe (não precisa criar nada
+  // no servidor) — lança localmente na hora e guarda pra sincronizar quando voltar.
+  if (MODO_OFFLINE && comandaAtualId) {
+    const produto = produto_id ? produtosCache.find(p => p.id == produto_id) : null;
+    const precoFinal = preco_unitario != null ? preco_unitario : (produto?.preco_venda || 0);
+    const localId = 'offline-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+    _filaOfflineItens.push({ _localId: localId, comandaId: comandaAtualId, produto_id, nome_produto: nome, quantidade, preco_unitario: precoFinal });
+    comandaAtualDados.itens.push({
+      id: localId,
+      produto_id, nome_produto: nome, unidade: produto?.unidade || 'un',
+      quantidade, preco_unitario: precoFinal, subtotal: quantidade * precoFinal, _pendente: true
+    });
+    comandaAtualDados.total = comandaAtualDados.itens.reduce((s, i) => s + parseFloat(i.subtotal), 0);
+    renderItensComanda(comandaAtualDados);
+    atualizarFaixaOffline('offline');
+    document.getElementById('cmd-item-busca').value = '';
+    document.getElementById('cmd-item-produto-id').value = '';
+    document.getElementById('cmd-item-qtd').value = '1';
+    document.getElementById('cmd-item-preco').value = '';
+    mostrarToast(`${nome} lançado sem conexão — sincroniza quando voltar.`, 'warn');
+    return;
+  }
+
   const comandaId = await garantirComandaBalcaoAtiva();
   if (!comandaId) return;
 
@@ -5094,6 +5186,14 @@ async function adicionarItemComandaUI() {
 
 async function removerItemComandaUI(itemId) {
   if (!comandaAtualId) return;
+  // Item lançado sem conexão (ainda não existe no servidor) — remove só localmente e da fila.
+  if (String(itemId).startsWith('offline-')) {
+    comandaAtualDados.itens = comandaAtualDados.itens.filter(i => i.id !== itemId);
+    _filaOfflineItens = _filaOfflineItens.filter(f => f._localId !== itemId);
+    comandaAtualDados.total = comandaAtualDados.itens.reduce((s, i) => s + parseFloat(i.subtotal), 0);
+    renderItensComanda(comandaAtualDados);
+    return;
+  }
   const r = await api(`/comandas/${comandaAtualId}/itens/${itemId}`, { method: 'DELETE' });
   if (!r) return;
   const c = await api(`/comandas/${comandaAtualId}`);
@@ -5121,6 +5221,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 function adicionarPagamentoUI(forma) {
+  if (MODO_OFFLINE) { mostrarToast('Sem conexão — aguarda a internet voltar pra cobrar.', 'warn'); return; }
   if (!comandaAtualDados || !comandaAtualDados.itens || !comandaAtualDados.itens.length) {
     mostrarToast('Adicione itens antes de lançar pagamento.', 'warn');
     return;
@@ -5203,6 +5304,7 @@ function refazerPagamentos() {
 
 async function finalizarVendaUI() {
   if (!comandaAtualId || !comandaPagamentosPendentes.length) return;
+  if (MODO_OFFLINE) { mostrarToast('Sem conexão — aguarda a internet voltar pra cobrar.', 'warn'); return; }
   if (!CAIXA_LOCAL_ID) {
     mostrarToast('Abra o caixa deste aparelho antes de cobrar.', 'warn');
     return;

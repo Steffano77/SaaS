@@ -2775,6 +2775,17 @@ tr.tr-saida td { color: var(--red-600); }
 .cat-tile-nome { font-size: 13px; line-height: 1.25; }
 .cat-tile-preco { font-size: 12px; font-weight: 800; opacity: 0.9; font-variant-numeric: tabular-nums; }
 
+/* Faixa de aviso de conexão na tela de venda (Modo Resiliente) */
+.cmd-pdv-faixa-offline {
+  padding: 8px 20px; text-align: center; font-size: 12.5px; font-weight: 700;
+  color: #fff; transition: background-color .2s ease;
+}
+.cmd-pdv-faixa-offline.offline { background: #b91c1c; }
+.cmd-pdv-faixa-offline.reconectando { background: #b45309; }
+.cmd-pdv-faixa-offline.ok { background: #15803d; }
+.cmd-item-linha.cmd-item-pendente { opacity: 0.75; border-style: dashed !important; border-color: #b45309 !important; }
+.cmd-item-linha.cmd-item-pendente .cmd-item-numero { color: #b45309; }
+
 /* Modal de detalhe — cabeçalho navy estilo "Finalização da Venda" */
 .cmd-pdv-box { padding: 0; }
 .cmd-pdv-header {
