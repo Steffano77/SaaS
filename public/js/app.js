@@ -4977,7 +4977,14 @@ async function processarScanGlobalComandas(codigo) {
 async function onKeydownBuscaComanda(e, input) {
   if (e.key !== 'Enter') return;
   const info = decodificarCodigoBalanca(input.value.trim());
-  if (!info) return; // texto normal, deixa o autocomplete/usuário decidir
+  if (!info) {
+    // Texto normal (nome de produto digitado ou já selecionado no autocomplete) —
+    // Enter lança o item direto, igual clicar no "+", sem precisar tocar em mais nada.
+    e.preventDefault();
+    input.parentElement.querySelector('.cmd-item-lista')?.classList.add('hidden');
+    await adicionarItemComandaUI();
+    return;
+  }
   e.preventDefault();
   input.parentElement.querySelector('.cmd-item-lista')?.classList.add('hidden');
 
