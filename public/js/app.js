@@ -4737,13 +4737,16 @@ async function abrirModalComanda(id) {
 
   const acoes = document.getElementById('cmd-detalhe-acoes');
   const btnCancelar = document.querySelector('#modal-comanda .btn-ghost');
+  const btnConcluir = document.getElementById('cmd-btn-concluir-lancamento');
   const bloqueada = c.status !== 'aberta';
   // Modo Lançamento: tablet do salão só lança pedido, sem cobrança nem desconto/acréscimo.
+  // Quem cancela/cobra a comanda é sempre o caixa, não o tablet do salão.
   acoes.style.display = (bloqueada || MODO_LANCAMENTO) ? 'none' : 'block';
   document.querySelector('.cmd-add-item').style.display = bloqueada ? 'none' : 'flex';
   document.getElementById('cmd-ajuste-row').style.display = (bloqueada || MODO_LANCAMENTO) ? 'none' : 'flex';
   if (bloqueada) document.getElementById('cmd-rapido-grid').style.display = 'none';
-  if (btnCancelar) btnCancelar.style.display = bloqueada ? 'none' : 'block';
+  if (btnCancelar) btnCancelar.style.display = (bloqueada || MODO_LANCAMENTO) ? 'none' : 'block';
+  if (btnConcluir) btnConcluir.classList.toggle('hidden', bloqueada || !MODO_LANCAMENTO);
 
   document.getElementById('modal-comanda').classList.remove('hidden');
   atualizarTopbarPdv();
