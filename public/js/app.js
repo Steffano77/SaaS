@@ -5362,6 +5362,29 @@ async function onKeydownBuscaRapidaComanda(e) {
 }
 let _balcaoComandaAtiva = null;
 
+// Busca comanda por número direto da tela de venda (topbar), sem precisar fechar
+// pra voltar à lista — é assim que o caixa acha a comanda que o salão/balcão lançou.
+async function abrirComandaPorNumeroPdv(termoRaw) {
+  const termo = String(termoRaw || '').trim();
+  if (!termo) return;
+  const data = await api('/comandas');
+  if (!data) return;
+  const todas = [...data.abertas, ...data.recentes];
+  let alvo = data.abertas.find(c => c.identificador === termo) || todas.find(c => c.identificador === termo);
+
+  document.getElementById('cmd-pdv-busca-numero').value = '';
+
+  if (!alvo) {
+    if (!confirm(`Nenhuma comanda "${termo}" aberta. Abrir uma nova com esse número?`)) return;
+    const r = await api('/comandas', { method: 'POST', body: { identificador: termo } });
+    if (!r) return;
+    abrirModalComanda(r.id);
+    return;
+  }
+  if (alvo.status && alvo.status !== 'aberta') { mostrarToast('Essa comanda já foi fechada.', 'warn'); return; }
+  abrirModalComanda(alvo.id);
+}
+
 async function buscarComandaPorNumero() {
   const termo = document.getElementById('cmd-busca-numero').value.trim();
   if (!termo) return;
