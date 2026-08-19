@@ -2637,7 +2637,8 @@ tr.tr-saida td { color: var(--red-600); }
 .cmd-item-linha.cmd-item-atual { border: 1.5px solid var(--navy); background: rgba(11,58,110,0.05); }
 [data-theme="dark"] .cmd-item-linha.cmd-item-atual { border-color: var(--orange); background: rgba(249,115,22,0.08); }
 
-.cmd-add-item { display: flex; gap: 8px; align-items: flex-start; }
+.cmd-add-item { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
+.cmd-add-item .fi-busca-wrap { min-width: 200px; }
 .cmd-item-lista { top: 100%; left: 0; right: 0; }
 
 /* Busca rápida — estilo barra "Digite ou Passe o Produto/Comanda" do PDV */
