@@ -600,20 +600,6 @@
     /* ── TABLES ── */
     .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-    /* Coluna de ações (editar/excluir) sempre visível, grudada na direita,
-       mesmo rolando a tabela pros lados — não precisa mais rolar até o fim pra achar o excluir. */
-    #pg-estoque .table-wrapper table th:last-child,
-    #pg-estoque .table-wrapper table td:last-child {
-      position: sticky;
-      right: 0;
-      background: var(--white);
-      box-shadow: -6px 0 8px -6px rgba(0,0,0,0.12);
-    }
-    #pg-estoque .table-wrapper table tbody tr:nth-child(even) td:last-child { background: var(--slate-50); }
-    [data-theme="dark"] #pg-estoque .table-wrapper table th:last-child,
-    [data-theme="dark"] #pg-estoque .table-wrapper table td:last-child { background: #1e293b; }
-    [data-theme="dark"] #pg-estoque .table-wrapper table tbody tr:nth-child(even) td:last-child { background: #263244; }
-
     /* Scroll vertical na tabela de produtos */
     .table-scroll {
       height: calc(100vh - 100px);
