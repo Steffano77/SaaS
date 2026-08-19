@@ -4700,6 +4700,7 @@ function abrirVendaBalcaoVazia() {
   if (btnCancelar) btnCancelar.style.display = 'block';
 
   document.getElementById('modal-comanda').classList.remove('hidden');
+  atualizarTopbarPdv();
   setTimeout(() => document.getElementById('cmd-item-busca')?.focus(), 100);
 }
 
@@ -4743,6 +4744,21 @@ async function abrirModalComanda(id) {
   if (btnCancelar) btnCancelar.style.display = bloqueada ? 'none' : 'block';
 
   document.getElementById('modal-comanda').classList.remove('hidden');
+  atualizarTopbarPdv();
+}
+
+// Barrinha "Vendedor / Cliente / Relógio" do topo da tela de venda, estilo PDV.
+let _cmdRelogioTimer = null;
+function atualizarTopbarPdv() {
+  const vendedorEl = document.getElementById('cmd-pdv-vendedor');
+  if (vendedorEl) vendedorEl.textContent = 'Vendedor: ' + (caixaAtualCache?.atendente || '—');
+  if (_cmdRelogioTimer) clearInterval(_cmdRelogioTimer);
+  const tick = () => {
+    const el = document.getElementById('cmd-pdv-relogio');
+    if (el) el.textContent = new Date().toLocaleTimeString('pt-BR');
+  };
+  tick();
+  _cmdRelogioTimer = setInterval(tick, 1000);
 }
 
 // Grid de toque rápido — produtos marcados como "venda rápida" no Estoque
@@ -4812,6 +4828,7 @@ function renderItensComanda(c) {
 function fecharModalComanda() {
   document.getElementById('modal-comanda').classList.add('hidden');
   comandaAtualId = null;
+  if (_cmdRelogioTimer) { clearInterval(_cmdRelogioTimer); _cmdRelogioTimer = null; }
 }
 
 // ── Código de balança (peso variável) ────────────────────

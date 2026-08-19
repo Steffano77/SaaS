@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260819a"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260819b"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -644,9 +644,14 @@
       </div>
     </div>
 
-    <!-- Modal: detalhe da comanda -->
-    <div id="modal-comanda" class="modal-overlay hidden">
+    <!-- Modal: detalhe da comanda (tela cheia, estilo PDV de balcão) -->
+    <div id="modal-comanda" class="modal-overlay hidden cmd-pdv-fullscreen">
       <div class="modal-box maq-box cmd-pdv-box">
+        <div class="cmd-pdv-topbar">
+          <span id="cmd-pdv-vendedor">Vendedor: —</span>
+          <span id="cmd-pdv-cliente">Cliente: CONSUMIDOR</span>
+          <span id="cmd-pdv-relogio" class="cmd-pdv-relogio"></span>
+        </div>
         <div class="cmd-pdv-header">
           <span class="modal-title" id="cmd-detalhe-titulo">🧾 Comanda</span>
           <div style="display:flex;align-items:center;gap:6px;">
@@ -1676,7 +1681,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260819d"></script>
+<script src="/js/app.js?v=20260819e"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
