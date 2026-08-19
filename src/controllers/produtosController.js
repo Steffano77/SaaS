@@ -133,6 +133,33 @@ exports.atualizar = async (req, res) => {
   }
 };
 
+// Preenche o código da balança em massa, pros produtos que já têm código de barras curto
+// (código do Saurus, 1 a 4 dígitos, típico de item de balcão) mas ainda não têm o código
+// da balança vinculado. Fórmula: código da balança = código curto × 100, com 6 dígitos
+// (ex: código 224 → 022400 — é o mesmo número que já vem gravado na etiqueta da balança).
+exports.preencherCodigosBalanca = async (req, res) => {
+  try {
+    const padaria_id = req.padaria.id;
+    const [produtos] = await db.query(
+      `SELECT id, codigo_barras FROM produtos
+       WHERE padaria_id = ? AND ativo = 1
+         AND codigo_barras REGEXP '^[0-9]{1,4}$'
+         AND (codigo_balanca IS NULL OR codigo_balanca = '')`,
+      [padaria_id]
+    );
+    let preenchidos = 0;
+    for (const p of produtos) {
+      const codigoBalanca = String(parseInt(p.codigo_barras, 10) * 100).padStart(6, '0');
+      await db.query('UPDATE produtos SET codigo_balanca = ? WHERE id = ?', [codigoBalanca, p.id]);
+      preenchidos++;
+    }
+    res.json({ ok: true, preenchidos });
+  } catch (e) {
+    console.error('Erro ao preencher códigos de balança:', e);
+    res.status(500).json({ erro: 'Erro interno.' });
+  }
+};
+
 exports.remover = async (req, res) => {
   try {
     await db.query('UPDATE produtos SET ativo = 0 WHERE id = ? AND padaria_id = ?',

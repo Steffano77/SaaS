@@ -124,21 +124,26 @@ exports.importarSaurus = async (req, res) => {
           [padaria_id, nome]
         );
 
+        // O código de barras que a balança imprime na etiqueta de peso variável carrega
+        // esse mesmo código curto do Saurus, só que multiplicado por 100 e com 6 dígitos
+        // (ex: código 224 no Saurus → 022400 na etiqueta). Já preenche esse vínculo sozinho.
+        const codigoBalanca = String(parseInt(cod, 10) * 100).padStart(6, '0');
+
         if (existe.length) {
           await db.query(
             `UPDATE produtos SET custo_unitario = IF(? > 0, ?, custo_unitario),
              preco_venda = IF(? > 0, ?, preco_venda), categoria_id = COALESCE(?, categoria_id),
-             codigo_barras = ?, controla_estoque = 0
+             codigo_barras = ?, codigo_balanca = ?, controla_estoque = 0
              WHERE id = ?`,
-            [custo, custo, venda, venda, categoria_id, cod, existe[0].id]
+            [custo, custo, venda, venda, categoria_id, cod, codigoBalanca, existe[0].id]
           );
           balcaoAtualizados++;
         } else {
           await db.query(
-            `INSERT INTO produtos (padaria_id, categoria_id, codigo_barras, nome, unidade,
+            `INSERT INTO produtos (padaria_id, categoria_id, codigo_barras, codigo_balanca, nome, unidade,
              custo_unitario, preco_venda, estoque_atual, ativo, controla_estoque)
-             VALUES (?,?,?,?,?,?,?,0,1,0)`,
-            [padaria_id, categoria_id, cod, nome, med || 'un', custo, venda]
+             VALUES (?,?,?,?,?,?,?,?,0,1,0)`,
+            [padaria_id, categoria_id, cod, codigoBalanca, nome, med || 'un', custo, venda]
           );
           balcaoCriados++;
         }

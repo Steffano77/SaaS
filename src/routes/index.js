@@ -96,6 +96,7 @@ router.post('/produtos',      auth, prodCtrl.criar);
 router.put('/produtos/:id',   auth, prodCtrl.atualizar);
 router.delete('/produtos/:id',auth, prodCtrl.remover);
 router.post('/produtos/:id/mesclar', auth, prodCtrl.mesclarDuplicados);
+router.post('/produtos/preencher-codigos-balanca', auth, prodCtrl.preencherCodigosBalanca);
 
 // Movimentações
 router.get('/movimentacoes',  auth, movCtrl.listar);

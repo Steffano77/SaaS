@@ -1737,6 +1737,20 @@ async function limparProdutosZerados() {
   carregarProdutos();
 }
 
+// Preenche em massa o código da balança de todos os produtos que já têm código curto
+// do Saurus (código de barcão, 1-4 dígitos) mas ainda não têm o código da balança vinculado.
+async function preencherCodigosBalanca() {
+  if (!confirm('Isso vai preencher automaticamente o "Código da balança" de todos os produtos que já têm código curto do Saurus cadastrado (código de barcão), usando a fórmula código × 100. Continuar?')) return;
+  const r = await fetch(`${API}/produtos/preencher-codigos-balanca`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${TOKEN}` }
+  });
+  const data = await r.json();
+  if (!r.ok) { mostrarToast('Erro ao preencher códigos.', 'warn'); return; }
+  mostrarToast(`⚖️ ${data.preenchidos} produtos vinculados automaticamente!`, 'ok');
+  carregarProdutos();
+}
+
 // ── Financeiro ──────────────────────────────────────────────────────────────
 let _finPeriodo = 'hoje';
 let _finTipo = 'entrada';
