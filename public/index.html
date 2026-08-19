@@ -650,8 +650,11 @@
         <div class="cmd-pdv-topbar">
           <span id="cmd-pdv-vendedor">Vendedor: —</span>
           <span id="cmd-pdv-cliente">Cliente: CONSUMIDOR</span>
-          <input type="text" id="cmd-pdv-busca-numero" class="cmd-pdv-busca-numero" placeholder="🔍 Abrir comanda Nº..."
-            onkeydown="if(event.key==='Enter') abrirComandaPorNumeroPdv(this.value)"/>
+          <span class="cmd-pdv-busca-numero-wrap">
+            <input type="text" id="cmd-pdv-busca-numero" class="cmd-pdv-busca-numero" placeholder="🔍 Abrir comanda Nº..."
+              onkeydown="if(event.key==='Enter') abrirComandaPorNumeroPdv(this.value)"/>
+            <button type="button" onclick="abrirComandaPorNumeroPdv(document.getElementById('cmd-pdv-busca-numero').value)" class="cmd-pdv-busca-numero-btn">Abrir</button>
+          </span>
           <span id="cmd-pdv-relogio" class="cmd-pdv-relogio"></span>
         </div>
         <div class="cmd-pdv-header">
@@ -1685,7 +1688,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260819i"></script>
+<script src="/js/app.js?v=20260819j"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
