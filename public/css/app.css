@@ -1049,14 +1049,15 @@
 
 }
 
-/* ── Tabela estoque desktop sem scroll horizontal ── */
+/* ── Tabela de estoque: colunas com largura fixa em %, sempre cabendo na tela,
+   sem depender de rolagem horizontal (o texto quebra a linha quando precisa). ── */
 @media (min-width: 769px) {
-  #pg-estoque .table-scroll { overflow-x: auto; }
+  #pg-estoque .table-scroll { overflow-x: hidden; }
   #pg-estoque .table-scroll table,
   #pg-estoque table {
-    min-width: 900px;
     width: 100%;
-    table-layout: auto;
+    min-width: 0;
+    table-layout: fixed;
   }
   #pg-estoque table td,
   #pg-estoque table th {
@@ -1064,10 +1065,19 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  /* Produto e Categoria podem ter nome comprido — quebra a linha em vez de cortar ou empurrar a tabela */
   #pg-estoque table td:first-child,
-  #pg-estoque table th:first-child {
-    white-space: normal;
-  }
+  #pg-estoque table th:first-child { width: 22%; white-space: normal; }
+  #pg-estoque table td:nth-child(2),
+  #pg-estoque table th:nth-child(2) { width: 12%; white-space: normal; }
+  #pg-estoque table td:nth-child(3),  #pg-estoque table th:nth-child(3)  { width: 9%; }
+  #pg-estoque table td:nth-child(4),  #pg-estoque table th:nth-child(4)  { width: 8%; }
+  #pg-estoque table td:nth-child(5),  #pg-estoque table th:nth-child(5)  { width: 9%; }
+  #pg-estoque table td:nth-child(6),  #pg-estoque table th:nth-child(6)  { width: 9%; }
+  #pg-estoque table td:nth-child(7),  #pg-estoque table th:nth-child(7)  { width: 9%; }
+  #pg-estoque table td:nth-child(8),  #pg-estoque table th:nth-child(8)  { width: 9%; }
+  #pg-estoque table td:last-child,
+  #pg-estoque table th:last-child { width: 13%; white-space: nowrap; padding-right: 18px; }
 }
 
 /* ── Financeiro ── */
