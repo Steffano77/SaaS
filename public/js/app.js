@@ -443,7 +443,7 @@ function mostrarPagina(pg, pushHistory = true) {
   if (pg === 'financeiro')     { carregarFinanceiro(); }
   if (pg === 'fichas')         { carregarFichas(); }
   if (pg === 'producao')       { carregarProducao(); }
-  if (pg === 'comandas')       { carregarComandas(); }
+  if (pg === 'comandas')       { carregarComandas(); abrirTelaVendaBalcao(); }
   if (pg === 'encomendas')     { carregarEncomendas(); }
 }
 
@@ -4647,6 +4647,61 @@ async function criarComanda() {
   abrirModalComanda(r.id);
 }
 
+// ── Tela de venda de balcão contínua (estilo Saurus) ──────
+// Ao entrar em Comandas com caixa aberto, já abre direto na venda em andamento
+// (ou numa venda em branco pronta pra escanear), sem passar pela lista de cards.
+// A comanda só é criada de verdade no banco quando o 1º item é lançado — assim
+// não fica sobrando comanda vazia se o caixa só entrar na tela e sair sem vender nada.
+async function abrirTelaVendaBalcao() {
+  if (!CAIXA_LOCAL_ID || MODO_LANCAMENTO) return; // sem caixa aberto ou tablet de lançamento: mostra a lista normal
+  if (_balcaoComandaAtiva) { abrirModalComanda(_balcaoComandaAtiva); return; }
+
+  // Recarregou a página (F5) no meio de uma venda? A comanda continua aberta no banco
+  // mesmo com a variável local perdida — recupera ela em vez de começar do zero.
+  const data = await api('/comandas');
+  const pendente = data?.abertas?.find(c => c.identificador?.startsWith('Balcão '));
+  if (pendente) { _balcaoComandaAtiva = pendente.id; abrirModalComanda(pendente.id); return; }
+
+  abrirVendaBalcaoVazia();
+}
+
+function abrirVendaBalcaoVazia() {
+  comandaAtualId = null;
+  comandaAtualDados = { itens: [], total: 0, desconto: 0, acrescimo: 0, status: 'aberta' };
+  comandaPagamentosPendentes = [];
+  document.getElementById('cmd-detalhe-titulo').textContent = '🧾 Nova venda';
+  document.getElementById('cmd-item-busca').value = '';
+  document.getElementById('cmd-item-produto-id').value = '';
+  document.getElementById('cmd-item-qtd').value = '1';
+  document.getElementById('cmd-item-preco').value = '';
+  document.getElementById('cmd-desconto').value = '';
+  document.getElementById('cmd-acrescimo').value = '';
+  renderItensComanda(comandaAtualDados);
+  renderRapidoGrid();
+
+  document.getElementById('cmd-detalhe-acoes').style.display = 'block';
+  document.querySelector('.cmd-add-item').style.display = 'flex';
+  document.getElementById('cmd-ajuste-row').style.display = 'flex';
+  const btnCancelar = document.querySelector('#modal-comanda .btn-ghost');
+  if (btnCancelar) btnCancelar.style.display = 'block';
+
+  document.getElementById('modal-comanda').classList.remove('hidden');
+  setTimeout(() => document.getElementById('cmd-item-busca')?.focus(), 100);
+}
+
+// Garante que existe uma comanda de balcão de verdade no banco — cria na hora se ainda
+// não existir (1ª venda da tela em branco). Usado antes de qualquer lançamento de item.
+async function garantirComandaBalcaoAtiva() {
+  if (comandaAtualId) return comandaAtualId;
+  const identificador = 'Balcão ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const nova = await api('/comandas', { method: 'POST', body: { identificador } });
+  if (!nova) return null;
+  comandaAtualId = nova.id;
+  _balcaoComandaAtiva = nova.id;
+  document.getElementById('cmd-detalhe-titulo').textContent = `🧾 ${identificador}`;
+  return nova.id;
+}
+
 async function abrirModalComanda(id) {
   const c = await api(`/comandas/${id}`);
   if (!c) return;
@@ -4915,7 +4970,6 @@ document.addEventListener('mousedown', e => {
 });
 
 async function adicionarItemComandaUI() {
-  if (!comandaAtualId) return;
   const nome = document.getElementById('cmd-item-busca').value.trim();
   const produto_id = document.getElementById('cmd-item-produto-id').value || null;
   const quantidade = parseFloat(document.getElementById('cmd-item-qtd').value);
@@ -4925,7 +4979,10 @@ async function adicionarItemComandaUI() {
   if (!nome) { mostrarToast('Digite ou selecione um item.', 'warn'); return; }
   if (!quantidade || quantidade <= 0) { mostrarToast('Quantidade inválida.', 'warn'); return; }
 
-  const r = await api(`/comandas/${comandaAtualId}/itens`, {
+  const comandaId = await garantirComandaBalcaoAtiva();
+  if (!comandaId) return;
+
+  const r = await api(`/comandas/${comandaId}/itens`, {
     method: 'POST',
     body: { produto_id, nome_produto: nome, quantidade, preco_unitario }
   });
@@ -5050,13 +5107,17 @@ async function finalizarVendaUI() {
   const formaResumo = comandaPagamentosPendentes.map(p => p.forma_pagamento).join(' + ');
   const r = await api(`/comandas/${comandaAtualId}/fechar`, { method: 'POST', body: { pagamentos: comandaPagamentosPendentes, caixa_id: CAIXA_LOCAL_ID } });
   if (!r) return;
-  if (comandaAtualId === _balcaoComandaAtiva) _balcaoComandaAtiva = null;
+  const foiBalcao = comandaAtualId === _balcaoComandaAtiva;
+  if (foiBalcao) _balcaoComandaAtiva = null;
   mostrarToast(`Comanda fechada — ${formaResumo}!`, 'ok');
   fecharModalComanda();
   await carregarComandas();
   if (snapshot && confirm('Imprimir o recibo dessa comanda?')) {
     imprimirReciboComanda(snapshot, formaResumo);
   }
+  // Venda de balcão: volta direto pra uma tela em branco, pronta pro próximo cliente
+  // (fluxo contínuo, sem precisar passar pela lista de comandas de novo).
+  if (foiBalcao) abrirVendaBalcaoVazia();
 }
 
 // ── Impressão térmica (80mm) ─────────────────────────────────────
