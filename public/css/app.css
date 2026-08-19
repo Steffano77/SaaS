@@ -2710,7 +2710,7 @@ tr.tr-saida td { color: var(--red-600); }
 [data-theme="dark"] .cmd-pdv-fullscreen .cmd-pdv-box { background: #14202f; }
 /* A lista de itens rola por dentro — o topo (vendedor/relógio/busca) e o rodapé (total/pagamento)
    ficam sempre visíveis, sem precisar rolar a tela inteira pra ver os botões de pagamento. */
-.cmd-pdv-fullscreen .cmd-itens-lista { flex: 1 1 auto; min-height: 0; }
+.cmd-pdv-fullscreen .cmd-itens-lista { flex: 1 1 auto; min-height: 140px; overflow-y: auto; }
 .cmd-pdv-fullscreen #cmd-detalhe-acoes { flex-shrink: 0; overflow-y: auto; max-height: 40vh; }
 /* Em tela cheia a caixa já ocupa 100% — a "sangria" de -20px que o total-row usa
    pra colar nas bordas do card pequeno passava do limite da tela e causava scroll lateral. */
