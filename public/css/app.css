@@ -599,6 +599,15 @@
 
     /* ── TABLES ── */
     .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    /* Esconde a barra de rolagem horizontal visualmente (a tabela ainda rola por
+       gesto/trackpad se precisar, só não fica aquela barra cinza grudada embaixo) */
+    .table-wrapper, .table-scroll {
+      scrollbar-width: none;      /* Firefox */
+      -ms-overflow-style: none;   /* IE/Edge antigo */
+    }
+    .table-wrapper::-webkit-scrollbar, .table-scroll::-webkit-scrollbar {
+      display: none;              /* Chrome/Safari/Edge */
+    }
 
     /* Scroll vertical na tabela de produtos */
     .table-scroll {
