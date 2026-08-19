@@ -5014,6 +5014,17 @@ function calcularRestante() {
   return Math.max(0, Math.round((total - pago) * 100) / 100);
 }
 
+// Atalhos F1–F5 pras formas de pagamento (padrão de PDV) enquanto a comanda está aberta.
+const CMD_PGTO_ATALHOS = { F1: 'Dinheiro', F2: 'Crédito', F3: 'Débito', F4: 'Pix', F5: 'Voucher' };
+document.addEventListener('keydown', (e) => {
+  const forma = CMD_PGTO_ATALHOS[e.key];
+  if (!forma) return;
+  const modalAberto = !document.getElementById('modal-comanda')?.classList.contains('hidden');
+  if (!modalAberto) return;
+  e.preventDefault(); // evita o comportamento padrão do navegador pra tecla F (ex: F1 = ajuda)
+  adicionarPagamentoUI(forma);
+});
+
 function adicionarPagamentoUI(forma) {
   if (!comandaAtualDados || !comandaAtualDados.itens || !comandaAtualDados.itens.length) {
     mostrarToast('Adicione itens antes de lançar pagamento.', 'warn');
