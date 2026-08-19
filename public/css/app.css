@@ -608,6 +608,9 @@
       border: 1px solid var(--slate-100);
     }
     .table-scroll table { min-width: 700px; }
+    /* Um respiro entre o último ícone (excluir) e a barra de rolagem vertical da tabela */
+    .table-scroll table td:last-child,
+    .table-scroll table th:last-child { padding-right: 18px; }
     .table-scroll thead th {
       position: sticky;
       top: 0;
