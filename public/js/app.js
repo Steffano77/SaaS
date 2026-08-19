@@ -4773,14 +4773,15 @@ async function salvarAjusteComanda() {
 function renderItensComanda(c) {
   comandaAtualDados = c;
   const el = document.getElementById('cmd-detalhe-itens');
+  const ultimoIdx = c.itens.length - 1;
   el.innerHTML = c.itens.length
     ? c.itens.map((i, idx) => `
-      <div class="cmd-item-linha">
+      <div class="cmd-item-linha${idx === ultimoIdx ? ' cmd-item-atual' : ''}">
         <div class="cmd-item-nome">
-          <span class="cmd-item-numero">Item Nº ${idx + 1}</span>
+          <span class="cmd-item-numero">Item Nº: ${idx + 1}${i.produto_id ? ' · Cód: ' + i.produto_id : ''}</span>
           <strong>${i.nome_produto}</strong>
-          <span>${fmtQtd(i.quantidade)} ${i.unidade} × ${fmtMoeda(i.preco_unitario)}</span>
         </div>
+        <div class="cmd-item-qtdpreco">${fmtQtd(i.quantidade)} ${i.unidade} × ${fmtMoeda(i.preco_unitario)}</div>
         <div class="cmd-item-direita">
           <span class="cmd-item-subtotal">${fmtMoeda(i.subtotal)}</span>
           ${c.status === 'aberta' ? `<button class="btn-icon" onclick="removerItemComandaUI(${i.id})">✕</button>` : ''}
@@ -4788,6 +4789,8 @@ function renderItensComanda(c) {
       </div>
     `).join('')
     : `<div class="cmd-vazio">Nenhum item adicionado ainda.</div>`;
+  const qtdeTotal = c.itens.reduce((s, i) => s + parseFloat(i.quantidade), 0);
+  document.getElementById('cmd-detalhe-qtde').textContent = fmtQtd(qtdeTotal);
   document.getElementById('cmd-detalhe-total').textContent = fmtMoeda(c.total);
   atualizarPagamentoUI();
 }

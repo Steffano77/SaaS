@@ -2618,18 +2618,24 @@ tr.tr-saida td { color: var(--red-600); }
 
 .cmd-itens-lista { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; margin-bottom: 12px; }
 .cmd-item-linha {
-  display: flex; justify-content: space-between; align-items: center;
+  display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 14px;
   padding: 10px 12px; border-radius: 10px; background: var(--slate-50);
 }
-.cmd-item-nome { display: flex; flex-direction: column; gap: 2px; }
+.cmd-item-nome { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .cmd-item-nome strong { font-size: 13.5px; color: var(--slate-800); }
 .cmd-item-nome span { font-size: 11.5px; color: var(--slate-400); }
+.cmd-item-qtdpreco { font-size: 12.5px; color: var(--slate-500); white-space: nowrap; font-variant-numeric: tabular-nums; text-align: right; }
 .cmd-item-direita { display: flex; align-items: center; gap: 10px; }
-.cmd-item-subtotal { font-weight: 700; font-size: 13.5px; color: var(--slate-800); }
+.cmd-item-subtotal { font-weight: 700; font-size: 13.5px; color: var(--slate-800); font-variant-numeric: tabular-nums; }
 [data-theme="dark"] .cmd-item-linha { background: rgba(255,255,255,0.04); }
 [data-theme="dark"] .cmd-item-nome strong { color: #f1f5f9; }
 [data-theme="dark"] .cmd-item-nome span { color: #94a3b8; }
+[data-theme="dark"] .cmd-item-qtdpreco { color: #94a3b8; }
 [data-theme="dark"] .cmd-item-subtotal { color: #f1f5f9; }
+
+/* Item mais recente lançado — destaque em caixa, igual PDV do Saurus */
+.cmd-item-linha.cmd-item-atual { border: 1.5px solid var(--navy); background: rgba(11,58,110,0.05); }
+[data-theme="dark"] .cmd-item-linha.cmd-item-atual { border-color: var(--orange); background: rgba(249,115,22,0.08); }
 
 .cmd-add-item { display: flex; gap: 8px; align-items: flex-start; }
 .cmd-item-lista { top: 100%; left: 0; right: 0; }
@@ -2718,6 +2724,12 @@ tr.tr-saida td { color: var(--red-600); }
   font-size: 15px; font-weight: 600;
 }
 .cmd-pdv-total-row strong { font-size: 24px; color: var(--orange); font-variant-numeric: tabular-nums; }
+.cmd-pdv-qtde, .cmd-pdv-receber { display: flex; flex-direction: column; gap: 2px; }
+.cmd-pdv-qtde { text-align: left; }
+.cmd-pdv-receber { text-align: right; }
+.cmd-pdv-qtde span, .cmd-pdv-receber span { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.65); text-transform: uppercase; letter-spacing: .3px; }
+.cmd-pdv-qtde strong { font-size: 17px; color: #fff; font-variant-numeric: tabular-nums; }
+.cmd-pdv-receber strong { font-size: 24px; color: var(--orange); font-variant-numeric: tabular-nums; }
 
 #cmd-detalhe-acoes { padding-top: 16px; }
 .cmd-pgto-label { font-size: 12.5px; color: var(--slate-400); text-align: center; margin-bottom: 8px; }

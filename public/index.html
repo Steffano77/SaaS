@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260818j"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260819a"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -683,8 +683,14 @@
         </div>
 
         <div class="cmd-pdv-total-row">
-          <span>Total a receber</span>
-          <strong id="cmd-detalhe-total">R$ 0,00</strong>
+          <div class="cmd-pdv-qtde">
+            <span>Qtde Total</span>
+            <strong id="cmd-detalhe-qtde">0</strong>
+          </div>
+          <div class="cmd-pdv-receber">
+            <span>Total a receber</span>
+            <strong id="cmd-detalhe-total">R$ 0,00</strong>
+          </div>
         </div>
 
         <div id="cmd-detalhe-acoes">
@@ -1669,7 +1675,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260819b"></script>
+<script src="/js/app.js?v=20260819c"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
