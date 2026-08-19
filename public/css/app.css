@@ -1070,14 +1070,21 @@
   #pg-estoque table th:first-child { width: 22%; white-space: normal; }
   #pg-estoque table td:nth-child(2),
   #pg-estoque table th:nth-child(2) { width: 12%; white-space: normal; }
-  #pg-estoque table td:nth-child(3),  #pg-estoque table th:nth-child(3)  { width: 9%; }
-  #pg-estoque table td:nth-child(4),  #pg-estoque table th:nth-child(4)  { width: 8%; }
-  #pg-estoque table td:nth-child(5),  #pg-estoque table th:nth-child(5)  { width: 9%; }
-  #pg-estoque table td:nth-child(6),  #pg-estoque table th:nth-child(6)  { width: 9%; }
-  #pg-estoque table td:nth-child(7),  #pg-estoque table th:nth-child(7)  { width: 9%; }
-  #pg-estoque table td:nth-child(8),  #pg-estoque table th:nth-child(8)  { width: 9%; }
+  #pg-estoque table td:nth-child(3),  #pg-estoque table th:nth-child(3)  { width: 8%; }
+  #pg-estoque table td:nth-child(4),  #pg-estoque table th:nth-child(4)  { width: 7%; }
+  #pg-estoque table td:nth-child(5),  #pg-estoque table th:nth-child(5)  { width: 8%; }
+  #pg-estoque table td:nth-child(6),  #pg-estoque table th:nth-child(6)  { width: 8%; }
+  #pg-estoque table td:nth-child(7),  #pg-estoque table th:nth-child(7)  { width: 8%; }
+  #pg-estoque table td:nth-child(8),  #pg-estoque table th:nth-child(8)  { width: 8%; }
+  /* Coluna de ícones (entrada/saída/editar/excluir) — sem cortar em "…", só os 4 botões lado a lado */
   #pg-estoque table td:last-child,
-  #pg-estoque table th:last-child { width: 13%; white-space: nowrap; padding-right: 18px; }
+  #pg-estoque table th:last-child {
+    width: 19%;
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+    padding-right: 18px;
+  }
 }
 
 /* ── Financeiro ── */
