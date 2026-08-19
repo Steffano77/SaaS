@@ -320,8 +320,10 @@ function aplicarModoBalcao() {
   document.querySelectorAll('.cmd-aviso-modo-balcao').forEach(el => el.remove());
   const aviso = document.createElement('div');
   aviso.className = 'cmd-aviso-modo-balcao';
-  aviso.style.cssText = 'padding:8px 14px;font-size:11px;color:var(--slate-400);text-align:center;';
+  aviso.style.cssText = 'padding:8px 14px;font-size:11px;color:var(--slate-400);text-align:center;cursor:pointer;';
   aviso.textContent = '🔒 Modo Balcão';
+  aviso.title = 'Toque pra reconfigurar este aparelho';
+  aviso.onclick = abrirModalConfigAparelho;
   document.querySelector('.sidebar-nav')?.prepend(aviso);
 }
 
