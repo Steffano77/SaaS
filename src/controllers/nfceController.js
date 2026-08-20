@@ -52,6 +52,10 @@ exports.emitirParaComanda = async (req, res) => {
       csc: padaria.nfce_csc, idCsc: padaria.nfce_id_csc,
     });
     const xmlAssinado = xmlComAssinatura.replace('</NFe>', `${infNFeSupl}\n</NFe>`);
+    // debug — salva pra validar contra o XSD oficial, remover depois de resolver
+    const envi = `<?xml version="1.0" encoding="UTF-8"?><enviNFe xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00"><idLote>1</idLote><indSinc>1</indSinc>${xmlAssinado}</enviNFe>`;
+    require('fs').writeFileSync('/tmp/xsd/ultima-nfe.xml', xmlAssinado);
+    require('fs').writeFileSync('/tmp/xsd/ultimo-envi.xml', envi);
 
     const [notaResult] = await db.query(
       `INSERT INTO notas_fiscais (padaria_id, comanda_id, numero, serie, chave_acesso, status, ambiente, valor_total, xml_assinado)
