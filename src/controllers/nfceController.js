@@ -100,6 +100,7 @@ exports.emitirParaComanda = async (req, res) => {
       chave,
       ambiente: ambienteNum === 1 ? 'produção' : 'homologação (teste, não vale legalmente)',
       respostaCompleta: respostaSefaz.corpo, // útil pra debugar o primeiro teste
+      envelopeEnviado: respostaSefaz.envelopeEnviado, // idem — remover depois que estiver tudo validado
     });
   } catch (e) {
     console.error('Erro ao emitir NFC-e:', e);

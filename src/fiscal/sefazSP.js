@@ -50,7 +50,7 @@ function enviarNFCe({ xmlAssinado, ambiente, certPem, keyPem }) {
     const req = https.request(options, (res) => {
       let dados = '';
       res.on('data', (chunk) => { dados += chunk; });
-      res.on('end', () => resolve({ statusCode: res.statusCode, corpo: dados }));
+      res.on('end', () => resolve({ statusCode: res.statusCode, corpo: dados, envelopeEnviado: body }));
     });
     req.on('error', reject);
     req.on('timeout', () => { req.destroy(); reject(new Error('Tempo esgotado esperando resposta da Sefaz.')); });
