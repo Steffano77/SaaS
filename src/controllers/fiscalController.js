@@ -48,6 +48,32 @@ exports.configurarCertificado = async (req, res) => {
   }
 };
 
+// Correção pontual: algumas colunas fiscais não foram criadas na migração automática
+// (falhou silenciosamente). Roda de novo aqui, cada uma isolada, e reporta o que faltava.
+exports.corrigirColunasFiscais = async (req, res) => {
+  const colunas = [
+    "ALTER TABLE padarias ADD COLUMN nfce_inscricao_estadual VARCHAR(20) NULL",
+    "ALTER TABLE padarias ADD COLUMN nfce_regime_tributario TINYINT NULL",
+    "ALTER TABLE padarias ADD COLUMN nfce_logradouro VARCHAR(120) NULL",
+    "ALTER TABLE padarias ADD COLUMN nfce_numero VARCHAR(20) NULL",
+    "ALTER TABLE padarias ADD COLUMN nfce_bairro VARCHAR(80) NULL",
+    "ALTER TABLE padarias ADD COLUMN nfce_municipio VARCHAR(80) NULL",
+    "ALTER TABLE padarias ADD COLUMN nfce_codigo_municipio_ibge VARCHAR(10) NULL",
+    "ALTER TABLE padarias ADD COLUMN nfce_cep VARCHAR(10) NULL",
+    "ALTER TABLE padarias ADD COLUMN nfce_uf VARCHAR(2) NULL",
+    "ALTER TABLE padarias ADD COLUMN nfce_serie INT NOT NULL DEFAULT 1",
+    "ALTER TABLE padarias ADD COLUMN nfce_proximo_numero INT NOT NULL DEFAULT 1",
+    "ALTER TABLE padarias ADD COLUMN nfce_ambiente TINYINT NOT NULL DEFAULT 2",
+    "ALTER TABLE padarias ADD COLUMN nfce_ativo TINYINT(1) NOT NULL DEFAULT 0",
+  ];
+  const resultado = [];
+  for (const sql of colunas) {
+    try { await db.query(sql); resultado.push({ sql, ok: true }); }
+    catch (e) { resultado.push({ sql, ok: false, erro: e.code === 'ER_DUP_FIELDNAME' ? 'já existia' : e.message }); }
+  }
+  res.json({ resultado });
+};
+
 // Salva os dados fiscais da padaria (endereço, IE, regime tributário) — obrigatórios
 // pra Sefaz aceitar a nota. Nenhum desses dados é segredo (são públicos, tipo o que
 // já está no cartão CNPJ ou no alvará), então não precisa de criptografia.
