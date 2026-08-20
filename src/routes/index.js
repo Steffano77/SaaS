@@ -98,6 +98,10 @@ router.delete('/produtos/:id',auth, prodCtrl.remover);
 router.post('/produtos/:id/mesclar', auth, prodCtrl.mesclarDuplicados);
 router.post('/produtos/preencher-codigos-balanca', auth, prodCtrl.preencherCodigosBalanca);
 
+const fiscalCtrl = require('../controllers/fiscalController');
+router.post('/fiscal/certificado', auth, fiscalCtrl.configurarCertificado);
+router.get('/fiscal/certificado/status', auth, fiscalCtrl.statusCertificado);
+
 // Movimentações
 router.get('/movimentacoes',  auth, movCtrl.listar);
 router.post('/movimentacoes', auth, movCtrl.registrar);

@@ -3,3 +3,8 @@ node_modules/
 *.log
 frontend/node_modules/
 public/app/
+
+# Certificados digitais (NFC-e) — NUNCA versionar. Ficam só no servidor, fora do git.
+certificados/
+*.pfx
+*.p12

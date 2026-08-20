@@ -253,6 +253,43 @@ app.use(express.static(path.join(__dirname, '../public')));
       // gravado na etiqueta impressa pela balança (Toledo/Filizola/Urano), pra leitura automática no Comandas.
       'ALTER TABLE produtos ADD COLUMN codigo_balanca VARCHAR(10) NULL',
       'ALTER TABLE produtos ADD INDEX idx_produtos_codigo_balanca (padaria_id, codigo_balanca)',
+
+      // ── NFC-e (Fase 1: cadastro fiscal + estrutura de notas) ──
+      // Dados que precisam estar corretos na padaria pra emitir nota — sem isso a Sefaz rejeita.
+      "ALTER TABLE padarias ADD COLUMN nfce_inscricao_estadual VARCHAR(20) NULL",
+      "ALTER TABLE padarias ADD COLUMN nfce_regime_tributario TINYINT NULL COMMENT '1=Simples Nacional, 3=Regime Normal'",
+      "ALTER TABLE padarias ADD COLUMN nfce_logradouro VARCHAR(120) NULL",
+      "ALTER TABLE padarias ADD COLUMN nfce_numero VARCHAR(20) NULL",
+      "ALTER TABLE padarias ADD COLUMN nfce_bairro VARCHAR(80) NULL",
+      "ALTER TABLE padarias ADD COLUMN nfce_municipio VARCHAR(80) NULL",
+      "ALTER TABLE padarias ADD COLUMN nfce_codigo_municipio_ibge VARCHAR(10) NULL",
+      "ALTER TABLE padarias ADD COLUMN nfce_cep VARCHAR(10) NULL",
+      "ALTER TABLE padarias ADD COLUMN nfce_uf VARCHAR(2) NULL",
+      "ALTER TABLE padarias ADD COLUMN nfce_serie INT NOT NULL DEFAULT 1",
+      "ALTER TABLE padarias ADD COLUMN nfce_proximo_numero INT NOT NULL DEFAULT 1",
+      "ALTER TABLE padarias ADD COLUMN nfce_ambiente TINYINT NOT NULL DEFAULT 2 COMMENT '1=Produção, 2=Homologação (teste)'",
+      "ALTER TABLE padarias ADD COLUMN nfce_certificado_arquivo VARCHAR(255) NULL COMMENT 'nome do arquivo .pfx dentro da pasta certificados/, nunca o caminho completo nem senha'",
+      "ALTER TABLE padarias ADD COLUMN nfce_certificado_senha_criptografada TEXT NULL",
+      "ALTER TABLE padarias ADD COLUMN nfce_ativo TINYINT(1) NOT NULL DEFAULT 0",
+
+      `CREATE TABLE IF NOT EXISTS notas_fiscais (
+        id                  INT AUTO_INCREMENT PRIMARY KEY,
+        padaria_id          INT NOT NULL,
+        comanda_id          INT NULL,
+        numero              INT NOT NULL,
+        serie               INT NOT NULL,
+        chave_acesso        VARCHAR(44) NULL,
+        status              ENUM('pendente','autorizada','rejeitada','cancelada','contingencia','erro') NOT NULL DEFAULT 'pendente',
+        ambiente            TINYINT NOT NULL COMMENT '1=Produção, 2=Homologação',
+        valor_total         DECIMAL(10,2) NOT NULL DEFAULT 0,
+        xml_assinado        MEDIUMTEXT NULL,
+        protocolo_autorizacao VARCHAR(20) NULL,
+        motivo_rejeicao     VARCHAR(255) NULL,
+        criado_em           DATETIME DEFAULT CURRENT_TIMESTAMP,
+        autorizada_em       DATETIME NULL,
+        INDEX idx_notas_padaria (padaria_id, status),
+        INDEX idx_notas_comanda (comanda_id)
+      )`,
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
 
