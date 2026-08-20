@@ -18,7 +18,15 @@ const FORMA_PAGAMENTO_TPAG = {
 };
 
 function escaparXml(texto) {
-  return String(texto ?? '')
+  // A Sefaz só aceita um conjunto restrito de caracteres em campos de texto (letras,
+  // números, acentos comuns) — troca travessão, aspas curvas, emoji etc. por algo simples
+  // pra não travar a nota por causa de um caractere "estranho" digitado sem querer.
+  const limpo = String(texto ?? '')
+    .replace(/[‒-―]/g, '-')   // travessões variados -> hífen simples
+    .replace(/[‘’]/g, "'")    // aspas curvas simples
+    .replace(/[“”]/g, '"')    // aspas curvas duplas
+    .replace(/[^\x20-\x7EÀ-ÿ]/g, '');   // remove qualquer coisa fora do intervalo aceito
+  return limpo
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
@@ -67,7 +75,7 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
       <imposto>
         <ICMS><ICMSSN102><orig>0</orig><CSOSN>102</CSOSN></ICMSSN102></ICMS>
         <PIS><PISNT><CST>07</CST></PISNT></PIS>
-        <COFINS><COFINSNT><CST>07</CST></COFINS></COFINS>
+        <COFINS><COFINSNT><CST>07</CST></COFINSNT></COFINS>
       </imposto>
     </det>`;
   }).join('');
@@ -152,7 +160,7 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
     <pag>${pagXml}
     </pag>
     <infAdic>
-      <infCpl>Comanda ${escaparXml(comanda.identificador)} — emitido via PanificaPro</infCpl>
+      <infCpl>Comanda ${escaparXml(comanda.identificador)} - emitido via PanificaPro</infCpl>
     </infAdic>
   </infNFe>
 </NFe>`;
