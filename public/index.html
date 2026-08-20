@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260819j"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260819k"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -681,63 +681,70 @@
           </div>
         </div>
 
-        <div id="cmd-detalhe-itens" class="cmd-itens-lista"></div>
+        <!-- Tela dividida: itens/busca à esquerda (maior), pagamento/ações numa faixa à direita -->
+        <div class="cmd-pdv-corpo">
+          <div class="cmd-pdv-coluna-esq">
+            <div id="cmd-detalhe-itens" class="cmd-itens-lista"></div>
 
-        <div id="cmd-rapido-grid" class="cmd-rapido-grid"></div>
+            <div id="cmd-rapido-grid" class="cmd-rapido-grid"></div>
 
-        <!-- Adicionar item -->
-        <div class="cmd-add-item">
-          <div class="fi-busca-wrap" style="position:relative;flex:1;">
-            <input type="text" id="cmd-item-busca" class="form-control" placeholder="Buscar produto ou digitar item avulso..." autocomplete="off"
-              oninput="filtrarProdutoComanda(this)" onfocus="filtrarProdutoComanda(this)" onkeydown="onKeydownBuscaComanda(event, this)"/>
-            <input type="hidden" id="cmd-item-produto-id"/>
-            <div class="autocomplete-lista cmd-item-lista hidden"></div>
+            <!-- Adicionar item -->
+            <div class="cmd-add-item">
+              <div class="fi-busca-wrap" style="position:relative;flex:1;">
+                <input type="text" id="cmd-item-busca" class="form-control" placeholder="Buscar produto ou digitar item avulso..." autocomplete="off"
+                  oninput="filtrarProdutoComanda(this)" onfocus="filtrarProdutoComanda(this)" onkeydown="onKeydownBuscaComanda(event, this)"/>
+                <input type="hidden" id="cmd-item-produto-id"/>
+                <div class="autocomplete-lista cmd-item-lista hidden"></div>
+              </div>
+              <input type="number" id="cmd-item-qtd" class="form-control" placeholder="Qtd" value="1" min="0.01" step="0.01" style="width:70px;"/>
+              <input type="number" id="cmd-item-preco" class="form-control" placeholder="R$" min="0" step="0.01" style="width:90px;"/>
+              <button onclick="adicionarItemComandaUI()" class="btn-primary" style="padding:10px 16px;">+</button>
+              <button onclick="abrirCategoriasComanda()" class="btn-secondary" style="padding:10px 14px;" title="Ver por categoria">📋</button>
+            </div>
+
+            <button id="cmd-btn-concluir-lancamento" onclick="fecharModalComanda()" class="btn-primary full hidden" style="margin-top:10px;background:#16a34a;">✅ Concluir e voltar</button>
+
+            <div id="cmd-ajuste-row" class="cmd-ajuste-row">
+              <div class="cmd-ajuste-campo">
+                <label>Desconto R$</label>
+                <input type="number" id="cmd-desconto" class="form-control" min="0" step="0.01" placeholder="0,00" onchange="salvarAjusteComanda()"/>
+              </div>
+              <div class="cmd-ajuste-campo">
+                <label>Acréscimo R$</label>
+                <input type="number" id="cmd-acrescimo" class="form-control" min="0" step="0.01" placeholder="0,00" onchange="salvarAjusteComanda()"/>
+              </div>
+            </div>
           </div>
-          <input type="number" id="cmd-item-qtd" class="form-control" placeholder="Qtd" value="1" min="0.01" step="0.01" style="width:70px;"/>
-          <input type="number" id="cmd-item-preco" class="form-control" placeholder="R$" min="0" step="0.01" style="width:90px;"/>
-          <button onclick="adicionarItemComandaUI()" class="btn-primary" style="padding:10px 16px;">+</button>
-          <button onclick="abrirCategoriasComanda()" class="btn-secondary" style="padding:10px 14px;" title="Ver por categoria">📋</button>
+
+          <div class="cmd-pdv-coluna-dir">
+            <div class="cmd-pdv-total-row">
+              <div class="cmd-pdv-qtde">
+                <span>Qtde Total</span>
+                <strong id="cmd-detalhe-qtde">0</strong>
+              </div>
+              <div class="cmd-pdv-receber">
+                <span>Total a receber</span>
+                <strong id="cmd-detalhe-total">R$ 0,00</strong>
+              </div>
+            </div>
+
+            <div id="cmd-detalhe-acoes">
+              <div id="cmd-resumo-venda" class="cmd-resumo-venda"></div>
+              <div id="cmd-pagamentos-lista" class="cmd-pagamentos-lista"></div>
+              <button id="cmd-btn-refazer" onclick="refazerPagamentos()" class="btn-ghost full hidden" style="color:#dc2626;margin-bottom:8px;">↺ Refazer Pagamentos</button>
+              <div class="cmd-pgto-label" id="cmd-pgto-label">Toque na forma de pagamento pra lançar</div>
+              <div class="cmd-pgto-grid">
+                <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Dinheiro')"><span class="cmd-pgto-icone">💵</span><span>Dinheiro</span></button>
+                <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Crédito')"><span class="cmd-pgto-icone">💳</span><span>Crédito</span></button>
+                <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Débito')"><span class="cmd-pgto-icone">💳</span><span>Débito</span></button>
+                <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Pix')"><span class="cmd-pgto-icone">⚡</span><span>Pix</span></button>
+                <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Voucher')"><span class="cmd-pgto-icone">🎫</span><span>Voucher</span></button>
+              </div>
+              <button id="cmd-btn-finalizar" onclick="finalizarVendaUI()" class="fin-confirmar-btn entrada hidden" style="margin-top:10px;">✅ Finalizar venda</button>
+            </div>
+            <button onclick="cancelarComandaUI()" class="btn-ghost full" style="margin-top:8px;color:#dc2626;">🗑️ Cancelar comanda</button>
+          </div>
         </div>
-
-        <button id="cmd-btn-concluir-lancamento" onclick="fecharModalComanda()" class="btn-primary full hidden" style="margin-top:10px;background:#16a34a;">✅ Concluir e voltar</button>
-
-        <div id="cmd-ajuste-row" class="cmd-ajuste-row">
-          <div class="cmd-ajuste-campo">
-            <label>Desconto R$</label>
-            <input type="number" id="cmd-desconto" class="form-control" min="0" step="0.01" placeholder="0,00" onchange="salvarAjusteComanda()"/>
-          </div>
-          <div class="cmd-ajuste-campo">
-            <label>Acréscimo R$</label>
-            <input type="number" id="cmd-acrescimo" class="form-control" min="0" step="0.01" placeholder="0,00" onchange="salvarAjusteComanda()"/>
-          </div>
-        </div>
-
-        <div class="cmd-pdv-total-row">
-          <div class="cmd-pdv-qtde">
-            <span>Qtde Total</span>
-            <strong id="cmd-detalhe-qtde">0</strong>
-          </div>
-          <div class="cmd-pdv-receber">
-            <span>Total a receber</span>
-            <strong id="cmd-detalhe-total">R$ 0,00</strong>
-          </div>
-        </div>
-
-        <div id="cmd-detalhe-acoes">
-          <div id="cmd-resumo-venda" class="cmd-resumo-venda"></div>
-          <div id="cmd-pagamentos-lista" class="cmd-pagamentos-lista"></div>
-          <button id="cmd-btn-refazer" onclick="refazerPagamentos()" class="btn-ghost full hidden" style="color:#dc2626;margin-bottom:8px;">↺ Refazer Pagamentos</button>
-          <div class="cmd-pgto-label" id="cmd-pgto-label">Toque na forma de pagamento pra lançar</div>
-          <div class="cmd-pgto-grid">
-            <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Dinheiro')"><span class="cmd-pgto-icone">💵</span><span>Dinheiro</span></button>
-            <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Crédito')"><span class="cmd-pgto-icone">💳</span><span>Crédito</span></button>
-            <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Débito')"><span class="cmd-pgto-icone">💳</span><span>Débito</span></button>
-            <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Pix')"><span class="cmd-pgto-icone">⚡</span><span>Pix</span></button>
-            <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Voucher')"><span class="cmd-pgto-icone">🎫</span><span>Voucher</span></button>
-          </div>
-          <button id="cmd-btn-finalizar" onclick="finalizarVendaUI()" class="fin-confirmar-btn entrada hidden" style="margin-top:10px;">✅ Finalizar venda</button>
-        </div>
-        <button onclick="cancelarComandaUI()" class="btn-ghost full" style="margin-top:8px;color:#dc2626;">🗑️ Cancelar comanda</button>
       </div>
     </div>
 

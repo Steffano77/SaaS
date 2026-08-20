@@ -2717,7 +2717,7 @@ tr.tr-saida td { color: var(--red-600); }
    pode encolher até 0px quando o resto da tela (busca, desconto, pagamento) pede
    espaço — os itens ficam "invisíveis" mesmo existindo, só os totais continuam certos
    (são calculados à parte). É um comportamento padrão do flexbox, não bug de dados. */
-.cmd-pdv-fullscreen .cmd-itens-lista { min-height: 160px; max-height: 260px; overflow-y: auto; flex-shrink: 0; }
+.cmd-pdv-fullscreen .cmd-itens-lista { min-height: 160px; flex-shrink: 0; }
 .cmd-pdv-fullscreen #cmd-detalhe-acoes { padding-bottom: 24px; }
 /* Em tela cheia a caixa já ocupa 100% — a "sangria" de -20px que o total-row usa
    pra colar nas bordas do card pequeno passava do limite da tela e causava scroll lateral. */
@@ -2801,16 +2801,36 @@ tr.tr-saida td { color: var(--red-600); }
 }
 .cmd-pdv-header .modal-title { color: #fff; font-weight: 700; }
 .cmd-pdv-header .btn-icon { color: #fff; }
-.cmd-pdv-box > *:not(.cmd-pdv-header) { padding-left: 20px; padding-right: 20px; }
-.cmd-pdv-box .cmd-itens-lista { padding-top: 16px; }
-.cmd-pdv-box .cmd-add-item,
-.cmd-pdv-box .cmd-pdv-total-row,
-.cmd-pdv-box #cmd-detalhe-acoes,
-.cmd-pdv-box > .btn-ghost.full { }
-.cmd-pdv-box > .btn-ghost.full { padding-bottom: 20px; }
+
+/* Tela dividida: itens/busca numa coluna maior, pagamento/ações numa faixa lateral —
+   estilo PDV de balcão (Saurus), em vez de tudo empilhado numa coluna só. */
+.cmd-pdv-corpo { display: flex; flex: 1 1 auto; min-height: 0; align-items: stretch; }
+.cmd-pdv-coluna-esq {
+  flex: 1 1 auto; min-width: 0;
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 16px 20px 20px;
+  overflow-y: auto;
+}
+.cmd-pdv-coluna-dir {
+  width: 360px; flex-shrink: 0;
+  display: flex; flex-direction: column;
+  padding: 0 0 20px;
+  border-left: 1px solid var(--slate-200);
+  overflow-y: auto;
+}
+[data-theme="dark"] .cmd-pdv-coluna-dir { border-left-color: rgba(255,255,255,0.08); }
+.cmd-pdv-coluna-dir #cmd-detalhe-acoes,
+.cmd-pdv-coluna-dir > .btn-ghost.full { padding-left: 20px; padding-right: 20px; }
+
+/* Telas estreitas (tablet em pé): empilha em vez de dividir lado a lado */
+@media (max-width: 820px) {
+  .cmd-pdv-corpo { flex-direction: column; }
+  .cmd-pdv-coluna-dir { width: 100%; border-left: none; border-top: 1px solid var(--slate-200); }
+  [data-theme="dark"] .cmd-pdv-coluna-dir { border-top-color: rgba(255,255,255,0.08); }
+}
 
 /* Itens — fundo creme claro, linhas com número, estilo recibo de PDV */
-.cmd-itens-lista { background: #fdfaf3; border-radius: 10px; margin: 0 20px 0; padding: 4px 0; }
+.cmd-itens-lista { background: #fdfaf3; border-radius: 10px; padding: 4px 0; }
 [data-theme="dark"] .cmd-itens-lista { background: rgba(255,255,255,0.03); }
 .cmd-item-numero { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .3px; color: var(--orange-dark); text-transform: uppercase; margin-bottom: 2px; }
 [data-theme="dark"] .cmd-item-numero { color: var(--orange); }
@@ -2820,7 +2840,7 @@ tr.tr-saida td { color: var(--red-600); }
 
 .cmd-pdv-total-row {
   display: flex; justify-content: space-between; align-items: center;
-  margin: 16px -20px 0; padding: 16px 20px;
+  padding: 16px 20px;
   background: var(--navy); color: #fff;
   font-size: 15px; font-weight: 600;
 }
