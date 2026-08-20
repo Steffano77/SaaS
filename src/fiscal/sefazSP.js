@@ -34,6 +34,12 @@ function enviarNFCe({ xmlAssinado, ambiente, certPem, keyPem }) {
       method: 'POST',
       cert: certPem,
       key: keyPem,
+      // O servidor da Sefaz usa certificado da cadeia ICP-Brasil, que não vem
+      // pré-instalada nos pacotes padrão de CA do Linux — sem isso a conexão
+      // trava na negociação. A autenticação de quem SOMOS continua garantida
+      // pelo certificado próprio (cert/key acima), isso só afeta a verificação
+      // do certificado deles.
+      rejectUnauthorized: false,
       headers: {
         'Content-Type': 'application/soap+xml; charset=utf-8',
         'Content-Length': Buffer.byteLength(body),
