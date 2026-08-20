@@ -271,6 +271,10 @@ app.use(express.static(path.join(__dirname, '../public')));
       "ALTER TABLE padarias ADD COLUMN nfce_certificado_arquivo VARCHAR(255) NULL COMMENT 'nome do arquivo .pfx dentro da pasta certificados/, nunca o caminho completo nem senha'",
       "ALTER TABLE padarias ADD COLUMN nfce_certificado_senha_criptografada TEXT NULL",
       "ALTER TABLE padarias ADD COLUMN nfce_ativo TINYINT(1) NOT NULL DEFAULT 0",
+      // CSC (Código de Segurança do Contribuinte) — token separado do certificado, gerado
+      // no Portal da Sefaz-SP, usado só pra montar o QR Code da NFC-e.
+      "ALTER TABLE padarias ADD COLUMN nfce_csc VARCHAR(60) NULL",
+      "ALTER TABLE padarias ADD COLUMN nfce_id_csc INT NULL",
 
       `CREATE TABLE IF NOT EXISTS notas_fiscais (
         id                  INT AUTO_INCREMENT PRIMARY KEY,

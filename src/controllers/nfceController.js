@@ -7,6 +7,7 @@ const { carregarCertificado } = require('../fiscal/certificado');
 const { montarXmlNFCe } = require('../fiscal/xmlNFCe');
 const { assinarXmlNFCe } = require('../fiscal/assinatura');
 const { enviarNFCe, interpretarResposta } = require('../fiscal/sefazSP');
+const { montarInfNFeSupl } = require('../fiscal/qrcode');
 
 exports.emitirParaComanda = async (req, res) => {
   const padaria_id = req.padaria.id;
@@ -38,12 +39,19 @@ exports.emitirParaComanda = async (req, res) => {
     const ambienteNum = padaria.nfce_ambiente || 2; // 2 = homologação por padrão, só muda depois de validar
     const numero = padaria.nfce_proximo_numero || 1;
 
-    const { xml, chave } = montarXmlNFCe({
+    const { xml, chave, dhEmi } = montarXmlNFCe({
       padaria: { ...padaria, cnpj: cert.cnpj },
       comanda, itens, pagamentos, numero, ambiente: ambienteNum,
     });
 
-    const xmlAssinado = assinarXmlNFCe(xml, { certPem: cert.certPem, keyPem: cert.keyPem });
+    const { xmlAssinado: xmlComAssinatura, digestValue } = assinarXmlNFCe(xml, { certPem: cert.certPem, keyPem: cert.keyPem });
+
+    const vNF = itens.reduce((s, i) => s + parseFloat(i.subtotal), 0) - parseFloat(comanda.desconto || 0) + parseFloat(comanda.acrescimo || 0);
+    const infNFeSupl = montarInfNFeSupl({
+      chave, ambiente: ambienteNum, dhEmi, vNF: vNF.toFixed(2), digestValue,
+      csc: padaria.nfce_csc, idCsc: padaria.nfce_id_csc,
+    });
+    const xmlAssinado = xmlComAssinatura.replace('</NFe>', `${infNFeSupl}\n</NFe>`);
 
     const [notaResult] = await db.query(
       `INSERT INTO notas_fiscais (padaria_id, comanda_id, numero, serie, chave_acesso, status, ambiente, valor_total, xml_assinado)

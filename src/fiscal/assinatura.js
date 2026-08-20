@@ -30,7 +30,9 @@ function assinarXmlNFCe(xml, { certPem, keyPem }) {
     location: { reference: `//*[local-name(.)='infNFe']`, action: 'after' },
   });
 
-  return sig.getSignedXml();
+  const xmlAssinado = sig.getSignedXml();
+  const digestMatch = xmlAssinado.match(/<DigestValue>([^<]+)<\/DigestValue>/);
+  return { xmlAssinado, digestValue: digestMatch ? digestMatch[1] : '' };
 }
 
 module.exports = { assinarXmlNFCe };
