@@ -46,10 +46,8 @@ exports.emitirParaComanda = async (req, res) => {
 
     const { xmlAssinado: xmlComAssinatura, digestValue } = assinarXmlNFCe(xml, { certPem: cert.certPem, keyPem: cert.keyPem });
 
-    const vNF = itens.reduce((s, i) => s + parseFloat(i.subtotal), 0) - parseFloat(comanda.desconto || 0) + parseFloat(comanda.acrescimo || 0);
     const infNFeSupl = montarInfNFeSupl({
-      chave, ambiente: ambienteNum, dhEmi, vNF: vNF.toFixed(2), digestValue,
-      csc: padaria.nfce_csc, idCsc: padaria.nfce_id_csc,
+      chave, ambiente: ambienteNum, csc: padaria.nfce_csc, idCsc: padaria.nfce_id_csc,
     });
     // Ordem exigida pelo schema oficial: infNFe, infNFeSupl, Signature (nessa ordem) —
     // por isso insere logo depois de </infNFe>, empurrando a assinatura pra depois.

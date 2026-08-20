@@ -14,9 +14,10 @@ const URL_CONSULTA = {
   2: 'https://www.homologacao.nfce.fazenda.sp.gov.br/qrcode',
 };
 
-function montarInfNFeSupl({ chave, ambiente, dhEmi, vNF, digestValue, csc, idCsc }) {
-  const dhEmiHex = Math.floor(dhEmi.getTime() / 1000).toString(16);
-  const partes = [chave, '100', String(ambiente), '', dhEmiHex, vNF, '0.00', digestValue || '', String(idCsc || 1).padStart(6, '0')];
+// Emissão online (não é modo de contingência) — formato mais simples do QR Code v2:
+// chave|versão|ambiente|idCSC, com o hash calculado sobre isso + o CSC.
+function montarInfNFeSupl({ chave, ambiente, csc, idCsc }) {
+  const partes = [chave, '2', String(ambiente), String(idCsc || 1)];
   const p = partes.join('|');
   const cHashQRCode = crypto.createHash('sha1').update(p + (csc || '')).digest('hex').toUpperCase();
   const qrCode = `${URL_CONSULTA[ambiente]}?p=${p}|${cHashQRCode}`;
