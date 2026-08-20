@@ -48,6 +48,43 @@ exports.configurarCertificado = async (req, res) => {
   }
 };
 
+// Salva os dados fiscais da padaria (endereço, IE, regime tributário) — obrigatórios
+// pra Sefaz aceitar a nota. Nenhum desses dados é segredo (são públicos, tipo o que
+// já está no cartão CNPJ ou no alvará), então não precisa de criptografia.
+exports.salvarDadosFiscais = async (req, res) => {
+  try {
+    const padaria_id = req.padaria.id;
+    const {
+      inscricao_estadual, regime_tributario, logradouro, numero, bairro,
+      municipio, codigo_municipio_ibge, cep, uf,
+    } = req.body;
+
+    const campos = {
+      nfce_inscricao_estadual: inscricao_estadual,
+      nfce_regime_tributario: regime_tributario,
+      nfce_logradouro: logradouro,
+      nfce_numero: numero,
+      nfce_bairro: bairro,
+      nfce_municipio: municipio,
+      nfce_codigo_municipio_ibge: codigo_municipio_ibge,
+      nfce_cep: cep,
+      nfce_uf: uf,
+    };
+    const sets = []; const vals = [];
+    for (const [coluna, valor] of Object.entries(campos)) {
+      if (valor !== undefined) { sets.push(`${coluna} = ?`); vals.push(valor); }
+    }
+    if (!sets.length) return res.status(400).json({ erro: 'Nenhum campo enviado.' });
+    vals.push(padaria_id);
+    await db.query(`UPDATE padarias SET ${sets.join(', ')} WHERE id = ?`, vals);
+
+    res.json({ ok: true, mensagem: 'Dados fiscais salvos com sucesso!' });
+  } catch (e) {
+    console.error('Erro ao salvar dados fiscais:', e);
+    res.status(500).json({ erro: 'Erro interno.' });
+  }
+};
+
 // Mostra o status atual (sem nunca devolver a senha)
 exports.statusCertificado = async (req, res) => {
   try {

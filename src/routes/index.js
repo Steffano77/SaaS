@@ -101,6 +101,7 @@ router.post('/produtos/preencher-codigos-balanca', auth, prodCtrl.preencherCodig
 const fiscalCtrl = require('../controllers/fiscalController');
 router.post('/fiscal/certificado', auth, fiscalCtrl.configurarCertificado);
 router.get('/fiscal/certificado/status', auth, fiscalCtrl.statusCertificado);
+router.post('/fiscal/dados', auth, fiscalCtrl.salvarDadosFiscais);
 
 // Movimentações
 router.get('/movimentacoes',  auth, movCtrl.listar);
