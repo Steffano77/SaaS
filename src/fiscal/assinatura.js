@@ -3,7 +3,15 @@
 const { SignedXml } = require('xml-crypto');
 
 // certPem/keyPem vêm do certificado.js (carregarCertificado). xml: string do montarXmlNFCe.
-function assinarXmlNFCe(xml, { certPem, keyPem }) {
+// Remove espaços/quebras de linha entre tags (só entre '>' e '<', nunca dentro de
+// texto de verdade) — XML com bastante formatação/indentação às vezes confunde o
+// processo de assinatura na hora de recompor o documento.
+function compactarXml(xml) {
+  return xml.replace(/>\s+</g, '><').trim();
+}
+
+function assinarXmlNFCe(xmlOriginal, { certPem, keyPem }) {
+  const xml = compactarXml(xmlOriginal);
   const idMatch = xml.match(/<infNFe Id="([^"]+)"/);
   if (!idMatch) throw new Error('Não achei o Id do infNFe pra assinar — XML mal formado.');
   const id = idMatch[1];
