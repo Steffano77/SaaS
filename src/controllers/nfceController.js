@@ -53,7 +53,8 @@ exports.emitirParaComanda = async (req, res) => {
     });
     const xmlAssinado = xmlComAssinatura.replace('</NFe>', `${infNFeSupl}\n</NFe>`);
     // debug — salva pra validar contra o XSD oficial, remover depois de resolver
-    const envi = `<?xml version="1.0" encoding="UTF-8"?><enviNFe xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00"><idLote>1</idLote><indSinc>1</indSinc>${xmlAssinado}</enviNFe>`;
+    const xmlSemDeclaracao = xmlAssinado.replace(/<\?xml[^>]*\?>/, '');
+    const envi = `<?xml version="1.0" encoding="UTF-8"?><enviNFe xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00"><idLote>1</idLote><indSinc>1</indSinc>${xmlSemDeclaracao}</enviNFe>`;
     require('fs').writeFileSync('/tmp/xsd/ultima-nfe.xml', xmlAssinado);
     require('fs').writeFileSync('/tmp/xsd/ultimo-envi.xml', envi);
 
