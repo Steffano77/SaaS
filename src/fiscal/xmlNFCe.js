@@ -1,0 +1,163 @@
+// Monta o XML da NFC-e (modelo 65, layout 4.00) a partir dos dados da comanda +
+// dados fiscais da padaria. Fase inicial: cobre o caso comum (Simples Nacional,
+// CSOSN 102, venda dentro do estado, consumidor final não identificado).
+//
+// Simplificações assumidas nessa primeira versão (documentadas pra revisar com o
+// contador antes de ir pra produção de verdade):
+//  - CFOP fixo 5102 (venda de mercadoria de terceiros, dentro do estado)
+//  - NCM genérico 21069090 quando o produto não tem um cadastrado
+//  - CSOSN 102 (Simples Nacional, sem permissão de crédito) pra todos os itens
+const { gerarChaveAcesso, gerarCodigoNumerico } = require('./chaveAcesso');
+
+const FORMA_PAGAMENTO_TPAG = {
+  'Dinheiro': '01',
+  'Crédito': '03',
+  'Débito': '04',
+  'Pix': '17',
+  'Voucher': '99',
+};
+
+function escaparXml(texto) {
+  return String(texto ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+function num2(valor) { return parseFloat(valor || 0).toFixed(2); }
+function num4(valor) { return parseFloat(valor || 0).toFixed(4); }
+
+// padaria: linha da tabela padarias (com os campos nfce_*) · comanda: { itens, total, ... }
+// pagamentos: [{forma_pagamento, valor}] · numero: nNF sequencial · ambiente: 1 ou 2
+function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }) {
+  const agora = new Date();
+  const cUF = 35; // São Paulo
+  const cnpjLimpo = String(padaria.cnpj || '').replace(/\D/g, '');
+  const cNF = gerarCodigoNumerico();
+  const serie = padaria.nfce_serie || 1;
+
+  const chave = gerarChaveAcesso({
+    cUF, dhEmi: agora, cnpj: cnpjLimpo, mod: 65, serie, numero, tpEmi: 1, cNF,
+  });
+
+  const dhEmiIso = agora.toISOString().slice(0, 19) + '-03:00'; // horário de Brasília
+
+  const detXml = itens.map((item, idx) => {
+    const nItem = idx + 1;
+    const qCom = num4(item.quantidade);
+    const vUnCom = num4(item.preco_unitario);
+    const vProd = num2(item.subtotal);
+    return `
+    <det nItem="${nItem}">
+      <prod>
+        <cProd>${escaparXml(item.produto_id || item.id)}</cProd>
+        <cEAN>SEM GTIN</cEAN>
+        <xProd>${escaparXml(item.nome_produto)}</xProd>
+        <NCM>21069090</NCM>
+        <CFOP>5102</CFOP>
+        <uCom>${escaparXml((item.unidade || 'UN').toUpperCase().slice(0, 6))}</uCom>
+        <qCom>${qCom}</qCom>
+        <vUnCom>${vUnCom}</vUnCom>
+        <vProd>${vProd}</vProd>
+        <cEANTrib>SEM GTIN</cEANTrib>
+        <uTrib>${escaparXml((item.unidade || 'UN').toUpperCase().slice(0, 6))}</uTrib>
+        <qTrib>${qCom}</qTrib>
+        <vUnTrib>${vUnCom}</vUnTrib>
+        <indTot>1</indTot>
+      </prod>
+      <imposto>
+        <ICMS><ICMSSN102><orig>0</orig><CSOSN>102</CSOSN></ICMSSN102></ICMS>
+        <PIS><PISNT><CST>07</CST></PISNT></PIS>
+        <COFINS><COFINSNT><CST>07</CST></COFINS></COFINS>
+      </imposto>
+    </det>`;
+  }).join('');
+
+  const vProdTotal = itens.reduce((s, i) => s + parseFloat(i.subtotal), 0);
+  const vDesconto = parseFloat(comanda.desconto || 0);
+  const vAcrescimo = parseFloat(comanda.acrescimo || 0);
+  const vNF = Math.max(0, vProdTotal - vDesconto + vAcrescimo);
+
+  const pagXml = pagamentos.map(p => `
+      <detPag>
+        <tPag>${FORMA_PAGAMENTO_TPAG[p.forma_pagamento] || '99'}</tPag>
+        <vPag>${num2(p.valor)}</vPag>
+      </detPag>`).join('');
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<NFe xmlns="http://www.portalfiscal.inf.br/nfe">
+  <infNFe Id="NFe${chave}" versao="4.00">
+    <ide>
+      <cUF>${cUF}</cUF>
+      <cNF>${cNF}</cNF>
+      <natOp>Venda</natOp>
+      <mod>65</mod>
+      <serie>${serie}</serie>
+      <nNF>${numero}</nNF>
+      <dhEmi>${dhEmiIso}</dhEmi>
+      <tpNF>1</tpNF>
+      <idDest>1</idDest>
+      <cMunFG>${padaria.nfce_codigo_municipio_ibge}</cMunFG>
+      <tpImp>4</tpImp>
+      <tpEmis>1</tpEmis>
+      <cDV>${chave.slice(-1)}</cDV>
+      <tpAmb>${ambiente}</tpAmb>
+      <finNFe>1</finNFe>
+      <indFinal>1</indFinal>
+      <indPres>1</indPres>
+      <procEmi>0</procEmi>
+      <verProc>PanificaPro 1.0</verProc>
+    </ide>
+    <emit>
+      <CNPJ>${cnpjLimpo}</CNPJ>
+      <xNome>${escaparXml(padaria.nome)}</xNome>
+      <enderEmit>
+        <xLgr>${escaparXml(padaria.nfce_logradouro)}</xLgr>
+        <nro>${escaparXml(padaria.nfce_numero)}</nro>
+        <xBairro>${escaparXml(padaria.nfce_bairro)}</xBairro>
+        <cMun>${padaria.nfce_codigo_municipio_ibge}</cMun>
+        <xMun>${escaparXml(padaria.nfce_municipio)}</xMun>
+        <UF>${padaria.nfce_uf}</UF>
+        <CEP>${String(padaria.nfce_cep || '').replace(/\D/g, '')}</CEP>
+        <cPais>1058</cPais>
+        <xPais>Brasil</xPais>
+      </enderEmit>
+      <IE>${String(padaria.nfce_inscricao_estadual || '').replace(/\D/g, '')}</IE>
+      <CRT>1</CRT>
+    </emit>
+    ${detXml}
+    <total>
+      <ICMSTot>
+        <vBC>0.00</vBC>
+        <vICMS>0.00</vICMS>
+        <vICMSDeson>0.00</vICMSDeson>
+        <vFCP>0.00</vFCP>
+        <vBCST>0.00</vBCST>
+        <vST>0.00</vST>
+        <vFCPST>0.00</vFCPST>
+        <vFCPSTRet>0.00</vFCPSTRet>
+        <vProd>${num2(vProdTotal)}</vProd>
+        <vFrete>0.00</vFrete>
+        <vSeg>0.00</vSeg>
+        <vDesc>${num2(vDesconto)}</vDesc>
+        <vII>0.00</vII>
+        <vIPI>0.00</vIPI>
+        <vIPIDevol>0.00</vIPIDevol>
+        <vPIS>0.00</vPIS>
+        <vCOFINS>0.00</vCOFINS>
+        <vOutro>${num2(vAcrescimo)}</vOutro>
+        <vNF>${num2(vNF)}</vNF>
+      </ICMSTot>
+    </total>
+    <transp><modFrete>9</modFrete></transp>
+    <pag>${pagXml}
+    </pag>
+    <infAdic>
+      <infCpl>Comanda ${escaparXml(comanda.identificador)} — emitido via PanificaPro</infCpl>
+    </infAdic>
+  </infNFe>
+</NFe>`;
+
+  return { xml, chave, cNF, dhEmi: agora };
+}
+
+module.exports = { montarXmlNFCe };

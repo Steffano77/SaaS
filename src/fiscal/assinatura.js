@@ -1,0 +1,36 @@
+// Assina digitalmente o XML da NFC-e usando o certificado da padaria (padrão
+// XMLDSig exigido pela Sefaz — assinatura no elemento <infNFe> dentro do <NFe>).
+const { SignedXml } = require('xml-crypto');
+
+// certPem/keyPem vêm do certificado.js (carregarCertificado). xml: string do montarXmlNFCe.
+function assinarXmlNFCe(xml, { certPem, keyPem }) {
+  const idMatch = xml.match(/<infNFe Id="([^"]+)"/);
+  if (!idMatch) throw new Error('Não achei o Id do infNFe pra assinar — XML mal formado.');
+  const id = idMatch[1];
+
+  const sig = new SignedXml({
+    privateKey: keyPem,
+    publicCert: certPem,
+    getKeyInfoContent: () => `<X509Data><X509Certificate>${certPem.replace(/-----[^-]+-----|\n/g, '')}</X509Certificate></X509Data>`,
+  });
+
+  sig.addReference({
+    xpath: `//*[@Id='${id}']`,
+    transforms: [
+      'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
+      'http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
+    ],
+    digestAlgorithm: 'http://www.w3.org/2000/09/xmldsig#sha1',
+    uri: `#${id}`,
+  });
+  sig.signatureAlgorithm = 'http://www.w3.org/2000/09/xmldsig#rsa-sha1';
+  sig.canonicalizationAlgorithm = 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315';
+
+  sig.computeSignature(xml, {
+    location: { reference: `//*[local-name(.)='infNFe']`, action: 'after' },
+  });
+
+  return sig.getSignedXml();
+}
+
+module.exports = { assinarXmlNFCe };
