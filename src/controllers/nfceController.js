@@ -51,7 +51,9 @@ exports.emitirParaComanda = async (req, res) => {
       chave, ambiente: ambienteNum, dhEmi, vNF: vNF.toFixed(2), digestValue,
       csc: padaria.nfce_csc, idCsc: padaria.nfce_id_csc,
     });
-    const xmlAssinado = xmlComAssinatura.replace('</NFe>', `${infNFeSupl}\n</NFe>`);
+    // Ordem exigida pelo schema oficial: infNFe, infNFeSupl, Signature (nessa ordem) —
+    // por isso insere logo depois de </infNFe>, empurrando a assinatura pra depois.
+    const xmlAssinado = xmlComAssinatura.replace('</infNFe>', `</infNFe>${infNFeSupl}`);
     // debug — salva pra validar contra o XSD oficial, remover depois de resolver
     const xmlSemDeclaracao = xmlAssinado.replace(/<\?xml[^>]*\?>/, '');
     const envi = `<?xml version="1.0" encoding="UTF-8"?><enviNFe xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00"><idLote>1</idLote><indSinc>1</indSinc>${xmlSemDeclaracao}</enviNFe>`;
