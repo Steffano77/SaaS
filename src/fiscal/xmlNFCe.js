@@ -190,6 +190,9 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
         <vOutro>${num2(vAcrescimo)}</vOutro>
         <vNF>${num2(vNF)}</vNF>
       </ICMSTot>
+      <IBSCBSTot>
+        <vBCIBSCBS>${num2(vProdTotal)}</vBCIBSCBS>
+      </IBSCBSTot>
     </total>
     <transp><modFrete>9</modFrete></transp>
     <pag>${pagXml}
