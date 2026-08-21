@@ -93,11 +93,23 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
         <COFINS><COFINSNT><CST>07</CST></COFINSNT></COFINS>
         <IBSCBS>
           <CST>102</CST>
-          <vBC>${vProd}</vBC>
-          <pIBS>0.10</pIBS>
-          <vIBS>${(parseFloat(vProd) * 0.001).toFixed(2)}</vIBS>
-          <pCBS>0.90</pCBS>
-          <vCBS>${(parseFloat(vProd) * 0.009).toFixed(2)}</vCBS>
+          <cClassTrib>000001</cClassTrib>
+          <gIBSCBS>
+            <vBC>${vProd}</vBC>
+            <gIBSUF>
+              <pIBSUF>0.10</pIBSUF>
+              <vIBSUF>${(parseFloat(vProd) * 0.001).toFixed(2)}</vIBSUF>
+            </gIBSUF>
+            <gIBSMun>
+              <pIBSMun>0.00</pIBSMun>
+              <vIBSMun>0.00</vIBSMun>
+            </gIBSMun>
+            <vIBS>${(parseFloat(vProd) * 0.001).toFixed(2)}</vIBS>
+            <gCBS>
+              <pCBS>0.90</pCBS>
+              <vCBS>${(parseFloat(vProd) * 0.009).toFixed(2)}</vCBS>
+            </gCBS>
+          </gIBSCBS>
         </IBSCBS>
       </imposto>
     </det>`;
