@@ -3,12 +3,11 @@
 // Sefaz autentica quem está mandando a nota.
 const https = require('https');
 
-// Domínio específico pra NFC-e (nfce.*), diferente do usado pra nota fiscal comum
-// (nfe.*) — usar o errado faz a Sefaz processar tudo, mas rejeitar no fim dizendo
-// "Modelo da NF-e diferente de 55" (achava que era nota comum, não de consumidor).
+// O domínio nfce.* não tem esse caminho (deu 404) — volta pro nfe.*, que já estava
+// processando e respondendo de verdade (o erro "modelo diferente de 55" era outra coisa).
 const URLS = {
-  homologacao: 'www.homologacao.nfce.fazenda.sp.gov.br',
-  producao: 'www.nfce.fazenda.sp.gov.br',
+  homologacao: 'homologacao.nfe.fazenda.sp.gov.br',
+  producao: 'nfe.fazenda.sp.gov.br',
 };
 
 function montarEnvelopeSoap(xmlAssinado, ambiente) {
