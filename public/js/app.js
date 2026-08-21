@@ -5309,6 +5309,29 @@ function refazerPagamentos() {
   atualizarPagamentoUI();
 }
 
+// NFC-e ainda em homologação (teste) — só oferece o botão de emitir pras padarias
+// que já configuraram certificado fiscal, pra não incomodar quem ainda não usa isso.
+let _fiscalConfiguradoCache = null;
+async function fiscalConfigurado() {
+  if (_fiscalConfiguradoCache === null) {
+    try {
+      const r = await api('/fiscal/certificado/status');
+      _fiscalConfiguradoCache = !!(r && r.configurado && r.valido);
+    } catch (e) { _fiscalConfiguradoCache = false; }
+  }
+  return _fiscalConfiguradoCache;
+}
+
+async function emitirNotaFiscalComanda(comandaId) {
+  mostrarToast('Emitindo nota fiscal...');
+  const nf = await api(`/fiscal/nfce/comanda/${comandaId}`, { method: 'POST' });
+  if (nf && nf.ok) {
+    mostrarToast(`Nota fiscal autorizada! Protocolo ${nf.protocolo}`);
+  } else if (nf) {
+    mostrarToast(`Nota fiscal rejeitada: ${nf.motivo || 'erro desconhecido'}`);
+  }
+}
+
 async function finalizarVendaUI() {
   if (!comandaAtualId || !comandaPagamentosPendentes.length) return;
   if (MODO_OFFLINE) { mostrarToast('Sem conexão — aguarda a internet voltar pra cobrar.', 'warn'); return; }
@@ -5327,8 +5350,14 @@ async function finalizarVendaUI() {
   mostrarToast(`Comanda fechada — ${formaResumo}!`, 'ok');
   fecharModalComanda();
   await carregarComandas();
+  const comandaFechadaId = comandaAtualId;
   if (snapshot && confirm('Imprimir o recibo dessa comanda?')) {
     imprimirReciboComanda(snapshot, formaResumo);
+  }
+  if (await fiscalConfigurado()) {
+    if (confirm('Emitir Nota Fiscal (NFC-e) dessa comanda? (ainda em ambiente de teste — não vale legalmente)')) {
+      await emitirNotaFiscalComanda(comandaFechadaId);
+    }
   }
   // Venda de balcão: volta direto pra uma tela em branco, pronta pro próximo cliente
   // (fluxo contínuo, sem precisar passar pela lista de comandas de novo).
