@@ -5351,13 +5351,15 @@ async function finalizarVendaUI() {
   mostrarToast(`Comanda fechada — ${formaResumo}!`, 'ok');
   fecharModalComanda();
   await carregarComandas();
-  if (snapshot && confirm('Imprimir o recibo dessa comanda?')) {
-    imprimirReciboComanda(snapshot, formaResumo);
-  }
+  // Pergunta a nota fiscal ANTES de abrir a janela de impressão — a janela de
+  // impressão fica na frente e escondia esse aviso atrás dela.
   if (await fiscalConfigurado()) {
     if (confirm('Emitir Nota Fiscal (NFC-e) dessa comanda? (ainda em ambiente de teste — não vale legalmente)')) {
       await emitirNotaFiscalComanda(comandaFechadaId);
     }
+  }
+  if (snapshot && confirm('Imprimir o recibo dessa comanda?')) {
+    imprimirReciboComanda(snapshot, formaResumo);
   }
   // Venda de balcão: volta direto pra uma tela em branco, pronta pro próximo cliente
   // (fluxo contínuo, sem precisar passar pela lista de comandas de novo).
