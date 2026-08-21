@@ -65,7 +65,7 @@ exports.corrigirColunasFiscais = async (req, res) => {
     "ALTER TABLE padarias ADD COLUMN nfce_proximo_numero INT NOT NULL DEFAULT 1",
     "ALTER TABLE padarias ADD COLUMN nfce_ambiente TINYINT NOT NULL DEFAULT 2",
     "ALTER TABLE padarias ADD COLUMN nfce_ativo TINYINT(1) NOT NULL DEFAULT 0",
-    "ALTER TABLE padarias ADD COLUMN nfce_csc VARCHAR(60) NULL",
+    "ALTER TABLE padarias ADD COLUMN nfce_csc VARCHAR(255) NULL",
     "ALTER TABLE padarias ADD COLUMN nfce_id_csc INT NULL",
   ];
   const resultado = [];
