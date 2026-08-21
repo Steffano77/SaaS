@@ -4898,7 +4898,6 @@ function renderItensComanda(c) {
         <div class="cmd-item-qtdpreco">${fmtQtd(i.quantidade)} ${i.unidade} × ${fmtMoeda(i.preco_unitario)}</div>
         <div class="cmd-item-direita">
           <span class="cmd-item-subtotal">${fmtMoeda(i.subtotal)}</span>
-          ${c.status === 'aberta' ? `<button class="btn-icon" onclick="removerItemComandaUI('${i.id}')">✕</button>` : ''}
         </div>
       </div>
     `).join('')
