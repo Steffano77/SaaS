@@ -9,18 +9,11 @@ const URLS = {
 };
 
 function montarEnvelopeSoap(xmlAssinado, ambiente) {
-  return `<?xml version="1.0" encoding="utf-8"?>
-<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
-  <soap12:Body>
-    <nfeDadosMsg xmlns="http://www.portalfiscal.inf.br/nfe/wsdl/NFeAutorizacao4">
-      <enviNFe xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
-        <idLote>${Date.now()}</idLote>
-        <indSinc>1</indSinc>
-        ${xmlAssinado.replace('<?xml version="1.0" encoding="UTF-8"?>', '')}
-      </enviNFe>
-    </nfeDadosMsg>
-  </soap12:Body>
-</soap12:Envelope>`;
+  // A Sefaz rejeita (cStat 588) qualquer espaço/quebra de linha "de edição" entre as
+  // tags — não basta o XML ser válido, precisa estar 100% compacto, sem sobra nenhuma.
+  const nfeSemDeclaracao = xmlAssinado.replace(/<\?xml[^>]*\?>/, '').replace(/>\s+</g, '><').trim();
+  const envelope = `<?xml version="1.0" encoding="utf-8"?><soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope"><soap12:Body><nfeDadosMsg xmlns="http://www.portalfiscal.inf.br/nfe/wsdl/NFeAutorizacao4"><enviNFe xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00"><idLote>${Date.now()}</idLote><indSinc>1</indSinc>${nfeSemDeclaracao}</enviNFe></nfeDadosMsg></soap12:Body></soap12:Envelope>`;
+  return envelope;
 }
 
 // ambiente: 'homologacao' | 'producao' · certPem/keyPem: do certificado da padaria.
