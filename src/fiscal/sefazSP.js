@@ -44,16 +44,28 @@ function enviarNFCe({ xmlAssinado, ambiente, certPem, keyPem }) {
         'Content-Type': 'application/soap+xml; charset=utf-8',
         'Content-Length': Buffer.byteLength(body),
       },
-      timeout: 30000,
+      timeout: 15000,
     };
+
+    // Trava de segurança extra: garante que a Promise SEMPRE resolve ou rejeita dentro
+    // de um tempo máximo, mesmo se o evento 'timeout' do socket não disparar por algum
+    // motivo (evita ficar pendurado pra sempre igual aconteceu numa tentativa anterior).
+    let finalizado = false;
+    const travaSeguranca = setTimeout(() => {
+      if (finalizado) return;
+      finalizado = true;
+      req.destroy();
+      reject(new Error('Tempo esgotado (trava de segurança) esperando resposta da Sefaz.'));
+    }, 20000);
+    const finalizarComo = (fn, valor) => { if (finalizado) return; finalizado = true; clearTimeout(travaSeguranca); fn(valor); };
 
     const req = https.request(options, (res) => {
       let dados = '';
       res.on('data', (chunk) => { dados += chunk; });
-      res.on('end', () => resolve({ statusCode: res.statusCode, corpo: dados, envelopeEnviado: body }));
+      res.on('end', () => finalizarComo(resolve, { statusCode: res.statusCode, corpo: dados, envelopeEnviado: body }));
     });
-    req.on('error', reject);
-    req.on('timeout', () => { req.destroy(); reject(new Error('Tempo esgotado esperando resposta da Sefaz.')); });
+    req.on('error', (e) => finalizarComo(reject, e));
+    req.on('timeout', () => { req.destroy(); finalizarComo(reject, new Error('Tempo esgotado esperando resposta da Sefaz.')); });
     req.write(body);
     req.end();
   });
