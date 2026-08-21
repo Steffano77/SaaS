@@ -140,9 +140,12 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
     // A Sefaz-SP também cobrou a bandeira (tBand) na prática, mesmo o schema marcando
     // como opcional — usa 99 (Outros) já que não temos essa informação da maquininha física.
     const cardXml = (tPag === '03' || tPag === '04') ? '<card><tpIntegra>2</tpIntegra><tBand>99</tBand></card>' : '';
+    // Meio de pagamento "99 - Outros" (ex: Voucher) exige uma descrição textual —
+    // usa o próprio nome da forma de pagamento cadastrada na comanda.
+    const xPagXml = tPag === '99' ? `<xPag>${escaparXml(p.forma_pagamento || 'Outros')}</xPag>` : '';
     return `
       <detPag>
-        <tPag>${tPag}</tPag>
+        <tPag>${tPag}</tPag>${xPagXml}
         <vPag>${num2(p.valor)}</vPag>${cardXml}
       </detPag>`;
   }).join('');
