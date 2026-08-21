@@ -192,6 +192,20 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
       </ICMSTot>
       <IBSCBSTot>
         <vBCIBSCBS>${num2(vProdTotal)}</vBCIBSCBS>
+        <gIBS>
+          <gIBSUF><vDif>0.00</vDif><vDevTrib>0.00</vDevTrib><vIBSUF>${(vProdTotal * 0.001).toFixed(2)}</vIBSUF></gIBSUF>
+          <gIBSMun><vDif>0.00</vDif><vDevTrib>0.00</vDevTrib><vIBSMun>0.00</vIBSMun></gIBSMun>
+          <vIBS>${(vProdTotal * 0.001).toFixed(2)}</vIBS>
+          <vCredPres>0.00</vCredPres>
+          <vCredPresCondSus>0.00</vCredPresCondSus>
+        </gIBS>
+        <gCBS>
+          <vDif>0.00</vDif>
+          <vDevTrib>0.00</vDevTrib>
+          <vCBS>${(vProdTotal * 0.009).toFixed(2)}</vCBS>
+          <vCredPres>0.00</vCredPres>
+          <vCredPresCondSus>0.00</vCredPresCondSus>
+        </gCBS>
       </IBSCBSTot>
     </total>
     <transp><modFrete>9</modFrete></transp>
