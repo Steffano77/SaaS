@@ -120,11 +120,18 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
   const vAcrescimo = parseFloat(comanda.acrescimo || 0);
   const vNF = Math.max(0, vProdTotal - vDesconto + vAcrescimo);
 
-  const pagXml = pagamentos.map(p => `
+  const pagXml = pagamentos.map(p => {
+    const tPag = FORMA_PAGAMENTO_TPAG[p.forma_pagamento] || '99';
+    // Pagamento em cartão (crédito/débito) exige o bloco <card> — como a maquininha
+    // não é integrada eletronicamente ao PanificaPro, usa tpIntegra=2 (não integrado).
+    // Só tpIntegra é obrigatório de fato, o resto (bandeira, autorização) é opcional.
+    const cardXml = (tPag === '03' || tPag === '04') ? '<card><tpIntegra>2</tpIntegra></card>' : '';
+    return `
       <detPag>
-        <tPag>${FORMA_PAGAMENTO_TPAG[p.forma_pagamento] || '99'}</tPag>
-        <vPag>${num2(p.valor)}</vPag>
-      </detPag>`).join('');
+        <tPag>${tPag}</tPag>
+        <vPag>${num2(p.valor)}</vPag>${cardXml}
+      </detPag>`;
+  }).join('');
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <NFe xmlns="http://www.portalfiscal.inf.br/nfe">
