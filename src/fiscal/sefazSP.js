@@ -3,11 +3,11 @@
 // Sefaz autentica quem está mandando a nota.
 const https = require('https');
 
-// O domínio nfce.* não tem esse caminho (deu 404) — volta pro nfe.*, que já estava
-// processando e respondendo de verdade (o erro "modelo diferente de 55" era outra coisa).
+// Confirmado direto na página oficial da Sefaz-SP: domínio nfce.* (sem "www."),
+// mesmo caminho /ws/NFeAutorizacao4.asmx.
 const URLS = {
-  homologacao: 'homologacao.nfe.fazenda.sp.gov.br',
-  producao: 'nfe.fazenda.sp.gov.br',
+  homologacao: 'homologacao.nfce.fazenda.sp.gov.br',
+  producao: 'nfce.fazenda.sp.gov.br',
 };
 
 function montarEnvelopeSoap(xmlAssinado, ambiente) {
