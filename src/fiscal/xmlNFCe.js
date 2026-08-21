@@ -58,11 +58,24 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
   }).formatToParts(agora).reduce((acc, p) => { acc[p.type] = p.value; return acc; }, {});
   const dhEmiIso = `${partesHorario.year}-${partesHorario.month}-${partesHorario.day}T${partesHorario.hour}:${partesHorario.minute}:${partesHorario.second}-03:00`;
 
+  // Importante: o total de IBS/CBS no <total> precisa bater EXATAMENTE com a soma
+  // dos valores por item — se cada item arredonda pra 2 casas separado e o total é
+  // recalculado direto em cima do valor cheio da nota, pode sobrar 1 centavo de
+  // diferença (a Sefaz rejeita: "Total de CBS difere da soma dos itens"). Por isso
+  // calcula o vIBS/vCBS de cada item primeiro, junta num array, e o total da nota
+  // é a SOMA desses valores já arredondados — nunca um cálculo novo em cima do total.
+  let somaVIBS = 0;
+  let somaVCBS = 0;
+
   const detXml = itens.map((item, idx) => {
     const nItem = idx + 1;
     const qCom = num4(item.quantidade);
     const vUnCom = num4(item.preco_unitario);
     const vProd = num2(item.subtotal);
+    const vIBSItem = (parseFloat(vProd) * 0.001).toFixed(2);
+    const vCBSItem = (parseFloat(vProd) * 0.009).toFixed(2);
+    somaVIBS += parseFloat(vIBSItem);
+    somaVCBS += parseFloat(vCBSItem);
     // Exigência da Sefaz: em ambiente de teste (homologação), o 1º item da nota
     // precisa ter esse nome exato — é assim que garantem que ninguém confunde
     // nota de teste com nota de verdade.
@@ -98,16 +111,16 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
             <vBC>${vProd}</vBC>
             <gIBSUF>
               <pIBSUF>0.10</pIBSUF>
-              <vIBSUF>${(parseFloat(vProd) * 0.001).toFixed(2)}</vIBSUF>
+              <vIBSUF>${vIBSItem}</vIBSUF>
             </gIBSUF>
             <gIBSMun>
               <pIBSMun>0.00</pIBSMun>
               <vIBSMun>0.00</vIBSMun>
             </gIBSMun>
-            <vIBS>${(parseFloat(vProd) * 0.001).toFixed(2)}</vIBS>
+            <vIBS>${vIBSItem}</vIBS>
             <gCBS>
               <pCBS>0.90</pCBS>
-              <vCBS>${(parseFloat(vProd) * 0.009).toFixed(2)}</vCBS>
+              <vCBS>${vCBSItem}</vCBS>
             </gCBS>
           </gIBSCBS>
         </IBSCBS>
@@ -200,16 +213,16 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
       <IBSCBSTot>
         <vBCIBSCBS>${num2(vProdTotal)}</vBCIBSCBS>
         <gIBS>
-          <gIBSUF><vDif>0.00</vDif><vDevTrib>0.00</vDevTrib><vIBSUF>${(vProdTotal * 0.001).toFixed(2)}</vIBSUF></gIBSUF>
+          <gIBSUF><vDif>0.00</vDif><vDevTrib>0.00</vDevTrib><vIBSUF>${num2(somaVIBS)}</vIBSUF></gIBSUF>
           <gIBSMun><vDif>0.00</vDif><vDevTrib>0.00</vDevTrib><vIBSMun>0.00</vIBSMun></gIBSMun>
-          <vIBS>${(vProdTotal * 0.001).toFixed(2)}</vIBS>
+          <vIBS>${num2(somaVIBS)}</vIBS>
           <vCredPres>0.00</vCredPres>
           <vCredPresCondSus>0.00</vCredPresCondSus>
         </gIBS>
         <gCBS>
           <vDif>0.00</vDif>
           <vDevTrib>0.00</vDevTrib>
-          <vCBS>${(vProdTotal * 0.009).toFixed(2)}</vCBS>
+          <vCBS>${num2(somaVCBS)}</vCBS>
           <vCredPres>0.00</vCredPres>
           <vCredPresCondSus>0.00</vCredPresCondSus>
         </gCBS>
