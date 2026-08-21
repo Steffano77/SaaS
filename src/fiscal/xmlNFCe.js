@@ -63,12 +63,18 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
     const qCom = num4(item.quantidade);
     const vUnCom = num4(item.preco_unitario);
     const vProd = num2(item.subtotal);
+    // Exigência da Sefaz: em ambiente de teste (homologação), o 1º item da nota
+    // precisa ter esse nome exato — é assim que garantem que ninguém confunde
+    // nota de teste com nota de verdade.
+    const nomeProduto = (Number(ambiente) === 2 && nItem === 1)
+      ? 'NOTA FISCAL EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL'
+      : item.nome_produto;
     return `
     <det nItem="${nItem}">
       <prod>
         <cProd>${escaparXml(item.produto_id || item.id)}</cProd>
         <cEAN>SEM GTIN</cEAN>
-        <xProd>${escaparXml(item.nome_produto)}</xProd>
+        <xProd>${escaparXml(nomeProduto)}</xProd>
         <NCM>21069090</NCM>
         <CFOP>5102</CFOP>
         <uCom>${escaparXml((item.unidade || 'UN').toUpperCase().slice(0, 6))}</uCom>
