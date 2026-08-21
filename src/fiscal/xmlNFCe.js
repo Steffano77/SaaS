@@ -137,8 +137,9 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
     const tPag = FORMA_PAGAMENTO_TPAG[p.forma_pagamento] || '99';
     // Pagamento em cartão (crédito/débito) exige o bloco <card> — como a maquininha
     // não é integrada eletronicamente ao PanificaPro, usa tpIntegra=2 (não integrado).
-    // Só tpIntegra é obrigatório de fato, o resto (bandeira, autorização) é opcional.
-    const cardXml = (tPag === '03' || tPag === '04') ? '<card><tpIntegra>2</tpIntegra></card>' : '';
+    // A Sefaz-SP também cobrou a bandeira (tBand) na prática, mesmo o schema marcando
+    // como opcional — usa 99 (Outros) já que não temos essa informação da maquininha física.
+    const cardXml = (tPag === '03' || tPag === '04') ? '<card><tpIntegra>2</tpIntegra><tBand>99</tBand></card>' : '';
     return `
       <detPag>
         <tPag>${tPag}</tPag>
