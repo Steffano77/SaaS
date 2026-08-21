@@ -54,11 +54,6 @@ exports.emitirParaComanda = async (req, res) => {
     // Ordem exigida pelo schema oficial: infNFe, infNFeSupl, Signature (nessa ordem) —
     // por isso insere logo depois de </infNFe>, empurrando a assinatura pra depois.
     const xmlAssinado = xmlComAssinatura.replace('</infNFe>', `</infNFe>${infNFeSupl}`);
-    // debug — salva pra validar contra o XSD oficial, remover depois de resolver
-    const xmlSemDeclaracao = xmlAssinado.replace(/<\?xml[^>]*\?>/, '');
-    const envi = `<?xml version="1.0" encoding="UTF-8"?><enviNFe xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00"><idLote>1</idLote><indSinc>1</indSinc>${xmlSemDeclaracao}</enviNFe>`;
-    require('fs').writeFileSync('/tmp/xsd/ultima-nfe.xml', xmlAssinado);
-    require('fs').writeFileSync('/tmp/xsd/ultimo-envi.xml', envi);
 
     const [notaResult] = await db.query(
       `INSERT INTO notas_fiscais (padaria_id, comanda_id, numero, serie, chave_acesso, status, ambiente, valor_total, xml_assinado)
@@ -106,8 +101,6 @@ exports.emitirParaComanda = async (req, res) => {
       protocolo: interpretado.nProt,
       chave,
       ambiente: ambienteNum === 1 ? 'produção' : 'homologação (teste, não vale legalmente)',
-      respostaCompleta: respostaSefaz.corpo, // útil pra debugar o primeiro teste
-      envelopeEnviado: respostaSefaz.envelopeEnviado, // idem — remover depois que estiver tudo validado
     });
   } catch (e) {
     console.error('Erro ao emitir NFC-e:', e);
