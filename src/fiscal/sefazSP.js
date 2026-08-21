@@ -69,16 +69,23 @@ function enviarNFCe({ xmlAssinado, ambiente, certPem, keyPem }) {
 // Extrai os campos principais da resposta (protocolo, status, motivo) sem precisar
 // de uma lib de parsing XML completa — a resposta da Sefaz é bem previsível.
 function interpretarResposta(corpoXml) {
-  const pegar = (tag) => {
-    const m = corpoXml.match(new RegExp(`<${tag}>([^<]*)</${tag}>`));
+  const pegar = (tag, dentroDe) => {
+    const m = dentroDe.match(new RegExp(`<${tag}>([^<]*)</${tag}>`));
     return m ? m[1] : null;
   };
+  // O <cStat> do NÍVEL DO LOTE (retEnviNFe) só diz se o lote foi recebido/processado
+  // (ex: 104 "Lote processado") — o resultado de VERDADE da nota fica dentro de
+  // <protNFe><infProt>. Bug corrigido: antes pegava o primeiro <cStat> do XML inteiro,
+  // que é sempre o do lote, fazendo uma nota autorizada (cStat 100) ser salva como
+  // "rejeitada" no banco.
+  const m = corpoXml.match(/<protNFe[\s\S]*?<\/protNFe>/);
+  const blocoProt = m ? m[0] : corpoXml;
   return {
-    cStat: pegar('cStat'),
-    xMotivo: pegar('xMotivo'),
-    nProt: pegar('nProt'),
-    chNFe: pegar('chNFe'),
-    dhRecbto: pegar('dhRecbto'),
+    cStat: pegar('cStat', blocoProt),
+    xMotivo: pegar('xMotivo', blocoProt),
+    nProt: pegar('nProt', blocoProt),
+    chNFe: pegar('chNFe', blocoProt),
+    dhRecbto: pegar('dhRecbto', blocoProt),
   };
 }
 
