@@ -92,7 +92,7 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
         <PIS><PISNT><CST>07</CST></PISNT></PIS>
         <COFINS><COFINSNT><CST>07</CST></COFINSNT></COFINS>
         <IBSCBS>
-          <CST>102</CST>
+          <CST>000</CST>
           <cClassTrib>000001</cClassTrib>
           <gIBSCBS>
             <vBC>${vProd}</vBC>
