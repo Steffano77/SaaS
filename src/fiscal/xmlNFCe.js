@@ -47,7 +47,16 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
     cUF, dhEmi: agora, cnpj: cnpjLimpo, mod: 65, serie, numero, tpEmi: 1, cNF,
   });
 
-  const dhEmiIso = agora.toISOString().slice(0, 19) + '-03:00'; // horário de Brasília
+  // Bug corrigido: toISOString() já devolve o horário em UTC — só grudar "-03:00" no
+  // final SEM converter a hora deixava a data 3h no futuro (a Sefaz rejeitou por isso:
+  // "Data-Hora de Emissão posterior ao horário de recebimento"). Precisa converter de
+  // verdade pro horário de Brasília antes de formatar.
+  const partesHorario = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo', hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  }).formatToParts(agora).reduce((acc, p) => { acc[p.type] = p.value; return acc; }, {});
+  const dhEmiIso = `${partesHorario.year}-${partesHorario.month}-${partesHorario.day}T${partesHorario.hour}:${partesHorario.minute}:${partesHorario.second}-03:00`;
 
   const detXml = itens.map((item, idx) => {
     const nItem = idx + 1;
