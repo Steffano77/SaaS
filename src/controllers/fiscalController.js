@@ -113,6 +113,27 @@ exports.salvarDadosFiscais = async (req, res) => {
   }
 };
 
+// Configura o CSC (Código de Segurança do Contribuinte) — token separado do
+// certificado, gerado no Portal da Sefaz-SP, usado só pra montar/validar o QR Code
+// da NFC-e. Funciona tipo senha: nunca fica em texto puro no banco.
+exports.configurarCsc = async (req, res) => {
+  try {
+    const padaria_id = req.padaria.id;
+    const { csc, id_csc } = req.body;
+    if (!csc || !id_csc) return res.status(400).json({ erro: 'Informe o CSC e o idCSC.' });
+
+    const cscCriptografado = criptografar(csc);
+    await db.query(
+      `UPDATE padarias SET nfce_csc = ?, nfce_id_csc = ? WHERE id = ?`,
+      [cscCriptografado, id_csc, padaria_id]
+    );
+    res.json({ ok: true, mensagem: 'CSC configurado com sucesso!' });
+  } catch (e) {
+    console.error('Erro ao configurar CSC:', e);
+    res.status(500).json({ erro: 'Erro interno.' });
+  }
+};
+
 // Mostra o status atual (sem nunca devolver a senha)
 exports.statusCertificado = async (req, res) => {
   try {

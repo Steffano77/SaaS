@@ -8,6 +8,7 @@ const { montarXmlNFCe } = require('../fiscal/xmlNFCe');
 const { assinarXmlNFCe } = require('../fiscal/assinatura');
 const { enviarNFCe, interpretarResposta } = require('../fiscal/sefazSP');
 const { montarInfNFeSupl } = require('../fiscal/qrcode');
+const { descriptografar } = require('../fiscal/criptografia');
 
 exports.emitirParaComanda = async (req, res) => {
   const padaria_id = req.padaria.id;
@@ -46,8 +47,9 @@ exports.emitirParaComanda = async (req, res) => {
 
     const { xmlAssinado: xmlComAssinatura, digestValue } = assinarXmlNFCe(xml, { certPem: cert.certPem, keyPem: cert.keyPem });
 
+    const cscTexto = padaria.nfce_csc ? descriptografar(padaria.nfce_csc) : null;
     const infNFeSupl = montarInfNFeSupl({
-      chave, ambiente: ambienteNum, csc: padaria.nfce_csc, idCsc: padaria.nfce_id_csc,
+      chave, ambiente: ambienteNum, csc: cscTexto, idCsc: padaria.nfce_id_csc,
     });
     // Ordem exigida pelo schema oficial: infNFe, infNFeSupl, Signature (nessa ordem) —
     // por isso insere logo depois de </infNFe>, empurrando a assinatura pra depois.
