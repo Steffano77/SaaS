@@ -5341,6 +5341,7 @@ async function finalizarVendaUI() {
   }
   const resumo = comandaPagamentosPendentes.map(p => `${p.forma_pagamento}: ${fmtMoeda(p.valor)}`).join(' + ');
   if (!confirm(`Confirmar recebimento — ${resumo}?`)) return;
+  const comandaFechadaId = comandaAtualId; // guarda ANTES de fechar o modal, que zera comandaAtualId
   const snapshot = comandaAtualDados; // guarda os itens antes de fechar, pro recibo
   const formaResumo = comandaPagamentosPendentes.map(p => p.forma_pagamento).join(' + ');
   const r = await api(`/comandas/${comandaAtualId}/fechar`, { method: 'POST', body: { pagamentos: comandaPagamentosPendentes, caixa_id: CAIXA_LOCAL_ID } });
@@ -5350,7 +5351,6 @@ async function finalizarVendaUI() {
   mostrarToast(`Comanda fechada — ${formaResumo}!`, 'ok');
   fecharModalComanda();
   await carregarComandas();
-  const comandaFechadaId = comandaAtualId;
   if (snapshot && confirm('Imprimir o recibo dessa comanda?')) {
     imprimirReciboComanda(snapshot, formaResumo);
   }
