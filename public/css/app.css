@@ -943,6 +943,10 @@
       font-weight: 700;
       letter-spacing: -0.3px;
       flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .hamburger {
       display: flex;
@@ -2580,7 +2584,7 @@ tr.tr-saida td { color: var(--red-600); }
 
 .cmd-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 14px;
 }
 .cmd-vazio { color: var(--slate-400); font-size: 13.5px; padding: 10px 2px; grid-column: 1 / -1; }
