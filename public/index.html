@@ -235,6 +235,10 @@
         <span class="nav-label" translate="no">Encomendas</span>
         <span class="nav-badge" style="background:#7c3aed;color:#fff;font-size:10px;padding:2px 6px;border-radius:6px;margin-left:auto;">PREMIUM</span>
       </button>
+      <button class="sidebar-link" onclick="mostrarPagina('equipe');fecharSidebar()" spellcheck="false" autocorrect="off" autocapitalize="off">
+        <span class="nav-icon">👥</span>
+        <span class="nav-label" translate="no">Equipe</span>
+      </button>
       <button class="sidebar-link" onclick="mostrarPagina('financeiro');fecharSidebar()" spellcheck="false" autocorrect="off" autocapitalize="off">
         <span class="nav-icon">💰</span>
         <span class="nav-label" translate="no">Financeiro</span>
@@ -763,6 +767,49 @@
       <h3 class="cmd-secao-titulo" style="margin-top:24px;">Histórico recente</h3>
       <div id="enc-lista-recentes" class="enc-grid"></div>
     </section>
+
+    <!-- EQUIPE -->
+    <section id="pg-equipe" class="hidden page-section">
+      <div class="page-header">
+        <h2 class="page-title">👥 Equipe</h2>
+        <div class="page-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button onclick="abrirModalNovoAtendente()" class="btn-primary">+ Novo atendente</button>
+        </div>
+      </div>
+      <p style="color:var(--slate-500);font-size:13px;margin:-8px 0 18px;">
+        Cada pessoa que trabalha no caixa/balcão tem seu próprio PIN de 4 números pra fazer login no tablet.
+        O papel decide o que ela pode fazer: <strong>atendente</strong> só lança comanda,
+        <strong>caixa</strong> também abre/fecha caixa, <strong>gerente</strong> também exclui item e cancela comanda.
+      </p>
+      <div id="equipe-lista" class="cmd-grid"></div>
+    </section>
+
+    <!-- Modal: novo atendente -->
+    <div id="modal-novo-atendente" class="modal-overlay hidden">
+      <div class="modal-box" style="max-width:400px;">
+        <div class="modal-header">
+          <span class="modal-title">+ Novo atendente</span>
+          <button onclick="fecharModal('modal-novo-atendente')" class="btn-icon">✕</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nome</label>
+          <input type="text" id="equipe-nome" class="form-control" placeholder="Ex: Maria"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">PIN (4 números, pra fazer login no tablet)</label>
+          <input type="text" id="equipe-pin" class="form-control" inputmode="numeric" maxlength="4" placeholder="0000"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Papel</label>
+          <select id="equipe-papel" class="form-control">
+            <option value="atendente">Atendente — só lança comanda</option>
+            <option value="caixa">Caixa — também abre/fecha caixa</option>
+            <option value="gerente">Gerente — também exclui item e cancela comanda</option>
+          </select>
+        </div>
+        <button onclick="salvarNovoAtendente()" class="btn-primary full">Cadastrar</button>
+      </div>
+    </div>
 
     <!-- Modal: nova/editar encomenda -->
     <div id="modal-encomenda" class="modal-overlay hidden">
@@ -1733,7 +1780,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260824j"></script>
+<script src="/js/app.js?v=20260824k"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

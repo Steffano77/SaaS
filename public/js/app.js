@@ -404,7 +404,7 @@ function sair() {
 }
 
 // ── Navegação ───────────────────────────────────────────────
-const paginas = ['dashboard','estoque','compras','fornecedores','fichas','producao','relatorios','comandas','encomendas','financeiro','sync','planos','404'];
+const paginas = ['dashboard','estoque','compras','fornecedores','fichas','producao','relatorios','comandas','encomendas','equipe','financeiro','sync','planos','404'];
 const PAGINAS_PRO      = ['relatorios', 'fichas'];
 const PAGINAS_PREMIUM  = ['producao', 'financeiro', 'comandas', 'encomendas'];
 
@@ -447,6 +447,7 @@ function mostrarPagina(pg, pushHistory = true) {
   if (pg === 'producao')       { carregarProducao(); }
   if (pg === 'comandas')       { carregarComandas(); abrirTelaVendaBalcao(); }
   if (pg === 'encomendas')     { carregarEncomendas(); }
+  if (pg === 'equipe')         { carregarEquipe(); }
 }
 
 // ── PIN Financeiro ───────────────────────────────────────────
@@ -4677,7 +4678,70 @@ function imprimirFechamentoCaixa(caixa, informado, diferenca) {
   `);
 }
 
-/* ===================== ATENDENTES ===================== */
+/* ===================== EQUIPE (tela própria de gerenciar atendentes) ===================== */
+const PAPEL_LABEL = { atendente: 'Atendente', caixa: 'Caixa', gerente: 'Gerente' };
+const PAPEL_COR = { atendente: '#64748b', caixa: '#2563eb', gerente: '#f97316' };
+
+async function carregarEquipe() {
+  const lista = await api('/atendentes');
+  const el = document.getElementById('equipe-lista');
+  if (!lista || !lista.length) {
+    el.innerHTML = `<div class="cmd-vazio">Nenhum atendente cadastrado ainda.</div>`;
+    return;
+  }
+  el.innerHTML = lista.map(a => `
+    <div class="cmd-item-linha">
+      <div class="cmd-item-nome">
+        <strong>${a.nome}</strong>
+        <span class="cmd-item-numero" style="color:${PAPEL_COR[a.role] || '#64748b'};font-weight:700;">${PAPEL_LABEL[a.role] || a.role}</span>
+      </div>
+      <div class="cmd-item-direita" style="gap:6px;">
+        <select class="form-control" style="width:auto;font-size:12px;padding:4px 8px;" onchange="trocarPapelAtendente(${a.id}, this.value)">
+          <option value="atendente" ${a.role === 'atendente' ? 'selected' : ''}>Atendente</option>
+          <option value="caixa" ${a.role === 'caixa' ? 'selected' : ''}>Caixa</option>
+          <option value="gerente" ${a.role === 'gerente' ? 'selected' : ''}>Gerente</option>
+        </select>
+        <button class="btn-icon" title="Desativar" onclick="desativarAtendenteUI(${a.id}, '${a.nome.replace(/'/g,"\\'")}')">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function abrirModalNovoAtendente() {
+  document.getElementById('equipe-nome').value = '';
+  document.getElementById('equipe-pin').value = '';
+  document.getElementById('equipe-papel').value = 'atendente';
+  document.getElementById('modal-novo-atendente').classList.remove('hidden');
+}
+
+async function salvarNovoAtendente() {
+  const nome = document.getElementById('equipe-nome').value.trim();
+  const pin = document.getElementById('equipe-pin').value.trim();
+  const role = document.getElementById('equipe-papel').value;
+  if (!nome) { mostrarToast('Informe o nome.', 'warn'); return; }
+  if (!/^\d{4}$/.test(pin)) { mostrarToast('PIN precisa ter exatamente 4 números.', 'warn'); return; }
+  const r = await api('/atendentes', { method: 'POST', body: { nome, pin, role } });
+  if (!r) return;
+  mostrarToast(`${nome} cadastrado(a) como ${PAPEL_LABEL[role]}!`, 'ok');
+  fecharModal('modal-novo-atendente');
+  await carregarEquipe();
+}
+
+async function trocarPapelAtendente(id, role) {
+  const r = await api(`/atendentes/${id}/papel`, { method: 'POST', body: { role } });
+  if (!r) return;
+  mostrarToast('Papel atualizado!', 'ok');
+}
+
+async function desativarAtendenteUI(id, nome) {
+  if (!confirm(`Desativar ${nome}? Ela(e) não vai mais conseguir fazer login.`)) return;
+  const r = await api(`/atendentes/${id}`, { method: 'DELETE' });
+  if (!r) return;
+  mostrarToast('Atendente desativado.', 'ok');
+  await carregarEquipe();
+}
+
+/* ===================== ATENDENTES (select rápido, usado ao abrir caixa) ===================== */
 let atendentesCache = [];
 
 async function carregarAtendentesSelect(selectId) {
