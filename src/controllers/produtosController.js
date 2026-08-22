@@ -78,7 +78,7 @@ function validarNumerosProduto(body) {
 
 exports.criar = async (req, res) => {
   try {
-    const { codigo_barras, codigo_balanca, nome, unidade, categoria_id, fornecedor_id, custo_unitario,
+    const { codigo_barras, codigo_balanca, ncm, nome, unidade, categoria_id, fornecedor_id, custo_unitario,
             preco_venda, estoque_atual, estoque_minimo, validade,
             embalagem_preco, embalagem_qtd } = req.body;
     if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório.' });
@@ -94,11 +94,11 @@ exports.criar = async (req, res) => {
     }
 
     const [result] = await db.query(
-      `INSERT INTO produtos (padaria_id, categoria_id, fornecedor_id, codigo_barras, codigo_balanca, nome, unidade,
+      `INSERT INTO produtos (padaria_id, categoria_id, fornecedor_id, codigo_barras, codigo_balanca, ncm, nome, unidade,
         custo_unitario, preco_venda, estoque_atual, estoque_minimo, validade,
         embalagem_preco, embalagem_qtd)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [req.padaria.id, categoria_id || null, fornecedor_id || null, codigo_barras || null, codigo_balanca || null, nome,
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [req.padaria.id, categoria_id || null, fornecedor_id || null, codigo_barras || null, codigo_balanca || null, ncm || null, nome,
        unidade || 'UNIDADE', custo_unitario || 0, preco_venda || 0,
        estoque_atual || 0, estoque_minimo || 0, validade || null,
        embalagem_preco || null, embalagem_qtd || null]
@@ -116,7 +116,7 @@ exports.atualizar = async (req, res) => {
     const erroNumero = validarNumerosProduto(req.body);
     if (erroNumero) return res.status(400).json({ erro: erroNumero });
 
-    const campos = ['codigo_barras','codigo_balanca','nome','unidade','categoria_id','fornecedor_id',
+    const campos = ['codigo_barras','codigo_balanca','ncm','nome','unidade','categoria_id','fornecedor_id',
                     'custo_unitario','preco_venda','estoque_atual','estoque_minimo','validade','ultima_compra',
                     'embalagem_preco','embalagem_qtd','venda_rapida','controla_estoque'];
     const sets = []; const vals = [];

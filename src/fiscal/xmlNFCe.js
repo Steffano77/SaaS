@@ -88,7 +88,7 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
         <cProd>${escaparXml(item.produto_id || item.id)}</cProd>
         <cEAN>SEM GTIN</cEAN>
         <xProd>${escaparXml(nomeProduto)}</xProd>
-        <NCM>21069090</NCM>
+        <NCM>${(item.ncm_produto || '').replace(/\D/g, '') || '21069090'}</NCM>
         <CFOP>5102</CFOP>
         <uCom>${escaparXml((item.unidade || 'UN').toUpperCase().slice(0, 6))}</uCom>
         <qCom>${qCom}</qCom>

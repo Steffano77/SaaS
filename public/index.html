@@ -1573,6 +1573,10 @@
             <input type="text" id="prod-cod-balanca" placeholder="Ex: 052000" maxlength="10" class="form-control"/>
           </div>
           <div class="form-group">
+            <label>NCM <span style="color:var(--slate-400);font-weight:400;">(opcional, pra nota fiscal — mesmo código do Saurus)</span></label>
+            <input type="text" id="prod-ncm" placeholder="Ex: 19059090" maxlength="10" class="form-control"/>
+          </div>
+          <div class="form-group">
             <label>Unidade</label>
             <select id="prod-unidade" class="form-control" onchange="atualizarLabelEmbalagem()">
               <option>UNIDADE</option><option>KG</option><option>LITRO</option>
@@ -1712,7 +1716,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260821d"></script>
+<script src="/js/app.js?v=20260824a"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

@@ -3172,6 +3172,7 @@ async function editarProduto(id) {
   document.getElementById('prod-nome').value    = p.nome;
   document.getElementById('prod-cod').value     = p.codigo_barras || '';
   document.getElementById('prod-cod-balanca').value = p.codigo_balanca || '';
+  document.getElementById('prod-ncm').value = p.ncm || '';
   document.getElementById('prod-unidade').value = p.unidade;
   document.getElementById('prod-minimo').value  = Math.round(p.estoque_minimo || 0);
   document.getElementById('prod-custo').value   = parseFloat(p.custo_unitario || 0).toFixed(4);
@@ -3280,6 +3281,7 @@ async function salvarProduto(e) {
     nome:          document.getElementById('prod-nome').value,
     codigo_barras: document.getElementById('prod-cod').value || null,
     codigo_balanca: document.getElementById('prod-cod-balanca').value.trim() || null,
+    ncm:           document.getElementById('prod-ncm').value.trim().replace(/\D/g, '') || null,
     unidade:       document.getElementById('prod-unidade').value,
     categoria_id:  document.getElementById('prod-categoria').value || null,
     fornecedor_id: document.getElementById('prod-fornecedor').value || null,

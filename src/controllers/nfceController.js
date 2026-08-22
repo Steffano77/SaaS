@@ -29,7 +29,14 @@ exports.emitirParaComanda = async (req, res) => {
 
     const [[comanda]] = await db.query(`SELECT * FROM comandas WHERE id = ? AND padaria_id = ?`, [comanda_id, padaria_id]);
     if (!comanda) return res.status(404).json({ erro: 'Comanda não encontrada.' });
-    const [itens] = await db.query(`SELECT * FROM itens_comanda WHERE comanda_id = ?`, [comanda_id]);
+    // Traz o NCM cadastrado no produto (join) — a nota usa ele quando tiver, e só cai
+    // no código genérico (dentro do montarXmlNFCe) se o produto não tiver NCM definido.
+    const [itens] = await db.query(
+      `SELECT ic.*, p.ncm AS ncm_produto FROM itens_comanda ic
+       LEFT JOIN produtos p ON p.id = ic.produto_id
+       WHERE ic.comanda_id = ?`,
+      [comanda_id]
+    );
     if (!itens.length) return res.status(400).json({ erro: 'Comanda sem itens.' });
 
     const [pagamentos] = await db.query(`SELECT * FROM comanda_pagamentos WHERE comanda_id = ?`, [comanda_id]);

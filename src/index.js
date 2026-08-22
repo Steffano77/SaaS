@@ -254,6 +254,10 @@ app.use(express.static(path.join(__dirname, '../public')));
       'ALTER TABLE produtos ADD COLUMN codigo_balanca VARCHAR(10) NULL',
       'ALTER TABLE produtos ADD INDEX idx_produtos_codigo_balanca (padaria_id, codigo_balanca)',
 
+      // NCM (Nomenclatura Comum do Mercosul) — classificação fiscal do produto, usada
+      // na nota fiscal (NFC-e). Sem isso, a nota usa um código genérico como reserva.
+      'ALTER TABLE produtos ADD COLUMN ncm VARCHAR(10) NULL',
+
       // ── NFC-e (Fase 1: cadastro fiscal + estrutura de notas) ──
       // Dados que precisam estar corretos na padaria pra emitir nota — sem isso a Sefaz rejeita.
       "ALTER TABLE padarias ADD COLUMN nfce_inscricao_estadual VARCHAR(20) NULL",
