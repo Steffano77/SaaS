@@ -245,47 +245,62 @@ exports.fechar = async (req, res) => {
   // a comanda foi aberta sem informar ninguém (fluxo antigo/rápido).
   const atendente = comanda.atendente || caixa.atendente;
 
-  // Grava cada pagamento e lança no Financeiro (um lançamento por forma de pagamento)
-  const formasResumo = [];
-  for (const p of pagamentos) {
-    const forma = String(p.forma_pagamento || 'Dinheiro').trim();
-    const valor = parseFloat(p.valor) || 0;
-    if (valor <= 0) continue;
-    await db.query(
-      `INSERT INTO comanda_pagamentos (comanda_id, forma_pagamento, valor) VALUES (?,?,?)`,
-      [comanda.id, forma, valor]
+  // Tudo isso (pagamentos, financeiro, baixa de estoque, fechar a comanda) precisa
+  // acontecer junto ou não acontecer nada — sem transação, um erro no meio (como já
+  // aconteceu antes) deixava pagamento/estoque/financeiro gravados só pela metade, e
+  // cada tentativa de novo duplicava tudo, porque a comanda continuava "aberta".
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const formasResumo = [];
+    for (const p of pagamentos) {
+      const forma = String(p.forma_pagamento || 'Dinheiro').trim();
+      const valor = parseFloat(p.valor) || 0;
+      if (valor <= 0) continue;
+      await conn.query(
+        `INSERT INTO comanda_pagamentos (comanda_id, forma_pagamento, valor) VALUES (?,?,?)`,
+        [comanda.id, forma, valor]
+      );
+      await conn.query(
+        `INSERT INTO financeiro (padaria_id, tipo, valor, descricao, categoria, forma_pagamento, data) VALUES (?,?,?,?,?,?,CURDATE())`,
+        [padaria_id, 'entrada', valor, `Comanda ${comanda.identificador}`, 'Vendas', forma]
+      );
+      formasResumo.push(`${forma} ${valor.toFixed(2)}`);
+    }
+
+    // Desconta estoque de cada item vinculado a um produto cadastrado
+    for (const item of itens) {
+      if (!item.produto_id) continue;
+      const [[prod]] = await conn.query(
+        `SELECT custo_unitario FROM produtos WHERE id = ? AND padaria_id = ?`, [item.produto_id, padaria_id]
+      );
+      if (!prod) continue;
+      await conn.query(
+        `INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, custo_unit, observacao, data) VALUES (?,?,?,?,?,?,NOW())`,
+        [padaria_id, item.produto_id, 'saida', item.quantidade, prod.custo_unitario || 0, `Comanda ${comanda.identificador}`]
+      );
+      await conn.query(
+        `UPDATE produtos SET estoque_atual = estoque_atual - ? WHERE id = ? AND padaria_id = ?`,
+        [item.quantidade, item.produto_id, padaria_id]
+      );
+    }
+
+    const forma_pagamento_resumo = formasResumo.join(' + ');
+    await conn.query(
+      `UPDATE comandas SET status = 'fechada', total = ?, forma_pagamento = ?, caixa_id = ?, atendente = ?, fechada_em = NOW() WHERE id = ?`,
+      [totalGeral, forma_pagamento_resumo, caixa_id, atendente, comanda.id]
     );
-    await db.query(
-      `INSERT INTO financeiro (padaria_id, tipo, valor, descricao, categoria, forma_pagamento, data) VALUES (?,?,?,?,?,?,CURDATE())`,
-      [padaria_id, 'entrada', valor, `Comanda ${comanda.identificador}`, 'Vendas', forma]
-    );
-    formasResumo.push(`${forma} ${valor.toFixed(2)}`);
+
+    await conn.commit();
+    res.json({ ok: true, total: totalGeral });
+  } catch (e) {
+    await conn.rollback();
+    console.error('Erro ao fechar comanda (revertido):', e);
+    res.status(500).json({ erro: 'Erro ao fechar a comanda — nada foi gravado, pode tentar de novo.' });
+  } finally {
+    conn.release();
   }
-
-  // Desconta estoque de cada item vinculado a um produto cadastrado
-  for (const item of itens) {
-    if (!item.produto_id) continue;
-    const [[prod]] = await db.query(
-      `SELECT custo_unitario FROM produtos WHERE id = ? AND padaria_id = ?`, [item.produto_id, padaria_id]
-    );
-    if (!prod) continue;
-    await db.query(
-      `INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, custo_unit, observacao, data) VALUES (?,?,?,?,?,?,NOW())`,
-      [padaria_id, item.produto_id, 'saida', item.quantidade, prod.custo_unitario || 0, `Comanda ${comanda.identificador}`]
-    );
-    await db.query(
-      `UPDATE produtos SET estoque_atual = estoque_atual - ? WHERE id = ? AND padaria_id = ?`,
-      [item.quantidade, item.produto_id, padaria_id]
-    );
-  }
-
-  const forma_pagamento_resumo = formasResumo.join(' + ');
-  await db.query(
-    `UPDATE comandas SET status = 'fechada', total = ?, forma_pagamento = ?, caixa_id = ?, atendente = ?, fechada_em = NOW() WHERE id = ?`,
-    [totalGeral, forma_pagamento_resumo, caixa_id, atendente, comanda.id]
-  );
-
-  res.json({ ok: true, total: totalGeral });
 };
 
 // Cancela uma comanda aberta (sem lançar nada)
