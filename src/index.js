@@ -111,6 +111,13 @@ app.use('/api/caixa/abrir', limitePin);
 app.use(/^\/api\/atendentes\/\d+\/verificar-pin$/, limitePin);
 
 app.use(express.json({ limit: '512kb' }));
+// O sw.js (service worker) é notoriamente teimoso pra cache — navegadores (principalmente
+// no celular, quando o app é "adicionado à tela inicial") podem segurar uma versão antiga
+// por muito tempo mesmo fechando/reabrindo. Isso força ele a sempre checar de novo.
+app.get('/sw.js', (req, res) => {
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.sendFile(path.join(__dirname, '../public/sw.js'));
+});
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Auto-migrate: adiciona colunas novas sem quebrar instâncias existentes
