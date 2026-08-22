@@ -5095,6 +5095,9 @@ function fecharModalComanda() {
   document.getElementById('modal-comanda').classList.add('hidden');
   comandaAtualId = null;
   if (_cmdRelogioTimer) { clearInterval(_cmdRelogioTimer); _cmdRelogioTimer = null; }
+  // Sem isso, o card da comanda na lista ficava com os dados antigos (0 itens, R$ 0,00)
+  // até a pessoa puxar a tela pra baixo pra atualizar manualmente.
+  carregarComandas();
 }
 
 // ── Código de balança (peso variável) ────────────────────
