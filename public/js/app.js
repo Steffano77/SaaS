@@ -424,7 +424,8 @@ function mostrarPagina(pg, pushHistory = true) {
     return;
   }
 
-  if (pg === 'financeiro' && !financeiroDesbloqueado()) {
+  if ((pg === 'financeiro' || pg === 'equipe') && !financeiroDesbloqueado()) {
+    _paginaAposPin = pg;
     abrirModalPin();
     return;
   }
@@ -461,6 +462,7 @@ function financeiroDesbloqueado() {
 // Ações sensíveis (cancelar comanda, excluir item) também usam esse mesmo PIN —
 // _pinCallback guarda o que fazer depois que o PIN for confirmado com sucesso.
 let _pinCallback = null;
+let _paginaAposPin = null; // qual página abrir depois de digitar o PIN certo (financeiro ou equipe)
 function pedirPinPara(callback) {
   if (financeiroDesbloqueado()) { callback(); return; }
   _pinCallback = callback;
@@ -509,7 +511,7 @@ async function confirmarPin() {
     _pinCallback = null;
     document.getElementById('modal-pin-financeiro').classList.add('hidden');
     if (cb) cb();
-    else mostrarPagina('financeiro');
+    else { mostrarPagina(_paginaAposPin || 'financeiro'); _paginaAposPin = null; }
   } else {
     document.getElementById('pin-erro').classList.remove('hidden');
     document.querySelectorAll('.pin-input').forEach(el => {
