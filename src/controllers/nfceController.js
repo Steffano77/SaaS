@@ -3,12 +3,24 @@
 // não emite nada que valha legalmente ainda, é pra validar o fluxo inteiro com
 // segurança antes de ligar pra produção.
 const db = require('../database/connection');
+const QRCode = require('qrcode');
 const { carregarCertificado } = require('../fiscal/certificado');
 const { montarXmlNFCe } = require('../fiscal/xmlNFCe');
 const { assinarXmlNFCe } = require('../fiscal/assinatura');
 const { enviarNFCe, interpretarResposta } = require('../fiscal/sefazSP');
 const { montarInfNFeSupl } = require('../fiscal/qrcode');
 const { descriptografar } = require('../fiscal/criptografia');
+
+function fmtCnpj(cnpj) {
+  const c = String(cnpj || '').replace(/\D/g, '').padStart(14, '0');
+  return `${c.slice(0,2)}.${c.slice(2,5)}.${c.slice(5,8)}/${c.slice(8,12)}-${c.slice(12,14)}`;
+}
+function fmtChave(chave) {
+  return String(chave || '').replace(/(\d{4})(?=\d)/g, '$1 ');
+}
+function fmtMoeda(v) {
+  return parseFloat(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
 
 exports.emitirParaComanda = async (req, res) => {
   const padaria_id = req.padaria.id;
@@ -112,6 +124,88 @@ exports.emitirParaComanda = async (req, res) => {
   } catch (e) {
     console.error('Erro ao emitir NFC-e:', e);
     res.status(500).json({ erro: `Erro interno ao emitir: ${e.message}` });
+  }
+};
+
+// Monta o HTML do DANFE-NFCe (o recibo simplificado que sai na impressora térmica,
+// com QR Code, chave de acesso e protocolo) pra imprimir depois que a nota foi autorizada.
+exports.imprimirDanfe = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const { comanda_id } = req.params;
+  try {
+    const [[padaria]] = await db.query(`SELECT * FROM padarias WHERE id = ?`, [padaria_id]);
+    const [[nota]] = await db.query(
+      `SELECT * FROM notas_fiscais WHERE comanda_id = ? AND padaria_id = ? AND status = 'autorizada' ORDER BY id DESC LIMIT 1`,
+      [comanda_id, padaria_id]
+    );
+    if (!nota) return res.status(404).json({ erro: 'Nenhuma nota fiscal autorizada encontrada pra essa comanda.' });
+
+    const [itens] = await db.query(`SELECT * FROM itens_comanda WHERE comanda_id = ?`, [comanda_id]);
+    const [pagamentos] = await db.query(`SELECT * FROM comanda_pagamentos WHERE comanda_id = ?`, [comanda_id]);
+
+    const cscTexto = padaria.nfce_csc ? descriptografar(padaria.nfce_csc) : null;
+    const { montarUrlQrCode, URL_CONSULTA } = require('../fiscal/qrcode');
+    const qrUrl = montarUrlQrCode({
+      chave: nota.chave_acesso, ambiente: nota.ambiente, csc: cscTexto, idCsc: padaria.nfce_id_csc,
+    });
+    const qrImgDataUrl = await QRCode.toDataURL(`https://${qrUrl}`, { margin: 1, width: 220 });
+
+    const itensHtml = itens.map((i, idx) => `
+      <div class="danfe-item">
+        <div>${idx + 1} ${i.nome_produto}</div>
+        <div class="danfe-item-linha2">
+          <span>${parseFloat(i.quantidade).toLocaleString('pt-BR', { minimumFractionDigits: 0 })} ${i.unidade} x ${fmtMoeda(i.preco_unitario)}</span>
+          <span>${fmtMoeda(i.subtotal)}</span>
+        </div>
+      </div>`).join('');
+
+    const pagHtml = pagamentos.map(p => `<div class="danfe-linha"><span>${p.forma_pagamento}</span><span>${fmtMoeda(p.valor)}</span></div>`).join('');
+
+    const homolog = Number(nota.ambiente) === 2
+      ? `<div class="danfe-homolog">EMITIDA EM AMBIENTE DE HOMOLOGAÇÃO<br/>SEM VALOR FISCAL</div>` : '';
+
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>DANFE NFC-e</title>
+      <style>
+        @page { margin: 0; }
+        body { font-family: 'Courier New', monospace; font-size: 12px; width: 80mm; margin: 0 auto; padding: 8px; color:#000; }
+        .danfe-center { text-align: center; }
+        .danfe-linha { display:flex; justify-content:space-between; }
+        .danfe-hr { border-top: 1px dashed #000; margin: 6px 0; }
+        .danfe-item { margin-bottom: 4px; }
+        .danfe-item-linha2 { display:flex; justify-content:space-between; padding-left: 10px; color:#333; }
+        .danfe-homolog { text-align:center; font-weight:bold; border:1px solid #000; padding:4px; margin:6px 0; }
+        .danfe-titulo { text-align:center; font-weight:bold; margin: 6px 0; }
+        .danfe-chave { text-align:center; font-size:11px; word-break: break-all; margin: 4px 0; }
+        img { display:block; margin: 8px auto; }
+        @media print { body { width: 80mm; } }
+      </style></head>
+      <body onload="window.print()">
+        <div class="danfe-center"><strong>${padaria.nome}</strong></div>
+        <div class="danfe-center">CNPJ ${fmtCnpj(String(nota.chave_acesso || '').slice(6, 20))}</div>
+        <div class="danfe-center">${padaria.nfce_logradouro || ''}, ${padaria.nfce_numero || ''} - ${padaria.nfce_bairro || ''}</div>
+        <div class="danfe-center">${padaria.nfce_municipio || ''}/${padaria.nfce_uf || ''}</div>
+        ${homolog}
+        <div class="danfe-hr"></div>
+        ${itensHtml}
+        <div class="danfe-hr"></div>
+        <div class="danfe-linha"><strong>Qtd. total de itens</strong><span>${itens.length}</span></div>
+        <div class="danfe-linha"><strong>Valor total R$</strong><strong>${fmtMoeda(nota.valor_total)}</strong></div>
+        <div class="danfe-hr"></div>
+        ${pagHtml}
+        <div class="danfe-hr"></div>
+        <div class="danfe-titulo">DANFE NFC-e<br/>Documento Auxiliar da Nota Fiscal<br/>de Consumidor Eletrônica</div>
+        <div class="danfe-center">Nº ${nota.numero} Série ${nota.serie}</div>
+        <div class="danfe-chave">Chave de acesso<br/>${fmtChave(nota.chave_acesso)}</div>
+        <img src="${qrImgDataUrl}" width="180" height="180"/>
+        <div class="danfe-center">Consulte pela Chave de Acesso em<br/>${URL_CONSULTA[nota.ambiente].replace('/qrcode', '/consulta')}</div>
+        <div class="danfe-center" style="margin-top:6px;">Protocolo de autorização<br/>${nota.protocolo_autorizacao || ''}</div>
+        <div class="danfe-center">${nota.autorizada_em ? new Date(nota.autorizada_em).toLocaleString('pt-BR') : ''}</div>
+      </body></html>`;
+
+    res.json({ ok: true, html });
+  } catch (e) {
+    console.error('Erro ao montar DANFE-NFCe:', e);
+    res.status(500).json({ erro: 'Erro interno ao montar o recibo da nota fiscal.' });
   }
 };
 

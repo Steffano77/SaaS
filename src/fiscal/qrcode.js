@@ -16,12 +16,15 @@ const URL_CONSULTA = {
 
 // Emissão online (não é modo de contingência) — formato mais simples do QR Code v2:
 // chave|versão|ambiente|idCSC, com o hash calculado sobre isso + o CSC.
-function montarInfNFeSupl({ chave, ambiente, csc, idCsc }) {
+function montarUrlQrCode({ chave, ambiente, csc, idCsc }) {
   const partes = [chave, '2', String(ambiente), String(idCsc || 1)];
   const p = partes.join('|');
   const cHashQRCode = crypto.createHash('sha1').update(p + (csc || '')).digest('hex').toUpperCase();
-  const qrCode = `${URL_CONSULTA[ambiente]}?p=${p}|${cHashQRCode}`;
+  return `${URL_CONSULTA[ambiente]}?p=${p}|${cHashQRCode}`;
+}
 
+function montarInfNFeSupl({ chave, ambiente, csc, idCsc }) {
+  const qrCode = montarUrlQrCode({ chave, ambiente, csc, idCsc });
   return `
   <infNFeSupl>
     <qrCode><![CDATA[${qrCode}]]></qrCode>
@@ -29,4 +32,4 @@ function montarInfNFeSupl({ chave, ambiente, csc, idCsc }) {
   </infNFeSupl>`;
 }
 
-module.exports = { montarInfNFeSupl };
+module.exports = { montarInfNFeSupl, montarUrlQrCode, URL_CONSULTA };

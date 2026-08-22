@@ -5313,9 +5313,20 @@ async function emitirNotaFiscalComanda(comandaId) {
   const nf = await api(`/fiscal/nfce/comanda/${comandaId}`, { method: 'POST' });
   if (nf && nf.ok) {
     mostrarToast(`Nota fiscal autorizada! Protocolo ${nf.protocolo}`);
+    if (confirm('Imprimir a nota fiscal (DANFE-NFCe)?')) {
+      await imprimirDanfeNFCe(comandaId);
+    }
   } else if (nf) {
     mostrarToast(`Nota fiscal rejeitada: ${nf.motivo || 'erro desconhecido'}`);
   }
+}
+
+async function imprimirDanfeNFCe(comandaId) {
+  const r = await api(`/fiscal/nfce/comanda/${comandaId}/danfe`);
+  if (!r || !r.html) return;
+  const janela = window.open('', '_blank', 'width=400,height=700');
+  janela.document.write(r.html);
+  janela.document.close();
 }
 
 async function finalizarVendaUI() {

@@ -107,6 +107,7 @@ router.post('/fiscal/corrigir-colunas', auth, fiscalCtrl.corrigirColunasFiscais)
 
 const nfceCtrl = require('../controllers/nfceController');
 router.post('/fiscal/nfce/comanda/:comanda_id', auth, nfceCtrl.emitirParaComanda);
+router.get('/fiscal/nfce/comanda/:comanda_id/danfe', auth, nfceCtrl.imprimirDanfe);
 router.get('/fiscal/nfce', auth, nfceCtrl.listar);
 
 // Movimentações
