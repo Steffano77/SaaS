@@ -160,7 +160,11 @@ exports.imprimirDanfe = async (req, res) => {
         </div>`;
     }).join('');
 
-    const formaPagResumo = pagamentos.map(p => p.forma_pagamento).join(' + ');
+    // Mostra o valor de cada forma separada (não só o nome) quando teve mais de uma —
+    // ajuda a conferir na hora se bateu certo o que foi recebido em dinheiro/cartão/pix.
+    const pagamentosHtml = pagamentos.length > 1
+      ? pagamentos.map(p => `<div class="danfe-linha"><span>${p.forma_pagamento}</span><span>${fmtMoeda(p.valor)}</span></div>`).join('')
+      : `<div class="danfe-linha"><span>Forma Pagamento</span><span>${pagamentos[0]?.forma_pagamento || ''}</span></div>`;
 
     const homolog = Number(nota.ambiente) === 2
       ? `<div class="danfe-homolog">EMITIDA EM AMBIENTE DE HOMOLOGAÇÃO<br/>SEM VALOR FISCAL</div>` : '';
@@ -197,7 +201,7 @@ exports.imprimirDanfe = async (req, res) => {
         <div class="danfe-hr"></div>
         <div class="danfe-linha"><span>Qtd. Itens</span><span>${itens.length}</span></div>
         <div class="danfe-linha"><strong>Valor Total R$</strong><strong>${fmtMoeda(nota.valor_total)}</strong></div>
-        <div class="danfe-linha"><span>Forma Pagamento</span><span>${formaPagResumo}</span></div>
+        ${pagamentosHtml}
         <div class="danfe-hr"></div>
         <div class="danfe-center">Numero: ${nota.numero}  Série: ${nota.serie}</div>
         <div class="danfe-center">${nota.autorizada_em ? new Date(nota.autorizada_em).toLocaleString('pt-BR') : ''}</div>
