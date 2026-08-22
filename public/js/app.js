@@ -4987,7 +4987,9 @@ async function abrirModalComanda(id) {
 let _cmdRelogioTimer = null;
 function atualizarTopbarPdv() {
   const vendedorEl = document.getElementById('cmd-pdv-vendedor');
-  if (vendedorEl) vendedorEl.textContent = 'Vendedor: ' + (caixaAtualCache?.atendente || '—');
+  if (vendedorEl) vendedorEl.textContent = 'Caixa: ' + (caixaAtualCache?.atendente || '—');
+  const atendenteEl = document.getElementById('cmd-detalhe-atendente');
+  if (atendenteEl) atendenteEl.textContent = caixaAtualCache?.atendente ? `Atendente: ${caixaAtualCache.atendente}` : '';
   if (_cmdRelogioTimer) clearInterval(_cmdRelogioTimer);
   const tick = () => {
     const el = document.getElementById('cmd-pdv-relogio');

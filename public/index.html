@@ -680,7 +680,10 @@
         </div>
         <div id="cmd-pdv-faixa-offline" class="cmd-pdv-faixa-offline hidden"></div>
         <div class="cmd-pdv-header">
-          <span class="modal-title" id="cmd-detalhe-titulo">🧾 Comanda</span>
+          <div>
+            <span class="modal-title" id="cmd-detalhe-titulo">🧾 Comanda</span>
+            <div id="cmd-detalhe-atendente" style="font-size:11.5px;color:rgba(255,255,255,0.7);margin-top:2px;"></div>
+          </div>
           <div style="display:flex;align-items:center;gap:6px;">
             <button onclick="imprimirFichaCozinha()" class="btn-icon" title="Imprimir ficha pra cozinha">🖨️</button>
             <button onclick="fecharModalComanda()" class="btn-icon">✕</button>
@@ -1823,7 +1826,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260824q"></script>
+<script src="/js/app.js?v=20260824r"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
