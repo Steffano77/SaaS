@@ -5016,6 +5016,11 @@ async function abrirModalComanda(id) {
   acoes.style.display = (bloqueada || MODO_LANCAMENTO) ? 'none' : 'block';
   document.querySelector('.cmd-add-item').style.display = bloqueada ? 'none' : 'flex';
   document.getElementById('cmd-ajuste-row').style.display = (bloqueada || MODO_LANCAMENTO) ? 'none' : 'flex';
+  // Calculadora e a faixa "Total a Receber" também são coisa de cobrança — não fazem
+  // sentido no tablet de lançamento, que só cadastra pedido.
+  document.getElementById('cmd-calculadora').style.display = MODO_LANCAMENTO ? 'none' : 'block';
+  const totalRow = document.querySelector('.cmd-pdv-total-row');
+  if (totalRow) totalRow.style.display = MODO_LANCAMENTO ? 'none' : 'flex';
   if (bloqueada) document.getElementById('cmd-rapido-grid').style.display = 'none';
   if (btnCancelar) btnCancelar.style.display = (bloqueada || MODO_LANCAMENTO) ? 'none' : 'block';
   if (btnConcluir) btnConcluir.classList.toggle('hidden', bloqueada || !MODO_LANCAMENTO);
