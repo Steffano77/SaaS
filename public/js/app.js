@@ -425,17 +425,22 @@ function mostrarPagina(pg, pushHistory = true) {
   }
 
   // Equipe é mais sensível (mexe em quem tem acesso a quê) — pede o PIN toda vez,
-  // sem aproveitar os 30 minutos de "liberado" que o Financeiro usa.
+  // sem aproveitar os 30 minutos de "liberado" que o Financeiro usa. _pinJaConfirmadoAgora
+  // evita reabrir o PIN de novo logo depois de já ter acabado de confirmar (senão entra
+  // em loop: confirma o PIN → mostra a página de novo → pede o PIN de novo).
   if (pg === 'financeiro' && !financeiroDesbloqueado()) {
     _paginaAposPin = pg;
+    document.getElementById('pin-modal-sub').textContent = 'Digite o PIN de 4 dígitos para acessar o financeiro';
     abrirModalPin();
     return;
   }
-  if (pg === 'equipe') {
+  if (pg === 'equipe' && !_pinJaConfirmadoAgora) {
     _paginaAposPin = pg;
+    document.getElementById('pin-modal-sub').textContent = 'Digite o PIN de 4 dígitos para acessar a Equipe';
     abrirModalPin();
     return;
   }
+  _pinJaConfirmadoAgora = false;
   fecharSidebar();
   paginas.forEach(p => {
     document.getElementById(`pg-${p}`).classList.toggle('hidden', p !== pg);
@@ -470,6 +475,7 @@ function financeiroDesbloqueado() {
 // _pinCallback guarda o que fazer depois que o PIN for confirmado com sucesso.
 let _pinCallback = null;
 let _paginaAposPin = null; // qual página abrir depois de digitar o PIN certo (financeiro ou equipe)
+let _pinJaConfirmadoAgora = false; // evita reabrir o PIN de novo logo após confirmar (loop)
 function pedirPinPara(callback) {
   if (financeiroDesbloqueado()) { callback(); return; }
   _pinCallback = callback;
@@ -518,7 +524,12 @@ async function confirmarPin() {
     _pinCallback = null;
     document.getElementById('modal-pin-financeiro').classList.add('hidden');
     if (cb) cb();
-    else { mostrarPagina(_paginaAposPin || 'financeiro'); _paginaAposPin = null; }
+    else {
+      const destino = _paginaAposPin || 'financeiro';
+      _paginaAposPin = null;
+      if (destino === 'equipe') _pinJaConfirmadoAgora = true;
+      mostrarPagina(destino);
+    }
   } else {
     document.getElementById('pin-erro').classList.remove('hidden');
     document.querySelectorAll('.pin-input').forEach(el => {
