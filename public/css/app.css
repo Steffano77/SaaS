@@ -2625,7 +2625,9 @@ tr.tr-saida td { color: var(--red-600); }
 [data-theme="dark"] .cmd-card-info { color: #94a3b8; }
 [data-theme="dark"] .cmd-card-data { color: #64748b; }
 
-.cmd-itens-lista { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; margin-bottom: 12px; }
+/* 2 colunas — cabe o dobro de itens na mesma altura, evita rolagem na maioria das vendas */
+.cmd-itens-lista { display: grid; grid-template-columns: 1fr 1fr; align-content: start; gap: 8px; max-height: 340px; overflow-y: auto; margin-bottom: 12px; }
+@media (max-width: 600px) { .cmd-itens-lista { grid-template-columns: 1fr; } }
 .cmd-item-linha {
   display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 14px;
   padding: 10px 12px; border-radius: 10px; background: var(--slate-50);
