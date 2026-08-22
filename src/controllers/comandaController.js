@@ -83,6 +83,17 @@ exports.abrir = async (req, res) => {
   res.status(201).json({ id: r.insertId, identificador, atendente });
 };
 
+// Marca a comanda como "enviada pro caixa" (concluída no tablet do salão/lançamento) —
+// some da lista de quem está lançando pedido, mas continua aberta pro caixa cobrar.
+exports.enviarParaCaixa = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  await db.query(
+    `UPDATE comandas SET pronta_pagamento = 1 WHERE id = ? AND padaria_id = ? AND status = 'aberta'`,
+    [req.params.id, padaria_id]
+  );
+  res.json({ ok: true });
+};
+
 // Define/troca o nome de quem atendeu a comanda (só enquanto ainda está aberta)
 exports.definirAtendente = async (req, res) => {
   const padaria_id = req.padaria.id;

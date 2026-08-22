@@ -269,6 +269,11 @@ app.use(express.static(path.join(__dirname, '../public')));
       // na nota fiscal (NFC-e). Sem isso, a nota usa um código genérico como reserva.
       'ALTER TABLE produtos ADD COLUMN ncm VARCHAR(10) NULL',
 
+      // Marca a comanda como "enviada pro caixa" (fechou o lançamento de pedido no tablet
+      // do salão) — some da lista de quem tá lançando, mas continua aberta esperando o
+      // caixa cobrar. Sem isso não dava pra distinguir "ainda sendo montada" de "pronta".
+      'ALTER TABLE comandas ADD COLUMN pronta_pagamento TINYINT(1) NOT NULL DEFAULT 0',
+
       // Razão social oficial (CNPJ) — pode ser diferente do nome usado no dia a dia
       // do sistema (ex: "Padaria do Jota 3" no app, mas "Padaria do Jota 2 LTDA" no
       // CNPJ). A nota fiscal precisa da razão social oficial, não do apelido interno.

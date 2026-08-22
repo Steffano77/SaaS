@@ -4451,8 +4451,13 @@ async function carregarComandas() {
   if (!data) return;
   const elAbertas = document.getElementById('cmd-lista-abertas');
 
-  elAbertas.innerHTML = data.abertas.length
-    ? data.abertas.map(cardComandaHtml).join('')
+  // No tablet de Modo Lançamento, some da lista assim que o pedido é enviado pro caixa —
+  // quem lança pedido não precisa (nem deve) continuar vendo/mexendo numa comanda que já
+  // foi concluída e está só esperando ser cobrada.
+  const abertas = MODO_LANCAMENTO ? data.abertas.filter(c => !c.pronta_pagamento) : data.abertas;
+
+  elAbertas.innerHTML = abertas.length
+    ? abertas.map(cardComandaHtml).join('')
     : `<div class="cmd-vazio">Nenhuma comanda aberta no momento.</div>`;
 
   await carregarCaixaFaixa();
@@ -4846,7 +4851,9 @@ async function comLoginAtendente(fn) {
 }
 
 function cardComandaHtml(c) {
-  const statusLabel = { aberta: '🟢 Aberta', fechada: '✅ Fechada', cancelada: '🚫 Cancelada' }[c.status] || c.status;
+  const statusLabel = c.status === 'aberta' && c.pronta_pagamento
+    ? '💰 Pronta pra cobrar'
+    : { aberta: '🟢 Aberta', fechada: '✅ Fechada', cancelada: '🚫 Cancelada' }[c.status] || c.status;
   const dataRef = fmtDataHoraBR(c.status === 'aberta' ? c.aberta_em : (c.fechada_em || c.aberta_em));
   const podeExcluir = c.status !== 'aberta';
   return `
@@ -5106,6 +5113,16 @@ function renderItensComanda(c) {
   document.getElementById('cmd-detalhe-qtde').textContent = fmtQtd(qtdeTotal);
   document.getElementById('cmd-detalhe-total').textContent = fmtMoeda(c.total);
   atualizarPagamentoUI();
+}
+
+// Modo Lançamento: "Concluir e voltar" marca a comanda como pronta pro caixa cobrar —
+// ela some da lista de quem lança pedido, mas continua aberta pra quem tá no caixa ver.
+async function concluirLancamentoUI() {
+  if (comandaAtualId) {
+    const r = await api(`/comandas/${comandaAtualId}/enviar`, { method: 'POST' });
+    if (!r) return;
+  }
+  fecharModalComanda();
 }
 
 function fecharModalComanda() {

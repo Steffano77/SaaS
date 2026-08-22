@@ -181,6 +181,7 @@ router.post('/comandas/:id/cancelar',  auth, authPremium, exigirFuncionario(['ge
 router.delete('/comandas/:id',         auth, authPremium, wrap(comandaCtrl.excluir));
 router.patch('/comandas/:id/ajuste',   auth, authPremium, wrap(comandaCtrl.definirAjuste));
 router.patch('/comandas/:id/atendente', auth, authPremium, wrap(comandaCtrl.definirAtendente));
+router.post('/comandas/:id/enviar',    auth, authPremium, wrap(comandaCtrl.enviarParaCaixa));
 
 // Caixa — Premium apenas (permite múltiplos caixas abertos ao mesmo tempo, um por tablet)
 router.get('/caixa/abertos',        auth, authPremium, wrap(caixaCtrl.abertos));
