@@ -558,10 +558,18 @@
 
       <div id="cmd-caixa-faixa" class="cmd-caixa-faixa"></div>
 
+      <div class="cmd-busca-rapida" style="margin-bottom:10px;">
+        <span class="cmd-busca-rapida-icone">🔢</span>
+        <input type="text" id="cmd-abrir-numero-rapido" class="cmd-busca-rapida-input" placeholder="Nº da comanda"
+          inputmode="numeric" pattern="[0-9]*" autocomplete="off"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();abrirComandaPorNumeroRapido();}"/>
+        <button onclick="abrirComandaPorNumeroRapido()" class="cmd-busca-rapida-btn">Abrir</button>
+      </div>
+
       <div class="cmd-busca-rapida-wrap">
         <div class="cmd-busca-rapida">
           <span class="cmd-busca-rapida-icone">🔎</span>
-          <input type="text" id="cmd-busca-numero" class="cmd-busca-rapida-input" placeholder="Digite o número da comanda, nome de um produto, ou escaneie a etiqueta da balança..."
+          <input type="text" id="cmd-busca-numero" class="cmd-busca-rapida-input" placeholder="Buscar por nome de produto, ou escaneie a etiqueta da balança..."
             autocomplete="off" oninput="filtrarBuscaComanda(this)" onkeydown="onKeydownBuscaRapidaComanda(event)"/>
           <button onclick="buscarComandaPorNumero()" class="cmd-busca-rapida-btn">Abrir</button>
         </div>
@@ -1710,7 +1718,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260824c"></script>
+<script src="/js/app.js?v=20260824d"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

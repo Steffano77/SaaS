@@ -5578,6 +5578,30 @@ async function abrirComandaPorNumeroPdv(termoRaw) {
   abrirModalComanda(alvo.id);
 }
 
+// Campo dedicado só pra número (teclado numérico no celular/tablet) — mesma lógica
+// do campo de busca completa, só que sem a parte de busca por nome de produto.
+async function abrirComandaPorNumeroRapido() {
+  const input = document.getElementById('cmd-abrir-numero-rapido');
+  const termo = input.value.trim();
+  if (!termo) return;
+  const data = await api('/comandas');
+  if (!data) return;
+  const todas = [...data.abertas, ...data.recentes];
+  let alvo = data.abertas.find(c => c.identificador === termo)
+    || todas.find(c => c.identificador === termo);
+  if (!alvo) {
+    if (!confirm(`Nenhuma comanda "${termo}" aberta. Abrir uma nova com esse número?`)) return;
+    const r = await api('/comandas', { method: 'POST', body: { identificador: termo } });
+    if (!r) return;
+    input.value = '';
+    await carregarComandas();
+    abrirModalComanda(r.id);
+    return;
+  }
+  input.value = '';
+  abrirModalComanda(alvo.id);
+}
+
 async function buscarComandaPorNumero() {
   const termo = document.getElementById('cmd-busca-numero').value.trim();
   if (!termo) return;
