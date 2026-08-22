@@ -269,6 +269,11 @@ app.use(express.static(path.join(__dirname, '../public')));
       // na nota fiscal (NFC-e). Sem isso, a nota usa um código genérico como reserva.
       'ALTER TABLE produtos ADD COLUMN ncm VARCHAR(10) NULL',
 
+      // VARCHAR(50) era pequeno demais pra guardar a descrição de venda dividida em
+      // várias formas de pagamento (ex: "Dinheiro 3.00 + Crédito 13.00 + Débito 5.00 +
+      // Pix 10.00 + Voucher 2.00") — dava erro ao fechar a comanda nesse caso.
+      'ALTER TABLE comandas MODIFY COLUMN forma_pagamento VARCHAR(255) NULL',
+
       // Marca a comanda como "enviada pro caixa" (fechou o lançamento de pedido no tablet
       // do salão) — some da lista de quem tá lançando, mas continua aberta esperando o
       // caixa cobrar. Sem isso não dava pra distinguir "ainda sendo montada" de "pronta".
