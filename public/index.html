@@ -1023,8 +1023,8 @@
         <div class="pin-modal-icon">👤</div>
         <h3 class="pin-modal-title">Identifique-se</h3>
         <p class="pin-modal-sub">Essa ação exige login de gerente. Digite seu PIN de 4 dígitos.</p>
-        <input class="pin-input" id="login-atendente-pin" type="password" inputmode="numeric" maxlength="4"
-          style="width:100px;text-align:center;font-size:22px;letter-spacing:6px;"
+        <input class="form-control" id="login-atendente-pin" type="password" inputmode="numeric" maxlength="4"
+          style="width:100px;text-align:center;font-size:22px;letter-spacing:6px;margin:0 auto;display:block;"
           onkeydown="if(event.key==='Enter'){event.preventDefault();confirmarLoginAtendente();}"/>
         <div id="login-atendente-erro" class="pin-erro hidden">PIN incorreto.</div>
         <button onclick="confirmarLoginAtendente()" class="btn-primary pin-btn">Entrar</button>
