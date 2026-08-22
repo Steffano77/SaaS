@@ -457,6 +457,15 @@ function financeiroDesbloqueado() {
   return t && (Date.now() - parseInt(t)) < FIN_UNLOCK_MS;
 }
 
+// Ações sensíveis (cancelar comanda, excluir item) também usam esse mesmo PIN —
+// _pinCallback guarda o que fazer depois que o PIN for confirmado com sucesso.
+let _pinCallback = null;
+function pedirPinPara(callback) {
+  if (financeiroDesbloqueado()) { callback(); return; }
+  _pinCallback = callback;
+  abrirModalPin();
+}
+
 function abrirModalPin() {
   ['pin0','pin1','pin2','pin3'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('pin-erro').classList.add('hidden');
@@ -467,6 +476,7 @@ function abrirModalPin() {
 
 function fecharModalPin() {
   document.getElementById('modal-pin-financeiro').classList.add('hidden');
+  _pinCallback = null; // se cancelar, não executa a ação sensível pendente
 }
 
 // Auto-avançar entre os inputs do PIN
@@ -494,8 +504,11 @@ async function confirmarPin() {
   });
   if (r.ok) {
     sessionStorage.setItem('fin_unlocked_at', Date.now());
-    fecharModalPin();
-    mostrarPagina('financeiro');
+    const cb = _pinCallback;
+    _pinCallback = null;
+    document.getElementById('modal-pin-financeiro').classList.add('hidden');
+    if (cb) cb();
+    else mostrarPagina('financeiro');
   } else {
     document.getElementById('pin-erro').classList.remove('hidden');
     document.querySelectorAll('.pin-input').forEach(el => {
@@ -4885,6 +4898,7 @@ function renderItensComanda(c) {
         <div class="cmd-item-qtdpreco">${fmtQtd(i.quantidade)} ${i.unidade} × ${fmtMoeda(i.preco_unitario)}</div>
         <div class="cmd-item-direita">
           <span class="cmd-item-subtotal">${fmtMoeda(i.subtotal)}</span>
+          ${c.status === 'aberta' ? `<button class="btn-icon" onclick="removerItemComandaPedirPin('${i.id}')" title="Excluir item (requer PIN de gerente)">✕</button>` : ''}
         </div>
       </div>
     `).join('')
@@ -5175,6 +5189,11 @@ async function adicionarItemComandaUI() {
 
   const c = await api(`/comandas/${comandaAtualId}`);
   if (c) renderItensComanda(c);
+}
+
+// Excluir item é uma ação sensível — exige o PIN de gerente antes de executar.
+function removerItemComandaPedirPin(itemId) {
+  pedirPinPara(() => removerItemComandaUI(itemId));
 }
 
 async function removerItemComandaUI(itemId) {
@@ -5624,9 +5643,14 @@ async function buscarComandaPorNumero() {
   abrirModalComanda(alvo.id);
 }
 
-async function cancelarComandaUI() {
+function cancelarComandaUI() {
   if (!comandaAtualId) return;
   if (!confirm('Cancelar essa comanda? Nenhum valor será lançado.')) return;
+  // Ação sensível — exige o PIN de gerente (mesmo do Financeiro).
+  pedirPinPara(cancelarComandaExecutar);
+}
+
+async function cancelarComandaExecutar() {
   const r = await api(`/comandas/${comandaAtualId}/cancelar`, { method: 'POST' });
   if (!r) return;
   if (comandaAtualId === _balcaoComandaAtiva) _balcaoComandaAtiva = null;
