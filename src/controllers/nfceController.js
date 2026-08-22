@@ -150,16 +150,17 @@ exports.imprimirDanfe = async (req, res) => {
     });
     const qrImgDataUrl = await QRCode.toDataURL(`https://${qrUrl}`, { margin: 1, width: 220 });
 
-    const itensHtml = itens.map((i, idx) => `
-      <div class="danfe-item">
-        <div>${idx + 1} ${i.nome_produto}</div>
-        <div class="danfe-item-linha2">
-          <span>${parseFloat(i.quantidade).toLocaleString('pt-BR', { minimumFractionDigits: 0 })} ${i.unidade} x ${fmtMoeda(i.preco_unitario)}</span>
+    const itensHtml = itens.map((i, idx) => {
+      const cod = String(i.produto_id || '').padStart(3, '0');
+      const qtd = parseFloat(i.quantidade).toLocaleString('pt-BR', { minimumFractionDigits: 3 });
+      return `<div class="danfe-item-linha1">${String(idx + 1).padStart(3, '0')} ${cod} ${i.nome_produto}</div>
+        <div class="danfe-linha danfe-item-linha2">
+          <span>${qtd} ${i.unidade} x ${fmtMoeda(i.preco_unitario)}</span>
           <span>${fmtMoeda(i.subtotal)}</span>
-        </div>
-      </div>`).join('');
+        </div>`;
+    }).join('');
 
-    const pagHtml = pagamentos.map(p => `<div class="danfe-linha"><span>${p.forma_pagamento}</span><span>${fmtMoeda(p.valor)}</span></div>`).join('');
+    const formaPagResumo = pagamentos.map(p => p.forma_pagamento).join(' + ');
 
     const homolog = Number(nota.ambiente) === 2
       ? `<div class="danfe-homolog">EMITIDA EM AMBIENTE DE HOMOLOGAÇÃO<br/>SEM VALOR FISCAL</div>` : '';
@@ -167,39 +168,46 @@ exports.imprimirDanfe = async (req, res) => {
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>DANFE NFC-e</title>
       <style>
         @page { margin: 0; }
-        body { font-family: 'Courier New', monospace; font-size: 12px; width: 80mm; margin: 0 auto; padding: 8px; color:#000; }
+        body { font-family: 'Courier New', monospace; font-size: 11px; width: 80mm; margin: 0 auto; padding: 8px; color:#000; }
         .danfe-center { text-align: center; }
         .danfe-linha { display:flex; justify-content:space-between; }
         .danfe-hr { border-top: 1px dashed #000; margin: 6px 0; }
-        .danfe-item { margin-bottom: 4px; }
-        .danfe-item-linha2 { display:flex; justify-content:space-between; padding-left: 10px; color:#333; }
+        .danfe-item-linha1 { margin-top: 4px; }
+        .danfe-item-linha2 { padding-left: 10px; color:#333; }
         .danfe-homolog { text-align:center; font-weight:bold; border:1px solid #000; padding:4px; margin:6px 0; }
         .danfe-titulo { text-align:center; font-weight:bold; margin: 6px 0; }
-        .danfe-chave { text-align:center; font-size:11px; word-break: break-all; margin: 4px 0; }
+        .danfe-aviso { text-align:center; font-size: 10px; margin: 4px 0; }
+        .danfe-chave { text-align:center; font-size:11px; word-break: break-all; margin: 4px 0; letter-spacing: 1px; }
         img { display:block; margin: 8px auto; }
+        strong { font-weight: bold; }
         @media print { body { width: 80mm; } }
       </style></head>
       <body onload="window.print()">
-        <div class="danfe-center"><strong>${padaria.nome}</strong></div>
-        <div class="danfe-center">CNPJ ${fmtCnpj(String(nota.chave_acesso || '').slice(6, 20))}</div>
-        <div class="danfe-center">${padaria.nfce_logradouro || ''}, ${padaria.nfce_numero || ''} - ${padaria.nfce_bairro || ''}</div>
+        <div class="danfe-center"><strong>${(padaria.nome || '').toUpperCase()}</strong></div>
+        <div class="danfe-center">${padaria.nfce_logradouro || ''}, ${padaria.nfce_numero || ''} ${padaria.nfce_bairro || ''}</div>
         <div class="danfe-center">${padaria.nfce_municipio || ''}/${padaria.nfce_uf || ''}</div>
+        <div class="danfe-center">CNPJ: ${fmtCnpj(String(nota.chave_acesso || '').slice(6, 20))}</div>
+        <div class="danfe-center">Inscricao Estadual: ${padaria.nfce_inscricao_estadual || ''}</div>
+        <div class="danfe-hr"></div>
+        <div class="danfe-titulo">DANFE NFC-e Documento Auxiliar de Nota Fiscal Eletronica<br/>para Consumidor Final</div>
+        <div class="danfe-aviso">NFC-e não permite aproveitamento de crédito de ICMS</div>
         ${homolog}
         <div class="danfe-hr"></div>
         ${itensHtml}
         <div class="danfe-hr"></div>
-        <div class="danfe-linha"><strong>Qtd. total de itens</strong><span>${itens.length}</span></div>
-        <div class="danfe-linha"><strong>Valor total R$</strong><strong>${fmtMoeda(nota.valor_total)}</strong></div>
+        <div class="danfe-linha"><span>Qtd. Itens</span><span>${itens.length}</span></div>
+        <div class="danfe-linha"><strong>Valor Total R$</strong><strong>${fmtMoeda(nota.valor_total)}</strong></div>
+        <div class="danfe-linha"><span>Forma Pagamento</span><span>${formaPagResumo}</span></div>
         <div class="danfe-hr"></div>
-        ${pagHtml}
+        <div class="danfe-center">Numero: ${nota.numero}  Série: ${nota.serie}</div>
+        <div class="danfe-center">${nota.autorizada_em ? new Date(nota.autorizada_em).toLocaleString('pt-BR') : ''}</div>
+        <div class="danfe-center">Via Consumidor</div>
         <div class="danfe-hr"></div>
-        <div class="danfe-titulo">DANFE NFC-e<br/>Documento Auxiliar da Nota Fiscal<br/>de Consumidor Eletrônica</div>
-        <div class="danfe-center">Nº ${nota.numero} Série ${nota.serie}</div>
-        <div class="danfe-chave">Chave de acesso<br/>${fmtChave(nota.chave_acesso)}</div>
+        <div class="danfe-center">CHAVE DE ACESSO</div>
+        <div class="danfe-chave">${fmtChave(nota.chave_acesso)}</div>
         <img src="${qrImgDataUrl}" width="180" height="180"/>
         <div class="danfe-center">Consulte pela Chave de Acesso em<br/>${URL_CONSULTA[nota.ambiente].replace('/qrcode', '/consulta')}</div>
-        <div class="danfe-center" style="margin-top:6px;">Protocolo de autorização<br/>${nota.protocolo_autorizacao || ''}</div>
-        <div class="danfe-center">${nota.autorizada_em ? new Date(nota.autorizada_em).toLocaleString('pt-BR') : ''}</div>
+        <div class="danfe-center" style="margin-top:6px;">Protocolo de Autorização: ${nota.protocolo_autorizacao || ''}</div>
       </body></html>`;
 
     res.json({ ok: true, html });
