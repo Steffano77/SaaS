@@ -230,6 +230,10 @@ app.use(express.static(path.join(__dirname, '../public')));
       // Múltiplos caixas simultâneos (um por tablet/aparelho) + PIN por atendente
       "ALTER TABLE caixas ADD COLUMN nome VARCHAR(40) NOT NULL DEFAULT 'Caixa 1'",
       'ALTER TABLE atendentes ADD COLUMN pin_hash VARCHAR(255) NULL',
+      // Papel do atendente — controla o que ele pode fazer no sistema: 'atendente' só
+      // lança comanda; 'caixa' também abre/fecha caixa; 'gerente' também exclui item e
+      // cancela comanda. Todo atendente já cadastrado antes disso vira 'atendente' por padrão.
+      "ALTER TABLE atendentes ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'atendente'",
       // Produtos de balcão (feitos na hora) não entram nos alertas de estoque zerado/reposição
       'ALTER TABLE produtos ADD COLUMN controla_estoque TINYINT(1) NOT NULL DEFAULT 1',
       // Encomendas — pedidos combinados com antecedência (bolo, festa etc.), pra não se perderem

@@ -722,7 +722,9 @@ window.addEventListener('offline', entrarModoOffline);
 // ── API helpers ──────────────────────────────────────────────
 // B) 401 -> remove token + reload; C) network error -> toast
 async function api(path, opts = {}) {
+  const funcToken = sessionStorage.getItem('func_token');
   opts.headers = { ...opts.headers, 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' };
+  if (funcToken) opts.headers['X-Func-Token'] = funcToken;
   if (opts.body && typeof opts.body === 'object' && !(opts.body instanceof FormData)) {
     opts.body = JSON.stringify(opts.body);
   }
@@ -730,6 +732,14 @@ async function api(path, opts = {}) {
   try {
     const r = await fetch(`${API}${path}`, opts);
     if (r.status === 401) {
+      const dataAuth = await r.json().catch(() => null);
+      // Login de funcionário expirado/inválido — não é logout da padaria, só some o token do funcionário.
+      if (dataAuth?.precisa_login_funcionario) {
+        sessionStorage.removeItem('func_token');
+        sessionStorage.removeItem('func_nome');
+        sessionStorage.removeItem('func_role');
+        return { ok: false, precisa_login_funcionario: true };
+      }
       localStorage.removeItem('panificapro_token');
       localStorage.removeItem('pptoken');
       location.reload();
@@ -740,6 +750,8 @@ async function api(path, opts = {}) {
       return null;
     }
     if (r.status === 403) {
+      const dataForb = await r.json().catch(() => null);
+      if (dataForb?.erro) { mostrarToast(dataForb.erro, 'err'); return null; }
       mostrarToast('Funcionalidade disponível apenas nos planos Pro e Premium. Faça upgrade!', 'warn');
       return null;
     }
@@ -4681,16 +4693,72 @@ async function carregarAtendentesSelect(selectId) {
 async function adicionarAtendenteInline(selectEl) {
   const nome = prompt('Nome do atendente:');
   if (!nome || !nome.trim()) { selectEl.value = ''; return; }
-  const pin = prompt(`Crie um PIN de 4 números pra ${nome.trim()} (usado pra abrir caixa em nome dele):`);
+  const pin = prompt(`Crie um PIN de 4 números pra ${nome.trim()} (usado pra fazer login no tablet):`);
   if (!pin || !/^\d{4}$/.test(pin.trim())) {
     mostrarToast('PIN precisa ter exatamente 4 números. Atendente não criado.', 'warn');
     selectEl.value = '';
     return;
   }
-  const r = await api('/atendentes', { method: 'POST', body: { nome: nome.trim(), pin: pin.trim() } });
+  const papel = (prompt('Qual o papel desse atendente?\n\nDigite: atendente, caixa ou gerente', 'atendente') || 'atendente').trim().toLowerCase();
+  const role = ['atendente','caixa','gerente'].includes(papel) ? papel : 'atendente';
+  const r = await api('/atendentes', { method: 'POST', body: { nome: nome.trim(), pin: pin.trim(), role } });
   if (!r) { selectEl.value = ''; return; }
   await carregarAtendentesSelect(selectEl.id);
   selectEl.value = r.id;
+}
+
+// ── Login de atendente (identifica quem tá usando o tablet, trava ação por papel) ──
+let _loginAtendenteResolve = null;
+
+function pedirLoginAtendente() {
+  return new Promise((resolve) => {
+    _loginAtendenteResolve = resolve;
+    const input = document.getElementById('login-atendente-pin');
+    if (input) input.value = '';
+    document.getElementById('login-atendente-erro')?.classList.add('hidden');
+    document.getElementById('modal-login-atendente').classList.remove('hidden');
+    setTimeout(() => input?.focus(), 100);
+  });
+}
+
+function cancelarLoginAtendente() {
+  document.getElementById('modal-login-atendente').classList.add('hidden');
+  if (_loginAtendenteResolve) { const r = _loginAtendenteResolve; _loginAtendenteResolve = null; r(false); }
+}
+
+async function confirmarLoginAtendente() {
+  const pin = document.getElementById('login-atendente-pin').value.trim();
+  if (!/^\d{4}$/.test(pin)) { mostrarToast('Digite os 4 números do PIN.', 'warn'); return; }
+  const r = await fetch(`${API}/atendentes/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
+    body: JSON.stringify({ pin })
+  });
+  const data = await r.json().catch(() => null);
+  if (!r.ok) {
+    document.getElementById('login-atendente-erro').textContent = data?.erro || 'PIN incorreto.';
+    document.getElementById('login-atendente-erro').classList.remove('hidden');
+    document.getElementById('login-atendente-pin').value = '';
+    document.getElementById('login-atendente-pin').focus();
+    return;
+  }
+  sessionStorage.setItem('func_token', data.token);
+  sessionStorage.setItem('func_nome', data.nome);
+  sessionStorage.setItem('func_role', data.role);
+  document.getElementById('modal-login-atendente').classList.add('hidden');
+  if (_loginAtendenteResolve) { const res = _loginAtendenteResolve; _loginAtendenteResolve = null; res(true); }
+}
+
+// Chama fn() (que faz uma chamada api()); se a API disser que precisa de login de
+// atendente com papel específico, pede o PIN na hora e tenta de novo automaticamente.
+async function comLoginAtendente(fn) {
+  let r = await fn();
+  if (r && r.precisa_login_funcionario) {
+    const ok = await pedirLoginAtendente();
+    if (!ok) return null;
+    r = await fn();
+  }
+  return r;
 }
 
 function cardComandaHtml(c) {
@@ -5191,9 +5259,9 @@ async function adicionarItemComandaUI() {
   if (c) renderItensComanda(c);
 }
 
-// Excluir item é uma ação sensível — exige o PIN de gerente antes de executar.
+// Excluir item é uma ação sensível — exige login de atendente com papel "gerente".
 function removerItemComandaPedirPin(itemId) {
-  pedirPinPara(() => removerItemComandaUI(itemId));
+  removerItemComandaUI(itemId);
 }
 
 async function removerItemComandaUI(itemId) {
@@ -5206,8 +5274,8 @@ async function removerItemComandaUI(itemId) {
     renderItensComanda(comandaAtualDados);
     return;
   }
-  const r = await api(`/comandas/${comandaAtualId}/itens/${itemId}`, { method: 'DELETE' });
-  if (!r) return;
+  const r = await comLoginAtendente(() => api(`/comandas/${comandaAtualId}/itens/${itemId}`, { method: 'DELETE' }));
+  if (!r || r.precisa_login_funcionario) return;
   const c = await api(`/comandas/${comandaAtualId}`);
   if (c) renderItensComanda(c);
 }
@@ -5643,16 +5711,12 @@ async function buscarComandaPorNumero() {
   abrirModalComanda(alvo.id);
 }
 
-function cancelarComandaUI() {
+async function cancelarComandaUI() {
   if (!comandaAtualId) return;
   if (!confirm('Cancelar essa comanda? Nenhum valor será lançado.')) return;
-  // Ação sensível — exige o PIN de gerente (mesmo do Financeiro).
-  pedirPinPara(cancelarComandaExecutar);
-}
-
-async function cancelarComandaExecutar() {
-  const r = await api(`/comandas/${comandaAtualId}/cancelar`, { method: 'POST' });
-  if (!r) return;
+  // Ação sensível — exige login de atendente com papel "gerente".
+  const r = await comLoginAtendente(() => api(`/comandas/${comandaAtualId}/cancelar`, { method: 'POST' }));
+  if (!r || !r.ok) return;
   if (comandaAtualId === _balcaoComandaAtiva) _balcaoComandaAtiva = null;
   mostrarToast('Comanda cancelada.', 'ok');
   fecharModalComanda();

@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const auth   = require('../middleware/auth');
+const exigirFuncionario = require('../middleware/exigirFuncionario');
 const { converterQtd } = require('../utils/unidades');
 const multer = require('multer');
 const upload = multer({
@@ -174,9 +175,9 @@ router.get('/comandas/relatorio',      auth, authPremium, wrap(comandaCtrl.relat
 router.post('/comandas',               auth, authPremium, wrap(comandaCtrl.abrir));
 router.get('/comandas/:id',            auth, authPremium, wrap(comandaCtrl.buscar));
 router.post('/comandas/:id/itens',     auth, authPremium, wrap(comandaCtrl.adicionarItem));
-router.delete('/comandas/:id/itens/:itemId', auth, authPremium, wrap(comandaCtrl.removerItem));
+router.delete('/comandas/:id/itens/:itemId', auth, authPremium, exigirFuncionario(['gerente']), wrap(comandaCtrl.removerItem));
 router.post('/comandas/:id/fechar',    auth, authPremium, wrap(comandaCtrl.fechar));
-router.post('/comandas/:id/cancelar',  auth, authPremium, wrap(comandaCtrl.cancelar));
+router.post('/comandas/:id/cancelar',  auth, authPremium, exigirFuncionario(['gerente']), wrap(comandaCtrl.cancelar));
 router.delete('/comandas/:id',         auth, authPremium, wrap(comandaCtrl.excluir));
 router.patch('/comandas/:id/ajuste',   auth, authPremium, wrap(comandaCtrl.definirAjuste));
 
@@ -185,6 +186,7 @@ router.get('/caixa/abertos',        auth, authPremium, wrap(caixaCtrl.abertos));
 router.get('/caixa/historico',      auth, authPremium, wrap(caixaCtrl.historico));
 router.get('/caixa/:id',            auth, authPremium, wrap(caixaCtrl.buscar));
 router.post('/caixa/abrir',         auth, authPremium, wrap(caixaCtrl.abrir));
+
 router.post('/caixa/:id/fechar',    auth, authPremium, wrap(caixaCtrl.fechar));
 router.post('/caixa/:id/sangria',   auth, authPremium, wrap(caixaCtrl.sangria));
 router.post('/caixa/:id/suprimento',auth, authPremium, wrap(caixaCtrl.suprimento));
@@ -193,7 +195,10 @@ router.post('/caixa/:id/suprimento',auth, authPremium, wrap(caixaCtrl.suprimento
 router.get('/atendentes',                auth, authPremium, wrap(atendenteCtrl.listar));
 router.post('/atendentes',               auth, authPremium, wrap(atendenteCtrl.criar));
 router.post('/atendentes/:id/verificar-pin', auth, authPremium, wrap(atendenteCtrl.verificarPin));
+router.post('/atendentes/:id/papel',     auth, authPremium, wrap(atendenteCtrl.trocarPapel));
 router.delete('/atendentes/:id',         auth, authPremium, wrap(atendenteCtrl.remover));
+// Login por PIN — identifica quem está usando o tablet (atendente/caixa/gerente).
+router.post('/atendentes/login',         auth, wrap(atendenteCtrl.loginPin));
 
 // Encomendas — Premium apenas
 router.get('/encomendas',           auth, authPremium, wrap(encomendaCtrl.listar));
