@@ -424,7 +424,14 @@ function mostrarPagina(pg, pushHistory = true) {
     return;
   }
 
-  if ((pg === 'financeiro' || pg === 'equipe') && !financeiroDesbloqueado()) {
+  // Equipe é mais sensível (mexe em quem tem acesso a quê) — pede o PIN toda vez,
+  // sem aproveitar os 30 minutos de "liberado" que o Financeiro usa.
+  if (pg === 'financeiro' && !financeiroDesbloqueado()) {
+    _paginaAposPin = pg;
+    abrirModalPin();
+    return;
+  }
+  if (pg === 'equipe') {
     _paginaAposPin = pg;
     abrirModalPin();
     return;
