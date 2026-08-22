@@ -4877,6 +4877,7 @@ async function excluirComandaUI(id) {
 
 function abrirModalNovaComanda() {
   document.getElementById('cmd-novo-identificador').value = '';
+  document.getElementById('cmd-novo-atendente').value = _atendentePendente || '';
   document.getElementById('modal-nova-comanda').classList.remove('hidden');
   setTimeout(() => document.getElementById('cmd-novo-identificador').focus(), 100);
 }
@@ -4887,11 +4888,38 @@ function fecharModalNovaComanda() {
 
 async function criarComanda() {
   const identificador = document.getElementById('cmd-novo-identificador').value.trim() || 'Comanda';
-  const r = await api('/comandas', { method: 'POST', body: { identificador } });
+  const atendente = document.getElementById('cmd-novo-atendente').value.trim() || null;
+  const r = await api('/comandas', { method: 'POST', body: { identificador, atendente } });
   if (!r) return;
   fecharModalNovaComanda();
   await carregarComandas();
   abrirModalComanda(r.id);
+}
+
+// ── Atendente do balcão (quem atendeu, pode ser diferente de quem tá no caixa) ──
+// Fica gravado desde a abertura da comanda, pra rastrear quem lançou os itens.
+let _atendentePendente = ''; // usado quando a comanda ainda nem foi criada (venda de balcão lazy)
+
+async function definirAtendenteComandaUI() {
+  const atual = comandaAtualDados?.atendente || _atendentePendente || '';
+  const nome = prompt('Quem tá atendendo essa comanda?', atual);
+  if (nome === null) return;
+  const novoNome = nome.trim();
+  if (comandaAtualId) {
+    const r = await api(`/comandas/${comandaAtualId}/atendente`, { method: 'PATCH', body: { atendente: novoNome || null } });
+    if (!r) return;
+    if (comandaAtualDados) comandaAtualDados.atendente = novoNome || null;
+  } else {
+    _atendentePendente = novoNome;
+  }
+  atualizarLabelAtendenteComanda();
+}
+
+function atualizarLabelAtendenteComanda() {
+  const el = document.getElementById('cmd-detalhe-atendente');
+  if (!el) return;
+  const nome = comandaAtualDados?.atendente || _atendentePendente;
+  el.textContent = nome ? `Atendente: ${nome}` : 'Toque pra dizer quem tá atendendo';
 }
 
 // ── Tela de venda de balcão contínua (estilo Saurus) ──────
@@ -4942,11 +4970,12 @@ function abrirVendaBalcaoVazia() {
 async function garantirComandaBalcaoAtiva() {
   if (comandaAtualId) return comandaAtualId;
   const identificador = 'Balcão ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  const nova = await api('/comandas', { method: 'POST', body: { identificador } });
+  const nova = await api('/comandas', { method: 'POST', body: { identificador, atendente: _atendentePendente || null } });
   if (!nova) return null;
   comandaAtualId = nova.id;
   _balcaoComandaAtiva = nova.id;
   document.getElementById('cmd-detalhe-titulo').textContent = `🧾 ${identificador}`;
+  if (comandaAtualDados) comandaAtualDados.atendente = _atendentePendente || null;
   return nova.id;
 }
 
@@ -4988,8 +5017,7 @@ let _cmdRelogioTimer = null;
 function atualizarTopbarPdv() {
   const vendedorEl = document.getElementById('cmd-pdv-vendedor');
   if (vendedorEl) vendedorEl.textContent = 'Caixa: ' + (caixaAtualCache?.atendente || '—');
-  const atendenteEl = document.getElementById('cmd-detalhe-atendente');
-  if (atendenteEl) atendenteEl.textContent = caixaAtualCache?.atendente ? `Atendente: ${caixaAtualCache.atendente}` : '';
+  atualizarLabelAtendenteComanda();
   if (_cmdRelogioTimer) clearInterval(_cmdRelogioTimer);
   const tick = () => {
     const el = document.getElementById('cmd-pdv-relogio');

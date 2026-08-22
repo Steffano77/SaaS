@@ -595,6 +595,10 @@
           <label class="form-label">Identificação</label>
           <input id="cmd-novo-identificador" type="text" class="form-control" placeholder="Ex: Mesa 3, Balcão, João..."/>
         </div>
+        <div class="form-group">
+          <label class="form-label">Atendente <span style="color:var(--slate-400);font-weight:400;">(quem tá atendendo, opcional)</span></label>
+          <input id="cmd-novo-atendente" type="text" class="form-control" placeholder="Ex: Sara"/>
+        </div>
         <button onclick="criarComanda()" class="btn-primary full" style="margin-top:6px;">Abrir comanda</button>
       </div>
     </div>
@@ -682,7 +686,9 @@
         <div class="cmd-pdv-header">
           <div>
             <span class="modal-title" id="cmd-detalhe-titulo">🧾 Comanda</span>
-            <div id="cmd-detalhe-atendente" style="font-size:11.5px;color:rgba(255,255,255,0.7);margin-top:2px;"></div>
+            <div id="cmd-detalhe-atendente" onclick="definirAtendenteComandaUI()"
+              style="font-size:11.5px;color:rgba(255,255,255,0.7);margin-top:2px;cursor:pointer;text-decoration:underline dotted;"
+              title="Toque pra dizer quem atendeu essa comanda"></div>
           </div>
           <div style="display:flex;align-items:center;gap:6px;">
             <button onclick="imprimirFichaCozinha()" class="btn-icon" title="Imprimir ficha pra cozinha">🖨️</button>
@@ -1826,7 +1832,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260824r"></script>
+<script src="/js/app.js?v=20260824s"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

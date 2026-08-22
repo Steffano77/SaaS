@@ -72,12 +72,26 @@ exports.relatorioProdutos = async (req, res) => {
 exports.abrir = async (req, res) => {
   const padaria_id = req.padaria.id;
   const identificador = String(req.body.identificador || '').trim() || 'Comanda';
+  // Nome de quem atendeu no balcão/salão (pode ser diferente de quem opera o caixa) —
+  // fica gravado desde a abertura, pra rastrear quem lançou os itens se der algum problema.
+  const atendente = String(req.body.atendente || '').trim() || null;
 
   const [r] = await db.query(
-    `INSERT INTO comandas (padaria_id, identificador) VALUES (?, ?)`,
-    [padaria_id, identificador]
+    `INSERT INTO comandas (padaria_id, identificador, atendente) VALUES (?, ?, ?)`,
+    [padaria_id, identificador, atendente]
   );
-  res.status(201).json({ id: r.insertId, identificador });
+  res.status(201).json({ id: r.insertId, identificador, atendente });
+};
+
+// Define/troca o nome de quem atendeu a comanda (só enquanto ainda está aberta)
+exports.definirAtendente = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const atendente = String(req.body.atendente || '').trim() || null;
+  await db.query(
+    `UPDATE comandas SET atendente = ? WHERE id = ? AND padaria_id = ? AND status = 'aberta'`,
+    [atendente, req.params.id, padaria_id]
+  );
+  res.json({ ok: true, atendente });
 };
 
 // Define desconto/acréscimo da comanda (recalcula o total)
@@ -215,8 +229,10 @@ exports.fechar = async (req, res) => {
     return res.status(400).json({ erro: `A soma dos pagamentos (${somaPagamentos.toFixed(2)}) não bate com o total da comanda (${totalGeral.toFixed(2)}).` });
   }
 
-  // Atendente registrado na venda é o do caixa que efetivamente cobrou.
-  const atendente = caixa.atendente;
+  // Se já tinha um atendente de balcão registrado na abertura da comanda, mantém ele —
+  // é quem realmente atendeu o cliente. Só usa o atendente do caixa como reserva quando
+  // a comanda foi aberta sem informar ninguém (fluxo antigo/rápido).
+  const atendente = comanda.atendente || caixa.atendente;
 
   // Grava cada pagamento e lança no Financeiro (um lançamento por forma de pagamento)
   const formasResumo = [];
