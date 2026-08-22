@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260824a"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260824b"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -720,6 +720,31 @@
                 <input type="number" id="cmd-acrescimo" class="form-control" min="0" step="0.01" placeholder="0,00" onchange="salvarAjusteComanda()"/>
               </div>
             </div>
+
+            <button onclick="toggleCalculadora()" class="btn-link" style="margin-top:10px;">🧮 Calculadora</button>
+            <div id="cmd-calculadora" class="cmd-calculadora hidden">
+              <input type="text" id="calc-visor" class="cmd-calc-visor" readonly value="0"/>
+              <div class="cmd-calc-grid">
+                <button onclick="calcClear()" class="cmd-calc-btn cmd-calc-op">C</button>
+                <button onclick="calcApagar()" class="cmd-calc-btn cmd-calc-op">⌫</button>
+                <button onclick="calcOp('/')" class="cmd-calc-btn cmd-calc-op">÷</button>
+                <button onclick="calcOp('*')" class="cmd-calc-btn cmd-calc-op">×</button>
+                <button onclick="calcNum('7')" class="cmd-calc-btn">7</button>
+                <button onclick="calcNum('8')" class="cmd-calc-btn">8</button>
+                <button onclick="calcNum('9')" class="cmd-calc-btn">9</button>
+                <button onclick="calcOp('-')" class="cmd-calc-btn cmd-calc-op">−</button>
+                <button onclick="calcNum('4')" class="cmd-calc-btn">4</button>
+                <button onclick="calcNum('5')" class="cmd-calc-btn">5</button>
+                <button onclick="calcNum('6')" class="cmd-calc-btn">6</button>
+                <button onclick="calcOp('+')" class="cmd-calc-btn cmd-calc-op">+</button>
+                <button onclick="calcNum('1')" class="cmd-calc-btn">1</button>
+                <button onclick="calcNum('2')" class="cmd-calc-btn">2</button>
+                <button onclick="calcNum('3')" class="cmd-calc-btn">3</button>
+                <button onclick="calcIgual()" class="cmd-calc-btn cmd-calc-igual" style="grid-row:span 2;">=</button>
+                <button onclick="calcNum('0')" class="cmd-calc-btn" style="grid-column:span 2;">0</button>
+                <button onclick="calcNum('.')" class="cmd-calc-btn">,</button>
+              </div>
+            </div>
           </div>
 
           <div class="cmd-pdv-coluna-dir">
@@ -968,6 +993,25 @@
         <button onclick="confirmarPin()" class="btn-primary pin-btn">Entrar</button>
         <button onclick="fecharModalPin()" class="pin-cancelar">Cancelar</button>
         <button onclick="abrirAlterarPin()" class="pin-alterar-link">Alterar PIN</button>
+      </div>
+    </div>
+
+    <!-- Modal: valor recebido (troco / divisão de pagamento) -->
+    <div id="modal-valor-pagamento" class="modal-overlay hidden">
+      <div class="modal-box" style="max-width:340px;">
+        <div class="modal-header">
+          <span class="modal-title" id="pgto-valor-titulo">Valor recebido</span>
+          <button onclick="fecharModal('modal-valor-pagamento')" class="btn-icon">✕</button>
+        </div>
+        <p id="pgto-valor-sub" style="color:var(--slate-500);font-size:13px;margin:-6px 0 12px;">Falta receber: R$ 0,00</p>
+        <div class="form-group">
+          <label class="form-label">Valor recebido (R$)</label>
+          <input type="number" id="pgto-valor-input" class="form-control" min="0" step="0.01"
+            style="font-size:20px;font-weight:700;text-align:center;" oninput="atualizarTrocoUI()"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();confirmarValorPagamento();}"/>
+        </div>
+        <div id="pgto-valor-troco-linha" class="pgto-valor-troco hidden"></div>
+        <button onclick="confirmarValorPagamento()" class="btn-primary full" style="margin-top:8px;">Confirmar</button>
       </div>
     </div>
 
@@ -1780,7 +1824,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260824o"></script>
+<script src="/js/app.js?v=20260824p"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

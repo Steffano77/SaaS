@@ -5367,6 +5367,52 @@ async function removerItemComandaUI(itemId) {
 // ── Pagamento dividido (estilo Saurus: toca a forma, informa o valor, pode repetir com outra forma) ──
 let comandaPagamentosPendentes = [];
 
+// ── Calculadora rápida (dentro da comanda) ───────────────────────
+let _calcExpressao = '';
+function toggleCalculadora() {
+  document.getElementById('cmd-calculadora').classList.toggle('hidden');
+}
+function calcAtualizarVisor() {
+  document.getElementById('calc-visor').value = _calcExpressao
+    ? _calcExpressao.replace(/\*/g, '×').replace(/\//g, '÷')
+    : '0';
+}
+function calcNum(n) {
+  if (n === '.' && _calcExpressao.split(/[-+*/]/).pop().includes('.')) return; // só 1 vírgula por número
+  _calcExpressao += n;
+  calcAtualizarVisor();
+}
+function calcOp(op) {
+  if (!_calcExpressao) return;
+  // Troca o operador se a pessoa clicar em outro logo em seguida, em vez de acumular.
+  if (/[-+*/]$/.test(_calcExpressao)) _calcExpressao = _calcExpressao.slice(0, -1);
+  _calcExpressao += op;
+  calcAtualizarVisor();
+}
+function calcApagar() {
+  _calcExpressao = _calcExpressao.slice(0, -1);
+  calcAtualizarVisor();
+}
+function calcClear() {
+  _calcExpressao = '';
+  calcAtualizarVisor();
+}
+function calcIgual() {
+  if (!_calcExpressao) return;
+  try {
+    // Só dígitos, vírgula/ponto e os 4 operadores básicos — nunca roda texto arbitrário.
+    if (!/^[0-9.+\-*/]+$/.test(_calcExpressao)) throw new Error('inválido');
+    const resultado = Function(`"use strict"; return (${_calcExpressao})`)();
+    if (!isFinite(resultado)) throw new Error('inválido');
+    _calcExpressao = String(Math.round(resultado * 100) / 100);
+  } catch {
+    _calcExpressao = '';
+    document.getElementById('calc-visor').value = 'Erro';
+    return;
+  }
+  calcAtualizarVisor();
+}
+
 function calcularRestante() {
   const total = comandaAtualDados ? parseFloat(comandaAtualDados.total) : 0;
   const pago = comandaPagamentosPendentes.reduce((s, p) => s + p.valor, 0);
@@ -5393,9 +5439,15 @@ function adicionarPagamentoUI(forma) {
   const restante = calcularRestante();
   if (restante <= 0) { mostrarToast('Essa comanda já está totalmente paga.', 'warn'); return; }
 
-  // Primeiro toque numa forma de pagamento: assume que é o valor total (caso mais comum,
-  // venda de balcão à vista numa forma só) e já cobra tudo, sem precisar digitar nada.
-  // Só pede o valor manualmente a partir do 2º toque, quando é de fato uma divisão de pagamento.
+  // Dinheiro sempre pede o valor recebido — é o único jeito de calcular troco.
+  if (forma === 'Dinheiro') {
+    abrirModalValorPagamento(forma, restante, true);
+    return;
+  }
+
+  // Primeiro toque numa forma de pagamento (que não seja dinheiro): assume que é o valor
+  // total (caso mais comum, venda de balcão à vista numa forma só) e já cobra tudo, sem
+  // precisar digitar nada. Só pede o valor a partir do 2º toque, quando é divisão de verdade.
   if (comandaPagamentosPendentes.length === 0) {
     comandaPagamentosPendentes.push({ forma_pagamento: forma, valor: restante });
     atualizarPagamentoUI();
@@ -5403,13 +5455,53 @@ function adicionarPagamentoUI(forma) {
     return;
   }
 
-  const valorStr = prompt(`Valor recebido em ${forma}:`, restante.toFixed(2).replace('.', ','));
-  if (valorStr === null) return;
-  const valor = parseFloat(valorStr.replace(',', '.'));
-  if (!valor || valor <= 0) { mostrarToast('Valor inválido.', 'warn'); return; }
-  if (valor > restante + 0.01) { mostrarToast(`O valor não pode passar do restante (${fmtMoeda(restante)}).`, 'warn'); return; }
-  comandaPagamentosPendentes.push({ forma_pagamento: forma, valor });
+  abrirModalValorPagamento(forma, restante, false);
+}
+
+// ── Modal de valor recebido (troco no dinheiro + divisão de pagamento) ──
+let _pgtoForma = null, _pgtoRestante = 0, _pgtoEhDinheiro = false;
+
+function abrirModalValorPagamento(forma, restante, ehDinheiro) {
+  _pgtoForma = forma;
+  _pgtoRestante = restante;
+  _pgtoEhDinheiro = ehDinheiro;
+  document.getElementById('pgto-valor-titulo').textContent = `${forma} — valor recebido`;
+  document.getElementById('pgto-valor-sub').textContent = `Falta receber: ${fmtMoeda(restante)}`;
+  const input = document.getElementById('pgto-valor-input');
+  input.value = ehDinheiro ? '' : restante.toFixed(2);
+  document.getElementById('pgto-valor-troco-linha').classList.add('hidden');
+  document.getElementById('modal-valor-pagamento').classList.remove('hidden');
+  setTimeout(() => { input.focus(); input.select(); }, 100);
+  atualizarTrocoUI();
+}
+
+function atualizarTrocoUI() {
+  if (!_pgtoEhDinheiro) return;
+  const valor = parseFloat(document.getElementById('pgto-valor-input').value) || 0;
+  const linha = document.getElementById('pgto-valor-troco-linha');
+  if (valor <= 0) { linha.classList.add('hidden'); return; }
+  const troco = Math.max(0, Math.round((valor - _pgtoRestante) * 100) / 100);
+  linha.classList.remove('hidden');
+  linha.classList.toggle('zero', troco <= 0);
+  linha.textContent = troco > 0 ? `Troco: ${fmtMoeda(troco)}` : 'Sem troco';
+}
+
+function confirmarValorPagamento() {
+  const valor = parseFloat((document.getElementById('pgto-valor-input').value || '').replace(',', '.'));
+  if (!valor || valor <= 0) { mostrarToast('Digite um valor válido.', 'warn'); return; }
+  // Dinheiro pode vir maior que o restante (o excedente é troco); qualquer outra forma
+  // não pode passar do que falta, senão a comanda "receberia" mais do que o total.
+  if (!_pgtoEhDinheiro && valor > _pgtoRestante + 0.01) {
+    mostrarToast(`O valor não pode passar do restante (${fmtMoeda(_pgtoRestante)}).`, 'warn');
+    return;
+  }
+  const aplicado = Math.min(valor, _pgtoRestante);
+  comandaPagamentosPendentes.push({ forma_pagamento: _pgtoForma, valor: aplicado });
+  document.getElementById('modal-valor-pagamento').classList.add('hidden');
   atualizarPagamentoUI();
+  if (_pgtoEhDinheiro && valor > _pgtoRestante + 0.001) {
+    mostrarToast(`Troco: ${fmtMoeda(valor - _pgtoRestante)}`, 'ok');
+  }
   if (calcularRestante() <= 0) finalizarVendaUI();
 }
 
