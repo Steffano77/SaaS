@@ -67,6 +67,7 @@ exports.corrigirColunasFiscais = async (req, res) => {
     "ALTER TABLE padarias ADD COLUMN nfce_ativo TINYINT(1) NOT NULL DEFAULT 0",
     "ALTER TABLE padarias ADD COLUMN nfce_csc VARCHAR(255) NULL",
     "ALTER TABLE padarias ADD COLUMN nfce_id_csc INT NULL",
+    "ALTER TABLE padarias ADD COLUMN nfce_razao_social VARCHAR(120) NULL",
   ];
   const resultado = [];
   for (const sql of colunas) {
@@ -84,7 +85,7 @@ exports.salvarDadosFiscais = async (req, res) => {
     const padaria_id = req.padaria.id;
     const {
       inscricao_estadual, regime_tributario, logradouro, numero, bairro,
-      municipio, codigo_municipio_ibge, cep, uf,
+      municipio, codigo_municipio_ibge, cep, uf, razao_social,
     } = req.body;
 
     const campos = {
@@ -97,6 +98,7 @@ exports.salvarDadosFiscais = async (req, res) => {
       nfce_codigo_municipio_ibge: codigo_municipio_ibge,
       nfce_cep: cep,
       nfce_uf: uf,
+      nfce_razao_social: razao_social,
     };
     const sets = []; const vals = [];
     for (const [coluna, valor] of Object.entries(campos)) {

@@ -176,7 +176,7 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
     </ide>
     <emit>
       <CNPJ>${cnpjLimpo}</CNPJ>
-      <xNome>${escaparXml(padaria.nome)}</xNome>
+      <xNome>${escaparXml(padaria.nfce_razao_social || padaria.nome)}</xNome>
       <enderEmit>
         <xLgr>${escaparXml(padaria.nfce_logradouro)}</xLgr>
         <nro>${escaparXml(padaria.nfce_numero)}</nro>

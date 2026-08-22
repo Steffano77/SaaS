@@ -183,7 +183,7 @@ exports.imprimirDanfe = async (req, res) => {
         @media print { body { width: 80mm; } }
       </style></head>
       <body onload="window.print()">
-        <div class="danfe-center"><strong>${(padaria.nome || '').toUpperCase()}</strong></div>
+        <div class="danfe-center"><strong>${(padaria.nfce_razao_social || padaria.nome || '').toUpperCase()}</strong></div>
         <div class="danfe-center">${padaria.nfce_logradouro || ''}, ${padaria.nfce_numero || ''} ${padaria.nfce_bairro || ''}</div>
         <div class="danfe-center">${padaria.nfce_municipio || ''}/${padaria.nfce_uf || ''}</div>
         <div class="danfe-center">CNPJ: ${fmtCnpj(String(nota.chave_acesso || '').slice(6, 20))}</div>
