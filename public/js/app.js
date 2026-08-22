@@ -4875,9 +4875,12 @@ async function excluirComandaUI(id) {
   await carregarComandas();
 }
 
-function abrirModalNovaComanda() {
+async function abrirModalNovaComanda() {
   document.getElementById('cmd-novo-identificador').value = '';
-  document.getElementById('cmd-novo-atendente').value = _atendentePendente || '';
+  await carregarAtendentesSelect('cmd-novo-atendente');
+  // Pré-seleciona o último atendente usado, se ele ainda estiver na lista.
+  const opcaoAtual = [...document.getElementById('cmd-novo-atendente').options].find(o => o.textContent === _atendentePendente);
+  if (opcaoAtual) document.getElementById('cmd-novo-atendente').value = opcaoAtual.value;
   document.getElementById('modal-nova-comanda').classList.remove('hidden');
   setTimeout(() => document.getElementById('cmd-novo-identificador').focus(), 100);
 }
@@ -4888,9 +4891,11 @@ function fecharModalNovaComanda() {
 
 async function criarComanda() {
   const identificador = document.getElementById('cmd-novo-identificador').value.trim() || 'Comanda';
-  const atendente = document.getElementById('cmd-novo-atendente').value.trim() || null;
-  const r = await api('/comandas', { method: 'POST', body: { identificador, atendente } });
+  const atendenteId = document.getElementById('cmd-novo-atendente').value;
+  const atendenteNome = atendentesCache.find(a => String(a.id) === atendenteId)?.nome || null;
+  const r = await api('/comandas', { method: 'POST', body: { identificador, atendente: atendenteNome } });
   if (!r) return;
+  if (atendenteNome) _atendentePendente = atendenteNome;
   fecharModalNovaComanda();
   await carregarComandas();
   abrirModalComanda(r.id);
@@ -4901,17 +4906,24 @@ async function criarComanda() {
 let _atendentePendente = ''; // usado quando a comanda ainda nem foi criada (venda de balcão lazy)
 
 async function definirAtendenteComandaUI() {
+  await carregarAtendentesSelect('sel-atendente-comanda');
   const atual = comandaAtualDados?.atendente || _atendentePendente || '';
-  const nome = prompt('Quem tá atendendo essa comanda?', atual);
-  if (nome === null) return;
-  const novoNome = nome.trim();
+  const opcaoAtual = [...document.getElementById('sel-atendente-comanda').options].find(o => o.textContent === atual);
+  document.getElementById('sel-atendente-comanda').value = opcaoAtual ? opcaoAtual.value : '';
+  document.getElementById('modal-selecionar-atendente').classList.remove('hidden');
+}
+
+async function confirmarAtendenteComanda() {
+  const atendenteId = document.getElementById('sel-atendente-comanda').value;
+  const novoNome = atendentesCache.find(a => String(a.id) === atendenteId)?.nome || null;
   if (comandaAtualId) {
-    const r = await api(`/comandas/${comandaAtualId}/atendente`, { method: 'PATCH', body: { atendente: novoNome || null } });
+    const r = await api(`/comandas/${comandaAtualId}/atendente`, { method: 'PATCH', body: { atendente: novoNome } });
     if (!r) return;
-    if (comandaAtualDados) comandaAtualDados.atendente = novoNome || null;
+    if (comandaAtualDados) comandaAtualDados.atendente = novoNome;
   } else {
-    _atendentePendente = novoNome;
+    _atendentePendente = novoNome || '';
   }
+  fecharModal('modal-selecionar-atendente');
   atualizarLabelAtendenteComanda();
 }
 

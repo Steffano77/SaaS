@@ -597,7 +597,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">Atendente <span style="color:var(--slate-400);font-weight:400;">(quem tá atendendo, opcional)</span></label>
-          <input id="cmd-novo-atendente" type="text" class="form-control" placeholder="Ex: Sara"/>
+          <select id="cmd-novo-atendente" class="form-control" onchange="if(this.value==='__novo__') adicionarAtendenteInline(this)"></select>
         </div>
         <button onclick="criarComanda()" class="btn-primary full" style="margin-top:6px;">Abrir comanda</button>
       </div>
@@ -1001,6 +1001,20 @@
         <button onclick="confirmarPin()" class="btn-primary pin-btn">Entrar</button>
         <button onclick="fecharModalPin()" class="pin-cancelar">Cancelar</button>
         <button onclick="abrirAlterarPin()" class="pin-alterar-link">Alterar PIN</button>
+      </div>
+    </div>
+
+    <!-- Modal: escolher atendente da comanda -->
+    <div id="modal-selecionar-atendente" class="modal-overlay hidden">
+      <div class="modal-box" style="max-width:340px;">
+        <div class="modal-header">
+          <span class="modal-title">Quem tá atendendo?</span>
+          <button onclick="fecharModal('modal-selecionar-atendente')" class="btn-icon">✕</button>
+        </div>
+        <div class="form-group">
+          <select id="sel-atendente-comanda" class="form-control" onchange="if(this.value==='__novo__') adicionarAtendenteInline(this)"></select>
+        </div>
+        <button onclick="confirmarAtendenteComanda()" class="btn-primary full" style="margin-top:6px;">Confirmar</button>
       </div>
     </div>
 
@@ -1832,7 +1846,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260824t"></script>
+<script src="/js/app.js?v=20260824u"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
