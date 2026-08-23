@@ -46,6 +46,26 @@ let _prodFornecedorMap = {}; // produto_id → nome do fornecedor
 })();
 const MODO_BALCAO = localStorage.getItem('pp_modo_balcao') === '1';
 const MODO_LANCAMENTO = localStorage.getItem('pp_modo_lancamento') === '1';
+const TELA_CHEIA_AUTO = localStorage.getItem('pp_tela_cheia_auto') === '1';
+
+// ── Tela cheia automática (por aparelho) ──────────────────────────
+// Navegador bloqueia entrar em tela cheia sozinho ao carregar a página — só permite
+// depois de algum toque/clique real da pessoa. Por isso escuta o PRIMEIRO toque.
+if (TELA_CHEIA_AUTO) {
+  const entrarTelaCheiaUmaVez = () => {
+    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+    document.removeEventListener('click', entrarTelaCheiaUmaVez);
+    document.removeEventListener('touchend', entrarTelaCheiaUmaVez);
+  };
+  document.addEventListener('click', entrarTelaCheiaUmaVez);
+  document.addEventListener('touchend', entrarTelaCheiaUmaVez);
+}
+document.addEventListener('fullscreenchange', () => {
+  const btn = document.getElementById('btn-sair-tela-cheia');
+  if (btn) btn.classList.toggle('hidden', !document.fullscreenElement);
+});
 
 // ── Dark Mode ──────────────────────────────────────────────────
 (function() {
@@ -78,14 +98,17 @@ function togglePass(inputId, btn) {
 function abrirModalConfigAparelho() {
   document.getElementById('cfg-modo-balcao').checked = MODO_BALCAO;
   document.getElementById('cfg-modo-lancamento').checked = MODO_LANCAMENTO;
+  document.getElementById('cfg-tela-cheia').checked = TELA_CHEIA_AUTO;
   document.getElementById('modal-config-aparelho').classList.remove('hidden');
 }
 
 function salvarConfigAparelho() {
   const balcao = document.getElementById('cfg-modo-balcao').checked;
   const lancamento = document.getElementById('cfg-modo-lancamento').checked;
+  const telaCheia = document.getElementById('cfg-tela-cheia').checked;
   if (balcao) localStorage.setItem('pp_modo_balcao', '1'); else localStorage.removeItem('pp_modo_balcao');
   if (lancamento) localStorage.setItem('pp_modo_lancamento', '1'); else localStorage.removeItem('pp_modo_lancamento');
+  if (telaCheia) localStorage.setItem('pp_tela_cheia_auto', '1'); else localStorage.removeItem('pp_tela_cheia_auto');
   location.reload();
 }
 
