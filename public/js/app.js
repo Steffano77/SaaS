@@ -51,23 +51,14 @@ const MODO_LANCAMENTO = localStorage.getItem('pp_modo_lancamento') === '1';
 const TELA_CHEIA_AUTO = localStorage.getItem('pp_tela_cheia_auto') !== '0';
 
 // ── Tela cheia automática (por aparelho) ──────────────────────────
-// Navegador bloqueia entrar em tela cheia sozinho ao carregar a página — só permite
-// depois de algum toque/clique real da pessoa. Por isso escuta o PRIMEIRO toque.
-if (TELA_CHEIA_AUTO) {
-  const entrarTelaCheiaUmaVez = () => {
-    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    }
-    document.removeEventListener('click', entrarTelaCheiaUmaVez);
-    document.removeEventListener('touchend', entrarTelaCheiaUmaVez);
-  };
-  document.addEventListener('click', entrarTelaCheiaUmaVez);
-  document.addEventListener('touchend', entrarTelaCheiaUmaVez);
+// Entra em tela cheia especificamente ao clicar em "Comandas" no menu — pra se
+// comportar feito um app de verdade, sem sair sozinho por acidente (só com Esc).
+function entrarTelaCheiaSeAtivo() {
+  if (!TELA_CHEIA_AUTO) return;
+  if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
 }
-document.addEventListener('fullscreenchange', () => {
-  const btn = document.getElementById('btn-sair-tela-cheia');
-  if (btn) btn.classList.toggle('hidden', !document.fullscreenElement);
-});
 
 // ── Dark Mode ──────────────────────────────────────────────────
 (function() {
