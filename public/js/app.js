@@ -46,7 +46,9 @@ let _prodFornecedorMap = {}; // produto_id → nome do fornecedor
 })();
 const MODO_BALCAO = localStorage.getItem('pp_modo_balcao') === '1';
 const MODO_LANCAMENTO = localStorage.getItem('pp_modo_lancamento') === '1';
-const TELA_CHEIA_AUTO = localStorage.getItem('pp_tela_cheia_auto') === '1';
+// Ativado por padrão em todo aparelho — só desativa se a pessoa desmarcar
+// explicitamente em "Este aparelho" (aí salva '0' no lugar de simplesmente apagar).
+const TELA_CHEIA_AUTO = localStorage.getItem('pp_tela_cheia_auto') !== '0';
 
 // ── Tela cheia automática (por aparelho) ──────────────────────────
 // Navegador bloqueia entrar em tela cheia sozinho ao carregar a página — só permite
@@ -108,7 +110,7 @@ function salvarConfigAparelho() {
   const telaCheia = document.getElementById('cfg-tela-cheia').checked;
   if (balcao) localStorage.setItem('pp_modo_balcao', '1'); else localStorage.removeItem('pp_modo_balcao');
   if (lancamento) localStorage.setItem('pp_modo_lancamento', '1'); else localStorage.removeItem('pp_modo_lancamento');
-  if (telaCheia) localStorage.setItem('pp_tela_cheia_auto', '1'); else localStorage.removeItem('pp_tela_cheia_auto');
+  if (telaCheia) localStorage.removeItem('pp_tela_cheia_auto'); else localStorage.setItem('pp_tela_cheia_auto', '0');
   location.reload();
 }
 
