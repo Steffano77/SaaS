@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260824f"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260824g"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -1010,6 +1010,18 @@
       </div>
     </div>
 
+    <!-- Modal: confirmação bonita (substitui o confirm() feio do navegador) —
+         navega com ← → e confirma com Enter, sem precisar tocar na tela. -->
+    <div id="modal-confirmar-bonito" class="modal-overlay hidden">
+      <div class="modal-box" style="max-width:380px;text-align:center;">
+        <p id="confirmar-bonito-msg" class="confirmar-bonito-msg"></p>
+        <div style="display:flex;gap:10px;">
+          <button id="confirmar-bonito-cancelar" class="btn-secondary" style="flex:1;" onclick="_resolverConfirmarBonito(false)">Cancelar</button>
+          <button id="confirmar-bonito-ok" class="btn-primary" style="flex:1;" onclick="_resolverConfirmarBonito(true)">OK</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal: escolher atendente da comanda -->
     <div id="modal-selecionar-atendente" class="modal-overlay hidden">
       <div class="modal-box" style="max-width:340px;">
@@ -1852,7 +1864,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260824z"></script>
+<script src="/js/app.js?v=20260825a"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

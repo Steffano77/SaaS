@@ -3068,3 +3068,7 @@ tr.tr-saida td { color: var(--red-600); }
 /* ── Modal de valor recebido (dinheiro/divisão de pagamento) ─── */
 .pgto-valor-troco { text-align: center; font-size: 18px; font-weight: 700; color: var(--green-700); margin: 8px 0 4px; }
 .pgto-valor-troco.zero { color: var(--slate-400); }
+
+.confirmar-bonito-msg { font-size: 16px; font-weight: 600; color: var(--slate-800); margin-bottom: 20px; }
+[data-theme="dark"] .confirmar-bonito-msg { color: #f1f5f9; }
+#confirmar-bonito-ok:focus, #confirmar-bonito-cancelar:focus { outline: 3px solid var(--orange); outline-offset: 2px; }

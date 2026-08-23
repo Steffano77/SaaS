@@ -5496,6 +5496,37 @@ function calcIgual() {
   calcAtualizarVisor();
 }
 
+// ── Confirmação bonita (substitui o confirm() feio do navegador) ──────────
+// Popup no meio da tela, navegável com ← → e confirma com Enter — sem precisar
+// tocar na tela, do jeito que se usa uma maquininha/PDV de verdade.
+let _resolverConfirmarBonitoAtual = null;
+function confirmarBonito(mensagem) {
+  return new Promise((resolve) => {
+    _resolverConfirmarBonitoAtual = resolve;
+    document.getElementById('confirmar-bonito-msg').textContent = mensagem;
+    document.getElementById('modal-confirmar-bonito').classList.remove('hidden');
+    const btnOk = document.getElementById('confirmar-bonito-ok');
+    btnOk.focus();
+    document.addEventListener('keydown', _teclasConfirmarBonito);
+  });
+}
+function _teclasConfirmarBonito(e) {
+  const btnOk = document.getElementById('confirmar-bonito-ok');
+  const btnCancelar = document.getElementById('confirmar-bonito-cancelar');
+  if (e.key === 'ArrowLeft') { e.preventDefault(); btnCancelar.focus(); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); btnOk.focus(); }
+  if (e.key === 'Escape') { e.preventDefault(); _resolverConfirmarBonito(false); }
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    _resolverConfirmarBonito(document.activeElement === btnCancelar ? false : true);
+  }
+}
+function _resolverConfirmarBonito(valor) {
+  document.getElementById('modal-confirmar-bonito').classList.add('hidden');
+  document.removeEventListener('keydown', _teclasConfirmarBonito);
+  if (_resolverConfirmarBonitoAtual) { const r = _resolverConfirmarBonitoAtual; _resolverConfirmarBonitoAtual = null; r(valor); }
+}
+
 function calcularRestante() {
   const total = comandaAtualDados ? parseFloat(comandaAtualDados.total) : 0;
   const pago = comandaPagamentosPendentes.reduce((s, p) => s + p.valor, 0);
@@ -5659,7 +5690,7 @@ async function emitirNotaFiscalComanda(comandaId) {
   const nf = await api(`/fiscal/nfce/comanda/${comandaId}`, { method: 'POST' });
   if (nf && nf.ok) {
     mostrarToast(`Nota fiscal autorizada! Protocolo ${nf.protocolo}`);
-    if (confirm('Imprimir a nota fiscal (DANFE-NFCe)?')) {
+    if (await confirmarBonito('Imprimir a nota fiscal (DANFE-NFCe)?')) {
       await imprimirDanfeNFCe(comandaId);
     }
   } else if (nf) {
@@ -5683,7 +5714,7 @@ async function finalizarVendaUI() {
     return;
   }
   const resumo = comandaPagamentosPendentes.map(p => `${p.forma_pagamento}: ${fmtMoeda(p.valor)}`).join(' + ');
-  if (!confirm(`Confirmar recebimento — ${resumo}?`)) return;
+  if (!(await confirmarBonito(`Confirmar recebimento — ${resumo}?`))) return;
   const comandaFechadaId = comandaAtualId; // guarda ANTES de fechar o modal, que zera comandaAtualId
   const snapshot = comandaAtualDados; // guarda os itens antes de fechar, pro recibo
   const formaResumo = comandaPagamentosPendentes.map(p => p.forma_pagamento).join(' + ');
@@ -5697,11 +5728,11 @@ async function finalizarVendaUI() {
   // Pergunta a nota fiscal ANTES de abrir a janela de impressão — a janela de
   // impressão fica na frente e escondia esse aviso atrás dela.
   if (await fiscalConfigurado()) {
-    if (confirm('Emitir Nota Fiscal (NFC-e) dessa comanda? (ainda em ambiente de teste — não vale legalmente)')) {
+    if (await confirmarBonito('Emitir Nota Fiscal (NFC-e) dessa comanda? (ainda em ambiente de teste — não vale legalmente)')) {
       await emitirNotaFiscalComanda(comandaFechadaId);
     }
   }
-  if (snapshot && confirm('Imprimir o recibo dessa comanda?')) {
+  if (snapshot && await confirmarBonito('Imprimir o recibo dessa comanda?')) {
     imprimirReciboComanda(snapshot, formaResumo);
   }
   // Venda de balcão: volta direto pra uma tela em branco, pronta pro próximo cliente
