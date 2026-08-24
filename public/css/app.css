@@ -3081,6 +3081,9 @@ tr.tr-saida td { color: var(--red-600); }
 @media (min-width: 700px) {
   #modal-produto .form-row { grid-template-columns: 1fr 1fr 1fr; }
 }
+@media (min-width: 900px) {
+  #modal-produto .form-row { grid-template-columns: 1fr 1fr 1fr 1fr; }
+}
 
 /* Aperta ainda mais o modal de produto — reduz espaçamentos verticais e aumenta
    a altura útil, pra caber o máximo de campo possível sem rolar. */
