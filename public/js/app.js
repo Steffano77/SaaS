@@ -3216,6 +3216,7 @@ function abrirModalProduto() {
   document.getElementById('prod-id').value = '';
   document.getElementById('modal-titulo').textContent = 'Novo produto';
   document.getElementById('form-produto').reset();
+  document.getElementById('wrap-prod-cest').classList.add('hidden');
   document.getElementById('wrap-saldo').classList.remove('hidden');
   document.getElementById('bloco-embalagem').classList.add('hidden');
   document.getElementById('prod-embalagem-resultado').textContent = '—';
@@ -3235,6 +3236,10 @@ async function editarProduto(id) {
   document.getElementById('prod-cod').value     = p.codigo_barras || '';
   document.getElementById('prod-cod-balanca').value = p.codigo_balanca || '';
   document.getElementById('prod-ncm').value = p.ncm || '';
+  document.getElementById('prod-origem-producao').value = p.origem_producao || 'revenda';
+  document.getElementById('prod-situacao-icms').value = p.situacao_icms || 'normal';
+  document.getElementById('prod-cest').value = p.cest || '';
+  document.getElementById('wrap-prod-cest').classList.toggle('hidden', (p.situacao_icms || 'normal') !== 'st');
   document.getElementById('prod-unidade').value = p.unidade;
   document.getElementById('prod-minimo').value  = Math.round(p.estoque_minimo || 0);
   document.getElementById('prod-custo').value   = parseFloat(p.custo_unitario || 0).toFixed(4);
@@ -3344,6 +3349,9 @@ async function salvarProduto(e) {
     codigo_barras: document.getElementById('prod-cod').value || null,
     codigo_balanca: document.getElementById('prod-cod-balanca').value.trim() || null,
     ncm:           document.getElementById('prod-ncm').value.trim().replace(/\D/g, '') || null,
+    origem_producao: document.getElementById('prod-origem-producao').value,
+    situacao_icms: document.getElementById('prod-situacao-icms').value,
+    cest:          document.getElementById('prod-cest').value.trim().replace(/\D/g, '') || null,
     unidade:       document.getElementById('prod-unidade').value,
     categoria_id:  document.getElementById('prod-categoria').value || null,
     fornecedor_id: document.getElementById('prod-fornecedor').value || null,

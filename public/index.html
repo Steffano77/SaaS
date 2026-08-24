@@ -1727,6 +1727,25 @@
             <button type="button" onclick="abrirModalCodigosUsados('ncm')" class="btn-link" style="font-size:12px;margin-top:4px;">🔎 Ver NCM já usados</button>
           </div>
           <div class="form-group">
+            <label>Origem <span style="color:var(--slate-400);font-weight:400;">(pra nota fiscal — decide o CFOP)</span></label>
+            <select id="prod-origem-producao" class="form-control">
+              <option value="revenda">Revenda (compro pronto)</option>
+              <option value="propria">Produção própria (fabrico aqui)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Situação do ICMS <span style="color:var(--slate-400);font-weight:400;">(pra nota fiscal — decide o CSOSN)</span></label>
+            <select id="prod-situacao-icms" class="form-control" onchange="document.getElementById('wrap-prod-cest').classList.toggle('hidden', this.value !== 'st')">
+              <option value="normal">Normal</option>
+              <option value="st">Substituição Tributária (ST)</option>
+              <option value="isento">Isento</option>
+            </select>
+          </div>
+          <div class="form-group hidden" id="wrap-prod-cest">
+            <label>CEST <span style="color:var(--slate-400);font-weight:400;">(obrigatório quando tem ST)</span></label>
+            <input type="text" id="prod-cest" placeholder="Ex: 03.002.00" maxlength="9" class="form-control"/>
+          </div>
+          <div class="form-group">
             <label>Unidade</label>
             <select id="prod-unidade" class="form-control" onchange="atualizarLabelEmbalagem()">
               <option>UNIDADE</option><option>KG</option><option>LITRO</option>
@@ -1878,7 +1897,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260825g"></script>
+<script src="/js/app.js?v=20260825h"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

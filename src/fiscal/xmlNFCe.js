@@ -34,6 +34,20 @@ function escaparXml(texto) {
 function num2(valor) { return parseFloat(valor || 0).toFixed(2); }
 function num4(valor) { return parseFloat(valor || 0).toFixed(4); }
 
+// CFOP e CSOSN certos dependem de duas coisas do produto (não do NCM): se é fabricado
+// na própria padaria ou comprado pronto pra revender, e se tem Substituição Tributária
+// (ICMS já recolhido antes, tipo bebida/cerveja/água) — orientação do contador.
+function definirCfop(item) {
+  if (item.origem_producao === 'propria') return '5101'; // venda de produção do estabelecimento
+  if (item.situacao_icms === 'st') return '5405'; // revenda de mercadoria com ST (substituído)
+  return '5102'; // revenda normal
+}
+function montarBlocoIcms(item) {
+  if (item.situacao_icms === 'st') return '<ICMSSN500><orig>0</orig><CSOSN>500</CSOSN></ICMSSN500>';
+  if (item.situacao_icms === 'isento') return '<ICMSSN400><orig>0</orig><CSOSN>400</CSOSN></ICMSSN400>';
+  return '<ICMSSN102><orig>0</orig><CSOSN>102</CSOSN></ICMSSN102>'; // normal, sem permissão de crédito
+}
+
 // padaria: linha da tabela padarias (com os campos nfce_*) · comanda: { itens, total, ... }
 // pagamentos: [{forma_pagamento, valor}] · numero: nNF sequencial · ambiente: 1 ou 2
 function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }) {
@@ -89,7 +103,8 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
         <cEAN>SEM GTIN</cEAN>
         <xProd>${escaparXml(nomeProduto)}</xProd>
         <NCM>${(item.ncm_produto || '').replace(/\D/g, '') || '21069090'}</NCM>
-        <CFOP>5102</CFOP>
+        ${item.situacao_icms === 'st' && item.cest ? `<CEST>${item.cest.replace(/\D/g, '')}</CEST>` : ''}
+        <CFOP>${definirCfop(item)}</CFOP>
         <uCom>${escaparXml((item.unidade || 'UN').toUpperCase().slice(0, 6))}</uCom>
         <qCom>${qCom}</qCom>
         <vUnCom>${vUnCom}</vUnCom>
@@ -101,7 +116,7 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
         <indTot>1</indTot>
       </prod>
       <imposto>
-        <ICMS><ICMSSN102><orig>0</orig><CSOSN>102</CSOSN></ICMSSN102></ICMS>
+        <ICMS>${montarBlocoIcms(item)}</ICMS>
         <PIS><PISNT><CST>07</CST></PISNT></PIS>
         <COFINS><COFINSNT><CST>07</CST></COFINSNT></COFINS>
         <IBSCBS>

@@ -80,7 +80,7 @@ exports.criar = async (req, res) => {
   try {
     const { codigo_barras, codigo_balanca, ncm, nome, unidade, categoria_id, fornecedor_id, custo_unitario,
             preco_venda, estoque_atual, estoque_minimo, validade,
-            embalagem_preco, embalagem_qtd } = req.body;
+            embalagem_preco, embalagem_qtd, origem_producao, situacao_icms, cest } = req.body;
     if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório.' });
     const erroNumero = validarNumerosProduto(req.body);
     if (erroNumero) return res.status(400).json({ erro: erroNumero });
@@ -96,12 +96,13 @@ exports.criar = async (req, res) => {
     const [result] = await db.query(
       `INSERT INTO produtos (padaria_id, categoria_id, fornecedor_id, codigo_barras, codigo_balanca, ncm, nome, unidade,
         custo_unitario, preco_venda, estoque_atual, estoque_minimo, validade,
-        embalagem_preco, embalagem_qtd)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        embalagem_preco, embalagem_qtd, origem_producao, situacao_icms, cest)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [req.padaria.id, categoria_id || null, fornecedor_id || null, codigo_barras || null, codigo_balanca || null, ncm || null, nome,
        unidade || 'UNIDADE', custo_unitario || 0, preco_venda || 0,
        estoque_atual || 0, estoque_minimo || 0, validade || null,
-       embalagem_preco || null, embalagem_qtd || null]
+       embalagem_preco || null, embalagem_qtd || null,
+       origem_producao || 'revenda', situacao_icms || 'normal', cest || null]
     );
     const [novo] = await db.query('SELECT * FROM produtos WHERE id = ?', [result.insertId]);
     res.status(201).json(novo[0]);
@@ -118,7 +119,8 @@ exports.atualizar = async (req, res) => {
 
     const campos = ['codigo_barras','codigo_balanca','ncm','nome','unidade','categoria_id','fornecedor_id',
                     'custo_unitario','preco_venda','estoque_atual','estoque_minimo','validade','ultima_compra',
-                    'embalagem_preco','embalagem_qtd','venda_rapida','controla_estoque'];
+                    'embalagem_preco','embalagem_qtd','venda_rapida','controla_estoque',
+                    'origem_producao','situacao_icms','cest'];
     const sets = []; const vals = [];
     for (const c of campos) {
       if (req.body[c] !== undefined) { sets.push(`${c} = ?`); vals.push(req.body[c]); }

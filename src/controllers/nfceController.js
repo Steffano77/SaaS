@@ -44,7 +44,8 @@ exports.emitirParaComanda = async (req, res) => {
     // Traz o NCM cadastrado no produto (join) — a nota usa ele quando tiver, e só cai
     // no código genérico (dentro do montarXmlNFCe) se o produto não tiver NCM definido.
     const [itens] = await db.query(
-      `SELECT ic.*, p.ncm AS ncm_produto FROM itens_comanda ic
+      `SELECT ic.*, p.ncm AS ncm_produto, p.origem_producao, p.situacao_icms, p.cest
+       FROM itens_comanda ic
        LEFT JOIN produtos p ON p.id = ic.produto_id
        WHERE ic.comanda_id = ?`,
       [comanda_id]

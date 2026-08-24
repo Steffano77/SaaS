@@ -269,6 +269,14 @@ app.use(express.static(path.join(__dirname, '../public')));
       // na nota fiscal (NFC-e). Sem isso, a nota usa um código genérico como reserva.
       'ALTER TABLE produtos ADD COLUMN ncm VARCHAR(10) NULL',
 
+      // Origem do produto (fabricado na padaria ou comprado pronto pra revender) e
+      // situação do ICMS (normal / com Substituição Tributária / isento) — usados
+      // pra escolher automaticamente o CFOP e o CSOSN certos na nota fiscal, em vez
+      // de usar sempre o mesmo código genérico pra tudo (orientação do contador).
+      "ALTER TABLE produtos ADD COLUMN origem_producao ENUM('propria','revenda') NOT NULL DEFAULT 'revenda'",
+      "ALTER TABLE produtos ADD COLUMN situacao_icms ENUM('normal','st','isento') NOT NULL DEFAULT 'normal'",
+      'ALTER TABLE produtos ADD COLUMN cest VARCHAR(9) NULL',
+
       // Caixa pausado (a pessoa saiu pro intervalo) — continua "aberto" no banco, só
       // trava a venda até alguém (com PIN de caixa/gerente) retomar.
       'ALTER TABLE caixas ADD COLUMN pausado TINYINT(1) NOT NULL DEFAULT 0',
