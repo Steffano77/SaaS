@@ -5064,7 +5064,8 @@ function renderHistoricoComandas(recentes) {
         <span class="historico-item-meta">${fmtDataHoraBR(c.fechada_em || c.aberta_em)} · <span class="historico-item-valor">${fmtMoeda(c.total)}</span></span>
       </div>
       <div class="historico-item-acoes">
-        <button class="btn-icon" title="Reimprimir recibo" onclick="reimprimirComandaUI(${c.id})">🖨️</button>
+        <button class="btn-icon" title="Reimprimir notinha (recibo comum)" onclick="reimprimirComandaUI(${c.id})">🖨️</button>
+        <button class="btn-icon" title="Reimprimir nota fiscal (NFC-e), se essa comanda teve uma emitida" onclick="imprimirDanfeNFCe(${c.id})">🧾</button>
         <button class="btn-icon" title="Excluir" onclick="excluirComandaHistoricoUI(${c.id})">🗑️</button>
       </div>
     </div>
