@@ -171,14 +171,14 @@ router.post('/financeiro/maquininha/confirmar', auth, authPremium, wrap(maquinin
 
 // Comandas — Premium apenas
 router.get('/comandas',                auth, authPremium, wrap(comandaCtrl.listar));
-router.get('/comandas/relatorio',      auth, authPremium, wrap(comandaCtrl.relatorioProdutos));
+router.get('/comandas/relatorio',      auth, authPremium, exigirFuncionario(['gerente']), wrap(comandaCtrl.relatorioProdutos));
 router.post('/comandas',               auth, authPremium, wrap(comandaCtrl.abrir));
 router.get('/comandas/:id',            auth, authPremium, wrap(comandaCtrl.buscar));
 router.post('/comandas/:id/itens',     auth, authPremium, wrap(comandaCtrl.adicionarItem));
 router.delete('/comandas/:id/itens/:itemId', auth, authPremium, exigirFuncionario(['gerente']), wrap(comandaCtrl.removerItem));
 router.post('/comandas/:id/fechar',    auth, authPremium, wrap(comandaCtrl.fechar));
 router.post('/comandas/:id/cancelar',  auth, authPremium, exigirFuncionario(['gerente']), wrap(comandaCtrl.cancelar));
-router.delete('/comandas/:id',         auth, authPremium, wrap(comandaCtrl.excluir));
+router.delete('/comandas/:id',         auth, authPremium, exigirFuncionario(['gerente']), wrap(comandaCtrl.excluir));
 router.patch('/comandas/:id/ajuste',   auth, authPremium, wrap(comandaCtrl.definirAjuste));
 router.patch('/comandas/:id/atendente', auth, authPremium, wrap(comandaCtrl.definirAtendente));
 router.post('/comandas/:id/enviar',    auth, authPremium, wrap(comandaCtrl.enviarParaCaixa));

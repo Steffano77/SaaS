@@ -4988,11 +4988,60 @@ function cardComandaHtml(c) {
 }
 
 async function excluirComandaUI(id) {
-  if (!confirm('Excluir essa comanda definitivamente? Essa ação não pode ser desfeita.')) return;
-  const r = await api(`/comandas/${id}`, { method: 'DELETE' });
-  if (!r) return;
+  if (!(await confirmarBonito('Excluir essa comanda definitivamente? Essa ação não pode ser desfeita.'))) return;
+  // Ação sensível — exige login de atendente com papel "gerente".
+  const r = await comLoginAtendente(() => api(`/comandas/${id}`, { method: 'DELETE' }));
+  if (!r || r.precisa_login_funcionario) return;
   mostrarToast('Comanda excluída.', 'ok');
   await carregarComandas();
+  if (document.getElementById('modal-historico-comandas') && !document.getElementById('modal-historico-comandas').classList.contains('hidden')) {
+    carregarHistoricoComandas();
+  }
+}
+
+/* ===================== HISTÓRICO DE COMANDAS (restrito a gerente) ===================== */
+async function abrirHistoricoComandas() {
+  await comLoginAtendente(async () => {
+    const r = await api('/comandas');
+    if (!r || r.precisa_login_funcionario) return r;
+    document.getElementById('modal-historico-comandas').classList.remove('hidden');
+    renderHistoricoComandas(r.recentes || []);
+    return r;
+  });
+}
+
+async function carregarHistoricoComandas() {
+  const r = await api('/comandas');
+  if (!r) return;
+  renderHistoricoComandas(r.recentes || []);
+}
+
+function renderHistoricoComandas(recentes) {
+  const el = document.getElementById('historico-comandas-lista');
+  const statusLabel = { fechada: '✅ Fechada', cancelada: '🚫 Cancelada' };
+  if (!recentes.length) {
+    el.innerHTML = `<div class="cmd-vazio">Nenhuma comanda finalizada ainda.</div>`;
+    return;
+  }
+  el.innerHTML = recentes.map(c => `
+    <div class="cmd-item-linha">
+      <div class="cmd-item-nome">
+        <strong>${c.identificador}</strong>
+        <span class="cmd-item-numero">${statusLabel[c.status] || c.status} · ${fmtDataHoraBR(c.fechada_em || c.aberta_em)} · ${fmtMoeda(c.total)}</span>
+      </div>
+      <div class="cmd-item-direita" style="gap:6px;">
+        <button class="btn-icon" title="Reimprimir recibo" onclick="reimprimirComandaUI(${c.id})">🖨️</button>
+        <button class="btn-icon" title="Excluir" onclick="excluirComandaUI(${c.id})">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function reimprimirComandaUI(id) {
+  const c = await api(`/comandas/${id}`);
+  if (!c) return;
+  const formaResumo = c.forma_pagamento || '';
+  imprimirReciboComanda(c, formaResumo);
 }
 
 async function abrirModalNovaComanda() {
@@ -6183,9 +6232,15 @@ async function carregarPainelEncomendas() {
 const REL_VENDAS_PERIODO_LABEL = { hoje: 'Hoje', semana: 'Últimos 7 dias', mes: 'Este mês', mes_passado: 'Mês passado' };
 let _relVendasDados = null;
 
-function abrirRelatorioVendas() {
-  document.getElementById('tela-relatorio-vendas').classList.remove('hidden');
-  carregarRelatorioVendas();
+// Relatório de vendas é restrito a gerente — pede o PIN antes de mostrar a tela.
+async function abrirRelatorioVendas() {
+  await comLoginAtendente(async () => {
+    const r = await api(`/comandas/relatorio?periodo=hoje`);
+    if (!r || r.precisa_login_funcionario) return r;
+    document.getElementById('tela-relatorio-vendas').classList.remove('hidden');
+    carregarRelatorioVendas();
+    return r;
+  });
 }
 
 async function carregarRelatorioVendas() {
@@ -6193,7 +6248,7 @@ async function carregarRelatorioVendas() {
   document.getElementById('rel-vendas-periodo-label').textContent = REL_VENDAS_PERIODO_LABEL[periodo] || '';
 
   const r = await api(`/comandas/relatorio?periodo=${periodo}`);
-  if (!r) return;
+  if (!r || r.precisa_login_funcionario) return;
   _relVendasDados = r;
 
   const dataFmt = d => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR');
