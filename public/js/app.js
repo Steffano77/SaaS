@@ -5606,6 +5606,93 @@ document.addEventListener('mousedown', e => {
   }
 });
 
+// ── Teclado numérico estilo caixa (busca por código digitado) ───────────
+function toggleTecladoCaixa() {
+  document.getElementById('cmd-teclado-caixa').classList.toggle('hidden');
+}
+function tecladoCaixaNum(n) {
+  const v = document.getElementById('teclado-caixa-visor');
+  v.value += n;
+}
+function tecladoCaixaApagar() {
+  const v = document.getElementById('teclado-caixa-visor');
+  v.value = v.value.slice(0, -1);
+}
+function tecladoCaixaClear() {
+  document.getElementById('teclado-caixa-visor').value = '';
+}
+async function tecladoCaixaBuscar() {
+  const codigo = document.getElementById('teclado-caixa-visor').value.trim();
+  if (!codigo) return;
+  // Mesma ordem de busca usada no código digitado no campo principal: balança, id, barras
+  const produto = produtosCache.find(p => p.codigo_balanca && p.codigo_balanca.trim() === codigo)
+    || produtosCache.find(p => String(p.id) === codigo)
+    || produtosCache.find(p => p.codigo_barras && p.codigo_barras.trim() === codigo);
+  if (!produto) {
+    mostrarToast(`Nenhum produto encontrado com o código ${codigo}.`, 'warn');
+    return;
+  }
+  document.getElementById('cmd-item-busca').value = produto.nome;
+  document.getElementById('cmd-item-produto-id').value = produto.id;
+  document.getElementById('cmd-item-qtd').value = '1';
+  document.getElementById('cmd-item-preco').value = parseFloat(produto.preco_venda || 0).toFixed(2);
+  await adicionarItemComandaUI();
+  tecladoCaixaClear();
+}
+
+// ── Leitor de código de barras pela câmera do celular ────────────────────
+let _scannerStream = null;
+let _scannerAtivo = false;
+async function abrirScannerCodigoBarras() {
+  if (!('BarcodeDetector' in window)) {
+    mostrarToast('Esse navegador não tem suporte a leitura de código de barras pela câmera. Digite o código manualmente.', 'warn');
+    return;
+  }
+  document.getElementById('modal-scanner').classList.remove('hidden');
+  const video = document.getElementById('scanner-video');
+  const status = document.getElementById('scanner-status');
+  try {
+    _scannerStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    video.srcObject = _scannerStream;
+    await video.play();
+  } catch (e) {
+    status.textContent = 'Não consegui acessar a câmera. Verifique a permissão do navegador.';
+    return;
+  }
+  _scannerAtivo = true;
+  const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'upc_a', 'upc_e', 'code_39'] });
+  const loop = async () => {
+    if (!_scannerAtivo) return;
+    try {
+      const codigos = await detector.detect(video);
+      if (codigos.length) {
+        const valor = codigos[0].rawValue.trim();
+        status.textContent = `Código lido: ${valor}`;
+        const produto = produtosCache.find(p => p.codigo_barras && p.codigo_barras.trim() === valor)
+          || produtosCache.find(p => p.codigo_balanca && p.codigo_balanca.trim() === valor);
+        if (produto) {
+          fecharScannerCodigoBarras();
+          document.getElementById('cmd-item-busca').value = produto.nome;
+          document.getElementById('cmd-item-produto-id').value = produto.id;
+          document.getElementById('cmd-item-qtd').value = '1';
+          document.getElementById('cmd-item-preco').value = parseFloat(produto.preco_venda || 0).toFixed(2);
+          await adicionarItemComandaUI();
+          return;
+        } else {
+          mostrarToast(`Nenhum produto cadastrado com o código ${valor}.`, 'warn');
+        }
+      }
+    } catch (e) { /* detector falhou nesse frame, tenta de novo */ }
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+}
+function fecharScannerCodigoBarras() {
+  _scannerAtivo = false;
+  if (_scannerStream) { _scannerStream.getTracks().forEach(t => t.stop()); _scannerStream = null; }
+  document.getElementById('modal-scanner').classList.add('hidden');
+}
+
 async function adicionarItemComandaUI() {
   if (caixaAtualCache?.pausado) { mostrarToast('Caixa pausado — retome o caixa antes de lançar item.', 'warn'); return; }
   const nome = document.getElementById('cmd-item-busca').value.trim();

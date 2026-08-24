@@ -318,6 +318,15 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.25);
     }
 
+    /* Teclado numérico estilo caixa (busca por código digitado) */
+    .cmd-teclado-caixa { margin-top: 10px; }
+    .cmd-teclado-visor {
+      width: 100%; font-size: 22px; text-align: right; padding: 8px 12px;
+      border-radius: 8px; border: 1px solid var(--border); margin-bottom: 8px;
+      font-variant-numeric: tabular-nums;
+    }
+    .cmd-teclado-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+
     #app.sidebar-colapsada .sidebar {
       width: 0;
       min-width: 0;
