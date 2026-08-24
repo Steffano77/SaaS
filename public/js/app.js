@@ -6411,7 +6411,8 @@ async function abrirRelatorioVendas() {
     const r = await api(`/comandas/relatorio?periodo=hoje`);
     if (!r || r.precisa_login_funcionario) return r;
     document.getElementById('tela-relatorio-vendas').classList.remove('hidden');
-    document.getElementById('rel-vendas-busca').value = '';
+    const buscaEl = document.getElementById('rel-vendas-busca');
+    if (buscaEl) buscaEl.value = '';
     carregarRelatorioVendas();
     return r;
   });
@@ -6441,7 +6442,7 @@ async function carregarRelatorioVendas() {
 function renderRelatorioVendas() {
   const r = _relVendasDados;
   if (!r) return;
-  const termoBruto = document.getElementById('rel-vendas-busca').value.trim();
+  const termoBruto = (document.getElementById('rel-vendas-busca')?.value || '').trim();
   const norm = txt => txt.toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   const termo = norm(termoBruto);
   const produtos = termo ? r.produtos.filter(p => norm(p.produto).includes(termo)) : r.produtos;
@@ -6485,7 +6486,7 @@ function imprimirRelatorioVendas() {
   const dataFmt = d => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR');
 
   // Respeita o filtro digitado na tela — imprime só o que está sendo visto ali.
-  const termoBruto = document.getElementById('rel-vendas-busca').value.trim();
+  const termoBruto = (document.getElementById('rel-vendas-busca')?.value || '').trim();
   const norm = txt => txt.toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   const termo = norm(termoBruto);
   const produtos = termo ? r.produtos.filter(p => norm(p.produto).includes(termo)) : r.produtos;
