@@ -4192,50 +4192,59 @@ let fichasCache = [];
 let produtosCache = [];
 
 // ── Códigos de balança e NCM já usados (ajuda a não repetir/escolher o próximo livre) ──
-async function abrirModalCodigosUsados() {
+let _codigosUsadosTipo = 'balanca';
+async function abrirModalCodigosUsados(tipo) {
+  _codigosUsadosTipo = tipo;
   if (!produtosCache.length) {
     const prods = await api('/produtos');
     produtosCache = prods || [];
   }
+  document.getElementById('codigos-usados-titulo').textContent =
+    tipo === 'ncm' ? '🔎 NCM já usados' : '🔎 Códigos de balança já usados';
   document.getElementById('codigos-usados-busca').value = '';
   renderCodigosUsados();
   document.getElementById('modal-codigos-usados').classList.remove('hidden');
 }
 
 function renderCodigosUsados() {
+  const campo = _codigosUsadosTipo === 'ncm' ? 'ncm' : 'codigo_balanca';
+  const rotuloColuna = _codigosUsadosTipo === 'ncm' ? 'NCM' : 'Cód. balança';
   const termo = document.getElementById('codigos-usados-busca').value.trim().toLowerCase();
   const el = document.getElementById('codigos-usados-lista');
   const usados = produtosCache
-    .filter(p => (p.codigo_balanca || p.ncm) && (!termo || p.nome.toLowerCase().includes(termo)))
-    .sort((a, b) => (a.codigo_balanca || 'zzz').localeCompare(b.codigo_balanca || 'zzz'));
+    .filter(p => p[campo] && (!termo || p.nome.toLowerCase().includes(termo)))
+    .sort((a, b) => String(a[campo]).localeCompare(String(b[campo])));
 
   if (!usados.length) {
-    el.innerHTML = `<div class="cmd-vazio">Nenhum produto com código de balança ou NCM ainda.</div>`;
+    el.innerHTML = `<div class="cmd-vazio">Nenhum produto com ${rotuloColuna.toLowerCase()} cadastrado ainda.</div>`;
     return;
   }
 
-  // Sugere o próximo código de balança livre (olhando só os numéricos já usados)
-  const numericos = produtosCache.map(p => parseInt(p.codigo_balanca, 10)).filter(n => !isNaN(n));
-  const proximoLivre = numericos.length ? Math.max(...numericos) + 1 : 1;
+  let dicaLivre = '';
+  if (_codigosUsadosTipo === 'balanca') {
+    // Sugere o próximo código de balança livre (olhando só os numéricos já usados)
+    const numericos = produtosCache.map(p => parseInt(p.codigo_balanca, 10)).filter(n => !isNaN(n));
+    const proximoLivre = numericos.length ? Math.max(...numericos) + 1 : 1;
+    dicaLivre = `
+      <div style="background:var(--slate-50);padding:8px 12px;border-radius:8px;font-size:12.5px;color:var(--slate-600);margin-bottom:10px;">
+        💡 Próximo código de balança livre (sugestão): <strong>${String(proximoLivre).padStart(6, '0')}</strong>
+      </div>`;
+  }
 
   el.innerHTML = `
-    <div style="background:var(--slate-50);padding:8px 12px;border-radius:8px;font-size:12.5px;color:var(--slate-600);margin-bottom:10px;">
-      💡 Próximo código de balança livre (sugestão): <strong>${String(proximoLivre).padStart(6, '0')}</strong>
-    </div>
+    ${dicaLivre}
     <table style="width:100%;border-collapse:collapse;font-size:13px;">
       <thead>
         <tr style="text-align:left;color:var(--slate-500);font-size:11.5px;text-transform:uppercase;">
           <th style="padding:6px 8px;">Produto</th>
-          <th style="padding:6px 8px;">Cód. balança</th>
-          <th style="padding:6px 8px;">NCM</th>
+          <th style="padding:6px 8px;">${rotuloColuna}</th>
         </tr>
       </thead>
       <tbody>
         ${usados.map(p => `
           <tr style="border-top:1px solid var(--slate-200);">
             <td style="padding:6px 8px;">${p.nome}</td>
-            <td style="padding:6px 8px;font-variant-numeric:tabular-nums;">${p.codigo_balanca || '—'}</td>
-            <td style="padding:6px 8px;font-variant-numeric:tabular-nums;">${p.ncm || '—'}</td>
+            <td style="padding:6px 8px;font-variant-numeric:tabular-nums;">${p[campo]}</td>
           </tr>
         `).join('')}
       </tbody>

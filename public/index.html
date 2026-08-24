@@ -1719,11 +1719,12 @@
           <div class="form-group">
             <label>Código da balança <span style="color:var(--slate-400);font-weight:400;">(opcional, pra produtos pesados)</span></label>
             <input type="text" id="prod-cod-balanca" placeholder="Ex: 052000" maxlength="10" class="form-control"/>
-            <button type="button" onclick="abrirModalCodigosUsados()" class="btn-link" style="font-size:12px;margin-top:4px;">🔎 Ver códigos de balança e NCM já usados</button>
+            <button type="button" onclick="abrirModalCodigosUsados('balanca')" class="btn-link" style="font-size:12px;margin-top:4px;">🔎 Ver códigos de balança já usados</button>
           </div>
           <div class="form-group">
             <label>NCM <span style="color:var(--slate-400);font-weight:400;">(opcional, pra nota fiscal — mesmo código do Saurus)</span></label>
             <input type="text" id="prod-ncm" placeholder="Ex: 19059090" maxlength="10" class="form-control"/>
+            <button type="button" onclick="abrirModalCodigosUsados('ncm')" class="btn-link" style="font-size:12px;margin-top:4px;">🔎 Ver NCM já usados</button>
           </div>
           <div class="form-group">
             <label>Unidade</label>
@@ -1822,7 +1823,7 @@
 <div id="modal-codigos-usados" class="modal-overlay hidden">
   <div class="modal-box" style="max-width:520px;max-height:80vh;display:flex;flex-direction:column;">
     <div class="modal-header">
-      <span class="modal-title">🔎 Códigos já usados</span>
+      <span class="modal-title" id="codigos-usados-titulo">🔎 Códigos já usados</span>
       <button onclick="fecharModal('modal-codigos-usados')" class="btn-icon">✕</button>
     </div>
     <input type="text" id="codigos-usados-busca" class="form-control" placeholder="Filtrar por nome do produto..." oninput="renderCodigosUsados()" style="margin-bottom:10px;"/>
@@ -1877,7 +1878,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260825d"></script>
+<script src="/js/app.js?v=20260825e"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
