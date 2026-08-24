@@ -6411,6 +6411,7 @@ async function abrirRelatorioVendas() {
     const r = await api(`/comandas/relatorio?periodo=hoje`);
     if (!r || r.precisa_login_funcionario) return r;
     document.getElementById('tela-relatorio-vendas').classList.remove('hidden');
+    document.getElementById('rel-vendas-busca').value = '';
     carregarRelatorioVendas();
     return r;
   });
@@ -6432,17 +6433,41 @@ async function carregarRelatorioVendas() {
     <div class="rel-vendas-kpi"><strong>${dataFmt(r.inicio)} — ${dataFmt(r.fim)}</strong><span>Período</span></div>
   `;
 
-  document.getElementById('rel-vendas-lista').innerHTML = r.produtos.length
+  renderRelatorioVendas();
+}
+
+// Filtra a lista de produtos do relatório pelo texto digitado (ignora acento/maiúscula)
+// e mostra um total somado só dos itens filtrados — útil pra "quantos almoços vendemos".
+function renderRelatorioVendas() {
+  const r = _relVendasDados;
+  if (!r) return;
+  const termoBruto = document.getElementById('rel-vendas-busca').value.trim();
+  const norm = txt => txt.toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const termo = norm(termoBruto);
+  const produtos = termo ? r.produtos.filter(p => norm(p.produto).includes(termo)) : r.produtos;
+
+  const totalEl = document.getElementById('rel-vendas-filtro-total');
+  if (termo) {
+    const qtdTotal = produtos.reduce((s, p) => s + parseFloat(p.quantidade), 0);
+    const receitaTotal = produtos.reduce((s, p) => s + parseFloat(p.receita), 0);
+    totalEl.classList.remove('hidden');
+    totalEl.innerHTML = `Filtrando por "<strong>${termoBruto}</strong>": <strong>${fmtQtd(qtdTotal)}</strong> unidades vendidas · <strong>${fmtMoeda(receitaTotal)}</strong> de receita (${produtos.length} produto${produtos.length === 1 ? '' : 's'})`;
+  } else {
+    totalEl.classList.add('hidden');
+    totalEl.innerHTML = '';
+  }
+
+  document.getElementById('rel-vendas-lista').innerHTML = produtos.length
     ? `
       <div style="display:flex;padding:10px 16px;border-bottom:2px solid var(--slate-200);font-size:11.5px;font-weight:700;color:var(--slate-500);text-transform:uppercase;">
         <span style="flex:1;">Produto</span>
         <span style="min-width:90px;text-align:right;">Qtd. vendida</span>
         <span style="min-width:110px;text-align:right;">Receita</span>
       </div>
-      ${r.produtos.map((p, i) => `
+      ${produtos.map((p, i) => `
         <div class="saida-item${i % 2 === 0 ? ' saida-item-zebra' : ''}">
           <div style="flex:1;min-width:0;">
-            <div class="saida-item-nome">${i < 3 ? ['🥇','🥈','🥉'][i] + ' ' : ''}${p.produto}</div>
+            <div class="saida-item-nome">${!termo && i < 3 ? ['🥇','🥈','🥉'][i] + ' ' : ''}${p.produto}</div>
             <div class="saida-item-sub">${p.comandas} comanda${p.comandas === 1 ? '' : 's'}</div>
           </div>
           <div style="min-width:90px;text-align:right;font-weight:600;color:var(--slate-700);">${fmtQtd(p.quantidade)} ${p.unidade}</div>
@@ -6450,7 +6475,7 @@ async function carregarRelatorioVendas() {
         </div>
       `).join('')}
     `
-    : `<div class="cmd-vazio" style="padding:24px;">Nenhuma venda nesse período.</div>`;
+    : `<div class="cmd-vazio" style="padding:24px;">${termo ? 'Nenhum produto encontrado com esse filtro.' : 'Nenhuma venda nesse período.'}</div>`;
 }
 
 function imprimirRelatorioVendas() {

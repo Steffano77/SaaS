@@ -318,6 +318,13 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.25);
     }
 
+    .rel-vendas-filtro-total {
+      margin-top: 8px; padding: 10px 14px; border-radius: 8px;
+      background: var(--orange-50, rgba(249,115,22,0.1)); color: var(--slate-700);
+      font-size: 13.5px;
+    }
+    [data-theme="dark"] .rel-vendas-filtro-total { background: rgba(249,115,22,0.15); color: rgba(255,255,255,0.85); }
+
     /* Teclado numérico estilo caixa (busca por código digitado) */
     .cmd-teclado-caixa { margin-top: 10px; }
     .cmd-teclado-visor {

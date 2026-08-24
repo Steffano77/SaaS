@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260824p"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260824q"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -628,6 +628,10 @@
         <button onclick="imprimirRelatorioVendas()" class="btn-primary" style="padding:8px 16px;font-size:13px;">🖨️ Imprimir</button>
       </div>
       <div id="rel-vendas-resumo" class="rel-vendas-resumo"></div>
+      <div style="padding:0 16px 10px;">
+        <input type="text" id="rel-vendas-busca" class="form-control" placeholder="🔎 Filtrar por nome do produto (ex: almoço)..." oninput="renderRelatorioVendas()"/>
+        <div id="rel-vendas-filtro-total" class="rel-vendas-filtro-total hidden"></div>
+      </div>
       <div id="rel-vendas-lista" style="flex:1;overflow-y:auto;"></div>
     </div>
 
@@ -1952,7 +1956,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260825s"></script>
+<script src="/js/app.js?v=20260825t"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
