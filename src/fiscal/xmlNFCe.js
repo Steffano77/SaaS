@@ -44,7 +44,9 @@ function definirCfop(item) {
 }
 function montarBlocoIcms(item) {
   if (item.situacao_icms === 'st') return '<ICMSSN500><orig>0</orig><CSOSN>500</CSOSN></ICMSSN500>';
-  if (item.situacao_icms === 'isento') return '<ICMSSN400><orig>0</orig><CSOSN>400</CSOSN></ICMSSN400>';
+  // Não existe um grupo "ICMSSN400" separado no schema oficial — CSOSN 400 (não
+  // tributada) usa o MESMO grupo ICMSSN102, só troca o número do CSOSN por dentro.
+  if (item.situacao_icms === 'isento') return '<ICMSSN102><orig>0</orig><CSOSN>400</CSOSN></ICMSSN102>';
   return '<ICMSSN102><orig>0</orig><CSOSN>102</CSOSN></ICMSSN102>'; // normal, sem permissão de crédito
 }
 
