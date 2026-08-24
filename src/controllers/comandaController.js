@@ -257,10 +257,11 @@ exports.fechar = async (req, res) => {
     for (const p of pagamentos) {
       const forma = String(p.forma_pagamento || 'Dinheiro').trim();
       const valor = parseFloat(p.valor) || 0;
+      const troco = parseFloat(p.troco) || 0;
       if (valor <= 0) continue;
       await conn.query(
-        `INSERT INTO comanda_pagamentos (comanda_id, forma_pagamento, valor) VALUES (?,?,?)`,
-        [comanda.id, forma, valor]
+        `INSERT INTO comanda_pagamentos (comanda_id, forma_pagamento, valor, troco) VALUES (?,?,?,?)`,
+        [comanda.id, forma, valor, troco]
       );
       await conn.query(
         `INSERT INTO financeiro (padaria_id, tipo, valor, descricao, categoria, forma_pagamento, data) VALUES (?,?,?,?,?,?,CURDATE())`,

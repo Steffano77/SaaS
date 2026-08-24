@@ -277,6 +277,10 @@ app.use(express.static(path.join(__dirname, '../public')));
       "ALTER TABLE produtos ADD COLUMN situacao_icms ENUM('normal','st','isento') NOT NULL DEFAULT 'normal'",
       'ALTER TABLE produtos ADD COLUMN cest VARCHAR(9) NULL',
 
+      // Troco dado em pagamento à vista (dinheiro) — guardado por pagamento, pra
+      // poder mostrar "Troco: R$ X" no recibo impresso depois.
+      'ALTER TABLE comanda_pagamentos ADD COLUMN troco DECIMAL(10,2) NULL DEFAULT 0',
+
       // Caixa pausado (a pessoa saiu pro intervalo) — continua "aberto" no banco, só
       // trava a venda até alguém (com PIN de caixa/gerente) retomar.
       'ALTER TABLE caixas ADD COLUMN pausado TINYINT(1) NOT NULL DEFAULT 0',

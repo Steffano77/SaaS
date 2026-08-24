@@ -163,9 +163,20 @@ exports.imprimirDanfe = async (req, res) => {
 
     // Mostra o valor de cada forma separada (não só o nome) quando teve mais de uma —
     // ajuda a conferir na hora se bateu certo o que foi recebido em dinheiro/cartão/pix.
-    const pagamentosHtml = pagamentos.length > 1
-      ? pagamentos.map(p => `<div class="danfe-linha"><span>${p.forma_pagamento}</span><span>${fmtMoeda(p.valor)}</span></div>`).join('')
-      : `<div class="danfe-linha"><span>Forma Pagamento</span><span>${pagamentos[0]?.forma_pagamento || ''}</span></div>`;
+    // Quando teve troco (pagamento em dinheiro), mostra também quanto o cliente deu
+    // e quanto voltou de troco — ajuda a conferir o caixa depois.
+    const linhaPagamento = (p) => {
+      const troco = parseFloat(p.troco) || 0;
+      const base = pagamentos.length > 1
+        ? `<div class="danfe-linha"><span>${p.forma_pagamento}</span><span>${fmtMoeda(p.valor)}</span></div>`
+        : `<div class="danfe-linha"><span>Forma Pagamento</span><span>${p.forma_pagamento}</span></div>`;
+      if (troco <= 0) return base;
+      const valorRecebido = parseFloat(p.valor) + troco;
+      return base + `
+        <div class="danfe-linha"><span>Valor Recebido</span><span>${fmtMoeda(valorRecebido)}</span></div>
+        <div class="danfe-linha"><strong>Troco</strong><strong>${fmtMoeda(troco)}</strong></div>`;
+    };
+    const pagamentosHtml = pagamentos.map(linhaPagamento).join('');
 
     const homolog = Number(nota.ambiente) === 2
       ? `<div class="danfe-homolog">EMITIDA EM AMBIENTE DE HOMOLOGAÇÃO<br/>SEM VALOR FISCAL</div>` : '';

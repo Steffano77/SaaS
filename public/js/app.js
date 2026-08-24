@@ -5793,11 +5793,12 @@ function confirmarValorPagamento() {
     return;
   }
   const aplicado = Math.min(valor, _pgtoRestante);
-  comandaPagamentosPendentes.push({ forma_pagamento: _pgtoForma, valor: aplicado });
+  const troco = _pgtoEhDinheiro ? Math.max(0, Math.round((valor - _pgtoRestante) * 100) / 100) : 0;
+  comandaPagamentosPendentes.push({ forma_pagamento: _pgtoForma, valor: aplicado, troco });
   document.getElementById('modal-valor-pagamento').classList.add('hidden');
   atualizarPagamentoUI();
-  if (_pgtoEhDinheiro && valor > _pgtoRestante + 0.001) {
-    mostrarToast(`Troco: ${fmtMoeda(valor - _pgtoRestante)}`, 'ok');
+  if (troco > 0) {
+    mostrarToast(`Troco: ${fmtMoeda(troco)}`, 'ok');
   }
   if (calcularRestante() <= 0) finalizarVendaUI();
 }
