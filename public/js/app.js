@@ -4237,14 +4237,14 @@ function renderCodigosUsados() {
       <thead>
         <tr style="text-align:left;color:var(--slate-500);font-size:11.5px;text-transform:uppercase;">
           <th style="padding:6px 8px;width:auto;">Produto</th>
-          <th style="padding:6px 8px;width:110px;">${rotuloColuna}</th>
+          <th style="padding:6px 8px;width:150px;">${rotuloColuna}</th>
         </tr>
       </thead>
       <tbody>
         ${usados.map(p => `
           <tr style="border-top:1px solid var(--slate-200);">
             <td style="padding:6px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.nome}</td>
-            <td style="padding:6px 8px;font-variant-numeric:tabular-nums;">${p[campo]}</td>
+            <td style="padding:6px 8px;font-variant-numeric:tabular-nums;white-space:nowrap;">${p[campo]}</td>
           </tr>
         `).join('')}
       </tbody>
