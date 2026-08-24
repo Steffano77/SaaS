@@ -3081,3 +3081,12 @@ tr.tr-saida td { color: var(--red-600); }
 @media (min-width: 700px) {
   #modal-produto .form-row { grid-template-columns: 1fr 1fr 1fr; }
 }
+
+/* Aperta ainda mais o modal de produto — reduz espaçamentos verticais e aumenta
+   a altura útil, pra caber o máximo de campo possível sem rolar. */
+#modal-produto .modal-box { max-height: 96vh; }
+#modal-produto .modal-body { padding: 14px 20px; }
+#modal-produto .form-row { gap: 8px 14px; }
+#modal-produto .form-group { margin-bottom: 6px; }
+#modal-produto .form-group label { font-size: 12.5px; margin-bottom: 3px; }
+#modal-produto .form-control { padding: 8px 10px; }
