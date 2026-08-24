@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260824l"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260824m"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -999,10 +999,10 @@
         <h3 class="pin-modal-title">Área restrita</h3>
         <p class="pin-modal-sub" id="pin-modal-sub">Digite o PIN de 4 dígitos para acessar o financeiro</p>
         <div class="pin-inputs">
-          <input class="pin-input" id="pin0" type="password" inputmode="numeric" maxlength="1" />
-          <input class="pin-input" id="pin1" type="password" inputmode="numeric" maxlength="1" />
-          <input class="pin-input" id="pin2" type="password" inputmode="numeric" maxlength="1" />
-          <input class="pin-input" id="pin3" type="password" inputmode="numeric" maxlength="1" />
+          <input class="pin-input pin-mascarado" id="pin0" type="text" inputmode="numeric" maxlength="1" autocomplete="off"/>
+          <input class="pin-input pin-mascarado" id="pin1" type="text" inputmode="numeric" maxlength="1" autocomplete="off"/>
+          <input class="pin-input pin-mascarado" id="pin2" type="text" inputmode="numeric" maxlength="1" autocomplete="off"/>
+          <input class="pin-input pin-mascarado" id="pin3" type="text" inputmode="numeric" maxlength="1" autocomplete="off"/>
         </div>
         <div id="pin-erro" class="pin-erro hidden">PIN incorreto. Tente novamente.</div>
         <button onclick="confirmarPin()" class="btn-primary pin-btn">Entrar</button>
@@ -1073,7 +1073,7 @@
         <div class="pin-modal-icon">👤</div>
         <h3 class="pin-modal-title">Identifique-se</h3>
         <p class="pin-modal-sub">Essa ação exige login de gerente. Digite seu PIN de 4 dígitos.</p>
-        <input class="form-control" id="login-atendente-pin" type="password" inputmode="numeric" maxlength="4"
+        <input class="form-control pin-mascarado" id="login-atendente-pin" type="text" inputmode="numeric" maxlength="4" autocomplete="off"
           style="width:100px;text-align:center;font-size:22px;letter-spacing:6px;margin:0 auto;display:block;"
           onkeydown="if(event.key==='Enter'){event.preventDefault();confirmarLoginAtendente();}"/>
         <div id="login-atendente-erro" class="pin-erro hidden">PIN incorreto.</div>
@@ -1091,11 +1091,11 @@
         </div>
         <div class="form-group">
           <label class="form-label">PIN atual ou PIN master</label>
-          <input id="pin-atual" type="password" inputmode="numeric" maxlength="4" class="form-control" placeholder="••••" style="letter-spacing:8px;font-size:20px;text-align:center;"/>
+          <input id="pin-atual" type="text" inputmode="numeric" maxlength="4" autocomplete="off" class="form-control pin-mascarado" placeholder="••••" style="letter-spacing:8px;font-size:20px;text-align:center;"/>
         </div>
         <div class="form-group">
           <label class="form-label">Novo PIN (4 dígitos)</label>
-          <input id="pin-novo" type="password" inputmode="numeric" maxlength="4" class="form-control" placeholder="••••" style="letter-spacing:8px;font-size:20px;text-align:center;"/>
+          <input id="pin-novo" type="text" inputmode="numeric" maxlength="4" autocomplete="off" class="form-control pin-mascarado" placeholder="••••" style="letter-spacing:8px;font-size:20px;text-align:center;"/>
         </div>
         <button onclick="salvarPin()" class="btn-primary" style="width:100%;margin-top:8px;">Salvar novo PIN</button>
         <button onclick="esqueceuPin()" class="btn-secondary" style="width:100%;margin-top:8px;background:transparent;color:#64748b;border:none;cursor:pointer;font-size:13px;">Esqueci meu PIN — enviar e-mail de redefinição</button>

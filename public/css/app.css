@@ -3129,3 +3129,7 @@ tr.tr-saida td { color: var(--red-600); }
 [data-theme="dark"] .historico-item-acoes .btn-icon { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
 .historico-item-acoes .btn-icon:hover { background: var(--slate-100); }
 [data-theme="dark"] .historico-item-acoes .btn-icon:hover { background: rgba(255,255,255,0.1); }
+
+/* PIN mascarado sem usar type="password" — evita o Chrome oferecer "salvar senha"
+   toda hora (ele só faz isso pra campos type=password de verdade). */
+.pin-mascarado { -webkit-text-security: disc; text-security: disc; }
