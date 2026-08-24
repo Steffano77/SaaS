@@ -3075,3 +3075,9 @@ tr.tr-saida td { color: var(--red-600); }
 
 [data-theme="dark"] #codigos-usados-lista table { color: #e2e8f0; }
 [data-theme="dark"] #codigos-usados-lista tr { border-color: rgba(255,255,255,0.1) !important; }
+
+/* Modal de produto tem muitos campos — usa 3 colunas (só aqui) já que o modal é mais
+   largo, pra caber tudo sem precisar rolar a tela. */
+@media (min-width: 700px) {
+  #modal-produto .form-row { grid-template-columns: 1fr 1fr 1fr; }
+}
