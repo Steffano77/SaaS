@@ -5023,18 +5023,21 @@ async function carregarHistoricoComandas() {
 
 function renderHistoricoComandas(recentes) {
   const el = document.getElementById('historico-comandas-lista');
-  const statusLabel = { fechada: '✅ Fechada', cancelada: '🚫 Cancelada' };
+  const statusLabel = { fechada: 'Fechada', cancelada: 'Cancelada' };
   if (!recentes.length) {
     el.innerHTML = `<div class="cmd-vazio">Nenhuma comanda finalizada ainda.</div>`;
     return;
   }
   el.innerHTML = recentes.map(c => `
-    <div class="cmd-item-linha">
-      <div class="cmd-item-nome">
-        <strong>${c.identificador}</strong>
-        <span class="cmd-item-numero">${statusLabel[c.status] || c.status} · ${fmtDataHoraBR(c.fechada_em || c.aberta_em)} · ${fmtMoeda(c.total)}</span>
+    <div class="historico-item ${c.status}">
+      <div class="historico-item-info">
+        <div class="historico-item-topo">
+          <span class="historico-item-id">${c.identificador}</span>
+          <span class="historico-item-badge ${c.status}">${statusLabel[c.status] || c.status}</span>
+        </div>
+        <span class="historico-item-meta">${fmtDataHoraBR(c.fechada_em || c.aberta_em)} · <span class="historico-item-valor">${fmtMoeda(c.total)}</span></span>
       </div>
-      <div class="cmd-item-direita" style="gap:6px;">
+      <div class="historico-item-acoes">
         <button class="btn-icon" title="Reimprimir recibo" onclick="reimprimirComandaUI(${c.id})">🖨️</button>
         <button class="btn-icon" title="Excluir" onclick="excluirComandaUI(${c.id})">🗑️</button>
       </div>

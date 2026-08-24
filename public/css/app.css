@@ -3093,3 +3093,39 @@ tr.tr-saida td { color: var(--red-600); }
 #modal-produto .form-group { margin-bottom: 6px; }
 #modal-produto .form-group label { font-size: 12.5px; margin-bottom: 3px; }
 #modal-produto .form-control { padding: 8px 10px; }
+
+/* ── Histórico de comandas (modal) ─────────────────────────── */
+.historico-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--white); border-radius: 12px; padding: 14px 16px;
+  border-left: 4px solid var(--slate-300);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.historico-item.fechada { border-left-color: #16a34a; }
+.historico-item.cancelada { border-left-color: #dc2626; }
+[data-theme="dark"] .historico-item { background: #1e293b; box-shadow: none; border: 1px solid rgba(255,255,255,0.06); border-left: 4px solid var(--slate-500); }
+[data-theme="dark"] .historico-item.fechada { border-left-color: #22c55e; }
+[data-theme="dark"] .historico-item.cancelada { border-left-color: #ef4444; }
+
+.historico-item-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.historico-item-topo { display: flex; align-items: center; gap: 8px; }
+.historico-item-id { font-size: 15px; font-weight: 800; color: var(--slate-800); }
+[data-theme="dark"] .historico-item-id { color: #f1f5f9; }
+.historico-item-badge { font-size: 10.5px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+.historico-item-badge.fechada { background: #dcfce7; color: #166534; }
+.historico-item-badge.cancelada { background: #fee2e2; color: #991b1b; }
+[data-theme="dark"] .historico-item-badge.fechada { background: rgba(34,197,94,0.15); color: #4ade80; }
+[data-theme="dark"] .historico-item-badge.cancelada { background: rgba(239,68,68,0.15); color: #f87171; }
+
+.historico-item-meta { font-size: 12.5px; color: var(--slate-500); }
+[data-theme="dark"] .historico-item-meta { color: #94a3b8; }
+.historico-item-valor { font-weight: 700; color: var(--orange); }
+
+.historico-item-acoes { display: flex; gap: 6px; flex-shrink: 0; }
+.historico-item-acoes .btn-icon {
+  width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+  border-radius: 10px; background: var(--slate-50); border: 1px solid var(--slate-200); font-size: 15px;
+}
+[data-theme="dark"] .historico-item-acoes .btn-icon { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
+.historico-item-acoes .btn-icon:hover { background: var(--slate-100); }
+[data-theme="dark"] .historico-item-acoes .btn-icon:hover { background: rgba(255,255,255,0.1); }
