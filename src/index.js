@@ -277,6 +277,12 @@ app.use(express.static(path.join(__dirname, '../public')));
       "ALTER TABLE produtos ADD COLUMN situacao_icms ENUM('normal','st','isento') NOT NULL DEFAULT 'normal'",
       'ALTER TABLE produtos ADD COLUMN cest VARCHAR(9) NULL',
 
+      // CSC de produção fica separado do CSC de homologação (teste) — são credenciais
+      // diferentes, cada uma só funciona no ambiente Sefaz correspondente. Sem isso,
+      // configurar o CSC de produção substituiria o de teste e quebraria os testes.
+      'ALTER TABLE padarias ADD COLUMN nfce_csc_producao VARCHAR(255) NULL',
+      'ALTER TABLE padarias ADD COLUMN nfce_id_csc_producao INT NULL',
+
       // Troco dado em pagamento à vista (dinheiro) — guardado por pagamento, pra
       // poder mostrar "Troco: R$ X" no recibo impresso depois.
       'ALTER TABLE comanda_pagamentos ADD COLUMN troco DECIMAL(10,2) NULL DEFAULT 0',

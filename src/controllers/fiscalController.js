@@ -121,15 +121,20 @@ exports.salvarDadosFiscais = async (req, res) => {
 exports.configurarCsc = async (req, res) => {
   try {
     const padaria_id = req.padaria.id;
-    const { csc, id_csc } = req.body;
+    const { csc, id_csc, ambiente } = req.body;
     if (!csc || !id_csc) return res.status(400).json({ erro: 'Informe o CSC e o idCSC.' });
+
+    // ambiente: 'producao' grava nas colunas separadas de produção, sem mexer
+    // no CSC de homologação que os testes de hoje continuam usando.
+    const colunaCsc = ambiente === 'producao' ? 'nfce_csc_producao' : 'nfce_csc';
+    const colunaIdCsc = ambiente === 'producao' ? 'nfce_id_csc_producao' : 'nfce_id_csc';
 
     const cscCriptografado = criptografar(csc);
     await db.query(
-      `UPDATE padarias SET nfce_csc = ?, nfce_id_csc = ? WHERE id = ?`,
+      `UPDATE padarias SET ${colunaCsc} = ?, ${colunaIdCsc} = ? WHERE id = ?`,
       [cscCriptografado, id_csc, padaria_id]
     );
-    res.json({ ok: true, mensagem: 'CSC configurado com sucesso!' });
+    res.json({ ok: true, mensagem: `CSC de ${ambiente === 'producao' ? 'produção' : 'homologação'} configurado com sucesso!` });
   } catch (e) {
     console.error('Erro ao configurar CSC:', e);
     res.status(500).json({ erro: 'Erro interno.' });

@@ -67,9 +67,12 @@ exports.emitirParaComanda = async (req, res) => {
 
     const { xmlAssinado: xmlComAssinatura, digestValue } = assinarXmlNFCe(xml, { certPem: cert.certPem, keyPem: cert.keyPem });
 
-    const cscTexto = padaria.nfce_csc ? descriptografar(padaria.nfce_csc) : null;
+    // Ambiente 1 = produção usa o CSC de produção (separado); 2 = homologação usa o de teste.
+    const cscBruto = ambienteNum === 1 ? padaria.nfce_csc_producao : padaria.nfce_csc;
+    const idCscUsado = ambienteNum === 1 ? padaria.nfce_id_csc_producao : padaria.nfce_id_csc;
+    const cscTexto = cscBruto ? descriptografar(cscBruto) : null;
     const infNFeSupl = montarInfNFeSupl({
-      chave, ambiente: ambienteNum, csc: cscTexto, idCsc: padaria.nfce_id_csc,
+      chave, ambiente: ambienteNum, csc: cscTexto, idCsc: idCscUsado,
     });
     // Ordem exigida pelo schema oficial: infNFe, infNFeSupl, Signature (nessa ordem) —
     // por isso insere logo depois de </infNFe>, empurrando a assinatura pra depois.
@@ -144,10 +147,15 @@ exports.imprimirDanfe = async (req, res) => {
     const [itens] = await db.query(`SELECT * FROM itens_comanda WHERE comanda_id = ?`, [comanda_id]);
     const [pagamentos] = await db.query(`SELECT * FROM comanda_pagamentos WHERE comanda_id = ?`, [comanda_id]);
 
-    const cscTexto = padaria.nfce_csc ? descriptografar(padaria.nfce_csc) : null;
+    // Usa o CSC do ambiente em que a nota foi realmente emitida (nota.ambiente),
+    // não o ambiente atual da padaria — senão uma nota velha de homologação
+    // ficaria com QR Code errado se a padaria já tiver migrado pra produção.
+    const cscBruto = nota.ambiente === 1 ? padaria.nfce_csc_producao : padaria.nfce_csc;
+    const idCscUsado = nota.ambiente === 1 ? padaria.nfce_id_csc_producao : padaria.nfce_id_csc;
+    const cscTexto = cscBruto ? descriptografar(cscBruto) : null;
     const { montarUrlQrCode, URL_CONSULTA } = require('../fiscal/qrcode');
     const qrUrl = montarUrlQrCode({
-      chave: nota.chave_acesso, ambiente: nota.ambiente, csc: cscTexto, idCsc: padaria.nfce_id_csc,
+      chave: nota.chave_acesso, ambiente: nota.ambiente, csc: cscTexto, idCsc: idCscUsado,
     });
     const qrImgDataUrl = await QRCode.toDataURL(`https://${qrUrl}`, { margin: 1, width: 220 });
 
