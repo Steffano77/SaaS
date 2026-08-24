@@ -5390,8 +5390,42 @@ async function processarScanGlobalComandas(codigo) {
 }
 
 // Enter no campo de busca da comanda: se for um código de balança, resolve e lança direto.
+// Formato "peso * código" (ex: "0,300*224") — usado quando a atendente pesa numa
+// balança separada (sem etiqueta impressa) e digita o peso direto na hora da venda,
+// igual o Saurus já faz. Aceita vírgula ou ponto decimal, com ou sem espaço no "*".
+function decodificarPesoVezesCodigo(texto) {
+  const m = String(texto || '').trim().match(/^(\d+[.,]\d+)\s*\*\s*(\d+)$/);
+  if (!m) return null;
+  const peso = parseFloat(m[1].replace(',', '.'));
+  const codigoProduto = m[2];
+  if (!peso || peso <= 0) return null;
+  return { peso, codigoProduto };
+}
+
 async function onKeydownBuscaComanda(e, input) {
   if (e.key !== 'Enter') return;
+
+  const pesoVezes = decodificarPesoVezesCodigo(input.value.trim());
+  if (pesoVezes) {
+    e.preventDefault();
+    input.parentElement.querySelector('.cmd-item-lista')?.classList.add('hidden');
+    // Busca por código de balança primeiro (o mais comum pra item pesado), depois
+    // pelo ID do produto e pelo código de barras, pra cobrir o que já tiver cadastrado.
+    const produto = produtosCache.find(p => p.codigo_balanca && p.codigo_balanca.trim() === pesoVezes.codigoProduto)
+      || produtosCache.find(p => String(p.id) === pesoVezes.codigoProduto)
+      || produtosCache.find(p => p.codigo_barras && p.codigo_barras.trim() === pesoVezes.codigoProduto);
+    if (!produto) {
+      mostrarToast(`Nenhum produto encontrado com o código ${pesoVezes.codigoProduto}.`, 'warn');
+      return;
+    }
+    document.getElementById('cmd-item-busca').value = produto.nome;
+    document.getElementById('cmd-item-produto-id').value = produto.id;
+    document.getElementById('cmd-item-qtd').value = pesoVezes.peso;
+    document.getElementById('cmd-item-preco').value = parseFloat(produto.preco_venda || 0).toFixed(2);
+    await adicionarItemComandaUI();
+    return;
+  }
+
   const info = decodificarCodigoBalanca(input.value.trim());
   if (!info) {
     // Texto normal (nome de produto digitado ou já selecionado no autocomplete) —
