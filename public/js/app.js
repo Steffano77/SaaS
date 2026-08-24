@@ -6406,6 +6406,8 @@ const REL_VENDAS_PERIODO_LABEL = { hoje: 'Hoje', semana: 'Últimos 7 dias', mes:
 let _relVendasDados = null;
 
 // Relatório de vendas é restrito a gerente — pede o PIN antes de mostrar a tela.
+// O PIN fica válido enquanto a tela estiver aberta (pra poder trocar o período
+// várias vezes sem pedir de novo), e é esquecido ao fechar a tela.
 async function abrirRelatorioVendas() {
   await comLoginAtendente(async () => {
     const r = await api(`/comandas/relatorio?periodo=hoje`);
@@ -6415,7 +6417,12 @@ async function abrirRelatorioVendas() {
     if (buscaEl) buscaEl.value = '';
     carregarRelatorioVendas();
     return r;
-  });
+  }, false);
+}
+
+function fecharRelatorioVendas() {
+  document.getElementById('tela-relatorio-vendas').classList.add('hidden');
+  esquecerLoginAtendente();
 }
 
 async function carregarRelatorioVendas() {
