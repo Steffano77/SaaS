@@ -4233,17 +4233,17 @@ function renderCodigosUsados() {
 
   el.innerHTML = `
     ${dicaLivre}
-    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;">
       <thead>
         <tr style="text-align:left;color:var(--slate-500);font-size:11.5px;text-transform:uppercase;">
-          <th style="padding:6px 8px;">Produto</th>
-          <th style="padding:6px 8px;">${rotuloColuna}</th>
+          <th style="padding:6px 8px;width:auto;">Produto</th>
+          <th style="padding:6px 8px;width:110px;">${rotuloColuna}</th>
         </tr>
       </thead>
       <tbody>
         ${usados.map(p => `
           <tr style="border-top:1px solid var(--slate-200);">
-            <td style="padding:6px 8px;">${p.nome}</td>
+            <td style="padding:6px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.nome}</td>
             <td style="padding:6px 8px;font-variant-numeric:tabular-nums;">${p[campo]}</td>
           </tr>
         `).join('')}
