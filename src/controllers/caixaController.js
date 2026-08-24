@@ -32,6 +32,29 @@ exports.historico = async (req, res) => {
   res.json(caixas);
 };
 
+// Pausa o caixa (a pessoa saiu pro intervalo) — trava a venda até alguém retomar.
+exports.pausar = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const [[caixa]] = await db.query(`SELECT atendente FROM caixas WHERE id = ? AND padaria_id = ?`, [req.params.id, padaria_id]);
+  await db.query(
+    `UPDATE caixas SET pausado = 1, pausado_por = ? WHERE id = ? AND padaria_id = ? AND status = 'aberto'`,
+    [caixa?.atendente || null, req.params.id, padaria_id]
+  );
+  res.json({ ok: true });
+};
+
+// Retoma o caixa — exige login de atendente (papel caixa ou gerente), via o middleware
+// exigirFuncionario aplicado na rota. Pode ser a mesma pessoa ou outra, tanto faz —
+// o que importa é confirmar que é alguém autorizado a mexer no caixa.
+exports.retomar = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  await db.query(
+    `UPDATE caixas SET pausado = 0, pausado_por = NULL WHERE id = ? AND padaria_id = ? AND status = 'aberto'`,
+    [req.params.id, padaria_id]
+  );
+  res.json({ ok: true, retomado_por: req.funcionario?.nome || null });
+};
+
 exports.abrir = async (req, res) => {
   const padaria_id = req.padaria.id;
   const { valor_abertura, atendente_id, pin, observacao } = req.body;

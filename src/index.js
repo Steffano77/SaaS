@@ -269,6 +269,11 @@ app.use(express.static(path.join(__dirname, '../public')));
       // na nota fiscal (NFC-e). Sem isso, a nota usa um código genérico como reserva.
       'ALTER TABLE produtos ADD COLUMN ncm VARCHAR(10) NULL',
 
+      // Caixa pausado (a pessoa saiu pro intervalo) — continua "aberto" no banco, só
+      // trava a venda até alguém (com PIN de caixa/gerente) retomar.
+      'ALTER TABLE caixas ADD COLUMN pausado TINYINT(1) NOT NULL DEFAULT 0',
+      'ALTER TABLE caixas ADD COLUMN pausado_por VARCHAR(80) NULL',
+
       // VARCHAR(50) era pequeno demais pra guardar a descrição de venda dividida em
       // várias formas de pagamento (ex: "Dinheiro 3.00 + Crédito 13.00 + Débito 5.00 +
       // Pix 10.00 + Voucher 2.00") — dava erro ao fechar a comanda nesse caso.

@@ -4484,6 +4484,26 @@ async function carregarComandas() {
 let caixaAtualCache = null;
 let CAIXA_LOCAL_ID = localStorage.getItem('pp_caixa_id') || null;
 
+// ── Pausar/retomar caixa (intervalo do atendente) ──────────────────────
+async function pausarCaixaUI() {
+  if (!CAIXA_LOCAL_ID) return;
+  if (!(await confirmarBonito('Pausar o caixa? Ninguém consegue vender até alguém retomar com o PIN.'))) return;
+  const r = await api(`/caixa/${CAIXA_LOCAL_ID}/pausar`, { method: 'POST' });
+  if (!r) return;
+  await carregarCaixaFaixa();
+}
+
+async function retomarCaixaUI() {
+  if (!CAIXA_LOCAL_ID) return;
+  await comLoginAtendente(async () => {
+    const r = await api(`/caixa/${CAIXA_LOCAL_ID}/retomar`, { method: 'POST' });
+    if (!r) return r;
+    mostrarToast(`Caixa retomado${r.retomado_por ? ' por ' + r.retomado_por : ''}!`, 'ok');
+    await carregarCaixaFaixa();
+    return r;
+  });
+}
+
 async function carregarCaixaFaixa() {
   const el = document.getElementById('cmd-caixa-faixa');
   if (!el) return;
@@ -4498,6 +4518,14 @@ async function carregarCaixaFaixa() {
     const caixa = await api(`/caixa/${CAIXA_LOCAL_ID}`);
     if (caixa && caixa.status === 'aberto') {
       caixaAtualCache = caixa;
+      if (caixa.pausado) {
+        el.innerHTML = `
+          <div class="cmd-caixa-card fechado">
+            <span>⏸️ Caixa pausado${caixa.pausado_por ? ' por ' + caixa.pausado_por : ''}</span>
+            <button class="btn-primary" style="padding:7px 14px;font-size:12.5px;" onclick="retomarCaixaUI()">▶️ Retomar caixa</button>
+          </div>`;
+        return;
+      }
       const desde = fmtDataHoraBR(caixa.aberto_em);
       el.innerHTML = `
         <div class="cmd-caixa-card aberto">
@@ -4505,6 +4533,7 @@ async function carregarCaixaFaixa() {
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button class="btn-ghost" style="padding:7px 12px;font-size:12.5px;" onclick="abrirModalCaixa('sangria')">💸 Sangria</button>
             <button class="btn-ghost" style="padding:7px 12px;font-size:12.5px;" onclick="abrirModalCaixa('suprimento')">💰 Suprimento</button>
+            <button class="btn-ghost" style="padding:7px 12px;font-size:12.5px;" onclick="pausarCaixaUI()">⏸️ Pausar</button>
             <button class="btn-primary" style="padding:7px 12px;font-size:12.5px;" onclick="abrirModalCaixa('fechar')">Fechar caixa</button>
           </div>
         </div>`;
@@ -5376,6 +5405,7 @@ document.addEventListener('mousedown', e => {
 });
 
 async function adicionarItemComandaUI() {
+  if (caixaAtualCache?.pausado) { mostrarToast('Caixa pausado — retome o caixa antes de lançar item.', 'warn'); return; }
   const nome = document.getElementById('cmd-item-busca').value.trim();
   const produto_id = document.getElementById('cmd-item-produto-id').value || null;
   const quantidade = parseFloat(document.getElementById('cmd-item-qtd').value);
@@ -5545,6 +5575,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 function adicionarPagamentoUI(forma) {
+  if (caixaAtualCache?.pausado) { mostrarToast('Caixa pausado — retome o caixa antes de cobrar.', 'warn'); return; }
   if (MODO_OFFLINE) { mostrarToast('Sem conexão — aguarda a internet voltar pra cobrar.', 'warn'); return; }
   if (!comandaAtualDados || !comandaAtualDados.itens || !comandaAtualDados.itens.length) {
     mostrarToast('Adicione itens antes de lançar pagamento.', 'warn');
@@ -5769,9 +5800,12 @@ function abrirJanelaImpressaoTermica(bodyHtml) {
 }
 
 // Ficha pra cozinha/produção — sem valores, só os itens pra separar/preparar
-function imprimirFichaCozinha() {
+async function imprimirFichaCozinha() {
   const c = comandaAtualDados;
   if (!c || !c.itens || !c.itens.length) { mostrarToast('Adicione itens antes de imprimir.', 'warn'); return; }
+  // Abrir a impressão sempre sai da tela cheia (o navegador não deixa evitar isso quando
+  // abre uma janela nova) — pelo menos confirma antes, pra não abrir sem querer.
+  if (!(await confirmarBonito('Imprimir a ficha pra cozinha?'))) return;
   const agora = new Date().toLocaleString('pt-BR');
   const linhas = c.itens.map(i => `
     <div class="linha">
