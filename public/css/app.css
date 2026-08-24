@@ -298,13 +298,14 @@
     }
     .sidebar:hover .sidebar-collapse-btn { opacity: 1; }
 
-    /* Botão flutuante pra reabrir quando a sidebar está oculta */
+    /* Botão flutuante pra reabrir quando a sidebar está oculta — fica numa
+       faixa própria reservada, não em cima do título da página */
     .sidebar-expand-btn {
       position: fixed;
-      top: 18px;
+      top: 10px;
       left: 10px;
-      width: 28px;
-      height: 28px;
+      width: 26px;
+      height: 26px;
       border-radius: 50%;
       background: var(--navy);
       border: 1px solid rgba(255,255,255,0.15);
@@ -322,6 +323,8 @@
       min-width: 0;
       border-right: none;
     }
+    /* Reserva uma faixa no topo pra não deixar o botão de reabrir em cima do título */
+    #app.sidebar-colapsada .main-content { padding-top: 40px; }
 
     .sidebar-header {
       padding: 14px 16px 12px;
