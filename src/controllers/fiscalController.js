@@ -68,6 +68,8 @@ exports.corrigirColunasFiscais = async (req, res) => {
     "ALTER TABLE padarias ADD COLUMN nfce_csc VARCHAR(255) NULL",
     "ALTER TABLE padarias ADD COLUMN nfce_id_csc INT NULL",
     "ALTER TABLE padarias ADD COLUMN nfce_razao_social VARCHAR(120) NULL",
+    "ALTER TABLE padarias ADD COLUMN nfce_csc_producao VARCHAR(255) NULL",
+    "ALTER TABLE padarias ADD COLUMN nfce_id_csc_producao INT NULL",
   ];
   const resultado = [];
   for (const sql of colunas) {
