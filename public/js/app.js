@@ -5733,8 +5733,12 @@ async function imprimirDanfeNFCe(comandaId) {
   const r = await api(`/fiscal/nfce/comanda/${comandaId}/danfe`);
   if (!r || !r.html) return;
   const janela = window.open('', '_blank', 'width=400,height=700');
+  if (!janela) { mostrarToast('O navegador bloqueou a janela de impressão — permite pop-up nesse site.', 'warn'); return; }
   janela.document.write(r.html);
   janela.document.close();
+  // Sem isso, o diálogo de impressão às vezes abre ATRÁS da janela principal e
+  // trava a tela (a pessoa acha que travou, mas é só o diálogo escondido).
+  janela.focus();
 }
 
 async function finalizarVendaUI() {
@@ -5795,8 +5799,12 @@ function abrirJanelaImpressaoTermica(bodyHtml) {
     <\/script>
     </body></html>`;
   const w = window.open('', '_blank', 'width=380,height=600');
+  if (!w) { mostrarToast('O navegador bloqueou a janela de impressão — permite pop-up nesse site.', 'warn'); return; }
   w.document.write(html);
   w.document.close();
+  // Sem isso, o diálogo de impressão às vezes abre ATRÁS da janela principal e
+  // trava a tela (a pessoa acha que travou, mas é só o diálogo escondido).
+  w.focus();
 }
 
 // Ficha pra cozinha/produção — sem valores, só os itens pra separar/preparar
