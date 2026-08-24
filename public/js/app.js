@@ -3696,6 +3696,22 @@ function fecharSidebar() {
   document.getElementById('btn-hamburger').classList.remove('open');
 }
 
+// ── Recolher/mostrar sidebar (desktop) ───────────────────────
+function toggleSidebarColapsada() {
+  const app = document.getElementById('app');
+  const colapsada = app.classList.toggle('sidebar-colapsada');
+  document.getElementById('btn-sidebar-expand').classList.toggle('hidden', !colapsada);
+  localStorage.setItem('pp_sidebar_colapsada', colapsada ? '1' : '0');
+}
+(function aplicarSidebarColapsadaSalva() {
+  if (localStorage.getItem('pp_sidebar_colapsada') === '1') {
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('app').classList.add('sidebar-colapsada');
+      document.getElementById('btn-sidebar-expand').classList.remove('hidden');
+    });
+  }
+})();
+
 // ── Swipe lateral (borda esquerda) ───────────────────────
 (function() {
   let startX = 0, startY = 0, ativo = false;

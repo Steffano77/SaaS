@@ -264,6 +264,7 @@
 
     /* ── SIDEBAR ── */
     .sidebar {
+      position: relative;
       width: 260px;
       min-width: 260px;
       background: var(--navy);
@@ -273,6 +274,53 @@
       overflow: hidden;
       -webkit-text-size-adjust: none;
       text-size-adjust: none;
+      transition: width 0.2s ease, min-width 0.2s ease;
+    }
+
+    /* Botão de recolher, encostado na quina direita da sidebar */
+    .sidebar-collapse-btn {
+      position: absolute;
+      top: 18px;
+      right: -12px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--navy);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 5;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+    .sidebar:hover .sidebar-collapse-btn { opacity: 1; }
+
+    /* Botão flutuante pra reabrir quando a sidebar está oculta */
+    .sidebar-expand-btn {
+      position: fixed;
+      top: 18px;
+      left: 10px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--navy);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 20;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+
+    #app.sidebar-colapsada .sidebar {
+      width: 0;
+      min-width: 0;
+      border-right: none;
     }
 
     .sidebar-header {
@@ -991,6 +1039,9 @@
       .mobile-topbar { display: flex; }
 
       #app { flex-direction: column; }
+
+      /* No mobile o menu já usa o hamburguer — o recolher de desktop não se aplica */
+      .sidebar-collapse-btn, .sidebar-expand-btn { display: none !important; }
 
       .sidebar {
         position: fixed;

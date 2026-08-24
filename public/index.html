@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260824m"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260824n"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -171,6 +171,9 @@
 
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
+    <button class="sidebar-collapse-btn" id="btn-sidebar-collapse" onclick="toggleSidebarColapsada()" aria-label="Ocultar menu" title="Ocultar menu">
+      <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M165.66 202.34a8 8 0 0 1-11.32 11.32l-80-80a8 8 0 0 1 0-11.32l80-80a8 8 0 0 1 11.32 11.32L91.31 128Z"/></svg>
+    </button>
     <div class="sidebar-header">
       <div class="sidebar-brand">
         <img src="/img/logo-escuro.svg" alt="PanificaPro" class="sidebar-brand-svg"/>
@@ -288,6 +291,10 @@
     </div>
   </aside>
 
+
+  <button class="sidebar-expand-btn hidden" id="btn-sidebar-expand" onclick="toggleSidebarColapsada()" aria-label="Mostrar menu" title="Mostrar menu">
+    <svg width="14" height="14" viewBox="0 0 256 256" fill="currentColor"><path d="M96 48a8 8 0 0 1 13.66-5.66l80 80a8 8 0 0 1 0 11.32l-80 80A8 8 0 0 1 96 208Z"/></svg>
+  </button>
 
   <!-- Conteúdo -->
   <main class="main-content">
@@ -1909,7 +1916,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260825p"></script>
+<script src="/js/app.js?v=20260825q"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
