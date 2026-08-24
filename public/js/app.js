@@ -5028,7 +5028,7 @@ async function abrirHistoricoComandas() {
   // limparDepois=false: pede o PIN só aqui na entrada — excluir/reimprimir
   // dentro do histórico não pedem de novo, até fechar a tela.
   await comLoginAtendente(async () => {
-    const r = await api('/comandas');
+    const r = await api('/comandas/historico');
     if (!r || r.precisa_login_funcionario) return r;
     document.getElementById('modal-historico-comandas').classList.remove('hidden');
     renderHistoricoComandas(r.recentes || []);
@@ -5042,7 +5042,7 @@ function fecharHistoricoComandas() {
 }
 
 async function carregarHistoricoComandas() {
-  const r = await api('/comandas');
+  const r = await api('/comandas/historico');
   if (!r) return;
   renderHistoricoComandas(r.recentes || []);
 }
