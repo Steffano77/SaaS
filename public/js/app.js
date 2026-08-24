@@ -4960,6 +4960,11 @@ async function comLoginAtendente(fn) {
     if (!ok) return null;
     r = await fn();
   }
+  // Sempre esquece o login logo depois de usar — cada ação de gerente exige
+  // digitar o PIN de novo, sem "ficar liberado" por um tempo.
+  sessionStorage.removeItem('func_token');
+  sessionStorage.removeItem('func_nome');
+  sessionStorage.removeItem('func_role');
   return r;
 }
 
