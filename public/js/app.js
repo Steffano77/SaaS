@@ -6483,7 +6483,14 @@ function imprimirRelatorioVendas() {
   if (!r) return;
   const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
   const dataFmt = d => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR');
-  const linhas = r.produtos.map((p, i) => `
+
+  // Respeita o filtro digitado na tela — imprime só o que está sendo visto ali.
+  const termoBruto = document.getElementById('rel-vendas-busca').value.trim();
+  const norm = txt => txt.toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const termo = norm(termoBruto);
+  const produtos = termo ? r.produtos.filter(p => norm(p.produto).includes(termo)) : r.produtos;
+
+  const linhas = produtos.map((p, i) => `
     <tr>
       <td>${i + 1}</td>
       <td>${p.produto}</td>
@@ -6491,6 +6498,10 @@ function imprimirRelatorioVendas() {
       <td style="text-align:right;">${fmtMoeda(p.receita)}</td>
     </tr>
   `).join('');
+
+  const qtdFiltrada = produtos.reduce((s, p) => s + parseFloat(p.quantidade), 0);
+  const receitaFiltrada = produtos.reduce((s, p) => s + parseFloat(p.receita), 0);
+
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Vendas</title>
     <style>
       @page { size: A4; margin: 15mm; }
@@ -6503,16 +6514,18 @@ function imprimirRelatorioVendas() {
       .resumo { display: flex; gap: 24px; margin: 16px 0 20px; }
       .resumo div { font-size: 13px; }
       .resumo strong { display: block; font-size: 18px; }
+      .filtro-aviso { background: #fff4e6; border: 1px solid #f9a962; padding: 8px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; }
     </style></head><body>
     <h1>📊 Vendas por produto — ${nomePadaria}</h1>
     <div class="sub">Período: ${dataFmt(r.inicio)} a ${dataFmt(r.fim)} · Impresso em ${new Date().toLocaleString('pt-BR')}</div>
+    ${termo ? `<div class="filtro-aviso">Filtrado por "<strong>${termoBruto}</strong>": ${fmtQtd(qtdFiltrada)} unidades · ${fmtMoeda(receitaFiltrada)} de receita (${produtos.length} produto${produtos.length === 1 ? '' : 's'})</div>` : ''}
     <div class="resumo">
-      <div><strong>${fmtMoeda(r.totais.receita_total)}</strong>Receita total</div>
+      <div><strong>${fmtMoeda(termo ? receitaFiltrada : r.totais.receita_total)}</strong>${termo ? 'Receita filtrada' : 'Receita total'}</div>
       <div><strong>${r.totais.total_comandas}</strong>Comandas fechadas</div>
     </div>
     <table>
       <thead><tr><th>#</th><th>Produto</th><th style="text-align:right;">Qtd.</th><th style="text-align:right;">Receita</th></tr></thead>
-      <tbody>${linhas || '<tr><td colspan="4">Nenhuma venda nesse período.</td></tr>'}</tbody>
+      <tbody>${linhas || `<tr><td colspan="4">${termo ? 'Nenhum produto encontrado com esse filtro.' : 'Nenhuma venda nesse período.'}</td></tr>`}</tbody>
     </table>
     <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();};<\/script>
     </body></html>`;
