@@ -4953,19 +4953,30 @@ async function confirmarLoginAtendente() {
 
 // Chama fn() (que faz uma chamada api()); se a API disser que precisa de login de
 // atendente com papel específico, pede o PIN na hora e tenta de novo automaticamente.
-async function comLoginAtendente(fn) {
+// limparDepois=true (padrão): esquece o PIN logo após usar — cada ação de gerente
+// exige digitar de novo. limparDepois=false: mantém o acesso liberado (usado só
+// na entrada de telas como o Histórico, onde o PIN é pedido 1x e vale pra tudo
+// que a pessoa fizer ali dentro — excluir/reimprimir não pedem PIN de novo).
+async function comLoginAtendente(fn, limparDepois = true) {
   let r = await fn();
   if (r && r.precisa_login_funcionario) {
     const ok = await pedirLoginAtendente();
     if (!ok) return null;
     r = await fn();
   }
-  // Sempre esquece o login logo depois de usar — cada ação de gerente exige
-  // digitar o PIN de novo, sem "ficar liberado" por um tempo.
+  if (limparDepois) {
+    sessionStorage.removeItem('func_token');
+    sessionStorage.removeItem('func_nome');
+    sessionStorage.removeItem('func_role');
+  }
+  return r;
+}
+
+// Esquece o PIN de gerente ao sair de uma tela que ficou liberada (ex: Histórico).
+function esquecerLoginAtendente() {
   sessionStorage.removeItem('func_token');
   sessionStorage.removeItem('func_nome');
   sessionStorage.removeItem('func_role');
-  return r;
 }
 
 function cardComandaHtml(c) {
@@ -4994,25 +5005,40 @@ function cardComandaHtml(c) {
 
 async function excluirComandaUI(id) {
   if (!(await confirmarBonito('Excluir essa comanda definitivamente? Essa ação não pode ser desfeita.'))) return;
-  // Ação sensível — exige login de atendente com papel "gerente".
+  // Ação sensível — exige login de atendente com papel "gerente", e limpa
+  // depois (fora do Histórico, cada exclusão pede o PIN de novo).
   const r = await comLoginAtendente(() => api(`/comandas/${id}`, { method: 'DELETE' }));
   if (!r || r.precisa_login_funcionario) return;
   mostrarToast('Comanda excluída.', 'ok');
   await carregarComandas();
-  if (document.getElementById('modal-historico-comandas') && !document.getElementById('modal-historico-comandas').classList.contains('hidden')) {
-    carregarHistoricoComandas();
-  }
+}
+
+// Excluir de dentro do Histórico usa o PIN já digitado na entrada da tela —
+// não pede de novo pra cada item.
+async function excluirComandaHistoricoUI(id) {
+  if (!(await confirmarBonito('Excluir essa comanda definitivamente? Essa ação não pode ser desfeita.'))) return;
+  const r = await api(`/comandas/${id}`, { method: 'DELETE' });
+  if (!r || r.precisa_login_funcionario) { esquecerLoginAtendente(); return; }
+  mostrarToast('Comanda excluída.', 'ok');
+  carregarHistoricoComandas();
 }
 
 /* ===================== HISTÓRICO DE COMANDAS (restrito a gerente) ===================== */
 async function abrirHistoricoComandas() {
+  // limparDepois=false: pede o PIN só aqui na entrada — excluir/reimprimir
+  // dentro do histórico não pedem de novo, até fechar a tela.
   await comLoginAtendente(async () => {
     const r = await api('/comandas');
     if (!r || r.precisa_login_funcionario) return r;
     document.getElementById('modal-historico-comandas').classList.remove('hidden');
     renderHistoricoComandas(r.recentes || []);
     return r;
-  });
+  }, false);
+}
+
+function fecharHistoricoComandas() {
+  fecharModal('modal-historico-comandas');
+  esquecerLoginAtendente();
 }
 
 async function carregarHistoricoComandas() {
@@ -5039,7 +5065,7 @@ function renderHistoricoComandas(recentes) {
       </div>
       <div class="historico-item-acoes">
         <button class="btn-icon" title="Reimprimir recibo" onclick="reimprimirComandaUI(${c.id})">🖨️</button>
-        <button class="btn-icon" title="Excluir" onclick="excluirComandaUI(${c.id})">🗑️</button>
+        <button class="btn-icon" title="Excluir" onclick="excluirComandaHistoricoUI(${c.id})">🗑️</button>
       </div>
     </div>
   `).join('');
