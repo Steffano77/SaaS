@@ -1893,8 +1893,12 @@ async function preencherCodigosBalanca() {
 //   decimais implícitas, zero à esquerda) + validade em dias(3, zero à
 //   esquerda — usamos 000 por padrão, já que o PanificaPro não guarda prazo
 //   de validade em dias por produto).
-function exportarParaBalanca() {
-  const comCodigo = (produtosCache || []).filter(p => p.codigo_balanca && /^\d+$/.test(String(p.codigo_balanca).trim()));
+async function exportarParaBalanca() {
+  // Busca direto do servidor em vez de depender de algum cache local — o sistema
+  // tem várias variáveis de cache de produto diferentes por tela (produtosCache,
+  // _produtosCache, todosProds) e nem sempre a certa está carregada nesse momento.
+  const lista = await api('/produtos') || [];
+  const comCodigo = lista.filter(p => p.codigo_balanca && /^\d+$/.test(String(p.codigo_balanca).trim()));
   // Produto sem preço não pode ir pra balança como "R$ 0,00" — melhor deixar de fora
   // e avisar, do que exportar errado.
   const semPreco = comCodigo.filter(p => !(parseFloat(p.preco_venda) > 0));
