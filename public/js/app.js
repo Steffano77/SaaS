@@ -1884,6 +1884,49 @@ async function preencherCodigosBalanca() {
   carregarProdutos();
 }
 
+// ── Exportação pro Gerenciador de Balanças Triunfo (formato "Padrão Smart
+// Filizola") ── Layout descoberto a partir de um arquivo cadtxt.txt real
+// exportado pelo próprio programa da padaria: 39 caracteres por linha, sem
+// separador, sem cabeçalho:
+//   código(6, zero à esquerda) + tipo(1: P=peso, U=unidade)
+//   + descrição(22, cortada/completada com espaço) + preço(7, 2 casas
+//   decimais implícitas, zero à esquerda) + validade em dias(3, zero à
+//   esquerda — usamos 000 por padrão, já que o PanificaPro não guarda prazo
+//   de validade em dias por produto).
+function exportarParaBalanca() {
+  const elegiveis = (produtosCache || []).filter(p => p.codigo_balanca && /^\d+$/.test(String(p.codigo_balanca).trim()));
+  if (!elegiveis.length) {
+    mostrarToast('Nenhum produto com código da balança cadastrado ainda.', 'warn');
+    return;
+  }
+  const pesoUnidades = ['KG', 'LITRO']; // vendido por peso/volume → tipo P; o resto → tipo U
+
+  const linhas = elegiveis.map(p => {
+    const codigo = String(p.codigo_balanca).trim().padStart(6, '0').slice(-6);
+    const tipo = pesoUnidades.includes((p.unidade || '').toUpperCase()) ? 'P' : 'U';
+    // Sem acento — no arquivo real exportado pela balança, "Pão" virou "Pao",
+    // sugerindo que esse formato não lida bem com acentuação.
+    const nomeSemAcento = (p.nome || '').normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const descricao = nomeSemAcento.slice(0, 22).padEnd(22, ' ');
+    const precoCentavos = Math.round(parseFloat(p.preco_venda || 0) * 100);
+    const preco = String(precoCentavos).padStart(7, '0').slice(-7);
+    const validade = '000';
+    return `${codigo}${tipo}${descricao}${preco}${validade}`;
+  });
+
+  const conteudo = linhas.join('\r\n') + '\r\n';
+  const blob = new Blob([conteudo], { type: 'text/plain;charset=windows-1252' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'cadtxt.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  mostrarToast(`📤 Arquivo gerado com ${elegiveis.length} produtos! Leva o cadtxt.txt até o computador da balança e importa pelo Cadastros → Importar.`, 'ok');
+}
+
 // ── Financeiro ──────────────────────────────────────────────────────────────
 let _finPeriodo = 'hoje';
 let _finTipo = 'entrada';
