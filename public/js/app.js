@@ -1894,10 +1894,17 @@ async function preencherCodigosBalanca() {
 //   esquerda — usamos 000 por padrão, já que o PanificaPro não guarda prazo
 //   de validade em dias por produto).
 function exportarParaBalanca() {
-  const elegiveis = (produtosCache || []).filter(p => p.codigo_balanca && /^\d+$/.test(String(p.codigo_balanca).trim()));
+  const comCodigo = (produtosCache || []).filter(p => p.codigo_balanca && /^\d+$/.test(String(p.codigo_balanca).trim()));
+  // Produto sem preço não pode ir pra balança como "R$ 0,00" — melhor deixar de fora
+  // e avisar, do que exportar errado.
+  const semPreco = comCodigo.filter(p => !(parseFloat(p.preco_venda) > 0));
+  const elegiveis = comCodigo.filter(p => parseFloat(p.preco_venda) > 0);
   if (!elegiveis.length) {
-    mostrarToast('Nenhum produto com código da balança cadastrado ainda.', 'warn');
+    mostrarToast('Nenhum produto com código da balança E preço cadastrado ainda.', 'warn');
     return;
+  }
+  if (semPreco.length) {
+    console.log(`⚠️ ${semPreco.length} produtos com código de balança mas SEM preço (ficaram de fora da exportação):`, semPreco.map(p => p.nome));
   }
   const pesoUnidades = ['KG', 'LITRO']; // vendido por peso/volume → tipo P; o resto → tipo U
 
@@ -1924,7 +1931,8 @@ function exportarParaBalanca() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  mostrarToast(`📤 Arquivo gerado com ${elegiveis.length} produtos! Leva o cadtxt.txt até o computador da balança e importa pelo Cadastros → Importar.`, 'ok');
+  const avisoSemPreco = semPreco.length ? ` (${semPreco.length} ficaram de fora por não ter preço — veja o console)` : '';
+  mostrarToast(`📤 Arquivo gerado com ${elegiveis.length} produtos!${avisoSemPreco} Leva o cadtxt.txt até o computador da balança e importa pelo Cadastros → Importar.`, 'ok');
 }
 
 // ── Financeiro ──────────────────────────────────────────────────────────────
