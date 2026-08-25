@@ -10,21 +10,34 @@ Não contém nenhuma senha ou token — só indica onde cada credencial está gu
 
 ## 1. Visão geral
 
-PanificaPro é um ERP SaaS multi-tenant para padarias (controle de estoque,
-compras, fornecedores, fichas técnicas, produção, financeiro e relatórios).
+PanificaPro é um ERP SaaS multi-tenant para padarias: controle de estoque,
+compras, fornecedores, fichas técnicas, produção, financeiro, relatórios,
+**PDV/comandas com caixa**, **sistema de cargos com PIN** (atendente/caixa/
+gerente) e **emissão de Nota Fiscal de Consumidor Eletrônica (NFC-e)** de
+verdade, integrada à Sefaz-SP.
 
 - **Backend:** Node.js + Express (API REST)
 - **Banco de dados:** MySQL 8
 - **Frontend:** HTML/CSS/JS puro (SPA sem framework), servido como arquivos estáticos
   pelo próprio Express
-- **Autenticação:** JWT + bcrypt
-- **Hospedagem:** VPS com Nginx (proxy reverso + SSL) e PM2 (gerenciador de processo)
+- **Autenticação:** JWT + bcrypt (login de dono da padaria) + um segundo
+  esquema de JWT próprio pra PIN de funcionário (ver §7)
+- **Hospedagem:** VPS Hostgator, Nginx (proxy reverso + SSL) e PM2
+  (gerenciador de processo). App em produção: `app.panificapro.com.br`.
+  Existe também um site institucional separado em `panificapro.com.br`.
 - **E-mails transacionais:** Resend
-- **Pagamentos:** Hotmart (única forma de venda hoje, via webhook)
+- **Pagamentos (assinatura do SaaS):** Hotmart (única forma de venda hoje, via webhook)
+- **Nota fiscal:** assinatura XML própria (`xml-crypto`), certificado A1
+  (`node-forge`), envio direto pro webservice da Sefaz-SP (ver §8)
 
 Cada padaria cadastrada é uma linha na tabela `padarias` — o `padaria_id` é o
 identificador de tenant usado em quase todas as tabelas para isolar os dados
 de cada cliente.
+
+**Branch de trabalho:** o desenvolvimento recente rodou na branch
+`claude/affectionate-galileo-fot0op`, não em `main` — confirme qual branch
+está de fato em produção antes de assumir (`git -C /var/www/panificapro branch --show-current`
+no servidor).
 
 ---
 
@@ -56,7 +69,7 @@ public/
 git clone <repo>
 cd SaaS
 npm install
-cp .env.example .env    # depois preencher com valores reais (ver §7)
+cp .env.example .env    # depois preencher com valores reais (ver §10)
 npm run dev              # nodemon, reinicia sozinho a cada mudança
 ```
 
@@ -75,9 +88,10 @@ toda vez que o servidor sobe. Isso inclui criar o schema do zero num banco vazio
 O deploy é manual, sem CI/CD:
 
 ```bash
-ssh root@<ip-do-vps> -p <porta>   # credenciais: ver §7
+ssh root@<ip-do-vps> -p <porta>   # credenciais: ver §10
 cd /var/www/panificapro
-git pull origin main
+git pull origin claude/affectionate-galileo-fot0op   # confirme a branch certa antes (ver §1)
+npm install                        # só é preciso quando package.json mudou
 pm2 restart panificapro --update-env
 ```
 
@@ -158,7 +172,119 @@ esse risco de vez.
 
 ---
 
-## 7. Onde estão as credenciais
+## 7. PDV: Comandas, Caixa e Cargos (Equipe)
+
+Módulo de ponto de venda usado no balcão da padaria. Telas principais em
+`public/index.html` (`#pg-comandas`) e lógica em `public/js/app.js`
+(procure por `comandaAtualId`, `caixaAtualCache`).
+
+- **Comanda** (`comandas` + `itens_comanda`) — pode ser aberta por número
+  (mesa/comanda física) ou direto como "venda de balcão" (invisível pro
+  operador, criada na hora). Fecha com `POST /comandas/:id/fechar`, que
+  roda tudo dentro de uma **transação de banco** (pagamentos + baixa de
+  estoque + lançamento no financeiro + status da comanda) — não tirar essa
+  transação; sem ela, um erro no meio do processo já causou duplicação real
+  de dados em produção antes (`comandaController.fechar`).
+- **Formas de pagamento**: Dinheiro, Crédito, Débito, Pix, Voucher, e duas
+  formas especiais:
+  - **Faturado** (fiado) — conta como venda normal, mas o lançamento no
+    financeiro fica marcado com categoria `Fiado (a receber)` em vez de
+    `Vendas`, pra não se misturar com dinheiro que já entrou de fato. Não
+    existe hoje uma tela de controle de "quem deve quanto" — só essa
+    marcação no financeiro.
+  - **Padaria** (consumo interno/produção) — desconta estoque normalmente,
+    mas **não gera lançamento nenhum no financeiro** (não é receita) e o
+    sistema **não oferece a opção de emitir nota fiscal** nesse caso (não
+    houve venda de verdade).
+- **Caixa** (`caixas` + `caixa_movimentos`) — pode haver mais de um caixa
+  aberto ao mesmo tempo na mesma padaria (um por aparelho/tablet), todos
+  puxando do mesmo estoque/comandas. Fechamento gera um comprovante
+  impresso no formato "relatório completo de sessão" (`imprimirFechamentoCaixa`
+  em `app.js`), no mesmo padrão que sistemas de balcão tipo Saurus usam —
+  forma de pagamento com contagem, resumo de movimentação, comparação
+  "em caixa vs fechado vs diferença". Só Dinheiro tem contagem física real;
+  as outras formas usam o valor do sistema como "fechado" (diferença sempre 0).
+- **Cargos / PIN de funcionário**: tabela `atendentes` tem uma coluna
+  `role` (`atendente` / `caixa` / `gerente`). Login de funcionário é
+  **separado** do login de dono de padaria — `POST /atendentes/login` emite
+  um JWT próprio (`tipo: 'atendente'`, 12h) guardado em `sessionStorage`
+  (`func_token`), verificado pelo middleware `exigirFuncionario([...papeis])`.
+  Usado pra travar ações sensíveis (excluir comanda, ver relatório de vendas,
+  cancelar item) atrás de PIN de gerente. Por padrão o token é esquecido
+  logo depois da ação (`comLoginAtendente(fn, limparDepois=true)`); telas
+  que fazem várias ações seguidas (Histórico, Relatório) passam
+  `limparDepois=false` pra não pedir PIN de novo a cada clique dentro da
+  mesma tela — **isso já causou um bug real** (trocar de período no
+  relatório silenciosamente não atualizava nada, porque o token já tinha
+  sido apagado); se telas parecidas passarem a fazer requisição sob
+  demanda depois da autenticação inicial, confirme que `limparDepois:false`
+  está sendo usado.
+
+## 8. Nota Fiscal (NFC-e) — Sefaz-SP
+
+Fica em `src/fiscal/` (montagem/assinatura do XML) e
+`src/controllers/nfceController.js` / `fiscalController.js` (fluxo de
+emissão, configuração, reimpressão).
+
+- **Ambientes**: `padarias.nfce_ambiente` (2 = homologação/teste,
+  1 = produção). **Hoje está em homologação** — notas emitidas não valem
+  legalmente, servem só pra validar que o XML está correto perante a
+  Sefaz. A troca pra produção é uma decisão de negócio, não técnica —
+  depende de aval do contador sobre as regras fiscais e confirmação final
+  do dono, não trocar sozinho.
+- **CSC (Código de Segurança do Contribuinte)**: homologação e produção
+  usam **colunas separadas** no banco (`nfce_csc`/`nfce_id_csc` para
+  homologação, `nfce_csc_producao`/`nfce_id_csc_producao` para produção) —
+  de propósito, pra configurar um não sobrescrever o outro. Nunca unificar
+  essas colunas.
+- **CFOP/CSOSN automáticos por produto** (`src/fiscal/xmlNFCe.js`,
+  função `definirCfop`/`montarBlocoIcms`): decide o código fiscal certo
+  olhando duas colunas do produto — `origem_producao` (`propria`/`revenda`)
+  e `situacao_icms` (`normal`/`st`/`isento`):
+  - Própria → CFOP 5101, CSOSN 102
+  - Revenda normal → CFOP 5102, CSOSN 102
+  - Revenda com Substituição Tributária → CFOP 5405, CSOSN 500 (+ CEST)
+  - Isento → CSOSN 400 — **atenção**: no schema oficial da Sefaz não existe
+    um grupo `<ICMSSN400>` separado; CSOSN 400 reaproveita o grupo
+    `<ICMSSN102>`, só troca o número do CSOSN por dentro. Um XML com
+    `<ICMSSN400>` inventado já causou rejeição real (cStat 225) — não
+    reintroduzir esse erro.
+  - Pagamento em cartão (crédito/débito) e Pix **exigem** o bloco `<card>`
+    no XML (rejeição real da Sefaz-SP, cStat 391, se faltar) — a condição
+    em `xmlNFCe.js` cobre `tPag === '03' || '04' || '17'`.
+- **NCM**: coluna `produtos.ncm`, usada no XML com fallback pro código
+  genérico `21069090` se o produto não tiver NCM cadastrado.
+- **Reimpressão** (`nfceController.imprimirDanfe`) gera o HTML do recibo
+  térmico com QR Code (pacote `qrcode`), usando o CSC do ambiente em que a
+  nota foi **realmente emitida** (`nota.ambiente`), não o ambiente atual da
+  padaria — importante se um dia a padaria migrar pra produção e ainda
+  precisar reimprimir notas antigas de teste.
+
+## 9. Exportação de produtos pra balança (Gerenciador de Balanças Triunfo)
+
+Botão "Exportar p/ balança" na tela de Estoque (`exportarParaBalanca` em
+`app.js`) gera um arquivo `cadtxt.txt` no formato **"Padrão Smart Filizola"**
+— um layout de largura fixa, sem separador, usado por vários fabricantes de
+balança no Brasil (não só Triunfo). **Esse layout não está documentado
+oficialmente em lugar nenhum acessível** — foi descoberto na prática,
+analisando um arquivo real exportado por uma balança Triunfo. Cada linha
+tem exatamente 39 caracteres:
+
+```
+código(6, zero à esquerda) + tipo(1: P=peso/U=unidade)
+  + descrição(22, sem acento, cortada/completada com espaço)
+  + preço(7, 2 casas decimais implícitas, zero à esquerda)
+  + validade em dias(3, zero à esquerda — sempre "000" hoje)
+```
+
+Só entram no arquivo produtos com `codigo_balanca` numérico preenchido **e**
+`preco_venda > 0` (produto sem preço fica de fora, com aviso no console, em
+vez de exportar como R$ 0,00). O campo `codigo_balanca` pode ser
+auto-preenchido (fórmula `código de barras curto × 100`) ao digitar o
+código de barras no cadastro do produto — só quando o campo da balança
+ainda está vazio, edição manual sempre tem prioridade.
+
+## 10. Onde estão as credenciais
 
 Nenhuma credencial fica neste repositório. Estão guardadas num documento
 privado no Google Drive do proprietário (Estefano Mello), acessível somente
@@ -183,12 +309,23 @@ template atualizado):
 ```
 PORT, DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME, JWT_SECRET,
 HOTMART_HOTTOK, RESEND_API_KEY, EMAIL_FROM, APP_URL, ALLOWED_ORIGINS,
-ADMIN_EMAIL, ADMIN_SENHA, PIN_FINANCEIRO_MASTER
+ADMIN_EMAIL, ADMIN_SENHA, PIN_FINANCEIRO_MASTER, FISCAL_ENC_KEY
 ```
+
+`ALLOWED_ORIGINS` precisa incluir `https://app.panificapro.com.br` (não só
+o domínio institucional sem `app.`) — um valor desatualizado aqui não quebra
+nada visivelmente hoje (o app serve frontend e API do mesmo domínio, então
+o navegador nem aplica a checagem de CORS pra isso), mas trava qualquer
+integração futura vinda de outro domínio.
+
+`FISCAL_ENC_KEY` criptografa (AES-256-GCM) a senha do certificado digital e
+o CSC no banco — nunca fica em texto puro em `padarias`. Trocar essa chave
+sem migrar os dados já criptografados invalida tudo que foi salvo com a
+chave antiga.
 
 ---
 
-## 8. Ausência de testes automatizados
+## 11. Ausência de testes automatizados
 
 Não há suite de testes. Qualquer alteração precisa ser validada manualmente
 no navegador (fluxos principais: login, estoque, compras, financeiro,
