@@ -1,16 +1,21 @@
 require('dotenv').config();
-const express   = require('express');
-const cors      = require('cors');
-const helmet    = require('helmet');
-const rateLimit = require('express-rate-limit');
-const path      = require('path');
-const fs        = require('fs');
+const express     = require('express');
+const cors        = require('cors');
+const helmet      = require('helmet');
+const compression = require('compression');
+const rateLimit    = require('express-rate-limit');
+const path        = require('path');
+const fs          = require('fs');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
 // Necessário no Render (e qualquer proxy reverso) para o rate limit funcionar corretamente
 app.set('trust proxy', 1);
+
+// Comprime as respostas (JS, CSS, JSON da API) antes de mandar — o app.js sozinho
+// tem ~350KB, isso reduz bastante o que trafega pela rede, sobretudo no 3G/4G da loja.
+app.use(compression());
 
 // Garante pasta de upload
 fs.mkdirSync('/tmp/panificapro', { recursive: true });
@@ -118,7 +123,12 @@ app.get('/sw.js', (req, res) => {
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.sendFile(path.join(__dirname, '../public/sw.js'));
 });
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, '../public'), {
+  // Cache forte nos arquivos estáticos — como o app.js/app.css já usam ?v=... pra
+  // invalidar o cache manualmente a cada deploy, pode deixar o navegador guardar
+  // por bastante tempo sem medo de servir versão velha.
+  maxAge: '7d',
+}));
 
 // Auto-migrate: adiciona colunas novas sem quebrar instâncias existentes
 (async () => {
@@ -276,6 +286,11 @@ app.use(express.static(path.join(__dirname, '../public')));
       "ALTER TABLE produtos ADD COLUMN origem_producao ENUM('propria','revenda') NOT NULL DEFAULT 'revenda'",
       "ALTER TABLE produtos ADD COLUMN situacao_icms ENUM('normal','st','isento') NOT NULL DEFAULT 'normal'",
       'ALTER TABLE produtos ADD COLUMN cest VARCHAR(9) NULL',
+
+      // Índice pra acelerar a listagem de produtos (Estoque, busca de item na comanda) —
+      // toda tela que carrega produtos filtra por padaria_id + ativo, sem índice o banco
+      // teria que varrer a tabela inteira (mais de 1.100 produtos) a cada consulta.
+      'ALTER TABLE produtos ADD INDEX idx_produtos_padaria_ativo (padaria_id, ativo)',
 
       // CSC de produção fica separado do CSC de homologação (teste) — são credenciais
       // diferentes, cada uma só funciona no ambiente Sefaz correspondente. Sem isso,
