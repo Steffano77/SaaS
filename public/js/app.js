@@ -1944,7 +1944,7 @@ function renderMovimentacoes(movs) {
     return;
   }
   const pgtoTag = p => {
-    const cores = { Pix:'#eff6ff:#2563eb', Dinheiro:'#f0fdf4:#16a34a', Crédito:'#fdf4ff:#9333ea', Débito:'#fdf4ff:#9333ea', Transferência:'#eff6ff:#2563eb', Boleto:'#fefce8:#ca8a04' };
+    const cores = { Pix:'#eff6ff:#2563eb', Dinheiro:'#f0fdf4:#16a34a', Crédito:'#fdf4ff:#9333ea', Débito:'#fdf4ff:#9333ea', Transferência:'#eff6ff:#2563eb', Boleto:'#fefce8:#ca8a04', Faturado:'#fff7ed:#c2410c', Padaria:'#f8fafc:#64748b' };
     const [bg, color] = (cores[p] || '#f1f5f9:#64748b').split(':');
     return `<span style="background:${bg};color:${color};border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;">${p||'Dinheiro'}</span>`;
   };
@@ -5853,7 +5853,7 @@ function calcularRestante() {
 }
 
 // Atalhos F1–F5 pras formas de pagamento (padrão de PDV) enquanto a comanda está aberta.
-const CMD_PGTO_ATALHOS = { F1: 'Dinheiro', F2: 'Crédito', F3: 'Débito', F4: 'Pix', F5: 'Voucher' };
+const CMD_PGTO_ATALHOS = { F1: 'Dinheiro', F2: 'Crédito', F3: 'Débito', F4: 'Pix', F5: 'Voucher', F6: 'Faturado', F7: 'Padaria' };
 document.addEventListener('keydown', (e) => {
   const forma = CMD_PGTO_ATALHOS[e.key];
   if (!forma) return;
@@ -6050,9 +6050,12 @@ async function finalizarVendaUI() {
   mostrarToast(`Comanda fechada — ${formaResumo}!`, 'ok');
   fecharModalComanda();
   await carregarComandas();
+  // "Padaria" é consumo interno — não teve venda de verdade, então não faz sentido
+  // (nem é permitido) emitir nota fiscal em cima disso.
+  const consumoInterno = comandaPagamentosPendentes.some(p => p.forma_pagamento === 'Padaria');
   // Pergunta a nota fiscal ANTES de abrir a janela de impressão — a janela de
   // impressão fica na frente e escondia esse aviso atrás dela.
-  if (await fiscalConfigurado()) {
+  if (!consumoInterno && await fiscalConfigurado()) {
     if (await confirmarBonito('Emitir Nota Fiscal (NFC-e) dessa comanda? (ainda em ambiente de teste — não vale legalmente)')) {
       await emitirNotaFiscalComanda(comandaFechadaId);
     }
