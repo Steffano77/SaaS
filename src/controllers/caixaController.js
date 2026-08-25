@@ -83,7 +83,7 @@ exports.abrir = async (req, res) => {
 
 async function montarResumoCaixa(caixa) {
   const [porForma] = await db.query(
-    `SELECT cp.forma_pagamento, COALESCE(SUM(cp.valor), 0) AS total
+    `SELECT cp.forma_pagamento, COUNT(*) AS qtd, COALESCE(SUM(cp.valor), 0) AS total
      FROM comanda_pagamentos cp
      JOIN comandas c ON c.id = cp.comanda_id
      WHERE c.caixa_id = ?
@@ -116,6 +116,16 @@ async function montarResumoCaixa(caixa) {
     [caixa.id]
   );
 
+  // Contagem de vendas (comandas fechadas nesse caixa) e total de itens vendidos —
+  // igual ao "Qtd. Vendas" e "Total Itens" do relatório de fechamento do Saurus.
+  const [[contagem]] = await db.query(
+    `SELECT COUNT(DISTINCT c.id) AS qtdVendas, COALESCE(SUM(i.quantidade), 0) AS totalItens
+     FROM comandas c
+     LEFT JOIN itens_comanda i ON i.comanda_id = c.id
+     WHERE c.caixa_id = ? AND c.status = 'fechada'`,
+    [caixa.id]
+  );
+
   const esperadoEmDinheiro = parseFloat(caixa.valor_abertura) + parseFloat(totalDinheiro.total)
     + totalSuprimentos - totalSangrias;
 
@@ -128,6 +138,8 @@ async function montarResumoCaixa(caixa) {
     totalSangrias, totalSuprimentos,
     movimentos,
     esperadoEmDinheiro,
+    qtdVendas: contagem.qtdVendas,
+    totalItens: parseFloat(contagem.totalItens),
   };
 }
 

@@ -4800,35 +4800,73 @@ async function confirmarFecharCaixa() {
   }
 }
 
-// Comprovante impresso do fechamento de caixa (registro físico pra conferência)
+// Comprovante impresso do fechamento de caixa — formato "relatório completo de
+// sessão" (mesmo padrão que a gerente pediu, igual ao relatório do Saurus).
 function imprimirFechamentoCaixa(caixa, informado, diferenca) {
   const r = caixa?.resumo;
   const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
   const agora = new Date().toLocaleString('pt-BR');
-  const linhasForma = (r?.porForma || []).map(f => `
-    <div class="linha"><span class="nome">${f.forma_pagamento}</span><span class="valor">${fmtMoeda(f.total)}</span></div>
+  const abertura = fmtDataHoraBR ? fmtDataHoraBR(caixa?.aberto_em) : new Date(caixa?.aberto_em).toLocaleString('pt-BR');
+
+  const porForma = r?.porForma || [];
+  // Dinheiro é o único que se confere fisicamente (conta o dinheiro na gaveta) —
+  // as outras formas (cartão, pix, faturado...) não têm contagem física, então
+  // "Fechado" é igual ao valor do sistema e a diferença é sempre 0.
+  const linhasFormaPag = porForma.map(f => `
+    <div class="linha"><span class="nome">${f.forma_pagamento} (${f.qtd})</span><span class="valor">${fmtMoeda(f.total)}</span></div>
   `).join('');
-  const difLabel = Math.abs(diferenca) < 0.01 ? 'OK (bateu certinho)' : (diferenca > 0 ? `+${fmtMoeda(diferenca)} (sobrou)` : `${fmtMoeda(diferenca)} (faltou)`);
+
+  const linhasFechamento = porForma.map(f => {
+    const ehDinheiro = f.forma_pagamento === 'Dinheiro';
+    const emCaixa = ehDinheiro ? parseFloat(caixa?.valor_abertura || 0) + parseFloat(f.total) + (r?.totalSuprimentos || 0) - (r?.totalSangrias || 0) : parseFloat(f.total);
+    const fechado = ehDinheiro ? informado : emCaixa;
+    const dif = fechado - emCaixa;
+    return `<tr><td>${f.forma_pagamento}</td><td>${fmtMoeda(emCaixa)}</td><td>${fmtMoeda(fechado)}</td><td>${fmtMoeda(dif)}</td></tr>`;
+  }).join('');
+
+  const difLabel = Math.abs(diferenca) < 0.01 ? '0,00' : fmtMoeda(diferenca);
+
   abrirJanelaImpressaoTermica(`
     <h1>${nomePadaria}</h1>
-    <div class="sub">Fechamento de Caixa</div>
-    <div class="sub">${agora}${caixa?.atendente ? ' · ' + caixa.atendente : ''}</div>
+    <div class="sub">Relatório Completo de Sessão</div>
+    <div class="sub">Sessão ${caixa?.id} · Terminal: ${caixa?.nome || '-'} · Operador: ${caixa?.atendente || '-'}</div>
+    <div class="sub">Data Inicial: ${abertura}</div>
+    <div class="sub">Data Final: ${agora}</div>
     <hr/>
+    <div class="rodape" style="text-align:left;font-weight:bold;">Forma Pag.</div>
+    ${linhasFormaPag || '<div class="linha"><span class="nome">Nenhuma venda nesse caixa</span><span class="valor">—</span></div>'}
+    <div class="linha total"><span>TOTAL DA SESSÃO (${r?.qtdVendas || 0})</span><span>${fmtMoeda(r?.totalVendas)}</span></div>
+    <hr/>
+    <div class="rodape" style="text-align:left;font-weight:bold;">Resumo Movimentação</div>
     <div class="linha"><span class="nome">Abertura</span><span class="valor">${fmtMoeda(caixa?.valor_abertura)}</span></div>
+    <div class="linha"><span class="nome">Suprimento</span><span class="valor">${fmtMoeda(r?.totalSuprimentos)}</span></div>
+    <div class="linha"><span class="nome">Sangria</span><span class="valor">${fmtMoeda(r?.totalSangrias)}</span></div>
     <hr/>
-    ${linhasForma}
+    <div class="rodape" style="text-align:left;font-weight:bold;">Fechamento Caixa</div>
+    <table style="width:100%;font-size:11px;border-collapse:collapse;margin-top:4px;">
+      <thead><tr><th style="text-align:left;">Forma</th><th style="text-align:right;">Em Caixa</th><th style="text-align:right;">Fechado</th><th style="text-align:right;">Difer.</th></tr></thead>
+      <tbody>${linhasFechamento}</tbody>
+    </table>
     <hr/>
-    <div class="linha"><span class="nome">Total geral vendas</span><span class="valor">${fmtMoeda(r?.totalVendas)}</span></div>
-    ${r?.totalDescontos > 0 ? `<div class="linha"><span class="nome">Descontos dados</span><span class="valor">-${fmtMoeda(r.totalDescontos)}</span></div>` : ''}
-    ${r?.totalAcrescimos > 0 ? `<div class="linha"><span class="nome">Acréscimos cobrados</span><span class="valor">+${fmtMoeda(r.totalAcrescimos)}</span></div>` : ''}
-    <div class="linha"><span class="nome">Sangrias</span><span class="valor">-${fmtMoeda(r?.totalSangrias)}</span></div>
-    <div class="linha"><span class="nome">Suprimentos</span><span class="valor">+${fmtMoeda(r?.totalSuprimentos)}</span></div>
+    <div class="linha"><span class="nome">Total Vendido</span><span class="valor">${fmtMoeda(r?.totalVendas)}</span></div>
+    <div class="linha"><span class="nome">Abertura</span><span class="valor">${fmtMoeda(caixa?.valor_abertura)}</span></div>
+    <div class="linha"><span class="nome">Suprimento</span><span class="valor">${fmtMoeda(r?.totalSuprimentos)}</span></div>
+    <div class="linha"><span class="nome">Sangria</span><span class="valor">${fmtMoeda(r?.totalSangrias)}</span></div>
     <hr/>
-    <div class="total"><span>Esperado em dinheiro</span><span>${fmtMoeda(r?.esperadoEmDinheiro)}</span></div>
-    <div class="linha"><span class="nome">Contado em dinheiro</span><span class="valor">${fmtMoeda(informado)}</span></div>
-    <div class="linha"><span class="nome">Diferença</span><span class="valor">${difLabel}</span></div>
+    <div class="linha"><span class="nome">Valor em Caixa</span><span class="valor">${fmtMoeda(r?.esperadoEmDinheiro)}</span></div>
+    <div class="linha"><span class="nome">Valor Fechamento</span><span class="valor">${fmtMoeda(informado)}</span></div>
+    <div class="total"><span>Diferença</span><span>${difLabel}</span></div>
     <hr/>
-    <div class="rodape">PanificaPro</div>
+    <div class="rodape" style="text-align:left;font-weight:bold;">Resumo de Vendas</div>
+    <div class="linha"><span class="nome">SubTotal</span><span class="valor">${fmtMoeda(r?.totalVendas)}</span></div>
+    <div class="linha"><span class="nome">Desconto</span><span class="valor">${fmtMoeda(r?.totalDescontos)}</span></div>
+    <div class="linha"><span class="nome">Acréscimo</span><span class="valor">${fmtMoeda(r?.totalAcrescimos)}</span></div>
+    <div class="linha"><span class="nome">Total</span><span class="valor">${fmtMoeda(r?.totalVendas)}</span></div>
+    <div class="linha"><span class="nome">Qtd. Vendas</span><span class="valor">${r?.qtdVendas || 0}</span></div>
+    <div class="linha"><span class="nome">Total Itens</span><span class="valor">${fmtQtd(r?.totalItens || 0)}</span></div>
+    <hr/>
+    <div class="rodape">${nomePadaria} · PanificaPro</div>
+    <div class="rodape">Fim do Relatório · ${agora}</div>
   `);
 }
 
