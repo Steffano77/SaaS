@@ -1762,11 +1762,11 @@
           </div>
           <div class="form-group">
             <label>Código de barras</label>
-            <input type="text" id="prod-cod" placeholder="EAN-13" class="form-control"/>
+            <input type="text" id="prod-cod" placeholder="EAN-13" class="form-control" oninput="autoPreencherCodigoBalanca(this.value)"/>
           </div>
           <div class="form-group">
             <label>Código da balança <span style="color:var(--slate-400);font-weight:400;">(opcional, pra produtos pesados)</span></label>
-            <input type="text" id="prod-cod-balanca" placeholder="Ex: 052000" maxlength="10" class="form-control"/>
+            <input type="text" id="prod-cod-balanca" placeholder="Ex: 052000" maxlength="10" class="form-control" oninput="_codBalancaAutoPreenchido = false;"/>
             <button type="button" onclick="abrirModalCodigosUsados('balanca')" class="btn-link" style="font-size:12px;margin-top:4px;">🔎 Ver códigos de balança já usados</button>
           </div>
           <div class="form-group">
@@ -1959,7 +1959,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260826c"></script>
+<script src="/js/app.js?v=20260826d"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

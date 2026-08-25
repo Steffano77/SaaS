@@ -3267,10 +3267,23 @@ async function criarCategoria() {
   document.getElementById('prod-categoria').value = d.id;
 }
 
+// Controla se o "Código da balança" deve se auto-preencher a partir do "Código
+// de barras" digitado (fórmula código × 100, igual ao preenchimento em massa).
+// Fica true em produto novo, ou se a pessoa nunca digitou nada manual ali.
+let _codBalancaAutoPreenchido = true;
+function autoPreencherCodigoBalanca(codigoBarras) {
+  if (!_codBalancaAutoPreenchido) return;
+  const campo = document.getElementById('prod-cod-balanca');
+  const codigo = String(codigoBarras || '').trim();
+  if (!/^\d{1,4}$/.test(codigo)) { campo.value = ''; return; }
+  campo.value = String(parseInt(codigo, 10) * 100).padStart(6, '0');
+}
+
 function abrirModalProduto() {
   document.getElementById('prod-id').value = '';
   document.getElementById('modal-titulo').textContent = 'Novo produto';
   document.getElementById('form-produto').reset();
+  _codBalancaAutoPreenchido = true; // produto novo — pode auto-preencher
   document.getElementById('wrap-prod-cest').classList.add('hidden');
   document.getElementById('wrap-saldo').classList.remove('hidden');
   document.getElementById('bloco-embalagem').classList.add('hidden');
@@ -3290,6 +3303,10 @@ async function editarProduto(id) {
   document.getElementById('prod-nome').value    = p.nome;
   document.getElementById('prod-cod').value     = p.codigo_barras || '';
   document.getElementById('prod-cod-balanca').value = p.codigo_balanca || '';
+  // Produto existente sem código de balança ainda: deixa auto-preencher se a
+  // pessoa digitar/mudar o código de barras. Se já tem um valor salvo, não mexe
+  // sozinho (pode ser um código manual que não segue a fórmula padrão).
+  _codBalancaAutoPreenchido = !p.codigo_balanca;
   document.getElementById('prod-ncm').value = p.ncm || '';
   document.getElementById('prod-origem-producao').value = p.origem_producao || 'revenda';
   document.getElementById('prod-situacao-icms').value = p.situacao_icms || 'normal';
