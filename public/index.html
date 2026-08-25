@@ -1050,7 +1050,7 @@
       <div class="modal-box" style="max-width:380px;text-align:center;">
         <p id="confirmar-bonito-msg" class="confirmar-bonito-msg"></p>
         <div style="display:flex;gap:10px;">
-          <button id="confirmar-bonito-cancelar" class="btn-secondary" style="flex:1;" onclick="_resolverConfirmarBonito(false)">Cancelar</button>
+          <button id="confirmar-bonito-cancelar" class="btn-ghost" style="flex:1;" onclick="_resolverConfirmarBonito(false)">Cancelar</button>
           <button id="confirmar-bonito-ok" class="btn-primary" style="flex:1;" onclick="_resolverConfirmarBonito(true)">OK</button>
         </div>
       </div>
@@ -1716,7 +1716,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn-secondary" onclick="fecharModalFicha()">Cancelar</button>
+      <button class="btn-ghost" onclick="fecharModalFicha()">Cancelar</button>
       <button class="btn-primary" onclick="salvarFicha()">Salvar Receita</button>
     </div>
   </div>
@@ -1735,7 +1735,7 @@
         <input type="text" id="input-nome-padaria" class="form-control" placeholder="Nome da sua padaria"/>
       </div>
       <div style="display:flex;gap:10px;">
-        <button class="btn-secondary" style="flex:1;" onclick="fecharModalPadaria()">Cancelar</button>
+        <button class="btn-ghost" style="flex:1;" onclick="fecharModalPadaria()">Cancelar</button>
         <button class="btn-primary" style="flex:2;" onclick="salvarNomePadaria()">Salvar</button>
       </div>
     </div>
@@ -1956,7 +1956,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260825w"></script>
+<script src="/js/app.js?v=20260825x"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
@@ -2168,7 +2168,7 @@
     <h3 style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:8px;">Deseja sair?</h3>
     <p style="font-size:14px;color:var(--slate-500);margin-bottom:24px;">Seus dados estão salvos e você pode voltar quando quiser.</p>
     <div style="display:flex;gap:10px;justify-content:center;">
-      <button onclick="cancelarSaida()" class="btn-secondary" style="flex:1;">Cancelar</button>
+      <button onclick="cancelarSaida()" class="btn-ghost" style="flex:1;">Cancelar</button>
       <button onclick="confirmarSaida()" class="btn-primary" style="flex:1;">Sair</button>
     </div>
   </div>
@@ -2511,7 +2511,7 @@
 
     </div>
     <div class="modal-footer">
-      <button class="btn-secondary" onclick="fecharConfigPrecificacao()">Cancelar</button>
+      <button class="btn-ghost" onclick="fecharConfigPrecificacao()">Cancelar</button>
       <button class="btn-primary" onclick="salvarConfigPrecificacao()">💾 Salvar Configurações</button>
     </div>
   </div>
@@ -2565,7 +2565,7 @@
 
     </div>
     <div class="modal-footer">
-      <button class="btn-secondary" onclick="fecharModalProducao()">Cancelar</button>
+      <button class="btn-ghost" onclick="fecharModalProducao()">Cancelar</button>
       <button class="btn-primary" onclick="salvarProducao()">🏭 Registrar produção</button>
     </div>
   </div>
