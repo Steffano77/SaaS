@@ -124,6 +124,11 @@ async function fixarAparelhoParaCaixa() {
   if (!(await confirmarBonito(`Fixar este aparelho pra "${perfil.nome}"? A partir de agora, ele vai mostrar direto o login de caixa (nome + PIN) em vez do login normal.`))) return;
   localStorage.setItem('pp_aparelho_fixado_id', perfil.id);
   localStorage.setItem('pp_aparelho_fixado_nome', perfil.nome);
+  // Sem isso, a sessão de dono continuaria "logada" e o recarregamento cairia
+  // direto no sistema completo de novo — a fixação só valeria na próxima vez
+  // que essa sessão expirasse. Desloga na hora pra já passar pela tela de caixa.
+  localStorage.removeItem('pptoken');
+  sessionStorage.removeItem('pptoken');
   location.reload();
 }
 
