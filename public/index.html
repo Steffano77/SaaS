@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260824r"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260824s"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -729,7 +729,7 @@
               <div id="cmd-rapido-grid" class="cmd-rapido-grid hidden"></div>
 
               <!-- Adicionar item -->
-              <div class="cmd-add-item">
+              <div class="cmd-add-item cmd-add-item-grande">
                 <div class="fi-busca-wrap" style="position:relative;flex:1;">
                   <input type="text" id="cmd-item-busca" class="form-control" placeholder="Buscar produto ou digitar item avulso..." autocomplete="off"
                     oninput="filtrarProdutoComanda(this)" onfocus="filtrarProdutoComanda(this)" onkeydown="onKeydownBuscaComanda(event, this)"/>
@@ -804,12 +804,12 @@
 
             <!-- Sub-coluna direita: lista de itens, coluna única, alta -->
             <div class="cmd-pdv-subcoluna-itens">
-              <div id="cmd-detalhe-itens" class="cmd-itens-lista"></div>
+              <div id="cmd-detalhe-itens" class="cmd-itens-lista cmd-itens-lista-grande"></div>
             </div>
           </div>
 
           <div class="cmd-pdv-coluna-dir">
-            <div class="cmd-pdv-total-row">
+            <div class="cmd-pdv-total-row cmd-pdv-total-row-grande">
               <div class="cmd-pdv-qtde">
                 <span>Qtde Total</span>
                 <strong id="cmd-detalhe-qtde">0</strong>
@@ -825,14 +825,14 @@
               <div id="cmd-pagamentos-lista" class="cmd-pagamentos-lista"></div>
               <button id="cmd-btn-refazer" onclick="refazerPagamentos()" class="btn-ghost full hidden" style="color:#dc2626;margin-bottom:8px;">↺ Refazer Pagamentos</button>
               <div class="cmd-pgto-label" id="cmd-pgto-label">Toque na forma de pagamento pra lançar</div>
-              <div class="cmd-pgto-grid">
-                <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Dinheiro')"><span class="cmd-pgto-icone">💵</span><span>Dinheiro</span></button>
-                <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Crédito')"><span class="cmd-pgto-icone">💳</span><span>Crédito</span></button>
-                <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Débito')"><span class="cmd-pgto-icone">💳</span><span>Débito</span></button>
-                <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Pix')"><span class="cmd-pgto-icone">⚡</span><span>Pix</span></button>
-                <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Voucher')"><span class="cmd-pgto-icone">🎫</span><span>Voucher</span></button>
-                <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Faturado')" title="Fiado — cliente paga depois"><span class="cmd-pgto-icone">📇</span><span>Faturado</span></button>
-                <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Padaria')" title="Consumo interno — não entra como receita"><span class="cmd-pgto-icone">🏠</span><span>Padaria</span></button>
+              <div class="cmd-pgto-grid cmd-pgto-grid-grande">
+                <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Dinheiro')"><span class="cmd-pgto-fkey">F1</span><span class="cmd-pgto-icone">💵</span><span>Dinheiro</span><span class="cmd-pgto-sub">À vista</span></button>
+                <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Crédito')"><span class="cmd-pgto-fkey">F2</span><span class="cmd-pgto-icone">💳</span><span>Crédito</span><span class="cmd-pgto-sub">À vista</span></button>
+                <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Débito')"><span class="cmd-pgto-fkey">F3</span><span class="cmd-pgto-icone">💳</span><span>Débito</span><span class="cmd-pgto-sub">À vista</span></button>
+                <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Faturado')" title="Fiado — cliente paga depois"><span class="cmd-pgto-fkey">F4</span><span class="cmd-pgto-icone">📇</span><span>Faturado</span><span class="cmd-pgto-sub">À vista</span></button>
+                <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Padaria')" title="Consumo interno — não entra como receita"><span class="cmd-pgto-fkey">F5</span><span class="cmd-pgto-icone">🏠</span><span>Padaria</span><span class="cmd-pgto-sub">À vista</span></button>
+                <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Pix')"><span class="cmd-pgto-fkey">F6</span><span class="cmd-pgto-icone">⚡</span><span>Pix</span><span class="cmd-pgto-sub">À vista</span></button>
+                <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Voucher')"><span class="cmd-pgto-fkey">F7</span><span class="cmd-pgto-icone">🎫</span><span>Voucher</span><span class="cmd-pgto-sub">À vista</span></button>
               </div>
               <button id="cmd-btn-finalizar" onclick="finalizarVendaUI()" class="fin-confirmar-btn entrada hidden" style="margin-top:10px;">✅ Finalizar venda</button>
             </div>
