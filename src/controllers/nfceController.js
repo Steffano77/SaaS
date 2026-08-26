@@ -157,7 +157,10 @@ exports.imprimirDanfe = async (req, res) => {
     const qrUrl = montarUrlQrCode({
       chave: nota.chave_acesso, ambiente: nota.ambiente, csc: cscTexto, idCsc: idCscUsado,
     });
-    const qrImgDataUrl = await QRCode.toDataURL(`https://${qrUrl}`, { margin: 1, width: 220 });
+    // montarUrlQrCode já devolve a URL completa (com https://) — não duplicar aqui,
+    // senão vira "https://https://..." e o QR Code aponta pra um endereço inválido
+    // (bug real, achado escaneando o QR de uma nota de produção de verdade).
+    const qrImgDataUrl = await QRCode.toDataURL(qrUrl, { margin: 1, width: 220 });
 
     const itensHtml = itens.map((i, idx) => {
       const cod = String(i.produto_id || '').padStart(3, '0');
