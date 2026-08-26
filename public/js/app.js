@@ -46,6 +46,20 @@ let _prodFornecedorMap = {}; // produto_id → nome do fornecedor
 })();
 const MODO_BALCAO = localStorage.getItem('pp_modo_balcao') === '1';
 const MODO_LANCAMENTO = localStorage.getItem('pp_modo_lancamento') === '1';
+
+// ── Aparelho fixado pro login de caixa ────────────────────────────
+// Quando fixado (configurado uma vez em "Este aparelho" com login de dono),
+// esse aparelho específico mostra direto a tela de login simples (nome+PIN)
+// em vez do login normal — sem precisar de e-mail/senha de dono toda vez.
+const APARELHO_FIXADO_ID = localStorage.getItem('pp_aparelho_fixado_id');
+const APARELHO_FIXADO_NOME = localStorage.getItem('pp_aparelho_fixado_nome');
+if (APARELHO_FIXADO_ID && !TOKEN) {
+  window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('tela-auth').classList.add('hidden');
+    document.getElementById('tela-login-caixa').classList.remove('hidden');
+    document.getElementById('login-caixa-padaria-nome').textContent = APARELHO_FIXADO_NOME || '';
+  });
+}
 // Ativado por padrão em todo aparelho — só desativa se a pessoa desmarcar
 // explicitamente em "Este aparelho" (aí salva '0' no lugar de simplesmente apagar).
 const TELA_CHEIA_AUTO = localStorage.getItem('pp_tela_cheia_auto') !== '0';
@@ -92,7 +106,75 @@ function abrirModalConfigAparelho() {
   document.getElementById('cfg-modo-balcao').checked = MODO_BALCAO;
   document.getElementById('cfg-modo-lancamento').checked = MODO_LANCAMENTO;
   document.getElementById('cfg-tela-cheia').checked = TELA_CHEIA_AUTO;
+  const fixado = !!APARELHO_FIXADO_ID;
+  document.getElementById('bloco-fixar-caixa-off').classList.toggle('hidden', fixado);
+  document.getElementById('bloco-fixar-caixa-on').classList.toggle('hidden', !fixado);
+  if (fixado) document.getElementById('fixar-caixa-nome-atual').textContent = APARELHO_FIXADO_NOME || '';
   document.getElementById('modal-config-aparelho').classList.remove('hidden');
+}
+
+async function fixarAparelhoParaCaixa() {
+  const perfil = await api('/auth/perfil');
+  if (!perfil) return;
+  if (!(await confirmarBonito(`Fixar este aparelho pra "${perfil.nome}"? A partir de agora, ele vai mostrar direto o login de caixa (nome + PIN) em vez do login normal.`))) return;
+  localStorage.setItem('pp_aparelho_fixado_id', perfil.id);
+  localStorage.setItem('pp_aparelho_fixado_nome', perfil.nome);
+  location.reload();
+}
+
+function desfixarAparelhoCaixa(semConfirmar) {
+  const feito = () => {
+    localStorage.removeItem('pp_aparelho_fixado_id');
+    localStorage.removeItem('pp_aparelho_fixado_nome');
+    sessionStorage.removeItem('pp_modo_caixa_restrito');
+    location.reload();
+  };
+  if (semConfirmar) { feito(); return; }
+  confirmarBonito('Desfazer a fixação desse aparelho? Ele volta a pedir login normal de dono.').then(ok => { if (ok) feito(); });
+}
+
+async function fazerLoginCaixa(e) {
+  e.preventDefault();
+  const el = document.getElementById('erro-login-caixa');
+  el.classList.add('hidden');
+  try {
+    const r = await fetch(`${API}/auth/login-caixa`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        padaria_id: APARELHO_FIXADO_ID,
+        nome: document.getElementById('login-caixa-nome').value,
+        pin: document.getElementById('login-caixa-pin').value,
+      })
+    });
+    const d = await r.json();
+    if (!r.ok) { el.textContent = d.erro; el.classList.remove('hidden'); return; }
+    TOKEN = d.token;
+    sessionStorage.setItem('pptoken', TOKEN); // sessão de caixa não fica "lembrada" além do turno
+    // Guarda o papel do atendente pra restringir a interface (só Comandas, sem menu completo).
+    sessionStorage.setItem('pp_modo_caixa_restrito', d.atendente?.role || 'atendente');
+    document.getElementById('sidebar-nome').textContent = d.padaria.nome;
+    const _planoLabelsCx = { trial: '⏳ Trial', essencial: '⚡ Essencial', pro: '⭐ Pro', premium: '💎 Premium' };
+    const _planoElCx = document.getElementById('sidebar-plano');
+    if (_planoElCx) _planoElCx.textContent = _planoLabelsCx[d.padaria.plano] || d.padaria.plano || '—';
+    atualizarAvisoExpiracao(d.padaria.plano, d.padaria.plano_expira_em);
+    PLANO_ATUAL = d.padaria.plano || 'trial';
+    ROLE_ATUAL = d.padaria.role || 'user';
+    document.getElementById('tela-login-caixa').classList.add('hidden');
+    entrar();
+  } catch { el.textContent = 'Erro de conexão.'; el.classList.remove('hidden'); }
+}
+
+// Restringe o menu lateral quando logado em modo caixa (aparelho fixado) — só
+// deixa visível Comandas e Sair, e já abre direto na tela de Comandas.
+function aplicarRestricaoModoCaixa() {
+  const papel = sessionStorage.getItem('pp_modo_caixa_restrito');
+  if (!papel) return;
+  document.querySelectorAll('.sidebar-nav > .sidebar-link, .sidebar-nav > div').forEach(el => {
+    const texto = el.textContent || '';
+    if (!texto.includes('Comandas')) el.classList.add('hidden');
+  });
+  mostrarPagina('comandas', false);
+  entrarTelaCheiaSeAtivo();
 }
 
 function salvarConfigAparelho() {
@@ -297,6 +379,7 @@ function entrar() {
   document.getElementById('app').classList.remove('hidden');
   document.getElementById('app').classList.add('flex');
   renderizarFaixaImpersonando();
+  aplicarRestricaoModoCaixa();
 
   const resetPinToken = sessionStorage.getItem('pp_reset_pin_token');
   if (resetPinToken) {
@@ -400,7 +483,16 @@ function sair() {
   TOKEN = '';
   localStorage.removeItem('pptoken');
   sessionStorage.removeItem('pptoken');
+  sessionStorage.removeItem('pp_modo_caixa_restrito');
   document.getElementById('app').classList.add('hidden');
+  // Aparelho fixado pro caixa: volta pro login simples (nome+PIN), não pro
+  // login de dono — é assim que o "próximo turno" troca de atendente.
+  if (APARELHO_FIXADO_ID) {
+    document.getElementById('tela-login-caixa').classList.remove('hidden');
+    document.getElementById('login-caixa-nome').value = '';
+    document.getElementById('login-caixa-pin').value = '';
+    return;
+  }
   document.getElementById('tela-auth').classList.remove('hidden');
   // Limpa campos de login
   const em = document.getElementById('login-email');

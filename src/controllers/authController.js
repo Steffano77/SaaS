@@ -86,6 +86,49 @@ exports.login = async (req, res) => {
   }
 };
 
+// Login pra aparelho "fixado" numa padaria — só nome + PIN do atendente,
+// sem senha de dono. O padaria_id vem do próprio aparelho (guardado localmente
+// depois de configurar em "⚙️ Este aparelho"), não é escolhido livremente aqui.
+exports.loginCaixa = async (req, res) => {
+  try {
+    const padaria_id = parseInt(req.body.padaria_id, 10);
+    const nome = String(req.body.nome || '').trim();
+    const pin = String(req.body.pin || '');
+    if (!padaria_id || !nome || !pin) return res.status(400).json({ erro: 'Nome e PIN são obrigatórios.' });
+
+    const [[padaria]] = await db.query('SELECT * FROM padarias WHERE id = ? AND ativo = 1', [padaria_id]);
+    if (!padaria) return res.status(404).json({ erro: 'Padaria não encontrada ou inativa.' });
+
+    const [[atendente]] = await db.query(
+      'SELECT * FROM atendentes WHERE padaria_id = ? AND nome = ? AND ativo = 1',
+      [padaria_id, nome]
+    );
+    if (!atendente || !atendente.pin_hash) return res.status(401).json({ erro: 'Nome ou PIN incorretos.' });
+    const ok = await bcrypt.compare(pin, atendente.pin_hash);
+    if (!ok) return res.status(401).json({ erro: 'Nome ou PIN incorretos.' });
+
+    // Mesmo formato de token do login normal de dono — funciona em todas as rotas
+    // que já existem hoje. A diferença fica só na hora de mostrar a interface:
+    // o frontend restringe o menu com base em atendente_role.
+    const token = jwt.sign(
+      {
+        jti: crypto.randomUUID(), id: padaria.id, nome: padaria.nome, email: padaria.email,
+        role: padaria.role || 'user', atendente_nome: atendente.nome, atendente_role: atendente.role,
+      },
+      SECRET,
+      { expiresIn: '16h' }
+    );
+    res.json({
+      token,
+      padaria: { id: padaria.id, nome: padaria.nome, email: padaria.email, plano: padaria.plano, role: padaria.role || 'user', plano_expira_em: padaria.plano_expira_em },
+      atendente: { nome: atendente.nome, role: atendente.role },
+    });
+  } catch (e) {
+    console.error('Erro no login de caixa:', e);
+    res.status(500).json({ erro: 'Erro interno.' });
+  }
+};
+
 exports.perfil = async (req, res) => {
   try {
     const [rows] = await db.query(

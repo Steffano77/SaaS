@@ -57,6 +57,11 @@ router.get('/auth/perfil',         auth, authCtrl.perfil);
 router.post('/auth/esqueci-senha', senhaCtrl.esqueceuSenha);
 router.post('/auth/redefinir-senha', senhaCtrl.redefinirSenha);
 
+// Login de caixa/atendente — pra aparelhos "fixados" numa padaria específica
+// (ver "⚙️ Este aparelho"). Não exige e-mail/senha de dono, só nome + PIN,
+// porque o próprio aparelho já sabe de qual padaria ele é.
+router.post('/auth/login-caixa', authCtrl.loginCaixa);
+
 router.put('/auth/padaria', auth, wrap(async (req, res) => {
   const db = require('../database/connection');
   const { nome } = req.body;
