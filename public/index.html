@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260824q"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260824r"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -158,6 +158,12 @@
 
 <!-- ── APP PRINCIPAL ────────────────────────────────────── -->
 <div id="app" class="hidden">
+
+  <!-- Faixa fixa: admin navegando dentro de outra padaria ("Entrar como") -->
+  <div id="faixa-impersonando" class="hidden" style="position:fixed;top:0;left:0;right:0;z-index:9999;background:#f59e0b;color:#1a1a1a;padding:8px 16px;text-align:center;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:12px;">
+    <span>🔀 Você está vendo o sistema como outra padaria (modo admin)</span>
+    <button onclick="voltarAoAdmin()" style="background:#1a1a1a;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:12.5px;font-weight:700;cursor:pointer;">← Voltar ao admin</button>
+  </div>
 
   <!-- Barra superior mobile -->
   <div class="mobile-topbar">
@@ -1959,7 +1965,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260826d"></script>
+<script src="/js/app.js?v=20260826e"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

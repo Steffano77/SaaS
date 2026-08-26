@@ -261,6 +261,10 @@
       height: 100vh;
       overflow: hidden;
     }
+    /* Empurra o conteúdo pra baixo da faixa fixa de "vendo como outra padaria" */
+    #app.com-faixa-impersonando { padding-top: 36px; height: calc(100vh - 0px); }
+    #app.com-faixa-impersonando .sidebar,
+    #app.com-faixa-impersonando .main-content { height: calc(100vh - 36px); }
 
     /* ── SIDEBAR ── */
     .sidebar {

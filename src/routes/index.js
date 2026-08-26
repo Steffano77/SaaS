@@ -789,6 +789,22 @@ router.get('/admin/padarias', auth, authAdmin, wrap(async (req, res) => {
   res.json(rows);
 }));
 
+// Gera um token de login pra uma padaria específica, sem saber a senha dela —
+// só admin pode chamar. Usado pro botão "Entrar como" no painel admin, pra
+// dar suporte/navegar entre as padarias sem precisar de login separado.
+router.post('/admin/padarias/:id/entrar', auth, authAdmin, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const jwt = require('jsonwebtoken');
+  const [[padaria]] = await db.query('SELECT * FROM padarias WHERE id = ? AND ativo = 1', [req.params.id]);
+  if (!padaria) return res.status(404).json({ erro: 'Padaria não encontrada ou inativa.' });
+  const token = jwt.sign(
+    { jti: require('crypto').randomUUID(), id: padaria.id, nome: padaria.nome, email: padaria.email, role: padaria.role || 'user' },
+    process.env.JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+  res.json({ token, padaria: { id: padaria.id, nome: padaria.nome, email: padaria.email, plano: padaria.plano } });
+}));
+
 // Renovar plano (admin)
 router.post('/admin/padarias/:id/renovar', auth, authAdmin, wrap(async (req, res) => {
   const db = require('../database/connection');

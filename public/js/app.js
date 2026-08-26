@@ -296,6 +296,7 @@ function entrar() {
   document.getElementById('tela-plano-expirado')?.classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   document.getElementById('app').classList.add('flex');
+  renderizarFaixaImpersonando();
 
   const resetPinToken = sessionStorage.getItem('pp_reset_pin_token');
   if (resetPinToken) {
@@ -4089,6 +4090,43 @@ function mostrarTabAdmin(aba) {
   if (aba === 'codigos') carregarCodigos();
 }
 
+// Admin "entra como" uma padaria específica sem precisar da senha dela —
+// guarda o próprio token de admin de lado, troca pra o token da padaria
+// escolhida, e recarrega. Um aviso fixo no topo permite voltar pro admin
+// a qualquer momento (ver renderizarFaixaImpersonando).
+async function adminEntrarComoPadaria(id, nome) {
+  if (!(await confirmarBonito(`Entrar como "${nome}"? Você vai navegar no sistema dela até clicar em "Voltar ao admin".`))) return;
+  const r = await api(`/admin/padarias/${id}/entrar`, { method: 'POST' });
+  if (!r) return;
+  // Só guarda o token de admin original se ainda não tiver um guardado —
+  // evita perder o admin de verdade se a pessoa entrar numa padaria de
+  // dentro de outra padaria por engano.
+  if (!sessionStorage.getItem('admin_token_original')) {
+    sessionStorage.setItem('admin_token_original', TOKEN);
+  }
+  localStorage.setItem('pptoken', r.token);
+  sessionStorage.removeItem('pptoken');
+  window.location.reload();
+}
+
+function voltarAoAdmin() {
+  const original = sessionStorage.getItem('admin_token_original');
+  if (!original) return;
+  sessionStorage.removeItem('admin_token_original');
+  localStorage.setItem('pptoken', original);
+  window.location.reload();
+}
+
+// Faixa fixa avisando "você está vendo como outra padaria", com botão de voltar.
+function renderizarFaixaImpersonando() {
+  const original = sessionStorage.getItem('admin_token_original');
+  const el = document.getElementById('faixa-impersonando');
+  const app = document.getElementById('app');
+  if (!el) return;
+  el.classList.toggle('hidden', !original);
+  app?.classList.toggle('com-faixa-impersonando', !!original);
+}
+
 async function abrirTelaAdmin() {
   document.getElementById('tela-admin').classList.remove('hidden');
   mostrarTabAdmin('padarias');
@@ -4141,6 +4179,7 @@ async function abrirTelaAdmin() {
       </div>
       <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;">
         ${p.role !== 'admin' ? `
+          <button onclick="adminEntrarComoPadaria(${p.id}, '${p.nome.replace(/'/g,"\\'")}')" class="btn-primary" style="font-size:13px;padding:7px 12px;">🔀 Entrar como</button>
           <button onclick="adminRenovarPlano(${p.id}, '${p.nome.replace(/'/g,"\\'")}')" class="btn-secondary" style="font-size:13px;padding:7px 12px;">🔄 Renovar</button>
           <button onclick="adminToggleAtivo(${p.id}, ${p.ativo ? 0 : 1})" class="btn-secondary" style="font-size:13px;padding:7px 12px;">${p.ativo ? '🔒 Desativar' : '✅ Reativar'}</button>
           <button onclick="adminApagarPadaria(${p.id}, '${p.nome.replace(/'/g,"\\'")}' )" class="btn-danger" style="font-size:13px;padding:7px 12px;">🗑️ Apagar</button>
