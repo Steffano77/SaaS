@@ -872,7 +872,23 @@ async function api(path, opts = {}) {
   }
   if (opts.body instanceof FormData) delete opts.headers['Content-Type'];
   try {
-    const r = await fetch(`${API}${path}`, opts);
+    // Tenta de novo 2 vezes (com uma pausa curtinha) antes de desistir — sem isso,
+    // um soluço rápido de rede/servidor (ex: o próprio deploy reiniciando por 1-2s)
+    // já jogava o sistema inteiro em "modo sem conexão" à toa, mesmo com a internet
+    // 100% normal. Bug real, achado num teste ao vivo na padaria.
+    let r;
+    let ultimoErro;
+    for (let tentativa = 1; tentativa <= 3; tentativa++) {
+      try {
+        r = await fetch(`${API}${path}`, opts);
+        ultimoErro = null;
+        break;
+      } catch (err) {
+        ultimoErro = err;
+        if (tentativa < 3) await new Promise(res => setTimeout(res, 500 * tentativa));
+      }
+    }
+    if (ultimoErro) throw ultimoErro;
     if (r.status === 401) {
       const dataAuth = await r.json().catch(() => null);
       // Login de funcionário expirado/inválido — não é logout da padaria, só some o token do funcionário.
