@@ -79,6 +79,34 @@ exports.corrigirColunasFiscais = async (req, res) => {
   res.json({ resultado });
 };
 
+// Ativa o ambiente de PRODUÇÃO — a partir daqui, toda nota emitida vale
+// legalmente de verdade (não é mais teste). Trava de segurança: exige uma
+// frase de confirmação exata, digitada manualmente, e confere que tanto o
+// certificado quanto o CSC de produção já estão configurados antes de deixar
+// trocar — evita ativação sem querer ou incompleta.
+exports.ativarProducao = async (req, res) => {
+  try {
+    const padaria_id = req.padaria.id;
+    const { confirmar } = req.body;
+    if (confirmar !== 'ATIVAR PRODUCAO') {
+      return res.status(400).json({ erro: 'Confirmação inválida. Envie exatamente "ATIVAR PRODUCAO".' });
+    }
+    const [[padaria]] = await db.query('SELECT * FROM padarias WHERE id = ?', [padaria_id]);
+    if (!padaria) return res.status(404).json({ erro: 'Padaria não encontrada.' });
+    if (!padaria.nfce_certificado_arquivo) return res.status(400).json({ erro: 'Certificado digital ainda não configurado.' });
+    if (!padaria.nfce_csc_producao || !padaria.nfce_id_csc_producao) {
+      return res.status(400).json({ erro: 'CSC de produção ainda não configurado.' });
+    }
+    if (padaria.nfce_ambiente === 1) return res.json({ ok: true, mensagem: 'Já estava em produção.' });
+
+    await db.query('UPDATE padarias SET nfce_ambiente = 1 WHERE id = ?', [padaria_id]);
+    res.json({ ok: true, mensagem: 'Ambiente alterado pra PRODUÇÃO. A partir de agora, as notas emitidas valem legalmente.' });
+  } catch (e) {
+    console.error('Erro ao ativar produção:', e);
+    res.status(500).json({ erro: 'Erro interno.' });
+  }
+};
+
 // Salva os dados fiscais da padaria (endereço, IE, regime tributário) — obrigatórios
 // pra Sefaz aceitar a nota. Nenhum desses dados é segredo (são públicos, tipo o que
 // já está no cartão CNPJ ou no alvará), então não precisa de criptografia.
