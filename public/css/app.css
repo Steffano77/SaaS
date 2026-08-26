@@ -2964,6 +2964,14 @@ tr.tr-saida td { color: var(--red-600); }
 .cmd-pdv-total-row-grande strong { font-size: 40px; }
 .cmd-pdv-total-row-grande .cmd-pdv-qtde span, .cmd-pdv-total-row-grande .cmd-pdv-receber span { font-size: 13px; }
 
+/* ── Layout inspirado no PDV de referência (Saurus): mesma estrutura/proporção
+   (barra de total colorida em cima da lista, grade 3 colunas de pagamento,
+   tecla F em destaque), mas usando a paleta normal do PanificaPro
+   (--navy/--orange já definidos no :root, sem sobrescrever aqui). ── */
+#modal-comanda .cmd-pdv-total-row { background: var(--navy); border-radius: 10px; padding: 14px 20px; margin: 0 0 12px; }
+#modal-comanda .cmd-item-linha { background: #ffffff; border: 1px solid var(--slate-200); }
+[data-theme="dark"] #modal-comanda .cmd-item-linha { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
+
 #cmd-detalhe-acoes { padding-top: 16px; }
 .cmd-pgto-label { font-size: 12.5px; color: var(--slate-400); text-align: center; margin-bottom: 8px; }
 .cmd-pgto-grid {
