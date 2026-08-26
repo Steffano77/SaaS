@@ -6303,11 +6303,13 @@ function refazerPagamentos() {
 // NFC-e ainda em homologação (teste) — só oferece o botão de emitir pras padarias
 // que já configuraram certificado fiscal, pra não incomodar quem ainda não usa isso.
 let _fiscalConfiguradoCache = null;
+let _fiscalAmbienteCache = null;
 async function fiscalConfigurado() {
   if (_fiscalConfiguradoCache === null) {
     try {
       const r = await api('/fiscal/certificado/status');
       _fiscalConfiguradoCache = !!(r && r.configurado && r.valido);
+      _fiscalAmbienteCache = r?.ambiente || 'homologacao';
     } catch (e) { _fiscalConfiguradoCache = false; }
   }
   return _fiscalConfiguradoCache;
@@ -6363,7 +6365,10 @@ async function finalizarVendaUI() {
   // Pergunta a nota fiscal ANTES de abrir a janela de impressão — a janela de
   // impressão fica na frente e escondia esse aviso atrás dela.
   if (!consumoInterno && await fiscalConfigurado()) {
-    if (await confirmarBonito('Emitir Nota Fiscal (NFC-e) dessa comanda? (ainda em ambiente de teste — não vale legalmente)')) {
+    const avisoAmbiente = _fiscalAmbienteCache === 'producao'
+      ? 'já vale legalmente'
+      : 'ainda em ambiente de teste — não vale legalmente';
+    if (await confirmarBonito(`Emitir Nota Fiscal (NFC-e) dessa comanda? (${avisoAmbiente})`)) {
       await emitirNotaFiscalComanda(comandaFechadaId);
     }
   }
