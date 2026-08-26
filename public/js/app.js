@@ -1298,6 +1298,7 @@ function imprimirSaidas() {
       }
       window.print();
       window.onafterprint = () => window.close();
+      setTimeout(() => window.close(), 2000);
     };
     <\/script>
     </body></html>`;
@@ -1422,6 +1423,7 @@ async function imprimirEstoquePorCategoria() {
       }
       window.print();
       window.onafterprint = () => window.close();
+      setTimeout(() => window.close(), 2000);
     };
     <\/script>
     </body></html>`;
@@ -6400,7 +6402,7 @@ function abrirJanelaImpressaoTermica(bodyHtml) {
     </style></head><body>
     ${bodyHtml}
     <script>
-      window.onload = () => { window.print(); window.onafterprint = () => window.close(); };
+      window.onload = () => { window.print(); window.onafterprint = () => window.close(); setTimeout(() => window.close(), 2000); };
     <\/script>
     </body></html>`;
   const w = window.open('', '_blank', 'width=380,height=600');
