@@ -251,6 +251,7 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
     </total>
     <transp><modFrete>9</modFrete></transp>
     <pag>${pagXml}
+      <vTroco>${num2(pagamentos.reduce((s, p) => s + (parseFloat(p.troco) || 0), 0))}</vTroco>
     </pag>
     <infAdic>
       <infCpl>Comanda ${escaparXml(comanda.identificador)} - emitido via PanificaPro</infCpl>
