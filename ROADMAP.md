@@ -4,6 +4,17 @@ Registro de próximos passos combinados com o Estefano, pra não perder o fio en
 
 ## Pendente
 
+### 🔴 URGENTE — Modo de contingência da NFC-e
+Descoberto em 26/08: hoje, se a Sefaz-SP estiver fora do ar (ou sem internet) na
+hora de emitir, a nota fica marcada como "erro" no banco e ninguém é avisado de
+forma clara — não existe fila de reenvio automática nem manual, diferente do
+Saurus (que tem uma tela "NFC-e em Contingência" com fila de emissão e reenvio).
+Isso é tecnicamente uma obrigação do layout 4.00 da Sefaz, não só um "recurso
+bonito". **Prioridade alta porque o Estefano vai no contador em 27/08 pra decidir
+sobre ativar a nota fiscal em produção** — construir antes de virar produção de
+verdade. Implementar: tela/lista de "Notas pendentes de emissão" + botão de
+reenviar manual (reenvio automático é bônus, não obrigatório pra primeira versão).
+
 ### Modo offline
 Hoje o PanificaPro exige internet — sem conexão, os tablets/PCs não conseguem abrir comanda,
 adicionar item nem cobrar, porque cada ação depende do servidor.
