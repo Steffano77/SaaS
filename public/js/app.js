@@ -183,6 +183,11 @@ function aplicarRestricaoModoCaixa() {
     const texto = el.textContent || '';
     if (!texto.includes('Comandas')) el.classList.add('hidden');
   });
+  // No rodapé (Este aparelho, Modo claro, Suporte, Admin, Sair) só deixa "Sair" visível.
+  document.querySelectorAll('.sidebar-footer > .sidebar-link, .sidebar-footer > a').forEach(el => {
+    const texto = el.textContent || '';
+    if (!texto.includes('Sair')) el.classList.add('hidden');
+  });
   history.replaceState({ pg: 'comandas' }, '', '#comandas');
   mostrarPagina('comandas', false);
   entrarTelaCheiaSeAtivo();
