@@ -115,6 +115,8 @@ const nfceCtrl = require('../controllers/nfceController');
 router.post('/fiscal/nfce/comanda/:comanda_id', auth, nfceCtrl.emitirParaComanda);
 router.get('/fiscal/nfce/comanda/:comanda_id/danfe', auth, nfceCtrl.imprimirDanfe);
 router.get('/fiscal/nfce', auth, nfceCtrl.listar);
+router.get('/fiscal/nfce/pendentes', auth, nfceCtrl.listarPendentes);
+router.post('/fiscal/nfce/:id/reenviar', auth, nfceCtrl.reenviar);
 
 // Movimentações
 router.get('/movimentacoes',  auth, movCtrl.listar);

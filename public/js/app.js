@@ -4757,6 +4757,7 @@ function fmtDataHoraBR(valor) {
 }
 
 async function carregarComandas() {
+  atualizarBadgeNotasPendentes();
   // Modo Balcão pula o dashboard, então a lista de produtos nunca seria carregada — garante aqui.
   if (!produtosCache.length) {
     const prods = await api('/produtos');
@@ -5293,6 +5294,59 @@ async function excluirComandaHistoricoUI(id) {
 }
 
 /* ===================== HISTÓRICO DE COMANDAS (restrito a gerente) ===================== */
+// ── Contingência: notas fiscais que falharam por falta de conexão/Sefaz fora do
+// ar. A venda em si nunca trava — só a parte fiscal fica pendente até alguém
+// reenviar (manual) quando a conexão voltar.
+async function atualizarBadgeNotasPendentes() {
+  const r = await api('/fiscal/nfce/pendentes');
+  const btn = document.getElementById('btn-notas-pendentes');
+  const badge = document.getElementById('notas-pendentes-badge');
+  if (!btn || !badge) return;
+  const qtd = (r || []).length;
+  btn.classList.toggle('hidden', qtd === 0);
+  badge.textContent = qtd > 0 ? `(${qtd})` : '';
+}
+
+async function abrirNotasPendentes() {
+  document.getElementById('modal-notas-pendentes').classList.remove('hidden');
+  await renderNotasPendentes();
+}
+
+async function renderNotasPendentes() {
+  const lista = document.getElementById('notas-pendentes-lista');
+  lista.innerHTML = '<div class="cmd-vazio">Carregando...</div>';
+  const r = await api('/fiscal/nfce/pendentes');
+  if (!r) return;
+  if (!r.length) {
+    lista.innerHTML = '<div class="cmd-vazio">Nenhuma nota pendente — tudo em dia! ✅</div>';
+    atualizarBadgeNotasPendentes();
+    return;
+  }
+  lista.innerHTML = r.map(n => `
+    <div style="background:var(--white);border-left:4px solid #dc2626;border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div style="min-width:0;">
+        <div style="font-weight:700;font-size:14px;">Comanda ${n.comanda_identificador || n.comanda_id} · ${fmtMoeda(n.valor_total)}</div>
+        <div style="font-size:12px;color:var(--slate-500);">${fmtDataHoraBR(n.criado_em)} · ${n.ambiente === 1 ? 'Produção' : 'Homologação'}</div>
+        ${n.motivo_rejeicao ? `<div style="font-size:12px;color:#dc2626;margin-top:2px;">${n.motivo_rejeicao}</div>` : ''}
+      </div>
+      <button onclick="reenviarNotaPendente(${n.id}, this)" class="btn-primary" style="padding:8px 14px;font-size:13px;flex-shrink:0;">🔄 Reenviar</button>
+    </div>
+  `).join('');
+}
+
+async function reenviarNotaPendente(id, botao) {
+  botao.disabled = true;
+  botao.textContent = 'Enviando...';
+  const r = await api(`/fiscal/nfce/${id}/reenviar`, { method: 'POST' });
+  if (!r) { botao.disabled = false; botao.textContent = '🔄 Reenviar'; return; }
+  if (r.ok) {
+    mostrarToast('✅ Nota autorizada com sucesso!', 'ok');
+  } else {
+    mostrarToast(`Ainda não foi — ${r.motivo || r.erro || 'tenta de novo daqui a pouco'}`, 'warn');
+  }
+  await renderNotasPendentes();
+}
+
 async function abrirHistoricoComandas() {
   // limparDepois=false: pede o PIN só aqui na entrada — excluir/reimprimir
   // dentro do histórico não pedem de novo, até fechar a tela.

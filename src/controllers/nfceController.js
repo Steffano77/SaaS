@@ -250,3 +250,77 @@ exports.listar = async (req, res) => {
   );
   res.json(notas);
 };
+
+// ── Contingência: notas que falharam por falta de conexão/Sefaz fora do ar ──
+// Fica registrado (status 'erro' ou presas em 'pendente') com o XML já assinado
+// salvo — reenviar não gera nota nova, só tenta transmitir a mesma nota de novo.
+exports.listarPendentes = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const [notas] = await db.query(
+    `SELECT n.id, n.comanda_id, n.numero, n.serie, n.status, n.ambiente, n.valor_total, n.criado_em, n.motivo_rejeicao,
+       c.identificador AS comanda_identificador
+     FROM notas_fiscais n
+     LEFT JOIN comandas c ON c.id = n.comanda_id
+     WHERE n.padaria_id = ? AND n.status IN ('erro', 'pendente')
+     ORDER BY n.criado_em ASC`,
+    [padaria_id]
+  );
+  res.json(notas);
+};
+
+exports.reenviar = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const { id } = req.params;
+  try {
+    const [[nota]] = await db.query(`SELECT * FROM notas_fiscais WHERE id = ? AND padaria_id = ?`, [id, padaria_id]);
+    if (!nota) return res.status(404).json({ erro: 'Nota não encontrada.' });
+    if (nota.status === 'autorizada') return res.status(400).json({ erro: 'Essa nota já foi autorizada — nada a fazer.' });
+    if (!nota.xml_assinado) return res.status(400).json({ erro: 'Essa nota não tem XML assinado salvo — não dá pra reenviar, precisa emitir uma nova.' });
+
+    const cert = await carregarCertificado(padaria_id);
+    if (!cert.ok) return res.status(400).json({ erro: cert.erro });
+
+    let respostaSefaz;
+    try {
+      respostaSefaz = await enviarNFCe({
+        xmlAssinado: nota.xml_assinado,
+        ambiente: nota.ambiente === 1 ? 'producao' : 'homologacao',
+        certPem: cert.certPem,
+        keyPem: cert.keyPem,
+      });
+    } catch (erroRede) {
+      await db.query(`UPDATE notas_fiscais SET status = 'erro', motivo_rejeicao = ? WHERE id = ?`,
+        [`Erro de rede: ${erroRede.message}`, nota.id]);
+      return res.status(502).json({ erro: `Ainda sem conseguir falar com a Sefaz: ${erroRede.message}` });
+    }
+
+    const interpretado = interpretarResposta(respostaSefaz.corpo);
+    const autorizada = interpretado.cStat === '100';
+
+    await db.query(
+      `UPDATE notas_fiscais SET status = ?, protocolo_autorizacao = ?, motivo_rejeicao = ?, autorizada_em = ? WHERE id = ?`,
+      [
+        autorizada ? 'autorizada' : 'rejeitada',
+        interpretado.nProt || null,
+        autorizada ? null : `${interpretado.cStat}: ${interpretado.xMotivo}`,
+        autorizada ? new Date() : null,
+        nota.id,
+      ]
+    );
+
+    // Só avança o número se ninguém mais usou esse número entretanto — evita
+    // "roubar" um número que já tenha sido consumido por outra nota emitida
+    // enquanto esta ficava pendente.
+    if (autorizada) {
+      await db.query(
+        `UPDATE padarias SET nfce_proximo_numero = nfce_proximo_numero + 1 WHERE id = ? AND nfce_proximo_numero = ?`,
+        [padaria_id, nota.numero]
+      );
+    }
+
+    res.json({ ok: autorizada, status: interpretado.cStat, motivo: interpretado.xMotivo, protocolo: interpretado.nProt });
+  } catch (e) {
+    console.error('Erro ao reenviar NFC-e:', e);
+    res.status(500).json({ erro: `Erro interno ao reenviar: ${e.message}` });
+  }
+};
