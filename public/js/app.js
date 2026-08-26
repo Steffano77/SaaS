@@ -53,12 +53,17 @@ const MODO_LANCAMENTO = localStorage.getItem('pp_modo_lancamento') === '1';
 // em vez do login normal — sem precisar de e-mail/senha de dono toda vez.
 const APARELHO_FIXADO_ID = localStorage.getItem('pp_aparelho_fixado_id');
 const APARELHO_FIXADO_NOME = localStorage.getItem('pp_aparelho_fixado_nome');
+// Função própria (em vez de só preencher uma vez no carregamento) porque essa tela
+// também reaparece depois de "Sair" — sem isso, o nome da padaria ficava em
+// branco na segunda vez que a tela era mostrada (bug real, achado em teste).
+function mostrarTelaLoginCaixa() {
+  document.getElementById('tela-auth').classList.add('hidden');
+  document.getElementById('tela-login-caixa').classList.remove('hidden');
+  const elNome = document.getElementById('login-caixa-padaria-nome');
+  if (elNome) elNome.textContent = localStorage.getItem('pp_aparelho_fixado_nome') || '';
+}
 if (APARELHO_FIXADO_ID && !TOKEN) {
-  window.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('tela-auth').classList.add('hidden');
-    document.getElementById('tela-login-caixa').classList.remove('hidden');
-    document.getElementById('login-caixa-padaria-nome').textContent = APARELHO_FIXADO_NOME || '';
-  });
+  window.addEventListener('DOMContentLoaded', mostrarTelaLoginCaixa);
 }
 // Ativado por padrão em todo aparelho — só desativa se a pessoa desmarcar
 // explicitamente em "Este aparelho" (aí salva '0' no lugar de simplesmente apagar).
@@ -488,7 +493,7 @@ function sair() {
   // Aparelho fixado pro caixa: volta pro login simples (nome+PIN), não pro
   // login de dono — é assim que o "próximo turno" troca de atendente.
   if (APARELHO_FIXADO_ID) {
-    document.getElementById('tela-login-caixa').classList.remove('hidden');
+    mostrarTelaLoginCaixa();
     document.getElementById('login-caixa-nome').value = '';
     document.getElementById('login-caixa-pin').value = '';
     return;

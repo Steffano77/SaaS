@@ -1965,7 +1965,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260826f"></script>
+<script src="/js/app.js?v=20260826g"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
@@ -2179,11 +2179,11 @@
     <form id="form-login-caixa" onsubmit="fazerLoginCaixa(event)" autocomplete="off">
       <div class="form-group">
         <label class="form-label">Nome</label>
-        <input type="text" id="login-caixa-nome" class="form-control" placeholder="Seu nome" required autocomplete="off"/>
+        <input type="text" id="login-caixa-nome" class="form-control" placeholder="Seu nome" required autocomplete="off" readonly onfocus="this.removeAttribute('readonly')"/>
       </div>
       <div class="form-group">
         <label class="form-label">PIN</label>
-        <input type="text" id="login-caixa-pin" class="form-control pin-mascarado" inputmode="numeric" maxlength="4" placeholder="••••" required autocomplete="off"/>
+        <input type="text" id="login-caixa-pin" class="form-control pin-mascarado" inputmode="numeric" maxlength="4" placeholder="••••" required autocomplete="off" readonly onfocus="this.removeAttribute('readonly')"/>
       </div>
       <div id="erro-login-caixa" class="hidden" style="color:#dc2626;font-size:13px;margin-bottom:12px;"></div>
       <button type="submit" class="btn-primary full">Entrar</button>
