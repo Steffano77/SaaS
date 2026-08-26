@@ -178,13 +178,15 @@ async function fazerLoginCaixa(e) {
 // deixa visível Comandas e Sair, e já abre direto na tela de Comandas.
 function aplicarRestricaoModoCaixa() {
   const papel = sessionStorage.getItem('pp_modo_caixa_restrito');
-  if (!papel) return;
+  if (!papel) return false;
   document.querySelectorAll('.sidebar-nav > .sidebar-link, .sidebar-nav > div').forEach(el => {
     const texto = el.textContent || '';
     if (!texto.includes('Comandas')) el.classList.add('hidden');
   });
+  history.replaceState({ pg: 'comandas' }, '', '#comandas');
   mostrarPagina('comandas', false);
   entrarTelaCheiaSeAtivo();
+  return true;
 }
 
 function salvarConfigAparelho() {
@@ -389,7 +391,7 @@ function entrar() {
   document.getElementById('app').classList.remove('hidden');
   document.getElementById('app').classList.add('flex');
   renderizarFaixaImpersonando();
-  aplicarRestricaoModoCaixa();
+  if (aplicarRestricaoModoCaixa()) return; // já foi direto pra Comandas — não deixa o resto da função levar de volta pro Painel
 
   const resetPinToken = sessionStorage.getItem('pp_reset_pin_token');
   if (resetPinToken) {
