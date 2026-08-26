@@ -128,6 +128,16 @@ app.use(express.static(path.join(__dirname, '../public'), {
   // invalidar o cache manualmente a cada deploy, pode deixar o navegador guardar
   // por bastante tempo sem medo de servir versão velha.
   maxAge: '7d',
+  // MAS o index.html (e qualquer outro .html) precisa ficar de fora dessa regra —
+  // é ele quem contém o "?v=..." que aponta pra versão certa do app.js/app.css.
+  // Se ele mesmo ficasse em cache por dias, os deploys de frontend não apareceriam
+  // pra ninguém até o cache expirar sozinho (bug real, introduzido junto com o
+  // cache forte — corrigido antes de virar um problema de verdade em produção).
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    }
+  },
 }));
 
 // Auto-migrate: adiciona colunas novas sem quebrar instâncias existentes
