@@ -179,15 +179,10 @@ async function fazerLoginCaixa(e) {
 function aplicarRestricaoModoCaixa() {
   const papel = sessionStorage.getItem('pp_modo_caixa_restrito');
   if (!papel) return false;
-  document.querySelectorAll('.sidebar-nav > .sidebar-link, .sidebar-nav > div').forEach(el => {
-    const texto = el.textContent || '';
-    if (!texto.includes('Comandas')) el.classList.add('hidden');
-  });
-  // No rodapé (Este aparelho, Modo claro, Suporte, Admin, Sair) só deixa "Sair" visível.
-  document.querySelectorAll('.sidebar-footer > .sidebar-link, .sidebar-footer > a').forEach(el => {
-    const texto = el.textContent || '';
-    if (!texto.includes('Sair')) el.classList.add('hidden');
-  });
+  // Esconde a sidebar inteira — modo caixa fica só com a tela de Comandas,
+  // sem menu nenhum. O único jeito de sair é o botão flutuante.
+  document.getElementById('sidebar')?.classList.add('hidden');
+  document.getElementById('btn-sair-modo-caixa')?.classList.remove('hidden');
   history.replaceState({ pg: 'comandas' }, '', '#comandas');
   mostrarPagina('comandas', false);
   entrarTelaCheiaSeAtivo();
