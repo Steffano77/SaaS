@@ -372,6 +372,12 @@ app.use(express.static(path.join(__dirname, '../public'), {
         INDEX idx_notas_padaria (padaria_id, status),
         INDEX idx_notas_comanda (comanda_id)
       )`,
+
+      // Fechamento de caixa por forma de pagamento — antes só conferia o dinheiro
+      // da gaveta; agora a atendente digita o que contou/bateu de cada forma
+      // (crédito, débito, pix...) e o sistema guarda pra comparar com o que foi
+      // lançado nas vendas (JSON: { "Dinheiro": 260.00, "Crédito": 513.50, ... }).
+      'ALTER TABLE caixas ADD COLUMN fechamento_formas TEXT NULL',
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
 

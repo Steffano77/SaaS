@@ -4940,6 +4940,26 @@ async function abrirModalCaixa(modo) {
     const naoDinheiro = (r?.porForma || []).filter(f => f.forma_pagamento !== 'Dinheiro');
     const linhasNaoDinheiro = naoDinheiro.map(f => `<div class="cmd-resumo-linha"><span>${f.forma_pagamento}</span><span>${fmtMoeda(f.total)}</span></div>`).join('');
     const totalNaoDinheiro = naoDinheiro.reduce((s, f) => s + parseFloat(f.total), 0);
+
+    // Um campo de conferência por forma de pagamento (igual ao "Fechamento de Sessão"
+    // do Saurus) — a atendente digita o que contou/bateu do extrato de cada forma, e
+    // o sistema soma tudo e compara com o que foi lançado nas vendas. "Dinheiro" sempre
+    // aparece, mesmo sem venda, porque a gaveta sempre tem o troco de abertura pra conferir.
+    const formasConferir = [...(r?.porForma || [])];
+    if (!formasConferir.some(f => f.forma_pagamento === 'Dinheiro')) formasConferir.unshift({ forma_pagamento: 'Dinheiro', total: 0 });
+    const camposConferencia = formasConferir.map(f => {
+      const ehDinheiro = f.forma_pagamento === 'Dinheiro';
+      const emCaixa = ehDinheiro
+        ? parseFloat(caixa?.valor_abertura || 0) + parseFloat(f.total) + (r?.totalSuprimentos || 0) - (r?.totalSangrias || 0)
+        : parseFloat(f.total);
+      return `
+        <div class="form-group cmd-fechamento-campo">
+          <label class="form-label">${f.forma_pagamento}${ehDinheiro ? ' (gaveta)' : ''}</label>
+          <input type="number" class="form-control cmd-fechamento-input" data-forma="${f.forma_pagamento.replace(/"/g, '&quot;')}"
+            min="0" step="0.01" placeholder="${emCaixa.toFixed(2).replace('.', ',')}"/>
+        </div>`;
+    }).join('');
+
     corpo.innerHTML = `
       <div class="cmd-resumo-caixa">
         <div class="cmd-resumo-linha"><span>Abertura</span><span>${fmtMoeda(caixa?.valor_abertura)}</span></div>
@@ -4960,11 +4980,9 @@ async function abrirModalCaixa(modo) {
           <div class="cmd-resumo-linha subtotal"><span>Total fora da gaveta</span><span>${fmtMoeda(totalNaoDinheiro)}</span></div>
         ` : ''}
       </div>
+      <div class="cmd-resumo-secao" style="margin-top:10px;">Conferência por forma de pagamento</div>
+      <div class="cmd-fechamento-grid">${camposConferencia}</div>
       <div class="form-group" style="margin-top:10px;">
-        <label class="form-label">Valor contado em dinheiro</label>
-        <input id="caixa-valor-fechamento" type="number" class="form-control" min="0" step="0.01" placeholder="0,00"/>
-      </div>
-      <div class="form-group">
         <label class="form-label">Observação (opcional)</label>
         <input id="caixa-fechamento-obs" type="text" class="form-control"/>
       </div>
@@ -5017,11 +5035,16 @@ async function confirmarMovimentoCaixa(tipo) {
 }
 
 async function confirmarFecharCaixa() {
-  const valor_fechamento = document.getElementById('caixa-valor-fechamento').value;
   const observacao = document.getElementById('caixa-fechamento-obs').value;
-  if (!confirm('Fechar o caixa agora? Confira o valor contado antes de confirmar.')) return;
+  // Junta o que foi digitado em cada campo de forma de pagamento — campo em
+  // branco significa "não conferi essa forma", o sistema assume que bateu certinho.
+  const fechamento_formas = {};
+  document.querySelectorAll('.cmd-fechamento-input').forEach(inp => {
+    if (inp.value !== '') fechamento_formas[inp.dataset.forma] = inp.value;
+  });
+  if (!confirm('Fechar o caixa agora? Confira os valores contados antes de confirmar.')) return;
   const caixaSnapshot = caixaAtualCache; // guarda o resumo antes de fechar, pro comprovante impresso
-  const r = await api(`/caixa/${CAIXA_LOCAL_ID}/fechar`, { method: 'POST', body: { valor_fechamento, observacao } });
+  const r = await api(`/caixa/${CAIXA_LOCAL_ID}/fechar`, { method: 'POST', body: { fechamento_formas, observacao } });
   if (!r) return;
   localStorage.removeItem('pp_caixa_id');
   CAIXA_LOCAL_ID = null;
@@ -5033,14 +5056,15 @@ async function confirmarFecharCaixa() {
   document.getElementById('modal-caixa').classList.add('hidden');
   await carregarCaixaFaixa();
   if (confirm('Imprimir o comprovante de fechamento de caixa?')) {
-    imprimirFechamentoCaixa(caixaSnapshot, parseFloat(valor_fechamento) || 0, dif);
+    imprimirFechamentoCaixa(caixaSnapshot, r.conferencia, dif);
   }
 }
 
 // Comprovante impresso do fechamento de caixa — formato "relatório completo de
 // sessão" (mesmo padrão que a gerente pediu, igual ao relatório do Saurus).
-function imprimirFechamentoCaixa(caixa, informado, diferenca) {
+function imprimirFechamentoCaixa(caixa, conferencia, diferenca) {
   const r = caixa?.resumo;
+  const informado = (conferencia || []).find(c => c.forma_pagamento === 'Dinheiro')?.fechado || 0;
   const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
   const agora = new Date().toLocaleString('pt-BR');
   const abertura = fmtDataHoraBR ? fmtDataHoraBR(caixa?.aberto_em) : new Date(caixa?.aberto_em).toLocaleString('pt-BR');
@@ -5053,13 +5077,9 @@ function imprimirFechamentoCaixa(caixa, informado, diferenca) {
     <div class="linha"><span class="nome">${f.forma_pagamento} (${f.qtd})</span><span class="valor">${fmtMoeda(f.total)}</span></div>
   `).join('');
 
-  const linhasFechamento = porForma.map(f => {
-    const ehDinheiro = f.forma_pagamento === 'Dinheiro';
-    const emCaixa = ehDinheiro ? parseFloat(caixa?.valor_abertura || 0) + parseFloat(f.total) + (r?.totalSuprimentos || 0) - (r?.totalSangrias || 0) : parseFloat(f.total);
-    const fechado = ehDinheiro ? informado : emCaixa;
-    const dif = fechado - emCaixa;
-    return `<tr><td>${f.forma_pagamento}</td><td>${fmtMoeda(emCaixa)}</td><td>${fmtMoeda(fechado)}</td><td>${fmtMoeda(dif)}</td></tr>`;
-  }).join('');
+  const linhasFechamento = (conferencia || []).map(c =>
+    `<tr><td>${c.forma_pagamento}</td><td>${fmtMoeda(c.em_caixa)}</td><td>${fmtMoeda(c.fechado)}</td><td>${fmtMoeda(c.diferenca)}</td></tr>`
+  ).join('');
 
   const difLabel = Math.abs(diferenca) < 0.01 ? '0,00' : fmtMoeda(diferenca);
 

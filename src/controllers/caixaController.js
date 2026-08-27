@@ -145,7 +145,7 @@ async function montarResumoCaixa(caixa) {
 
 exports.fechar = async (req, res) => {
   const padaria_id = req.padaria.id;
-  const { valor_fechamento, observacao } = req.body;
+  const { valor_fechamento, observacao, fechamento_formas } = req.body;
   const [[caixa]] = await db.query(
     `SELECT * FROM caixas WHERE id = ? AND padaria_id = ? AND status = 'aberto'`,
     [req.params.id, padaria_id]
@@ -154,17 +154,41 @@ exports.fechar = async (req, res) => {
 
   const resumo = await montarResumoCaixa(caixa);
 
+  // Conferência por forma de pagamento: pra cada forma que teve movimento (mais
+  // "Dinheiro" sempre, mesmo sem venda, porque a gaveta sempre tem o troco de
+  // abertura pra conferir), calcula quanto o sistema lançou ("em caixa") e compara
+  // com o que a atendente digitou que contou/bateu do extrato ("fechado"). Forma
+  // não preenchida assume que bateu certinho — só a que ela digitar é conferida.
+  const formasInformadas = fechamento_formas && typeof fechamento_formas === 'object' ? fechamento_formas : {};
+  const formasParaConferir = [...(resumo.porForma || [])];
+  if (!formasParaConferir.some(f => f.forma_pagamento === 'Dinheiro')) {
+    formasParaConferir.unshift({ forma_pagamento: 'Dinheiro', total: 0 });
+  }
+  const conferencia = formasParaConferir.map(f => {
+    const ehDinheiro = f.forma_pagamento === 'Dinheiro';
+    const emCaixa = ehDinheiro
+      ? parseFloat(caixa.valor_abertura) + parseFloat(f.total) + resumo.totalSuprimentos - resumo.totalSangrias
+      : parseFloat(f.total);
+    const bruto = formasInformadas[f.forma_pagamento];
+    const fechado = (bruto !== undefined && bruto !== null && bruto !== '') ? (parseFloat(bruto) || 0) : emCaixa;
+    return { forma_pagamento: f.forma_pagamento, em_caixa: emCaixa, fechado, diferenca: fechado - emCaixa };
+  });
+  const diferencaTotal = conferencia.reduce((s, c) => s + c.diferenca, 0);
+  const informadoDinheiro = conferencia.find(c => c.forma_pagamento === 'Dinheiro')?.fechado
+    ?? (parseFloat(valor_fechamento) || 0);
+
   await db.query(
-    `UPDATE caixas SET status = 'fechado', valor_fechamento = ?, valor_esperado = ?, observacao = COALESCE(?, observacao), fechado_em = NOW()
+    `UPDATE caixas SET status = 'fechado', valor_fechamento = ?, valor_esperado = ?, fechamento_formas = ?, observacao = COALESCE(?, observacao), fechado_em = NOW()
      WHERE id = ?`,
-    [parseFloat(valor_fechamento) || 0, resumo.esperadoEmDinheiro, observacao || null, caixa.id]
+    [informadoDinheiro, resumo.esperadoEmDinheiro, JSON.stringify(formasInformadas), observacao || null, caixa.id]
   );
 
   res.json({
     ok: true,
     esperado: resumo.esperadoEmDinheiro,
-    informado: parseFloat(valor_fechamento) || 0,
-    diferenca: (parseFloat(valor_fechamento) || 0) - resumo.esperadoEmDinheiro,
+    informado: informadoDinheiro,
+    diferenca: diferencaTotal,
+    conferencia,
     resumo,
   });
 };
