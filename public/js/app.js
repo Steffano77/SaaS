@@ -5652,8 +5652,12 @@ function atualizarTopbarPdv() {
   atualizarLabelAtendenteComanda();
   if (_cmdRelogioTimer) clearInterval(_cmdRelogioTimer);
   const tick = () => {
+    const hora = new Date().toLocaleTimeString('pt-BR');
     const el = document.getElementById('cmd-pdv-relogio');
-    if (el) el.textContent = new Date().toLocaleTimeString('pt-BR');
+    if (el) el.textContent = hora;
+    // Mesmo relógio também atualiza o horário grande da tela "Caixa Livre", quando ela existe.
+    const elLivre = document.getElementById('cmd-caixa-livre-hora');
+    if (elLivre) elLivre.textContent = hora;
   };
   tick();
   _cmdRelogioTimer = setInterval(tick, 1000);
@@ -5702,7 +5706,8 @@ function renderItensComanda(c) {
   comandaAtualDados = c;
   const el = document.getElementById('cmd-detalhe-itens');
   const ultimoIdx = c.itens.length - 1;
-  el.innerHTML = c.itens.length
+  const vazio = c.itens.length === 0;
+  el.innerHTML = !vazio
     ? c.itens.map((i, idx) => `
       <div class="cmd-item-linha${idx === ultimoIdx ? ' cmd-item-atual' : ''}${i._pendente ? ' cmd-item-pendente' : ''}">
         <div class="cmd-item-nome">
@@ -5716,7 +5721,10 @@ function renderItensComanda(c) {
         </div>
       </div>
     `).join('')
-    : `<div class="cmd-vazio">Nenhum item adicionado ainda.</div>`;
+    : `<div class="cmd-caixa-livre"><span class="cmd-caixa-livre-tag">Caixa Livre</span><span class="cmd-caixa-livre-hora" id="cmd-caixa-livre-hora">--:--:--</span></div>`;
+  // Sem venda em andamento: some a calculadora e mostra a logo no lugar dela.
+  document.getElementById('cmd-calculadora')?.classList.toggle('hidden', vazio);
+  document.getElementById('cmd-zona-logo')?.classList.toggle('hidden', !vazio);
   const qtdeTotal = c.itens.reduce((s, i) => s + parseFloat(i.quantidade), 0);
   document.getElementById('cmd-detalhe-qtde').textContent = fmtQtd(qtdeTotal);
   document.getElementById('cmd-detalhe-total').textContent = fmtMoeda(c.total);

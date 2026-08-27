@@ -3189,6 +3189,30 @@ tr.tr-saida td { color: var(--red-600); }
 [data-theme="dark"] .cmd-calc-op { background: rgba(255,255,255,0.08); color: #cbd5e1; }
 .cmd-calc-igual { background: var(--orange); color: #fff; border-color: var(--orange); }
 
+/* ── Caixa livre (sem venda em andamento) ── */
+.cmd-zona-logo {
+  margin-top: 8px; padding: 28px 12px; border-radius: 12px;
+  background: var(--slate-50); border: 1px dashed var(--slate-300);
+  max-width: 320px; flex-shrink: 0; flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  color: var(--slate-300);
+}
+[data-theme="dark"] .cmd-zona-logo { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.12); color: rgba(255,255,255,0.15); }
+.cmd-zona-logo-marca { font-size: 15px; font-weight: 800; letter-spacing: .01em; color: var(--navy); }
+[data-theme="dark"] .cmd-zona-logo-marca { color: #f1f5f9; }
+.cmd-zona-logo-marca span { color: var(--orange); }
+.cmd-caixa-livre {
+  height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  color: var(--slate-400);
+}
+.cmd-caixa-livre-tag {
+  font-size: 13px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--orange);
+}
+.cmd-caixa-livre-hora {
+  font-size: 36px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--slate-700);
+}
+[data-theme="dark"] .cmd-caixa-livre-hora { color: #f1f5f9; }
+
 /* ── Modal de valor recebido (dinheiro/divisão de pagamento) ─── */
 .pgto-valor-troco { text-align: center; font-size: 18px; font-weight: 700; color: var(--green-700); margin: 8px 0 4px; }
 .pgto-valor-troco.zero { color: var(--slate-400); }
