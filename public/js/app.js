@@ -5769,10 +5769,23 @@ async function onKeydownBuscaComanda(e, input) {
 
   const info = decodificarCodigoBalanca(input.value.trim());
   if (!info) {
-    // Texto normal (nome de produto digitado ou já selecionado no autocomplete) —
-    // Enter lança o item direto, igual clicar no "+", sem precisar tocar em mais nada.
     e.preventDefault();
     input.parentElement.querySelector('.cmd-item-lista')?.classList.add('hidden');
+    // Antes de lançar como "item avulso" (nome livre, preço zerado), confere se o texto
+    // bipado/digitado bate EXATAMENTE com um código de barras real (EAN-13 etc.) já
+    // cadastrado — sem isso, bipar um produto com código de barras de verdade (não
+    // balança) nunca encontrava o cadastro, e entrava como item sem nome/preço.
+    const textoDigitado = input.value.trim();
+    if (!document.getElementById('cmd-item-produto-id').value && textoDigitado) {
+      const produtoPorCodigo = produtosCache.find(p => p.codigo_barras && p.codigo_barras.trim() === textoDigitado);
+      if (produtoPorCodigo) {
+        document.getElementById('cmd-item-busca').value = produtoPorCodigo.nome;
+        document.getElementById('cmd-item-produto-id').value = produtoPorCodigo.id;
+        document.getElementById('cmd-item-preco').value = parseFloat(produtoPorCodigo.preco_venda || 0).toFixed(2);
+      }
+    }
+    // Texto normal (nome de produto digitado ou já selecionado no autocomplete) —
+    // Enter lança o item direto, igual clicar no "+", sem precisar tocar em mais nada.
     await adicionarItemComandaUI();
     return;
   }
