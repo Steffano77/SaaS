@@ -79,6 +79,16 @@ function entrarTelaCheiaSeAtivo() {
   }
 }
 
+// Em modo caixa, a tela cheia às vezes falhava silenciosamente: o pedido de tela
+// cheia só funciona dentro de um "gesto do usuário" de verdade, e depois de um
+// login (que passa por um await de rede) o navegador às vezes já não considera
+// mais válido — aí a tela cheia nunca entrava e a barra de tarefas do Windows
+// ficava aparecendo. Esse listener tenta de novo a cada clique/toque enquanto
+// não estiver em tela cheia, e todo clique/toque É um gesto válido de verdade.
+document.addEventListener('click', () => {
+  if (sessionStorage.getItem('pp_modo_caixa_restrito')) entrarTelaCheiaSeAtivo();
+}, true);
+
 // ── Dark Mode ──────────────────────────────────────────────────
 (function() {
   const saved = localStorage.getItem('pp-theme');
