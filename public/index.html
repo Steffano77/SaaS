@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260827c"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260827d"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -806,19 +806,24 @@
               <!-- Caixa livre (sem venda em andamento): mostra a logo no lugar da calculadora.
                    Volta a esconder sozinho assim que o primeiro item é lançado. -->
               <div id="cmd-zona-logo" class="cmd-zona-logo hidden">
-                <svg width="88" height="88" viewBox="0 0 200 200" aria-hidden="true">
-                  <circle cx="100" cy="100" r="92" fill="none" stroke="currentColor" stroke-width="6" opacity="0.5"/>
+                <svg class="cmd-zona-logo-svg" viewBox="0 0 1024 1024" aria-hidden="true">
+                  <!-- Anel navy com uma pequena falha, deixando um fio laranja "por baixo" aparecer -->
+                  <path d="M 405 148 A 380 380 0 1 1 388 155" fill="none" stroke="var(--orange)" stroke-width="10" stroke-linecap="round"/>
+                  <path d="M 405 128 A 380 380 0 1 1 380 138" fill="none" stroke="#16233f" stroke-width="55" stroke-linecap="round"/>
+                  <!-- Espiga de trigo -->
                   <g fill="var(--orange)">
-                    <ellipse cx="112" cy="52" rx="13" ry="24" transform="rotate(28 112 52)"/>
-                    <ellipse cx="126" cy="72" rx="13" ry="24" transform="rotate(28 126 72)"/>
-                    <ellipse cx="100" cy="66" rx="12" ry="22" transform="rotate(-6 100 66)"/>
-                    <ellipse cx="86" cy="88" rx="12" ry="22" transform="rotate(-6 86 88)"/>
+                    <path d="M 512 205 C 560 195 610 220 618 268 C 626 316 590 350 542 340 C 494 330 470 285 484 245 C 490 228 500 214 512 205 Z"/>
+                    <path d="M 560 260 C 608 250 658 275 666 323 C 674 371 638 405 590 395 C 542 385 518 340 532 300 C 538 283 548 269 560 260 Z"/>
+                    <path d="M 462 300 C 502 288 546 308 554 350 C 562 392 532 422 490 414 C 448 406 428 368 440 332 C 446 318 453 308 462 300 Z"/>
+                    <path d="M 415 385 C 455 373 499 393 507 435 C 515 477 485 507 443 499 C 401 491 381 453 393 417 C 399 403 406 393 415 385 Z"/>
                   </g>
-                  <g fill="currentColor" opacity="0.85">
-                    <rect x="60" y="145" width="14" height="26"/>
-                    <rect x="82" y="130" width="14" height="41"/>
-                    <rect x="104" y="112" width="14" height="59"/>
-                    <rect x="126" y="94" width="14" height="77"/>
+                  <path d="M 430 440 L 380 640" stroke="var(--orange)" stroke-width="14" stroke-linecap="round" fill="none"/>
+                  <!-- Gráfico de barras ascendente -->
+                  <g fill="#16233f">
+                    <rect x="418" y="620" width="72" height="105" rx="4"/>
+                    <rect x="504" y="565" width="72" height="160" rx="4"/>
+                    <rect x="590" y="475" width="72" height="250" rx="4"/>
+                    <rect x="676" y="385" width="72" height="340" rx="4"/>
                   </g>
                 </svg>
                 <div class="cmd-zona-logo-marca">Panifica<span>Pro</span></div>
