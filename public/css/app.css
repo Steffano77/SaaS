@@ -2850,6 +2850,9 @@ tr.tr-saida td { color: var(--red-600); }
    Precisa ficar ACIMA da tela de venda (que também é .modal-overlay, mesmo z-index padrão) —
    como ela vem depois no HTML, sem isso ficaria sempre por cima escondendo esse modal. */
 #modal-categorias-comanda { z-index: 400; }
+/* Painel de caixa (abrir/fechar/sangria/suprimento) também precisa ficar acima
+   da tela de venda de balcão, senão some por trás dela em modo caixa. */
+#modal-caixa { z-index: 400; }
 .cat-comanda-box {
   max-width: 720px; width: 95vw; max-height: 85vh;
   display: flex; flex-direction: column; padding: 0; overflow: hidden;

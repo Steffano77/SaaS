@@ -4901,6 +4901,40 @@ function usarCaixaLocal(id) {
   carregarCaixaFaixa();
 }
 
+// Painel de caixa acessível de dentro da própria tela de venda de balcão — em
+// modo caixa essa tela fica sempre aberta por cima de tudo, então sem isso não
+// tinha como chegar no botão "Fechar caixa" (que fica escondido atrás dela).
+async function abrirPainelCaixaUI() {
+  if (!CAIXA_LOCAL_ID) { mostrarToast('Nenhum caixa aberto neste aparelho.', 'warn'); return; }
+  const caixa = await api(`/caixa/${CAIXA_LOCAL_ID}`);
+  if (!caixa) return;
+  caixaAtualCache = caixa;
+  document.getElementById('cmd-caixa-titulo').textContent = '💰 Caixa';
+  const corpo = document.getElementById('cmd-caixa-corpo');
+  if (caixa.pausado) {
+    corpo.innerHTML = `
+      <div class="cmd-resumo-caixa">
+        <div class="cmd-resumo-linha"><span>${caixa.nome}</span><span>⏸️ Pausado${caixa.pausado_por ? ' por ' + caixa.pausado_por : ''}</span></div>
+      </div>
+      <button class="btn-primary full" style="margin-top:14px;" onclick="retomarCaixaUI()">▶️ Retomar caixa</button>
+    `;
+  } else {
+    corpo.innerHTML = `
+      <div class="cmd-resumo-caixa">
+        <div class="cmd-resumo-linha"><span>${caixa.nome}</span><span>🟢 Aberto</span></div>
+        <div class="cmd-resumo-linha"><span>Desde</span><span>${fmtDataHoraBR(caixa.aberto_em)}</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
+        <button class="btn-ghost full" onclick="abrirModalCaixa('sangria')">💸 Sangria</button>
+        <button class="btn-ghost full" onclick="abrirModalCaixa('suprimento')">💰 Suprimento</button>
+        <button class="btn-ghost full" onclick="pausarCaixaUI()">⏸️ Pausar caixa</button>
+        <button class="btn-primary full" style="background:#dc2626;" onclick="abrirModalCaixa('fechar')">Fechar caixa</button>
+      </div>
+    `;
+  }
+  document.getElementById('modal-caixa').classList.remove('hidden');
+}
+
 async function abrirModalCaixa(modo) {
   const corpo = document.getElementById('cmd-caixa-corpo');
   const titulo = document.getElementById('cmd-caixa-titulo');
@@ -5068,6 +5102,9 @@ async function confirmarFecharCaixa() {
   if (confirm('Imprimir o comprovante de fechamento de caixa?')) {
     imprimirFechamentoCaixa(caixaSnapshot, r.conferencia, dif);
   }
+  // Caixa fechado: sai da tela de venda de balcão (não faz sentido continuar vendendo
+  // sem caixa aberto) — volta pra lista de comandas, que agora mostra "abrir caixa".
+  if (!document.getElementById('modal-comanda').classList.contains('hidden')) fecharModalComanda();
 }
 
 // Comprovante impresso do fechamento de caixa — formato "relatório completo de
