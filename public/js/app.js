@@ -4955,8 +4955,8 @@ async function abrirModalCaixa(modo) {
       return `
         <div class="form-group cmd-fechamento-campo">
           <label class="form-label">${f.forma_pagamento}${ehDinheiro ? ' (gaveta)' : ''}</label>
-          <input type="number" class="form-control cmd-fechamento-input" data-forma="${f.forma_pagamento.replace(/"/g, '&quot;')}"
-            min="0" step="0.01" placeholder="${emCaixa.toFixed(2).replace('.', ',')}"/>
+          <input type="text" inputmode="numeric" class="form-control cmd-fechamento-input" data-forma="${f.forma_pagamento.replace(/"/g, '&quot;')}"
+            autocomplete="off" oninput="formatarCentavos(this)" placeholder="${emCaixa.toFixed(2).replace('.', ',')}"/>
         </div>`;
     }).join('');
 
@@ -5040,7 +5040,7 @@ async function confirmarFecharCaixa() {
   // branco significa "não conferi essa forma", o sistema assume que bateu certinho.
   const fechamento_formas = {};
   document.querySelectorAll('.cmd-fechamento-input').forEach(inp => {
-    if (inp.value !== '') fechamento_formas[inp.dataset.forma] = inp.value;
+    if (inp.value !== '') fechamento_formas[inp.dataset.forma] = paraNumeroMoeda(inp.value);
   });
   if (!confirm('Fechar o caixa agora? Confira os valores contados antes de confirmar.')) return;
   const caixaSnapshot = caixaAtualCache; // guarda o resumo antes de fechar, pro comprovante impresso
@@ -6259,6 +6259,23 @@ function adicionarPagamentoUI(forma) {
 // ── Modal de valor recebido (troco no dinheiro + divisão de pagamento) ──
 let _pgtoForma = null, _pgtoRestante = 0, _pgtoEhDinheiro = false;
 
+// "Modo calculadora de caixa": os dígitos entram da direita pra esquerda e a
+// vírgula decimal já aparece sozinha (ex: digitar 1000 vira "10,00"), igual ao
+// PDV físico — evita a atendente errar digitando "." em vez de "," ou esquecendo
+// a vírgula, que tava confundindo na hora de receber dinheiro.
+function formatarCentavos(input) {
+  let digitos = input.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+  while (digitos.length < 3) digitos = '0' + digitos;
+  const inteiro = digitos.slice(0, -2).replace(/^0+(?=\d)/, '') || '0';
+  const centavos = digitos.slice(-2);
+  input.value = `${inteiro},${centavos}`;
+}
+
+// Converte um valor digitado com vírgula (ou já numérico) pra número de verdade.
+function paraNumeroMoeda(valor) {
+  return parseFloat(String(valor ?? '').replace(',', '.')) || 0;
+}
+
 function abrirModalValorPagamento(forma, restante, ehDinheiro) {
   _pgtoForma = forma;
   _pgtoRestante = restante;
@@ -6266,7 +6283,7 @@ function abrirModalValorPagamento(forma, restante, ehDinheiro) {
   document.getElementById('pgto-valor-titulo').textContent = `${forma} — valor recebido`;
   document.getElementById('pgto-valor-sub').textContent = `Falta receber: ${fmtMoeda(restante)}`;
   const input = document.getElementById('pgto-valor-input');
-  input.value = ehDinheiro ? '' : restante.toFixed(2);
+  input.value = ehDinheiro ? '' : restante.toFixed(2).replace('.', ',');
   document.getElementById('pgto-valor-troco-linha').classList.add('hidden');
   document.getElementById('modal-valor-pagamento').classList.remove('hidden');
   setTimeout(() => { input.focus(); input.select(); }, 100);
@@ -6275,7 +6292,7 @@ function abrirModalValorPagamento(forma, restante, ehDinheiro) {
 
 function atualizarTrocoUI() {
   if (!_pgtoEhDinheiro) return;
-  const valor = parseFloat(document.getElementById('pgto-valor-input').value) || 0;
+  const valor = paraNumeroMoeda(document.getElementById('pgto-valor-input').value);
   const linha = document.getElementById('pgto-valor-troco-linha');
   if (valor <= 0) { linha.classList.add('hidden'); return; }
   const troco = Math.max(0, Math.round((valor - _pgtoRestante) * 100) / 100);
@@ -6285,7 +6302,7 @@ function atualizarTrocoUI() {
 }
 
 function confirmarValorPagamento() {
-  const valor = parseFloat((document.getElementById('pgto-valor-input').value || '').replace(',', '.'));
+  const valor = paraNumeroMoeda(document.getElementById('pgto-valor-input').value);
   if (!valor || valor <= 0) { mostrarToast('Digite um valor válido.', 'warn'); return; }
   // Dinheiro pode vir maior que o restante (o excedente é troco); qualquer outra forma
   // não pode passar do que falta, senão a comanda "receberia" mais do que o total.
