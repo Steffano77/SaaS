@@ -1,5 +1,42 @@
 const db = require('../database/connection');
 
+// Lista produtos INATIVOS (ativo = 0) — pra achar produtos que sumiram sem
+// querer (ex: desativados pelo antigo botão "Limpar zerados", que olhava só
+// o estoque do sistema, sem saber se tinha estoque real não lançado).
+exports.listarInativos = async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT p.*, c.nome AS categoria FROM produtos p
+       LEFT JOIN categorias c ON c.id = p.categoria_id
+       WHERE p.padaria_id = ? AND p.ativo = 0 ORDER BY p.nome`,
+      [req.padaria.id]
+    );
+    res.json(rows.map(formatarProduto));
+  } catch (e) {
+    console.error('Erro ao listar produtos inativos:', e);
+    res.status(500).json({ erro: 'Erro interno.' });
+  }
+};
+
+// Reativa um produto (ou todos, se vier "todos: true") que tinha sido
+// desativado — não é exclusão de verdade, então dá pra sempre trazer de volta.
+exports.reativar = async (req, res) => {
+  try {
+    const padaria_id = req.padaria.id;
+    if (req.body?.todos) {
+      const [result] = await db.query(
+        'UPDATE produtos SET ativo = 1 WHERE padaria_id = ? AND ativo = 0', [padaria_id]
+      );
+      return res.json({ ok: true, reativados: result.affectedRows });
+    }
+    await db.query('UPDATE produtos SET ativo = 1 WHERE id = ? AND padaria_id = ?', [req.params.id, padaria_id]);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Erro ao reativar produto:', e);
+    res.status(500).json({ erro: 'Erro interno.' });
+  }
+};
+
 exports.listar = async (req, res) => {
   try {
     const { busca, categoria_id, alerta } = req.query;
