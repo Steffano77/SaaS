@@ -2726,7 +2726,7 @@ tr.tr-saida td { color: var(--red-600); }
 .cmd-add-item.cmd-add-item-grande #cmd-item-busca { font-size: 22px; padding: 18px 16px; font-weight: 600; }
 .cmd-add-item.cmd-add-item-grande #cmd-item-busca::placeholder { font-size: 18px; }
 .cmd-itens-lista.cmd-itens-lista-grande .cmd-item-linha { padding: 16px 18px; font-size: 17px; }
-.cmd-itens-lista.cmd-itens-lista-grande .cmd-item-nome { font-size: 18px; font-weight: 700; }
+.cmd-itens-lista.cmd-itens-lista-grande .cmd-item-nome strong { font-size: 20px; font-weight: 700; }
 .cmd-itens-lista.cmd-itens-lista-grande .cmd-item-subtotal { font-size: 20px; }
 .cmd-add-item .fi-busca-wrap { min-width: 200px; }
 .cmd-item-lista { top: 100%; left: 0; right: 0; }
