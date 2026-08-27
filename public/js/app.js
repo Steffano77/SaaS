@@ -5000,6 +5000,9 @@ async function confirmarAbrirCaixa() {
   mostrarToast('Caixa aberto!', 'ok');
   document.getElementById('modal-caixa').classList.add('hidden');
   await carregarCaixaFaixa();
+  // Caixa acabou de abrir: já pula direto pra tela de venda de balcão,
+  // em vez de deixar a lista de comandas na tela.
+  abrirTelaVendaBalcao();
 }
 
 async function confirmarMovimentoCaixa(tipo) {
@@ -5670,6 +5673,9 @@ function fecharModalComanda() {
   // Sem isso, o card da comanda na lista ficava com os dados antigos (0 itens, R$ 0,00)
   // até a pessoa puxar a tela pra baixo pra atualizar manualmente.
   carregarComandas();
+  // Modo caixa: nunca deixa a lista de comandas na tela — sempre volta pra
+  // tela de venda de balcão, pronta pro próximo cliente.
+  if (sessionStorage.getItem('pp_modo_caixa_restrito')) abrirTelaVendaBalcao();
 }
 
 // ── Código de balança (peso variável) ────────────────────
@@ -6407,8 +6413,9 @@ async function finalizarVendaUI() {
     imprimirReciboComanda(snapshot, formaResumo);
   }
   // Venda de balcão: volta direto pra uma tela em branco, pronta pro próximo cliente
-  // (fluxo contínuo, sem precisar passar pela lista de comandas de novo).
-  if (foiBalcao) abrirVendaBalcaoVazia();
+  // (fluxo contínuo, sem precisar passar pela lista de comandas de novo). Em modo
+  // caixa isso já é feito de forma genérica dentro de fecharModalComanda() acima.
+  if (foiBalcao && !sessionStorage.getItem('pp_modo_caixa_restrito')) abrirVendaBalcaoVazia();
 }
 
 // ── Impressão térmica (80mm) ─────────────────────────────────────
