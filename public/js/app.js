@@ -6178,7 +6178,7 @@ function calcularRestante() {
 }
 
 // Atalhos F1–F5 pras formas de pagamento (padrão de PDV) enquanto a comanda está aberta.
-const CMD_PGTO_ATALHOS = { F1: 'Dinheiro', F2: 'Crédito', F3: 'Débito', F4: 'Pix', F5: 'Voucher', F6: 'Faturado', F7: 'Padaria' };
+const CMD_PGTO_ATALHOS = { F1: 'Dinheiro', F2: 'Crédito', F3: 'Débito', F4: 'Faturado', F5: 'Padaria', F6: 'Pix', F7: 'Voucher' };
 document.addEventListener('keydown', (e) => {
   const forma = CMD_PGTO_ATALHOS[e.key];
   if (!forma) return;
