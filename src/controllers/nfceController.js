@@ -264,7 +264,7 @@ exports.listarPendentes = async (req, res) => {
        c.identificador AS comanda_identificador
      FROM notas_fiscais n
      LEFT JOIN comandas c ON c.id = n.comanda_id
-     WHERE n.padaria_id = ? AND n.status IN ('erro', 'pendente')
+     WHERE n.padaria_id = ? AND n.status IN ('erro', 'pendente', 'rejeitada', 'contingencia')
      ORDER BY n.criado_em ASC`,
     [padaria_id]
   );
