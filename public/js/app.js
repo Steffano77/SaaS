@@ -5437,7 +5437,10 @@ async function renderNotasPendentes() {
         <div style="font-size:12px;color:var(--slate-500);">${fmtDataHoraBR(n.criado_em)} · ${n.ambiente === 1 ? 'Produção' : 'Homologação'}</div>
         ${n.motivo_rejeicao ? `<div style="font-size:12px;color:#dc2626;margin-top:2px;">${n.motivo_rejeicao}</div>` : ''}
       </div>
-      <button onclick="reenviarNotaPendente(${n.id}, this)" class="btn-primary" style="padding:8px 14px;font-size:13px;flex-shrink:0;">🔄 Reenviar</button>
+      <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
+        <button onclick="reenviarNotaPendente(${n.id}, this)" class="btn-ghost" style="padding:8px 12px;font-size:12.5px;" title="Reenvia o MESMO xml já assinado — só serve se o problema foi rede/Sefaz fora do ar">🔄 Reenviar</button>
+        <button onclick="reemitirNotaCorrigida(${n.comanda_id}, this)" class="btn-primary" style="padding:8px 12px;font-size:12.5px;" title="Gera uma nota NOVA do zero, usando a versão mais atual do sistema — use se a nota foi rejeitada por erro de cálculo/dado">🆕 Reemitir corrigida</button>
+      </div>
     </div>
   `).join('');
 }
@@ -5451,6 +5454,24 @@ async function reenviarNotaPendente(id, botao) {
     mostrarToast('✅ Nota autorizada com sucesso!', 'ok');
   } else {
     mostrarToast(`Ainda não foi — ${r.motivo || r.erro || 'tenta de novo daqui a pouco'}`, 'warn');
+  }
+  await renderNotasPendentes();
+}
+
+// Diferente de "Reenviar" (que manda de novo o MESMO xml já assinado, só útil quando o
+// problema foi de rede/Sefaz fora do ar) — isso gera uma nota nova do zero, com o cálculo
+// atual do sistema. É o certo pra usar quando a rejeição foi por erro de cálculo/dado
+// (ex: troco, desconto), já que reenviar o xml antigo repetiria o mesmo erro de novo.
+async function reemitirNotaCorrigida(comandaId, botao) {
+  if (!comandaId) { mostrarToast('Essa nota não tem comanda vinculada — não dá pra reemitir.', 'warn'); return; }
+  botao.disabled = true;
+  botao.textContent = 'Emitindo...';
+  const r = await api(`/fiscal/nfce/comanda/${comandaId}`, { method: 'POST' });
+  if (!r) { botao.disabled = false; botao.textContent = '🆕 Reemitir corrigida'; return; }
+  if (r.ok) {
+    mostrarToast('✅ Nota corrigida autorizada com sucesso!', 'ok');
+  } else {
+    mostrarToast(`Ainda não foi — ${r.motivo || r.erro || 'confere os dados dessa comanda'}`, 'warn');
   }
   await renderNotasPendentes();
 }
