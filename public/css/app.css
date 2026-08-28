@@ -3193,29 +3193,34 @@ tr.tr-saida td { color: var(--red-600); }
 .cmd-calc-igual { background: var(--orange); color: #fff; border-color: var(--orange); }
 
 /* ── Caixa livre (sem venda em andamento) ── */
+/* "container-type" faz o clamp() abaixo enxergar a LARGURA DA CAIXINHA (cqw),
+   não a largura da tela toda (vw) — sem isso, numa coluna estreita ao lado da
+   lista de itens, o texto calculava o tamanho como se tivesse a tela inteira
+   pra usar e estourava pra fora, com barra de rolagem horizontal. */
+.cmd-zona-logo, .cmd-pdv-subcoluna-itens .cmd-itens-lista { container-type: inline-size; }
 .cmd-zona-logo {
   margin-top: 8px; padding: 20px 12px; border-radius: 12px;
   background: var(--slate-50); border: 1px dashed var(--slate-300);
   /* min-height (não flex:1 esticando pra bater com a coluna vizinha) — evita a
      armadilha de flexbox onde as duas colunas colapsam pra altura zero quando
      nenhuma das duas tem conteúdo suficiente pra "ancorar" o esticamento. */
-  max-width: none; min-height: 320px;
+  max-width: none; min-height: 320px; overflow: hidden;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
 }
 [data-theme="dark"] .cmd-zona-logo { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.12); }
 .cmd-zona-logo-svg { width: min(94%, 420px); height: auto; flex-shrink: 0; }
-.cmd-zona-logo-marca { font-size: clamp(20px, 5vw, 38px); font-weight: 800; letter-spacing: .04em; color: var(--navy); text-align: center; }
+.cmd-zona-logo-marca { font-size: clamp(18px, 12cqw, 38px); font-weight: 800; letter-spacing: .04em; color: var(--navy); text-align: center; white-space: nowrap; }
 [data-theme="dark"] .cmd-zona-logo-marca { color: #f1f5f9; }
 .cmd-zona-logo-marca span { color: var(--orange); }
 .cmd-caixa-livre {
   min-height: 320px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
-  color: var(--slate-400);
+  color: var(--slate-400); overflow: hidden; padding: 0 8px;
 }
 .cmd-caixa-livre-tag {
-  font-size: clamp(20px, 5vw, 42px); font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--orange);
+  font-size: clamp(16px, 11cqw, 42px); font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--orange); white-space: nowrap;
 }
 .cmd-caixa-livre-hora {
-  font-size: clamp(36px, 11vw, 96px); font-weight: 800; font-variant-numeric: tabular-nums; color: var(--slate-700); line-height: 1;
+  font-size: clamp(28px, 20cqw, 96px); font-weight: 800; font-variant-numeric: tabular-nums; color: var(--slate-700); line-height: 1; white-space: nowrap;
 }
 [data-theme="dark"] .cmd-caixa-livre-hora { color: #f1f5f9; }
 
