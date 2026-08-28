@@ -3205,21 +3205,24 @@ tr.tr-saida td { color: var(--red-600); }
    pra usar e estourava pra fora, com barra de rolagem horizontal. */
 .cmd-zona-logo, .cmd-pdv-subcoluna-itens .cmd-itens-lista { container-type: inline-size; }
 .cmd-zona-logo {
-  margin-top: 8px; padding: 20px 12px; border-radius: 12px;
+  margin-top: 8px; padding: 14px 12px; border-radius: 12px;
   background: var(--slate-50); border: 1px dashed var(--slate-300);
-  /* min-height (não flex:1 esticando pra bater com a coluna vizinha) — evita a
-     armadilha de flexbox onde as duas colunas colapsam pra altura zero quando
-     nenhuma das duas tem conteúdo suficiente pra "ancorar" o esticamento. */
-  max-width: none; min-height: 320px; overflow: hidden;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  /* min-height moderado (não flex:1 esticando pra bater com a coluna vizinha,
+     nem um valor fixo alto) — um valor alto demais empurrava o conteúdo pra
+     fora da tela em monitores mais baixos, forçando a coluna inteira a rolar. */
+  max-width: none; min-height: 130px; max-height: 100%; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
 }
 [data-theme="dark"] .cmd-zona-logo { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.12); }
-.cmd-zona-logo-svg { width: min(94%, 420px); height: auto; flex-shrink: 0; }
+/* max-height em vh trava o tamanho da logo pela ALTURA da tela também, não só
+   pela largura — sem isso, em monitores mais baixos (ex: notebook com barra
+   do navegador ocupando espaço), a logo sozinha já estourava a altura disponível. */
+.cmd-zona-logo-svg { width: min(94%, 420px); max-height: 22vh; height: auto; flex-shrink: 0; }
 .cmd-zona-logo-marca { font-size: clamp(18px, 12cqw, 38px); font-weight: 800; letter-spacing: .04em; color: var(--navy); text-align: center; white-space: nowrap; }
 [data-theme="dark"] .cmd-zona-logo-marca { color: #f1f5f9; }
 .cmd-zona-logo-marca span { color: var(--orange); }
 .cmd-caixa-livre {
-  min-height: 320px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+  min-height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
   color: var(--slate-400); overflow: hidden; padding: 0 8px;
 }
 .cmd-caixa-livre-tag {
