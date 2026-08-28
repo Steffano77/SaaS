@@ -2914,16 +2914,16 @@ tr.tr-saida td { color: var(--red-600); }
 .cmd-pdv-subcoluna-controles {
   flex: 1 1 0; min-width: 0;
   display: flex; flex-direction: column; gap: 12px;
-  /* Estica pra acompanhar a altura da coluna de itens ao lado — sem isso a
-     área "Caixa Livre" (logo + relógio) ficaria pequena, do tamanho do conteúdo. */
-  align-self: stretch;
 }
 /* Sub-coluna direita: lista de itens, coluna única, alta */
-.cmd-pdv-subcoluna-itens { flex: 1 1 0; min-width: 0; align-self: stretch; display: flex; flex-direction: column; }
-.cmd-pdv-subcoluna-itens .cmd-itens-lista { max-height: none; flex: 1; }
+.cmd-pdv-subcoluna-itens { flex: 1 1 0; min-width: 0; }
+.cmd-pdv-subcoluna-itens .cmd-itens-lista { max-height: none; }
 
 @media (max-width: 900px) {
-  .cmd-pdv-coluna-esq { flex-direction: column; }
+  /* "align-items: flex-start" faz sentido lado a lado (linha), mas ao empilhar
+     em coluna (celular/tablet) ele faz os blocos encolherem pra largura zero
+     em vez de ocupar a tela toda — troca pra "stretch" só nesse caso. */
+  .cmd-pdv-coluna-esq { flex-direction: column; align-items: stretch; }
 }
 .cmd-pdv-coluna-dir {
   width: 360px; flex-shrink: 0;
@@ -3196,23 +3196,26 @@ tr.tr-saida td { color: var(--red-600); }
 .cmd-zona-logo {
   margin-top: 8px; padding: 20px 12px; border-radius: 12px;
   background: var(--slate-50); border: 1px dashed var(--slate-300);
-  max-width: none; flex-shrink: 0; flex: 1; min-height: 0;
+  /* min-height (não flex:1 esticando pra bater com a coluna vizinha) — evita a
+     armadilha de flexbox onde as duas colunas colapsam pra altura zero quando
+     nenhuma das duas tem conteúdo suficiente pra "ancorar" o esticamento. */
+  max-width: none; min-height: 320px;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
 }
 [data-theme="dark"] .cmd-zona-logo { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.12); }
 .cmd-zona-logo-svg { width: min(94%, 420px); height: auto; flex-shrink: 0; }
-.cmd-zona-logo-marca { font-size: 38px; font-weight: 800; letter-spacing: .04em; color: var(--navy); }
+.cmd-zona-logo-marca { font-size: clamp(20px, 5vw, 38px); font-weight: 800; letter-spacing: .04em; color: var(--navy); text-align: center; }
 [data-theme="dark"] .cmd-zona-logo-marca { color: #f1f5f9; }
 .cmd-zona-logo-marca span { color: var(--orange); }
 .cmd-caixa-livre {
-  height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+  min-height: 320px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
   color: var(--slate-400);
 }
 .cmd-caixa-livre-tag {
-  font-size: 42px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--orange);
+  font-size: clamp(20px, 5vw, 42px); font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--orange);
 }
 .cmd-caixa-livre-hora {
-  font-size: 96px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--slate-700); line-height: 1;
+  font-size: clamp(36px, 11vw, 96px); font-weight: 800; font-variant-numeric: tabular-nums; color: var(--slate-700); line-height: 1;
 }
 [data-theme="dark"] .cmd-caixa-livre-hora { color: #f1f5f9; }
 
