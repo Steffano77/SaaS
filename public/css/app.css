@@ -2926,7 +2926,7 @@ tr.tr-saida td { color: var(--red-600); }
   .cmd-pdv-coluna-esq { flex-direction: column; align-items: stretch; }
 }
 .cmd-pdv-coluna-dir {
-  width: 360px; flex-shrink: 0;
+  width: 460px; flex-shrink: 0;
   display: flex; flex-direction: column;
   padding: 0 0 20px;
   border-left: 1px solid var(--slate-200);
@@ -2999,15 +2999,16 @@ tr.tr-saida td { color: var(--red-600); }
 .cmd-pgto-btn:active { transform: scale(0.96); }
 
 /* Versão "grande", estilo PDV de balcão — mesma escala visual de sistemas de
-   caixa físico (letra grande, grade de 3 colunas, tecla F visível em cada
-   botão), só que na nossa paleta (laranja/azul-marinho) em vez de azul/amarelo. */
+   caixa físico (letra grande, tecla F visível em cada botão), só que na nossa
+   paleta (laranja/azul-marinho) em vez de azul/amarelo. 4 colunas (em vez de
+   3) faz os 7 botões caberem em 2 linhas em vez de 3, sem precisar rolar. */
 .cmd-pgto-grid-grande {
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
 }
 .cmd-pgto-grid-grande .cmd-pgto-btn {
   position: relative;
-  padding: 26px 10px 20px;
+  padding: 22px 8px 16px;
   border-radius: 14px;
   background: var(--navy);
   border: 2px solid transparent;
@@ -3018,10 +3019,15 @@ tr.tr-saida td { color: var(--red-600); }
   font-size: 13px; font-weight: 800; color: var(--orange);
   background: rgba(249,115,22,0.15); padding: 2px 7px; border-radius: 6px;
 }
-.cmd-pgto-grid-grande .cmd-pgto-icone { font-size: 32px; margin-top: 6px; }
-.cmd-pgto-grid-grande .cmd-pgto-btn span:nth-last-child(2) { font-size: 17px; font-weight: 800; color: #fff; }
-.cmd-pgto-grid-grande .cmd-pgto-sub { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.55); text-transform: uppercase; letter-spacing: .04em; }
+.cmd-pgto-grid-grande .cmd-pgto-icone { font-size: 28px; margin-top: 6px; }
+.cmd-pgto-grid-grande .cmd-pgto-btn span:nth-last-child(2) { font-size: 15px; font-weight: 800; color: #fff; }
+.cmd-pgto-grid-grande .cmd-pgto-sub { font-size: 10.5px; font-weight: 600; color: rgba(255,255,255,0.55); text-transform: uppercase; letter-spacing: .04em; }
 .cmd-pgto-grid-grande .cmd-pgto-btn:hover { border-color: var(--orange); background: var(--navy-light); }
+@media (max-width: 500px) {
+  /* Coluna muito estreita (celular empilhado): volta pra 3 colunas, senão os
+     botões ficam pequenos demais pra tocar. */
+  .cmd-pgto-grid-grande { grid-template-columns: repeat(3, 1fr); }
+}
 
 /* Caixa */
 .cmd-caixa-faixa { margin: 16px 0; }
