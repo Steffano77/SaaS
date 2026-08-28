@@ -2979,6 +2979,29 @@ tr.tr-saida td { color: var(--red-600); }
 [data-theme="dark"] #modal-comanda .cmd-item-linha { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
 
 #cmd-detalhe-acoes { padding-top: 16px; }
+
+/* Notebooks/telas mais baixas (a barra de endereço + abas do navegador já
+   comem boa parte da altura) — compacta a coluna de pagamento pra não
+   precisar rolar pra ver o botão "Cancelar comanda" no fim. */
+@media (max-height: 680px) {
+  #modal-comanda .cmd-pdv-total-row { padding: 10px 20px; margin-bottom: 8px; }
+  .cmd-pdv-total-row-grande strong { font-size: 30px; }
+  #cmd-detalhe-acoes { padding-top: 10px; }
+  .cmd-pgto-label { margin-bottom: 6px; }
+  .cmd-pgto-grid-grande { gap: 8px; }
+  .cmd-pgto-grid-grande .cmd-pgto-btn { padding: 14px 8px 10px; }
+  .cmd-pgto-grid-grande .cmd-pgto-icone { font-size: 22px; margin-top: 2px; }
+}
+/* Janelas muito baixas (ex: navegador não maximizado) — aperta ainda mais. */
+@media (max-height: 600px) {
+  #modal-comanda .cmd-pdv-total-row { padding: 8px 20px; margin-bottom: 6px; }
+  .cmd-pdv-total-row-grande strong { font-size: 24px; }
+  .cmd-pgto-grid-grande { gap: 6px; }
+  .cmd-pgto-grid-grande .cmd-pgto-btn { padding: 10px 6px 8px; }
+  .cmd-pgto-grid-grande .cmd-pgto-icone { font-size: 18px; margin-top: 0; }
+  .cmd-pgto-grid-grande .cmd-pgto-btn span:nth-last-child(2) { font-size: 13px; }
+  .cmd-pdv-coluna-dir { padding-bottom: 10px; }
+}
 .cmd-pgto-label { font-size: 12.5px; color: var(--slate-400); text-align: center; margin-bottom: 8px; }
 .cmd-pgto-grid {
   display: grid;
