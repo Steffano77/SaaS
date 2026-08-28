@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260828f"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260828g"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -742,8 +742,8 @@
                 <input type="number" id="cmd-item-preco" class="form-control" placeholder="R$" min="0" step="0.01" style="width:90px;"/>
                 <button onclick="adicionarItemComandaUI()" class="btn-primary" style="padding:10px 16px;">+</button>
                 <button onclick="abrirCategoriasComanda()" class="btn-secondary" style="padding:10px 14px;" title="Ver por categoria">📋</button>
-                <button onclick="abrirScannerCodigoBarras()" class="btn-secondary" style="padding:10px 14px;" title="Ler código de barras pela câmera">📷</button>
-                <button onclick="toggleTecladoCaixa()" class="btn-secondary" style="padding:10px 14px;" title="Teclado numérico">🔢</button>
+                <button id="btn-scanner-camera-comanda" onclick="abrirScannerCodigoBarras()" class="btn-secondary" style="padding:10px 14px;" title="Ler código de barras pela câmera">📷</button>
+                <button id="btn-teclado-numerico-comanda" onclick="toggleTecladoCaixa()" class="btn-secondary" style="padding:10px 14px;" title="Teclado numérico">🔢</button>
               </div>
 
               <div id="cmd-teclado-caixa" class="cmd-teclado-caixa hidden">
@@ -1995,7 +1995,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260827f"></script>
+<script src="/js/app.js?v=20260828a"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

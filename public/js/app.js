@@ -193,6 +193,9 @@ function aplicarRestricaoModoCaixa() {
   // sem menu nenhum. O único jeito de sair é o botão flutuante.
   document.getElementById('sidebar')?.classList.add('hidden');
   document.getElementById('btn-sair-modo-caixa')?.classList.remove('hidden');
+  // Marca o <html> pra CSS específico de modo caixa (esconde calculadora,
+  // leitor de código de barras por câmera etc — só nessa tela).
+  document.documentElement.classList.add('modo-caixa-ativo');
   history.replaceState({ pg: 'comandas' }, '', '#comandas');
   mostrarPagina('comandas', false);
   entrarTelaCheiaSeAtivo();
@@ -506,6 +509,7 @@ function sair() {
   localStorage.removeItem('pptoken');
   sessionStorage.removeItem('pptoken');
   sessionStorage.removeItem('pp_modo_caixa_restrito');
+  document.documentElement.classList.remove('modo-caixa-ativo');
   document.getElementById('app').classList.add('hidden');
   // Aparelho fixado pro caixa: volta pro login simples (nome+PIN), não pro
   // login de dono — é assim que o "próximo turno" troca de atendente.

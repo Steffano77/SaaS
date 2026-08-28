@@ -3244,6 +3244,13 @@ tr.tr-saida td { color: var(--red-600); }
 }
 [data-theme="dark"] .cmd-caixa-livre-hora { color: #f1f5f9; }
 
+/* Modo caixa (aparelho fixado pra atendente): some com a calculadora, o botão
+   de leitor de código de barras por câmera e o botão de teclado numérico —
+   só nessa tela; no uso normal (dono/gerente no computador) continuam. */
+.modo-caixa-ativo #btn-scanner-camera-comanda,
+.modo-caixa-ativo #btn-teclado-numerico-comanda,
+.modo-caixa-ativo .cmd-calculadora { display: none !important; }
+
 /* ── Modal de valor recebido (dinheiro/divisão de pagamento) ─── */
 .pgto-valor-troco { text-align: center; font-size: 18px; font-weight: 700; color: var(--green-700); margin: 8px 0 4px; }
 .pgto-valor-troco.zero { color: var(--slate-400); }
