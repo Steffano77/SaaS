@@ -4984,15 +4984,14 @@ async function abrirModalCaixa(modo) {
     titulo.textContent = '💰 Fechar caixa';
     const caixa = caixaAtualCache;
     const r = caixa?.resumo;
-    const linhasForma = (r?.porForma || []).map(f => `<div class="cmd-resumo-linha"><span>${f.forma_pagamento}</span><span>${fmtMoeda(f.total)}</span></div>`).join('');
-    const naoDinheiro = (r?.porForma || []).filter(f => f.forma_pagamento !== 'Dinheiro');
-    const linhasNaoDinheiro = naoDinheiro.map(f => `<div class="cmd-resumo-linha"><span>${f.forma_pagamento}</span><span>${fmtMoeda(f.total)}</span></div>`).join('');
-    const totalNaoDinheiro = naoDinheiro.reduce((s, f) => s + parseFloat(f.total), 0);
+    // Em modo caixa (atendente), a tela é "cega": nenhum valor do sistema aparece —
+    // só campos em branco pra ela digitar o que contou de verdade. Isso evita que ela
+    // veja o valor esperado e simplesmente digite ele pra "bater certo" escondendo uma
+    // quebra de caixa. A comparação completa só aparece depois, no comprovante impresso,
+    // pra gerência conferir. Fora do modo caixa (dono/gerente mexendo direto), mantém a
+    // tela completa de sempre — não tem risco de fraude contra si mesmo.
+    const cego = !!sessionStorage.getItem('pp_modo_caixa_restrito');
 
-    // Um campo de conferência por forma de pagamento (igual ao "Fechamento de Sessão"
-    // do Saurus) — a atendente digita o que contou/bateu do extrato de cada forma, e
-    // o sistema soma tudo e compara com o que foi lançado nas vendas. "Dinheiro" sempre
-    // aparece, mesmo sem venda, porque a gaveta sempre tem o troco de abertura pra conferir.
     const formasConferir = [...(r?.porForma || [])];
     if (!formasConferir.some(f => f.forma_pagamento === 'Dinheiro')) formasConferir.unshift({ forma_pagamento: 'Dinheiro', total: 0 });
     const camposConferencia = formasConferir.map(f => {
@@ -5004,11 +5003,16 @@ async function abrirModalCaixa(modo) {
         <div class="form-group cmd-fechamento-campo">
           <label class="form-label">${f.forma_pagamento}${ehDinheiro ? ' (gaveta)' : ''}</label>
           <input type="text" inputmode="numeric" class="form-control cmd-fechamento-input" data-forma="${f.forma_pagamento.replace(/"/g, '&quot;')}"
-            autocomplete="off" oninput="formatarCentavos(this)" placeholder="${emCaixa.toFixed(2).replace('.', ',')}"/>
+            autocomplete="off" oninput="formatarCentavos(this)" placeholder="${cego ? '0,00' : emCaixa.toFixed(2).replace('.', ',')}"/>
         </div>`;
     }).join('');
 
-    corpo.innerHTML = `
+    const linhasForma = (r?.porForma || []).map(f => `<div class="cmd-resumo-linha"><span>${f.forma_pagamento}</span><span>${fmtMoeda(f.total)}</span></div>`).join('');
+    const naoDinheiro = (r?.porForma || []).filter(f => f.forma_pagamento !== 'Dinheiro');
+    const linhasNaoDinheiro = naoDinheiro.map(f => `<div class="cmd-resumo-linha"><span>${f.forma_pagamento}</span><span>${fmtMoeda(f.total)}</span></div>`).join('');
+    const totalNaoDinheiro = naoDinheiro.reduce((s, f) => s + parseFloat(f.total), 0);
+
+    const resumoCompleto = `
       <div class="cmd-resumo-caixa">
         <div class="cmd-resumo-linha"><span>Abertura</span><span>${fmtMoeda(caixa?.valor_abertura)}</span></div>
         <div class="cmd-resumo-secao">Vendas por forma de pagamento</div>
@@ -5027,7 +5031,12 @@ async function abrirModalCaixa(modo) {
           ${linhasNaoDinheiro}
           <div class="cmd-resumo-linha subtotal"><span>Total fora da gaveta</span><span>${fmtMoeda(totalNaoDinheiro)}</span></div>
         ` : ''}
-      </div>
+      </div>`;
+
+    const avisoCego = `<div class="cmd-fechamento-aviso">Conte o dinheiro da gaveta e confira o extrato de cada forma. Digite exatamente o que você contou — não precisa bater com nada, é só o que você contou de verdade.</div>`;
+
+    corpo.innerHTML = `
+      ${cego ? avisoCego : resumoCompleto}
       <div class="cmd-resumo-secao" style="margin-top:10px;">Conferência por forma de pagamento</div>
       <div class="cmd-fechamento-grid">${camposConferencia}</div>
       <div class="form-group" style="margin-top:10px;">
@@ -5090,6 +5099,7 @@ async function confirmarFecharCaixa() {
   document.querySelectorAll('.cmd-fechamento-input').forEach(inp => {
     if (inp.value !== '') fechamento_formas[inp.dataset.forma] = paraNumeroMoeda(inp.value);
   });
+  const cego = !!sessionStorage.getItem('pp_modo_caixa_restrito');
   if (!confirm('Fechar o caixa agora? Confira os valores contados antes de confirmar.')) return;
   const caixaSnapshot = caixaAtualCache; // guarda o resumo antes de fechar, pro comprovante impresso
   const r = await api(`/caixa/${CAIXA_LOCAL_ID}/fechar`, { method: 'POST', body: { fechamento_formas, observacao } });
@@ -5097,13 +5107,19 @@ async function confirmarFecharCaixa() {
   localStorage.removeItem('pp_caixa_id');
   CAIXA_LOCAL_ID = null;
   const dif = r.diferenca;
-  const msg = Math.abs(dif) < 0.01
-    ? 'Caixa fechado — valores batem certinho! ✅'
-    : `Caixa fechado. Diferença: ${dif > 0 ? '+' : ''}${fmtMoeda(dif)} (${dif > 0 ? 'sobrou' : 'faltou'})`;
-  mostrarToast(msg, Math.abs(dif) < 0.01 ? 'ok' : 'warn');
+  // Em modo caixa a diferença não aparece nem no toast — só a gerência vê isso,
+  // no comprovante impresso, depois que a atendente já digitou tudo às cegas.
+  const msg = cego
+    ? 'Caixa fechado! Confira o comprovante impresso com a gerência.'
+    : (Math.abs(dif) < 0.01
+      ? 'Caixa fechado — valores batem certinho! ✅'
+      : `Caixa fechado. Diferença: ${dif > 0 ? '+' : ''}${fmtMoeda(dif)} (${dif > 0 ? 'sobrou' : 'faltou'})`);
+  mostrarToast(msg, cego ? 'ok' : (Math.abs(dif) < 0.01 ? 'ok' : 'warn'));
   document.getElementById('modal-caixa').classList.add('hidden');
   await carregarCaixaFaixa();
-  if (confirm('Imprimir o comprovante de fechamento de caixa?')) {
+  // Em modo caixa o comprovante é obrigatório (não pergunta) — é o único registro
+  // da conferência que a gerência vai ver, já que a tela não mostra os valores.
+  if (cego || confirm('Imprimir o comprovante de fechamento de caixa?')) {
     imprimirFechamentoCaixa(caixaSnapshot, r.conferencia, dif);
   }
   // Caixa fechado: sai da tela de venda de balcão (não faz sentido continuar vendendo
