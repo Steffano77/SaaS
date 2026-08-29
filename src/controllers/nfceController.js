@@ -278,6 +278,18 @@ exports.listarPendentes = async (req, res) => {
   res.json(notas);
 };
 
+// Notas de homologação (teste) nunca vão valer nada de verdade — em vez de apagar o
+// histórico, só marca como "arquivada" pra sumir da lista de pendentes.
+exports.arquivarHomologacao = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const [result] = await db.query(
+    `UPDATE notas_fiscais SET status = 'arquivada'
+     WHERE padaria_id = ? AND ambiente = 2 AND status IN ('erro', 'pendente', 'rejeitada', 'contingencia')`,
+    [padaria_id]
+  );
+  res.json({ ok: true, arquivadas: result.affectedRows });
+};
+
 exports.reenviar = async (req, res) => {
   const padaria_id = req.padaria.id;
   const { id } = req.params;

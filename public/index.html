@@ -577,7 +577,6 @@
         <div class="page-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
           <button onclick="abrirRelatorioVendas()" class="btn-secondary">📊 Relatório de vendas</button>
           <button onclick="abrirHistoricoComandas()" class="btn-secondary">📜 Histórico</button>
-          <button id="btn-notas-pendentes" onclick="abrirNotasPendentes()" class="btn-secondary hidden" style="color:#dc2626;border-color:#fecaca;">⚠️ Notas pendentes <span id="notas-pendentes-badge"></span></button>
           <button onclick="abrirModalNovaComanda()" class="btn-primary">+ Nova Comanda</button>
         </div>
       </div>
@@ -966,6 +965,8 @@
           <button onclick="abrirModalContaPagar()" class="btn-secondary" style="font-size:12px;padding:7px 12px;">⚠ Conta a pagar</button>
           <button onclick="abrirModalMaquininha()" class="btn-secondary" style="font-size:12px;padding:7px 12px;">📸 Fechamento maquininha</button>
           <button onclick="abrirModalResumoDia()" class="btn-secondary" style="font-size:12px;padding:7px 12px;">📊 Resumo de hoje</button>
+          <button id="btn-notas-pendentes" onclick="abrirNotasPendentes()" class="btn-secondary hidden" style="color:#dc2626;border-color:#fecaca;font-size:12px;padding:7px 12px;">⚠️ Notas pendentes <span id="notas-pendentes-badge"></span></button>
+          <button onclick="arquivarTestesAntigosUI()" class="btn-secondary" style="font-size:12px;padding:7px 12px;">🗄️ Arquivar testes antigos</button>
         </div>
       </div>
 
@@ -1995,7 +1996,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260828c"></script>
+<script src="/js/app.js?v=20260829a"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

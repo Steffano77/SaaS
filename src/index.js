@@ -382,6 +382,10 @@ app.use(express.static(path.join(__dirname, '../public'), {
         INDEX idx_notas_comanda (comanda_id)
       )`,
 
+      // "arquivada" — pra "esconder" da lista de notas pendentes uma nota antiga de
+      // homologação (teste) que nunca vai valer nada de verdade, sem apagar o histórico.
+      "ALTER TABLE notas_fiscais MODIFY COLUMN status ENUM('pendente','autorizada','rejeitada','cancelada','contingencia','erro','arquivada') NOT NULL DEFAULT 'pendente'",
+
       // Fechamento de caixa por forma de pagamento — antes só conferia o dinheiro
       // da gaveta; agora a atendente digita o que contou/bateu de cada forma
       // (crédito, débito, pix...) e o sistema guarda pra comparar com o que foi

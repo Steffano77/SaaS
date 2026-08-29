@@ -2090,6 +2090,7 @@ const FIN_ICONES = {
 };
 
 async function carregarFinanceiro() {
+  atualizarBadgeNotasPendentes();
   const [data, grafico, contas] = await Promise.all([
     api(`/financeiro?periodo=${_finPeriodo}`),
     api('/financeiro/grafico'),
@@ -4789,7 +4790,6 @@ function fmtDataHoraBR(valor) {
 }
 
 async function carregarComandas() {
-  atualizarBadgeNotasPendentes();
   // Modo Balcão pula o dashboard, então a lista de produtos nunca seria carregada — garante aqui.
   if (!produtosCache.length) {
     const prods = await api('/produtos');
@@ -5418,6 +5418,19 @@ async function atualizarBadgeNotasPendentes() {
 async function abrirNotasPendentes() {
   document.getElementById('modal-notas-pendentes').classList.remove('hidden');
   await renderNotasPendentes();
+}
+
+// Notas de homologação (teste) nunca vão valer nada de verdade — arquiva de uma vez
+// pra sumir da lista de pendentes, sem apagar o histórico (só marca como arquivada).
+async function arquivarTestesAntigosUI() {
+  if (!(await confirmarBonito('Arquivar todas as notas de homologação (teste) pendentes? Elas somem da lista, mas o histórico continua salvo.'))) return;
+  const r = await api('/fiscal/nfce/arquivar-homologacao', { method: 'POST' });
+  if (!r) return;
+  mostrarToast(`${r.arquivadas} nota(s) de teste arquivada(s).`, 'ok');
+  atualizarBadgeNotasPendentes();
+  if (!document.getElementById('modal-notas-pendentes').classList.contains('hidden')) {
+    await renderNotasPendentes();
+  }
 }
 
 async function renderNotasPendentes() {
