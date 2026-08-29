@@ -41,6 +41,22 @@ exports.emitirParaComanda = async (req, res) => {
 
     const [[comanda]] = await db.query(`SELECT * FROM comandas WHERE id = ? AND padaria_id = ?`, [comanda_id, padaria_id]);
     if (!comanda) return res.status(404).json({ erro: 'Comanda não encontrada.' });
+
+    // Trava de segurança: se essa comanda já tem uma nota AUTORIZADA, nunca emite outra —
+    // cada nota autorizada é um documento fiscal válido de verdade, então emitir de novo
+    // criaria duas notas legítimas pra uma venda só (bug real encontrado: cliques repetidos
+    // no botão de reemitir numa comanda já corrigida geraram várias notas autorizadas).
+    const [[jaAutorizada]] = await db.query(
+      `SELECT id, chave_acesso FROM notas_fiscais WHERE comanda_id = ? AND padaria_id = ? AND status = 'autorizada' LIMIT 1`,
+      [comanda_id, padaria_id]
+    );
+    if (jaAutorizada) {
+      return res.status(400).json({
+        erro: 'Essa comanda já tem uma nota fiscal autorizada — não gera outra.',
+        chave_ja_autorizada: jaAutorizada.chave_acesso,
+      });
+    }
+
     // Traz o NCM cadastrado no produto (join) — a nota usa ele quando tiver, e só cai
     // no código genérico (dentro do montarXmlNFCe) se o produto não tiver NCM definido.
     const [itens] = await db.query(
