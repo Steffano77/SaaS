@@ -265,6 +265,13 @@ exports.listarPendentes = async (req, res) => {
      FROM notas_fiscais n
      LEFT JOIN comandas c ON c.id = n.comanda_id
      WHERE n.padaria_id = ? AND n.status IN ('erro', 'pendente', 'rejeitada', 'contingencia')
+       -- Se essa comanda já tem uma nota autorizada (ex: foi reemitida corrigida com
+       -- sucesso depois), a tentativa antiga rejeitada não conta mais como pendente —
+       -- sem isso, notas já resolvidas continuavam aparecendo pra sempre na lista.
+       AND NOT EXISTS (
+         SELECT 1 FROM notas_fiscais n2
+         WHERE n2.comanda_id = n.comanda_id AND n2.status = 'autorizada'
+       )
      ORDER BY n.criado_em ASC`,
     [padaria_id]
   );
