@@ -58,6 +58,15 @@ app.use(cors({
   credentials: true
 }));
 
+// A API é toda dinâmica (dados mudam a cada request) — sem isso, algum cache no meio
+// do caminho (proxy, CDN tipo Cloudflare, ou até o próprio navegador) podia guardar uma
+// resposta antiga e servir ela de novo depois, mesmo com os dados já tendo mudado no
+// banco. Bug real: notas fiscais já corrigidas continuavam aparecendo como pendentes.
+app.use('/api', (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  next();
+});
+
 // Rate limiting geral — 200 req/min por IP
 app.use('/api', rateLimit({
   windowMs: 60 * 1000,
