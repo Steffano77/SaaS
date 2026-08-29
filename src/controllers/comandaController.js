@@ -263,11 +263,12 @@ exports.fechar = async (req, res) => {
         `INSERT INTO comanda_pagamentos (comanda_id, forma_pagamento, valor, troco) VALUES (?,?,?,?)`,
         [comanda.id, forma, valor, troco]
       );
-      // "Padaria" é consumo interno (ex: produção usando o próprio estoque) — o estoque
-      // sai normal, mas não é dinheiro entrando de verdade, então não vira receita no financeiro.
+      // "Padaria" é consumo interno (ex: produção usando o próprio estoque) e "Cortesia" é
+      // brinde/cortesia pro cliente — em ambos o estoque sai normal, mas não é dinheiro
+      // entrando de verdade, então não viram receita no financeiro.
       // "Faturado" é fiado (cliente paga depois) — ainda é uma venda, mas fica marcado
       // separado do dinheiro que já entrou, pra não inflar o caixa do dia.
-      if (forma !== 'Padaria') {
+      if (forma !== 'Padaria' && forma !== 'Cortesia') {
         const categoria = forma === 'Faturado' ? 'Fiado (a receber)' : 'Vendas';
         await conn.query(
           `INSERT INTO financeiro (padaria_id, tipo, valor, descricao, categoria, forma_pagamento, data) VALUES (?,?,?,?,?,?,CURDATE())`,

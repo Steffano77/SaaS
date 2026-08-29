@@ -6367,7 +6367,7 @@ function calcularRestante() {
 }
 
 // Atalhos F1–F5 pras formas de pagamento (padrão de PDV) enquanto a comanda está aberta.
-const CMD_PGTO_ATALHOS = { F1: 'Dinheiro', F2: 'Crédito', F3: 'Débito', F4: 'Faturado', F5: 'Padaria', F6: 'Pix', F7: 'Voucher' };
+const CMD_PGTO_ATALHOS = { F1: 'Dinheiro', F2: 'Crédito', F3: 'Débito', F4: 'Pix', F5: 'Voucher', F6: 'Faturado', F7: 'Padaria', F8: 'Cortesia' };
 document.addEventListener('keydown', (e) => {
   const forma = CMD_PGTO_ATALHOS[e.key];
   if (!forma) return;
@@ -6585,7 +6585,7 @@ async function finalizarVendaUI() {
   await carregarComandas();
   // "Padaria" é consumo interno — não teve venda de verdade, então não faz sentido
   // (nem é permitido) emitir nota fiscal em cima disso.
-  const consumoInterno = comandaPagamentosPendentes.some(p => p.forma_pagamento === 'Padaria');
+  const consumoInterno = comandaPagamentosPendentes.some(p => p.forma_pagamento === 'Padaria' || p.forma_pagamento === 'Cortesia');
   // Pergunta a nota fiscal ANTES de abrir a janela de impressão — a janela de
   // impressão fica na frente e escondia esse aviso atrás dela.
   if (!consumoInterno && await fiscalConfigurado()) {
