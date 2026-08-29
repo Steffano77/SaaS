@@ -247,7 +247,8 @@ exports.imprimirDanfe = async (req, res) => {
 exports.listar = async (req, res) => {
   const padaria_id = req.padaria.id;
   const [notas] = await db.query(
-    `SELECT id, comanda_id, numero, serie, status, ambiente, valor_total, criado_em, motivo_rejeicao
+    `SELECT id, comanda_id, numero, serie, status, ambiente, valor_total, criado_em, motivo_rejeicao,
+       chave_acesso, protocolo_autorizacao, autorizada_em
      FROM notas_fiscais WHERE padaria_id = ? ORDER BY criado_em DESC LIMIT 50`,
     [padaria_id]
   );
