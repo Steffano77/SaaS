@@ -965,6 +965,7 @@
           <button onclick="abrirModalContaPagar()" class="btn-secondary" style="font-size:12px;padding:7px 12px;">⚠ Conta a pagar</button>
           <button onclick="abrirModalMaquininha()" class="btn-secondary" style="font-size:12px;padding:7px 12px;">📸 Fechamento maquininha</button>
           <button onclick="abrirModalResumoDia()" class="btn-secondary" style="font-size:12px;padding:7px 12px;">📊 Resumo de hoje</button>
+          <button onclick="abrirNotasFiscais()" class="btn-secondary" style="font-size:12px;padding:7px 12px;">📄 Notas fiscais</button>
           <button id="btn-notas-pendentes" onclick="abrirNotasPendentes()" class="btn-secondary hidden" style="color:#dc2626;border-color:#fecaca;font-size:12px;padding:7px 12px;">⚠️ Notas pendentes <span id="notas-pendentes-badge"></span></button>
           <button onclick="arquivarTestesAntigosUI()" class="btn-secondary" style="font-size:12px;padding:7px 12px;">🗄️ Arquivar testes antigos</button>
         </div>
@@ -1104,6 +1105,21 @@
           foi feita normalmente — só falta reenviar a parte fiscal quando a conexão voltar.
         </p>
         <div id="notas-pendentes-lista" style="overflow-y:auto;overflow-x:hidden;flex:1;display:flex;flex-direction:column;gap:8px;padding:0 4px;"></div>
+      </div>
+    </div>
+
+    <!-- Modal: notas fiscais emitidas (histórico, com chave de acesso pra conferir na Sefaz) -->
+    <div id="modal-notas-fiscais" class="modal-overlay hidden">
+      <div class="modal-box" style="max-width:640px;max-height:80vh;display:flex;flex-direction:column;">
+        <div class="modal-header">
+          <span class="modal-title">📄 Notas fiscais emitidas</span>
+          <button onclick="document.getElementById('modal-notas-fiscais').classList.add('hidden')" class="btn-icon">✕</button>
+        </div>
+        <p style="font-size:12.5px;color:var(--slate-500);padding:0 20px 10px;">
+          Últimas 50 notas. Pra conferir uma na própria Sefaz (fora do nosso sistema), copia a chave de acesso
+          e cola em <strong>nfce.fazenda.sp.gov.br/consulta</strong>.
+        </p>
+        <div id="notas-fiscais-lista" style="overflow-y:auto;overflow-x:hidden;flex:1;display:flex;flex-direction:column;gap:8px;padding:0 4px;"></div>
       </div>
     </div>
 
@@ -1996,7 +2012,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260829a"></script>
+<script src="/js/app.js?v=20260829b"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

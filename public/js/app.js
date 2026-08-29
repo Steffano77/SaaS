@@ -5420,6 +5420,47 @@ async function abrirNotasPendentes() {
   await renderNotasPendentes();
 }
 
+const STATUS_NOTA_LABEL = {
+  autorizada: { texto: '✅ Autorizada', cor: '#16a34a' },
+  rejeitada: { texto: '❌ Rejeitada', cor: '#dc2626' },
+  erro: { texto: '❌ Erro', cor: '#dc2626' },
+  pendente: { texto: '⏳ Pendente', cor: '#d97706' },
+  contingencia: { texto: '⏳ Contingência', cor: '#d97706' },
+  cancelada: { texto: '🚫 Cancelada', cor: 'var(--slate-400)' },
+  arquivada: { texto: '🗄️ Arquivada (teste)', cor: 'var(--slate-400)' },
+};
+
+async function abrirNotasFiscais() {
+  document.getElementById('modal-notas-fiscais').classList.remove('hidden');
+  const lista = document.getElementById('notas-fiscais-lista');
+  lista.innerHTML = '<div class="cmd-vazio">Carregando...</div>';
+  const notas = await api('/fiscal/nfce');
+  if (!notas) return;
+  if (!notas.length) {
+    lista.innerHTML = '<div class="cmd-vazio">Nenhuma nota emitida ainda.</div>';
+    return;
+  }
+  lista.innerHTML = notas.map(n => {
+    const st = STATUS_NOTA_LABEL[n.status] || { texto: n.status, cor: 'var(--slate-400)' };
+    return `
+    <div style="background:var(--white);border:1px solid var(--slate-100);border-radius:10px;padding:12px 16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div style="font-weight:700;font-size:14px;">Comanda ${n.comanda_id || '—'} · ${fmtMoeda(n.valor_total)}</div>
+        <span style="font-size:12px;font-weight:700;color:${st.cor};">${st.texto}</span>
+      </div>
+      <div style="font-size:12px;color:var(--slate-500);margin-top:2px;">
+        ${fmtDataHoraBR(n.criado_em)} · ${n.ambiente === 1 ? 'Produção' : 'Homologação'}
+      </div>
+      ${n.chave_acesso ? `
+        <div style="display:flex;align-items:center;gap:6px;margin-top:8px;background:var(--slate-50);border-radius:6px;padding:6px 10px;">
+          <code style="font-size:11px;color:var(--slate-600);flex:1;word-break:break-all;">${n.chave_acesso}</code>
+          <button onclick="navigator.clipboard.writeText('${n.chave_acesso}').then(()=>mostrarToast('Chave copiada!','ok'))" class="btn-icon" title="Copiar chave de acesso">📋</button>
+        </div>
+      ` : ''}
+    </div>`;
+  }).join('');
+}
+
 // Notas de homologação (teste) nunca vão valer nada de verdade — arquiva de uma vez
 // pra sumir da lista de pendentes, sem apagar o histórico (só marca como arquivada).
 async function arquivarTestesAntigosUI() {
