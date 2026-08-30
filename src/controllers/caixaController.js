@@ -90,14 +90,14 @@ async function montarResumoCaixa(caixa) {
      GROUP BY cp.forma_pagamento`,
     [caixa.id]
   );
-  // "Total Vendido" do fechamento soma TUDO que passou pelo caixa (inclusive Padaria
-  // e Cortesia) — pedido explícito do dono, pra representar o movimento real do turno.
-  // O Financeiro continua separado (esse sim exclui Padaria/Cortesia da receita).
+  // "Padaria" (consumo interno) e "Cortesia" não são receita de verdade — exclui do
+  // Total Vendido pra bater exatamente com o Financeiro (mesma regra de lá), evitando
+  // dois números diferentes de "total vendido" pro mesmo turno.
   const [[totalVendas]] = await db.query(
     `SELECT COALESCE(SUM(cp.valor), 0) AS total
      FROM comanda_pagamentos cp
      JOIN comandas c ON c.id = cp.comanda_id
-     WHERE c.caixa_id = ?`,
+     WHERE c.caixa_id = ? AND cp.forma_pagamento NOT IN ('Padaria', 'Cortesia')`,
     [caixa.id]
   );
   const [[totalDinheiro]] = await db.query(
