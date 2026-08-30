@@ -90,11 +90,14 @@ async function montarResumoCaixa(caixa) {
      GROUP BY cp.forma_pagamento`,
     [caixa.id]
   );
+  // "Padaria" (consumo interno) e "Cortesia" não são receita de verdade — mesma regra
+  // já usada no Financeiro (comandaController.js). Sem excluir aqui, o "Total Vendido"
+  // do comprovante impresso ficava inflado com valor que nunca entrou como venda.
   const [[totalVendas]] = await db.query(
     `SELECT COALESCE(SUM(cp.valor), 0) AS total
      FROM comanda_pagamentos cp
      JOIN comandas c ON c.id = cp.comanda_id
-     WHERE c.caixa_id = ?`,
+     WHERE c.caixa_id = ? AND cp.forma_pagamento NOT IN ('Padaria', 'Cortesia')`,
     [caixa.id]
   );
   const [[totalDinheiro]] = await db.query(
