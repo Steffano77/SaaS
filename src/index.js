@@ -391,6 +391,28 @@ app.use(express.static(path.join(__dirname, '../public'), {
       // (crédito, débito, pix...) e o sistema guarda pra comparar com o que foi
       // lançado nas vendas (JSON: { "Dinheiro": 260.00, "Crédito": 513.50, ... }).
       'ALTER TABLE caixas ADD COLUMN fechamento_formas TEXT NULL',
+
+      // ── Cadastro de funcionário (RH) ──────────────────────────────────
+      // "gestor" é um atributo separado do "role" (atendente/caixa/gerente) — o role
+      // controla o que a pessoa pode fazer no caixa (cancelar comanda, etc.), o gestor
+      // controla quem pode mexer na tela de Equipe (cadastrar gente, ver dado sensível).
+      // Uma pessoa pode ser as duas coisas, só uma delas, ou nenhuma.
+      'ALTER TABLE atendentes ADD COLUMN gestor TINYINT(1) NOT NULL DEFAULT 0',
+      // Dados básicos — qualquer um com acesso à tela de Equipe pode ver.
+      'ALTER TABLE atendentes ADD COLUMN telefone VARCHAR(20) NULL',
+      'ALTER TABLE atendentes ADD COLUMN email VARCHAR(120) NULL',
+      'ALTER TABLE atendentes ADD COLUMN cargo VARCHAR(80) NULL',
+      'ALTER TABLE atendentes ADD COLUMN data_admissao DATE NULL',
+      // Dados sensíveis (CPF, dado bancário, salário...) — só aparecem pra quem é
+      // dono ou gestor; o resto de quem acessa Equipe nem recebe esses campos na API.
+      'ALTER TABLE atendentes ADD COLUMN cpf VARCHAR(14) NULL',
+      'ALTER TABLE atendentes ADD COLUMN rg VARCHAR(20) NULL',
+      'ALTER TABLE atendentes ADD COLUMN data_nascimento DATE NULL',
+      'ALTER TABLE atendentes ADD COLUMN endereco VARCHAR(255) NULL',
+      'ALTER TABLE atendentes ADD COLUMN pix_chave VARCHAR(120) NULL',
+      'ALTER TABLE atendentes ADD COLUMN dados_bancarios VARCHAR(255) NULL',
+      'ALTER TABLE atendentes ADD COLUMN salario DECIMAL(10,2) NULL',
+      'ALTER TABLE atendentes ADD COLUMN contato_emergencia VARCHAR(150) NULL',
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
 

@@ -114,6 +114,7 @@ exports.loginCaixa = async (req, res) => {
       {
         jti: crypto.randomUUID(), id: padaria.id, nome: padaria.nome, email: padaria.email,
         role: padaria.role || 'user', atendente_nome: atendente.nome, atendente_role: atendente.role,
+        atendente_gestor: !!atendente.gestor,
       },
       SECRET,
       { expiresIn: '16h' }
@@ -121,7 +122,7 @@ exports.loginCaixa = async (req, res) => {
     res.json({
       token,
       padaria: { id: padaria.id, nome: padaria.nome, email: padaria.email, plano: padaria.plano, role: padaria.role || 'user', plano_expira_em: padaria.plano_expira_em },
-      atendente: { nome: atendente.nome, role: atendente.role },
+      atendente: { nome: atendente.nome, role: atendente.role, gestor: !!atendente.gestor },
     });
   } catch (e) {
     console.error('Erro no login de caixa:', e);

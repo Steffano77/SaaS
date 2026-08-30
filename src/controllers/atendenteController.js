@@ -4,9 +4,19 @@ const db = require('../database/connection');
 
 const PAPEIS_VALIDOS = ['atendente', 'caixa', 'gerente'];
 
+// Dono de verdade (login com e-mail/senha) nunca tem "atendente_nome" no token — só
+// quem entrou por PIN/login-caixa tem essa marca. Gestor é um atributo separado do
+// role (atendente/caixa/gerente): controla quem pode mexer na tela de Equipe por
+// completo (cadastrar, editar dado sensível), independente do papel que a pessoa
+// tem no caixa no dia a dia.
+function souDonoOuGestor(req) {
+  if (!req.padaria.atendente_nome) return true; // login de dono de verdade
+  return !!req.padaria.atendente_gestor;
+}
+
 exports.listar = async (req, res) => {
   const [rows] = await db.query(
-    `SELECT id, nome, role, ativo, criado_em, (pin_hash IS NOT NULL) AS tem_pin
+    `SELECT id, nome, role, gestor, ativo, criado_em, (pin_hash IS NOT NULL) AS tem_pin
      FROM atendentes WHERE padaria_id = ? AND ativo = 1 ORDER BY nome`,
     [req.padaria.id]
   );
@@ -33,6 +43,43 @@ exports.trocarPapel = async (req, res) => {
   const role = req.body.role;
   if (!PAPEIS_VALIDOS.includes(role)) return res.status(400).json({ erro: 'Papel inválido.' });
   await db.query(`UPDATE atendentes SET role = ? WHERE id = ? AND padaria_id = ?`, [role, req.params.id, req.padaria.id]);
+  res.json({ ok: true });
+};
+
+// Liga/desliga o atributo "gestor" — só o dono de verdade mexe nisso, pra evitar que
+// um gestor fique criando outros gestores sem o dono saber.
+exports.trocarGestor = async (req, res) => {
+  if (req.padaria.atendente_nome) return res.status(403).json({ erro: 'Só o dono pode definir quem é gestor.' });
+  const gestor = req.body.gestor ? 1 : 0;
+  await db.query(`UPDATE atendentes SET gestor = ? WHERE id = ? AND padaria_id = ?`, [gestor, req.params.id, req.padaria.id]);
+  res.json({ ok: true });
+};
+
+// Dados completos (básico + sensível) de um funcionário — só dono ou gestor.
+exports.buscarDados = async (req, res) => {
+  if (!souDonoOuGestor(req)) return res.status(403).json({ erro: 'Só o dono ou um gestor podem ver esses dados.' });
+  const [[a]] = await db.query(
+    `SELECT id, nome, role, gestor, ativo, telefone, email, cargo, data_admissao,
+       cpf, rg, data_nascimento, endereco, pix_chave, dados_bancarios, salario, contato_emergencia
+     FROM atendentes WHERE id = ? AND padaria_id = ?`,
+    [req.params.id, req.padaria.id]
+  );
+  if (!a) return res.status(404).json({ erro: 'Não encontrado.' });
+  res.json(a);
+};
+
+// Atualiza os dados de RH (básico + sensível) — só dono ou gestor.
+exports.atualizarDados = async (req, res) => {
+  if (!souDonoOuGestor(req)) return res.status(403).json({ erro: 'Só o dono ou um gestor podem editar esses dados.' });
+  const campos = ['telefone', 'email', 'cargo', 'data_admissao', 'cpf', 'rg', 'data_nascimento',
+    'endereco', 'pix_chave', 'dados_bancarios', 'salario', 'contato_emergencia'];
+  const sets = []; const vals = [];
+  for (const c of campos) {
+    if (req.body[c] !== undefined) { sets.push(`${c} = ?`); vals.push(req.body[c] || null); }
+  }
+  if (!sets.length) return res.status(400).json({ erro: 'Nenhum campo pra atualizar.' });
+  vals.push(req.params.id, req.padaria.id);
+  await db.query(`UPDATE atendentes SET ${sets.join(', ')} WHERE id = ? AND padaria_id = ?`, vals);
   res.json({ ok: true });
 };
 

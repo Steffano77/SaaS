@@ -172,6 +172,9 @@ async function fazerLoginCaixa(e) {
     sessionStorage.setItem('pptoken', TOKEN); // sessão de caixa não fica "lembrada" além do turno
     // Guarda o papel do atendente pra restringir a interface (só Comandas, sem menu completo).
     sessionStorage.setItem('pp_modo_caixa_restrito', d.atendente?.role || 'atendente');
+    // "gestor" é separado do papel — libera o botão flutuante de Equipe mesmo com o
+    // menu lateral inteiro escondido.
+    sessionStorage.setItem('pp_modo_caixa_gestor', d.atendente?.gestor ? '1' : '0');
     document.getElementById('sidebar-nome').textContent = d.padaria.nome;
     const _planoLabelsCx = { trial: '⏳ Trial', essencial: '⚡ Essencial', pro: '⭐ Pro', premium: '💎 Premium' };
     const _planoElCx = document.getElementById('sidebar-plano');
@@ -193,6 +196,9 @@ function aplicarRestricaoModoCaixa() {
   // sem menu nenhum. O único jeito de sair é o botão flutuante.
   document.getElementById('sidebar')?.classList.add('hidden');
   document.getElementById('btn-sair-modo-caixa')?.classList.remove('hidden');
+  // Gestor tem um botão flutuante extra pra chegar na tela de Equipe, mesmo com o
+  // menu lateral inteiro escondido pra todo mundo em modo caixa.
+  document.getElementById('btn-equipe-modo-caixa')?.classList.toggle('hidden', sessionStorage.getItem('pp_modo_caixa_gestor') !== '1');
   // Marca o <html> pra CSS específico de modo caixa (esconde calculadora,
   // leitor de código de barras por câmera etc — só nessa tela).
   document.documentElement.classList.add('modo-caixa-ativo');
@@ -509,6 +515,8 @@ function sair() {
   localStorage.removeItem('pptoken');
   sessionStorage.removeItem('pptoken');
   sessionStorage.removeItem('pp_modo_caixa_restrito');
+  sessionStorage.removeItem('pp_modo_caixa_gestor');
+  document.getElementById('btn-equipe-modo-caixa')?.classList.add('hidden');
   document.documentElement.classList.remove('modo-caixa-ativo');
   document.getElementById('app').classList.add('hidden');
   // Aparelho fixado pro caixa: volta pro login simples (nome+PIN), não pro
@@ -5209,18 +5217,60 @@ async function carregarEquipe() {
     <div class="cmd-item-linha">
       <div class="cmd-item-nome">
         <strong>${a.nome}</strong>
-        <span class="cmd-item-numero" style="color:${PAPEL_COR[a.role] || '#64748b'};font-weight:700;">${PAPEL_LABEL[a.role] || a.role}</span>
+        <span class="cmd-item-numero" style="color:${PAPEL_COR[a.role] || '#64748b'};font-weight:700;">${PAPEL_LABEL[a.role] || a.role}${a.gestor ? ' · 👤 Gestor' : ''}</span>
       </div>
-      <div class="cmd-item-direita" style="gap:6px;">
+      <div class="cmd-item-direita" style="gap:6px;flex-wrap:wrap;">
         <select class="form-control" style="width:auto;font-size:12px;padding:4px 8px;" onchange="trocarPapelAtendente(${a.id}, this.value)">
           <option value="atendente" ${a.role === 'atendente' ? 'selected' : ''}>Atendente</option>
           <option value="caixa" ${a.role === 'caixa' ? 'selected' : ''}>Caixa</option>
           <option value="gerente" ${a.role === 'gerente' ? 'selected' : ''}>Gerente</option>
         </select>
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--slate-500);cursor:pointer;" title="Gestor mexe na tela de Equipe por completo (cadastro, dados sensíveis)">
+          <input type="checkbox" ${a.gestor ? 'checked' : ''} onchange="trocarGestorAtendente(${a.id}, this.checked)"/> Gestor
+        </label>
+        <button class="btn-icon" title="Editar dados (RH)" onclick="abrirDadosAtendente(${a.id}, '${a.nome.replace(/'/g,"\\'")}')">📇</button>
         <button class="btn-icon" title="Desativar" onclick="desativarAtendenteUI(${a.id}, '${a.nome.replace(/'/g,"\\'")}')">✕</button>
       </div>
     </div>
   `).join('');
+}
+
+const CAMPOS_DADOS_ATENDENTE = ['telefone', 'email', 'cargo', 'data_admissao', 'cpf', 'rg',
+  'data_nascimento', 'endereco', 'pix_chave', 'dados_bancarios', 'salario', 'contato_emergencia'];
+
+async function abrirDadosAtendente(id, nome) {
+  document.getElementById('dados-atendente-nome').textContent = nome;
+  document.getElementById('dados-atendente-id').value = id;
+  CAMPOS_DADOS_ATENDENTE.forEach(c => { const el = document.getElementById('dados-' + c); if (el) el.value = ''; });
+  document.getElementById('modal-dados-atendente').classList.remove('hidden');
+  const a = await api(`/atendentes/${id}/dados`);
+  if (!a) { fecharModal('modal-dados-atendente'); return; } // sem permissão ou erro — api() já mostra o toast
+  CAMPOS_DADOS_ATENDENTE.forEach(c => {
+    const el = document.getElementById('dados-' + c);
+    if (!el) return;
+    if (c === 'data_admissao' || c === 'data_nascimento') {
+      el.value = a[c] ? String(a[c]).slice(0, 10) : ''; // yyyy-mm-dd pro <input type="date">
+    } else {
+      el.value = a[c] ?? '';
+    }
+  });
+}
+
+async function salvarDadosAtendente() {
+  const id = document.getElementById('dados-atendente-id').value;
+  const body = {};
+  CAMPOS_DADOS_ATENDENTE.forEach(c => { body[c] = document.getElementById('dados-' + c).value; });
+  const r = await api(`/atendentes/${id}/dados`, { method: 'PUT', body });
+  if (!r) return;
+  mostrarToast('Dados salvos!', 'ok');
+  fecharModal('modal-dados-atendente');
+}
+
+async function trocarGestorAtendente(id, gestor) {
+  const r = await api(`/atendentes/${id}/gestor`, { method: 'POST', body: { gestor } });
+  if (!r) { carregarEquipe(); return; } // desfaz visualmente se deu erro (ex: não é dono)
+  mostrarToast(gestor ? 'Agora é gestor.' : 'Deixou de ser gestor.', 'ok');
+  carregarEquipe();
 }
 
 function abrirModalNovoAtendente() {
