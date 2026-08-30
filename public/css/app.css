@@ -2862,7 +2862,13 @@ tr.tr-saida td { color: var(--red-600); }
   background: linear-gradient(135deg, var(--navy), var(--navy-light));
   padding: 16px 20px; flex-shrink: 0;
 }
-.cat-comanda-header .modal-title { flex: 1; }
+.cat-comanda-header .modal-title { flex-shrink: 0; }
+.cat-comanda-busca {
+  flex: 1; min-width: 0; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px; padding: 8px 12px; color: #fff; font-size: 13.5px;
+}
+.cat-comanda-busca::placeholder { color: rgba(255,255,255,0.6); }
+.cat-comanda-busca:focus { outline: none; background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.4); }
 .cat-comanda-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 10px; padding: 16px; overflow-y: auto;

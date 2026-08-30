@@ -6083,6 +6083,9 @@ function criarProdutoParaVinculoBalanca() {
 // ── Categorias/produtos em grade colorida (estilo Saurus) ──
 const CAT_COMANDA_CORES = ['#0f172a','#7c3aed','#0891b2','#dc2626','#16a34a','#ca8a04','#db2777','#4f46e5','#0d9488','#ea580c','#65a30d','#9333ea'];
 
+// Guarda os produtos da categoria aberta, pra filtrar sem precisar buscar de novo a cada letra digitada.
+let _catComandaProdutosTodos = [];
+
 function abrirCategoriasComanda() {
   const categorias = [...new Set(produtosCache.map(p => p.categoria || 'Sem categoria'))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   const grid = document.getElementById('cat-comanda-grid');
@@ -6093,22 +6096,42 @@ function abrirCategoriasComanda() {
   `).join('') || '<div class="cmd-vazio">Nenhum produto cadastrado ainda.</div>';
   document.getElementById('cat-comanda-titulo').textContent = 'Categorias Disponíveis';
   document.getElementById('cat-comanda-voltar').classList.add('hidden');
+  // Busca só faz sentido dentro de uma categoria (lista de produtos) — na tela de
+  // categorias em si não tem o que filtrar.
+  const busca = document.getElementById('cat-comanda-busca');
+  busca.value = '';
+  busca.classList.add('hidden');
   document.getElementById('modal-categorias-comanda').classList.remove('hidden');
 }
 
-function abrirProdutosDaCategoria(categoria) {
-  const produtos = produtosCache
-    .filter(p => (p.categoria || 'Sem categoria') === categoria)
-    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+function renderGridProdutosCategoria(produtos) {
   const grid = document.getElementById('cat-comanda-grid');
   grid.innerHTML = produtos.map((p, i) => `
     <button class="cat-tile" style="background:${CAT_COMANDA_CORES[i % CAT_COMANDA_CORES.length]}" onclick="adicionarProdutoCategoriaUI(${p.id})">
       <span class="cat-tile-nome">${p.nome}</span>
       <span class="cat-tile-preco">${fmtMoeda(p.preco_venda || 0)}</span>
     </button>
-  `).join('') || '<div class="cmd-vazio">Nenhum produto nessa categoria.</div>';
+  `).join('') || '<div class="cmd-vazio">Nenhum produto encontrado.</div>';
+}
+
+function abrirProdutosDaCategoria(categoria) {
+  _catComandaProdutosTodos = produtosCache
+    .filter(p => (p.categoria || 'Sem categoria') === categoria)
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  renderGridProdutosCategoria(_catComandaProdutosTodos);
   document.getElementById('cat-comanda-titulo').textContent = categoria;
   document.getElementById('cat-comanda-voltar').classList.remove('hidden');
+  const busca = document.getElementById('cat-comanda-busca');
+  busca.value = '';
+  busca.classList.remove('hidden');
+}
+
+function filtrarProdutosCategoriaUI(input) {
+  const termo = input.value.trim().toLowerCase();
+  const filtrados = termo
+    ? _catComandaProdutosTodos.filter(p => p.nome.toLowerCase().includes(termo))
+    : _catComandaProdutosTodos;
+  renderGridProdutosCategoria(filtrados);
 }
 
 async function adicionarProdutoCategoriaUI(produtoId) {

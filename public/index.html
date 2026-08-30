@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260830a"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260830b"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -689,6 +689,7 @@
         <div class="cat-comanda-header">
           <button id="cat-comanda-voltar" onclick="abrirCategoriasComanda()" class="btn-icon hidden" style="color:#fff;" title="Voltar">←</button>
           <span id="cat-comanda-titulo" class="modal-title" style="color:#fff;">Categorias Disponíveis</span>
+          <input id="cat-comanda-busca" class="cat-comanda-busca hidden" type="text" placeholder="🔍 Buscar produto..." autocomplete="off" oninput="filtrarProdutosCategoriaUI(this)"/>
           <button onclick="fecharModal('modal-categorias-comanda')" class="btn-icon" style="color:#fff;">✕</button>
         </div>
         <div id="cat-comanda-grid" class="cat-comanda-grid"></div>
@@ -2026,7 +2027,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260830b"></script>
+<script src="/js/app.js?v=20260830c"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
