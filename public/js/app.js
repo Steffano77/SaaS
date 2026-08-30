@@ -5420,6 +5420,45 @@ async function abrirNotasPendentes() {
   await renderNotasPendentes();
 }
 
+// Verifica quais produtos ativos estão sem código de barras E sem código de balança —
+// tela dentro do próprio app, pra não depender do console do navegador.
+async function abrirVerificarCodigos() {
+  document.getElementById('modal-verificar-codigos').classList.remove('hidden');
+  const resumoEl = document.getElementById('verificar-codigos-resumo');
+  const listaEl = document.getElementById('verificar-codigos-lista');
+  resumoEl.innerHTML = '';
+  listaEl.innerHTML = '<div class="cmd-vazio">Carregando...</div>';
+
+  const produtos = await api('/produtos');
+  if (!produtos) return;
+
+  const ativos = produtos.filter(p => p.ativo);
+  const comBarras = ativos.filter(p => p.codigo_barras && p.codigo_barras.trim());
+  const comBalanca = ativos.filter(p => p.codigo_balanca && p.codigo_balanca.trim());
+  const semNenhum = ativos.filter(p => !(p.codigo_barras && p.codigo_barras.trim()) && !(p.codigo_balanca && p.codigo_balanca.trim()));
+
+  resumoEl.innerHTML = `
+    <div class="cmd-resumo-caixa">
+      <div class="cmd-resumo-linha"><span>Total de produtos ativos</span><span>${ativos.length}</span></div>
+      <div class="cmd-resumo-linha"><span>Com código de barras</span><span>${comBarras.length}</span></div>
+      <div class="cmd-resumo-linha"><span>Com código de balança</span><span>${comBalanca.length}</span></div>
+      <div class="cmd-resumo-linha total"><span>Sem nenhum dos dois</span><span>${semNenhum.length}</span></div>
+    </div>
+  `;
+
+  listaEl.innerHTML = semNenhum.length
+    ? semNenhum.map(p => `
+        <div class="cmd-item-linha">
+          <div class="cmd-item-nome">
+            <span class="cmd-item-numero">#${p.id}</span>
+            <strong>${p.nome}</strong>
+          </div>
+          <div class="cmd-item-direita"><span class="cmd-item-subtotal">${fmtMoeda(p.preco_venda)}</span></div>
+        </div>
+      `).join('')
+    : '<div class="cmd-vazio">Todos os produtos têm pelo menos um código! ✅</div>';
+}
+
 const STATUS_NOTA_LABEL = {
   autorizada: { texto: '✅ Autorizada', cor: '#16a34a' },
   rejeitada: { texto: '❌ Rejeitada', cor: '#dc2626' },

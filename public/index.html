@@ -371,6 +371,7 @@
           <button class="btn-secondary estoque-action-btn" onclick="abrirModalImprimirEstoque()" title="Imprimir lista de estoque"><span class="btn-emoji">🖨️</span>Imprimir</button>
           <button class="btn-secondary estoque-action-btn" onclick="preencherCodigosBalanca()" title="Preenche o código da balança em todos os produtos com código curto do Saurus"><span class="btn-emoji">⚖️</span>Códigos da balança</button>
           <button class="btn-secondary estoque-action-btn" onclick="exportarParaBalanca()" title="Gera o arquivo cadtxt.txt pra importar no Gerenciador de Balanças Triunfo"><span class="btn-emoji">📤</span>Exportar p/ balança</button>
+          <button class="btn-secondary estoque-action-btn" onclick="abrirVerificarCodigos()" title="Mostra quais produtos estão sem código de barras e sem código de balança"><span class="btn-emoji">🔍</span>Verificar códigos</button>
         </div>
       </div>
       <div class="card">
@@ -1106,6 +1107,18 @@
           foi feita normalmente — só falta reenviar a parte fiscal quando a conexão voltar.
         </p>
         <div id="notas-pendentes-lista" style="overflow-y:auto;overflow-x:hidden;flex:1;display:flex;flex-direction:column;gap:8px;padding:0 4px;"></div>
+      </div>
+    </div>
+
+    <!-- Modal: verificar produtos sem código de barras/balança -->
+    <div id="modal-verificar-codigos" class="modal-overlay hidden">
+      <div class="modal-box" style="max-width:560px;max-height:80vh;display:flex;flex-direction:column;">
+        <div class="modal-header">
+          <span class="modal-title">🔍 Verificar códigos</span>
+          <button onclick="document.getElementById('modal-verificar-codigos').classList.add('hidden')" class="btn-icon">✕</button>
+        </div>
+        <div id="verificar-codigos-resumo" style="padding:0 20px 10px;"></div>
+        <div id="verificar-codigos-lista" style="overflow-y:auto;overflow-x:hidden;flex:1;display:flex;flex-direction:column;gap:6px;padding:0 20px 16px;"></div>
       </div>
     </div>
 
@@ -2013,7 +2026,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260830a"></script>
+<script src="/js/app.js?v=20260830b"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
