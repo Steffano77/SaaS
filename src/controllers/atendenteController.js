@@ -97,50 +97,56 @@ exports.exportarExcel = async (req, res) => {
   );
   if (!lista.length) return res.status(404).json({ erro: 'Funcionário não encontrado.' });
 
+  const a = lista[0];
+  const fmtData = d => d ? new Date(d).toLocaleDateString('pt-BR') : '';
+  const ROLE_LABEL = { atendente: 'Atendente', caixa: 'Caixa', gerente: 'Gerente' };
+
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Funcionário');
-  ws.columns = [
-    { header: 'Nome', key: 'nome', width: 28 },
-    { header: 'Papel', key: 'role', width: 14 },
-    { header: 'Gestor', key: 'gestor', width: 10 },
-    { header: 'Ativo', key: 'ativo', width: 10 },
-    { header: 'Telefone', key: 'telefone', width: 18 },
-    { header: 'E-mail', key: 'email', width: 26 },
-    { header: 'Cargo', key: 'cargo', width: 22 },
-    { header: 'Data de admissão', key: 'data_admissao', width: 18 },
-    { header: 'CPF', key: 'cpf', width: 16 },
-    { header: 'RG', key: 'rg', width: 16 },
-    { header: 'Data de nascimento', key: 'data_nascimento', width: 18 },
-    { header: 'Endereço', key: 'endereco', width: 32 },
-    { header: 'Chave PIX', key: 'pix_chave', width: 22 },
-    { header: 'Dados bancários', key: 'dados_bancarios', width: 30 },
-    { header: 'Salário', key: 'salario', width: 14 },
-    { header: 'Contato de emergência', key: 'contato_emergencia', width: 26 },
-  ];
-  ws.getRow(1).font = { bold: true };
-  const fmtData = d => d ? new Date(d).toLocaleDateString('pt-BR') : '';
-  lista.forEach(a => {
-    ws.addRow({
-      nome: a.nome,
-      role: { atendente: 'Atendente', caixa: 'Caixa', gerente: 'Gerente' }[a.role] || a.role,
-      gestor: a.gestor ? 'Sim' : 'Não',
-      ativo: a.ativo ? 'Sim' : 'Não',
-      telefone: a.telefone || '',
-      email: a.email || '',
-      cargo: a.cargo || '',
-      data_admissao: fmtData(a.data_admissao),
-      cpf: a.cpf || '',
-      rg: a.rg || '',
-      data_nascimento: fmtData(a.data_nascimento),
-      endereco: a.endereco || '',
-      pix_chave: a.pix_chave || '',
-      dados_bancarios: a.dados_bancarios || '',
-      salario: a.salario != null ? parseFloat(a.salario) : '',
-      contato_emergencia: a.contato_emergencia || '',
-    });
-  });
+  ws.columns = [{ key: 'campo', width: 24 }, { key: 'valor', width: 42 }];
 
-  const nomeSanitizado = lista[0].nome.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '-');
+  // Título com o nome, igual ao cabeçalho da ficha na tela ("📇 Dados de Fulano")
+  ws.mergeCells('A1:B1');
+  ws.getCell('A1').value = `📇 Dados de ${a.nome}`;
+  ws.getCell('A1').font = { bold: true, size: 14, color: { argb: 'FF1E3A5F' } };
+  ws.addRow([]);
+
+  const secao = (titulo) => {
+    const row = ws.addRow([titulo]);
+    ws.mergeCells(`A${row.number}:B${row.number}`);
+    row.font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
+    row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF97316' } };
+    row.alignment = { vertical: 'middle' };
+    row.height = 20;
+  };
+  const campo = (label, valor) => {
+    const row = ws.addRow([label, valor ?? '']);
+    row.getCell(1).font = { bold: true, color: { argb: 'FF64748B' } };
+    row.getCell(2).alignment = { wrapText: true };
+  };
+
+  secao('Dados básicos');
+  campo('Nome', a.nome);
+  campo('Papel', ROLE_LABEL[a.role] || a.role);
+  campo('Gestor', a.gestor ? 'Sim' : 'Não');
+  campo('Ativo', a.ativo ? 'Sim' : 'Não');
+  campo('Telefone', a.telefone);
+  campo('E-mail', a.email);
+  campo('Cargo', a.cargo);
+  campo('Data de admissão', fmtData(a.data_admissao));
+
+  ws.addRow([]);
+  secao('Dados sensíveis');
+  campo('CPF', a.cpf);
+  campo('RG', a.rg);
+  campo('Data de nascimento', fmtData(a.data_nascimento));
+  campo('Salário', a.salario != null ? parseFloat(a.salario) : '');
+  campo('Endereço', a.endereco);
+  campo('Chave PIX', a.pix_chave);
+  campo('Dados bancários', a.dados_bancarios);
+  campo('Contato de emergência', a.contato_emergencia);
+
+  const nomeSanitizado = a.nome.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '-');
   const nomeArquivo = `${nomeSanitizado}-${new Date().toISOString().slice(0, 10)}.xlsx`;
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', `attachment; filename="${nomeArquivo}"`);
