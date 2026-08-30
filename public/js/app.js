@@ -6539,16 +6539,20 @@ async function fiscalConfigurado() {
   return _fiscalConfiguradoCache;
 }
 
-async function emitirNotaFiscalComanda(comandaId) {
+// opts.imprimirReciboSeFalhar: se a nota não sair (rejeitada/erro), imprime o recibo
+// comum como reserva — assim o cliente sempre sai com algum comprovante na mão, e a
+// nota rejeitada fica registrada em "Notas pendentes" pra corrigir depois.
+async function emitirNotaFiscalComanda(comandaId, opts = {}) {
   mostrarToast('Emitindo nota fiscal...');
   const nf = await api(`/fiscal/nfce/comanda/${comandaId}`, { method: 'POST' });
   if (nf && nf.ok) {
     mostrarToast(`Nota fiscal autorizada! Protocolo ${nf.protocolo}`);
-    if (await confirmarBonito('Imprimir a nota fiscal (DANFE-NFCe)?')) {
-      await imprimirDanfeNFCe(comandaId);
-    }
+    await imprimirDanfeNFCe(comandaId);
   } else if (nf) {
-    mostrarToast(`Nota fiscal rejeitada: ${nf.motivo || 'erro desconhecido'}`);
+    mostrarToast(`Nota fiscal rejeitada: ${nf.motivo || 'erro desconhecido'} — confira em "Notas pendentes"`, 'warn');
+    if (opts.imprimirReciboSeFalhar) imprimirReciboComanda(opts.imprimirReciboSeFalhar, opts.formaResumo);
+  } else if (opts.imprimirReciboSeFalhar) {
+    imprimirReciboComanda(opts.imprimirReciboSeFalhar, opts.formaResumo);
   }
 }
 
@@ -6583,20 +6587,17 @@ async function finalizarVendaUI() {
   mostrarToast(`Comanda fechada — ${formaResumo}!`, 'ok');
   fecharModalComanda();
   await carregarComandas();
-  // "Padaria" é consumo interno — não teve venda de verdade, então não faz sentido
-  // (nem é permitido) emitir nota fiscal em cima disso.
+  // "Padaria" e "Cortesia" são consumo interno/cortesia — não teve venda de verdade,
+  // então não faz sentido (nem é permitido) emitir nota fiscal em cima disso.
   const consumoInterno = comandaPagamentosPendentes.some(p => p.forma_pagamento === 'Padaria' || p.forma_pagamento === 'Cortesia');
-  // Pergunta a nota fiscal ANTES de abrir a janela de impressão — a janela de
-  // impressão fica na frente e escondia esse aviso atrás dela.
+  // Emissão e impressão agora são automáticas, sem perguntar — emitir a nota fiscal
+  // não é uma escolha de conveniência, é obrigação legal (toda venda de verdade tem
+  // que gerar nota), e a impressão já é confiável desde que resolvemos o driver da
+  // impressora. Deixar pra atendente decidir cada vez só cria risco de venda sem nota
+  // por pressa/distração.
   if (!consumoInterno && await fiscalConfigurado()) {
-    const avisoAmbiente = _fiscalAmbienteCache === 'producao'
-      ? 'já vale legalmente'
-      : 'ainda em ambiente de teste — não vale legalmente';
-    if (await confirmarBonito(`Emitir Nota Fiscal (NFC-e) dessa comanda? (${avisoAmbiente})`)) {
-      await emitirNotaFiscalComanda(comandaFechadaId);
-    }
-  }
-  if (snapshot && await confirmarBonito('Imprimir o recibo dessa comanda?')) {
+    await emitirNotaFiscalComanda(comandaFechadaId, { imprimirReciboSeFalhar: snapshot, formaResumo });
+  } else if (snapshot) {
     imprimirReciboComanda(snapshot, formaResumo);
   }
   // Venda de balcão: volta direto pra uma tela em branco, pronta pro próximo cliente
