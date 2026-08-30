@@ -5229,6 +5229,7 @@ async function carregarEquipe() {
           <input type="checkbox" ${a.gestor ? 'checked' : ''} onchange="trocarGestorAtendente(${a.id}, this.checked)"/> Gestor
         </label>
         <button class="btn-icon" title="Editar dados (RH)" onclick="abrirDadosAtendente(${a.id}, '${a.nome.replace(/'/g,"\\'")}')">📇</button>
+        <button class="btn-icon" title="Exportar dados desse funcionário pra Excel" onclick="exportarAtendenteExcel(${a.id}, '${a.nome.replace(/'/g,"\\'")}')">📤</button>
         <button class="btn-icon" title="Desativar" onclick="desativarAtendenteUI(${a.id}, '${a.nome.replace(/'/g,"\\'")}')">✕</button>
       </div>
     </div>
@@ -5266,9 +5267,9 @@ async function salvarDadosAtendente() {
   fecharModal('modal-dados-atendente');
 }
 
-// Baixa a equipe inteira (básico + sensível) numa planilha — pro contador/RH.
-function exportarEquipeExcel() {
-  const url = `${API}/atendentes/exportar`;
+// Baixa os dados de UM funcionário (básico + sensível) numa planilha — pro contador/RH.
+function exportarAtendenteExcel(id, nome) {
+  const url = `${API}/atendentes/${id}/exportar`;
   fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } })
     .then(r => {
       if (!r.ok) return r.json().then(d => { throw new Error(d.erro || 'Erro ao exportar.'); });
@@ -5278,7 +5279,8 @@ function exportarEquipeExcel() {
       const burl = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = burl;
-      a.download = `equipe-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      const nomeArquivo = nome.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '-');
+      a.download = `${nomeArquivo}-${new Date().toISOString().slice(0, 10)}.xlsx`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(burl), 5000);
     })

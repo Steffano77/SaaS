@@ -84,20 +84,21 @@ exports.atualizarDados = async (req, res) => {
   res.json({ ok: true });
 };
 
-// Exporta a equipe inteira (básico + sensível) pra Excel — pro contador/RH, ou pra
-// levar pra outra ferramenta de folha de pagamento. Só dono ou gestor.
+// Exporta os dados de UM funcionário (básico + sensível) pra Excel — pro contador/RH,
+// ou pra levar pra outra ferramenta de folha de pagamento. Só dono ou gestor.
 exports.exportarExcel = async (req, res) => {
-  if (!souDonoOuGestor(req)) return res.status(403).json({ erro: 'Só o dono ou um gestor podem exportar a equipe.' });
+  if (!souDonoOuGestor(req)) return res.status(403).json({ erro: 'Só o dono ou um gestor podem exportar dados de funcionário.' });
 
   const [lista] = await db.query(
     `SELECT nome, role, gestor, ativo, telefone, email, cargo, data_admissao,
        cpf, rg, data_nascimento, endereco, pix_chave, dados_bancarios, salario, contato_emergencia
-     FROM atendentes WHERE padaria_id = ? ORDER BY ativo DESC, nome`,
-    [req.padaria.id]
+     FROM atendentes WHERE id = ? AND padaria_id = ?`,
+    [req.params.id, req.padaria.id]
   );
+  if (!lista.length) return res.status(404).json({ erro: 'Funcionário não encontrado.' });
 
   const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet('Equipe');
+  const ws = wb.addWorksheet('Funcionário');
   ws.columns = [
     { header: 'Nome', key: 'nome', width: 28 },
     { header: 'Papel', key: 'role', width: 14 },
@@ -139,7 +140,8 @@ exports.exportarExcel = async (req, res) => {
     });
   });
 
-  const nomeArquivo = `equipe-${new Date().toISOString().slice(0, 10)}.xlsx`;
+  const nomeSanitizado = lista[0].nome.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '-');
+  const nomeArquivo = `${nomeSanitizado}-${new Date().toISOString().slice(0, 10)}.xlsx`;
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', `attachment; filename="${nomeArquivo}"`);
   await wb.xlsx.write(res);
