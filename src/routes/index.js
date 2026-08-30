@@ -213,6 +213,7 @@ router.post('/atendentes',               auth, authPremium, wrap(atendenteCtrl.c
 router.post('/atendentes/:id/verificar-pin', auth, authPremium, wrap(atendenteCtrl.verificarPin));
 router.post('/atendentes/:id/papel',     auth, authPremium, wrap(atendenteCtrl.trocarPapel));
 router.post('/atendentes/:id/gestor',    auth, authPremium, wrap(atendenteCtrl.trocarGestor));
+router.get('/atendentes/exportar',       auth, authPremium, wrap(atendenteCtrl.exportarExcel));
 router.get('/atendentes/:id/dados',      auth, authPremium, wrap(atendenteCtrl.buscarDados));
 router.put('/atendentes/:id/dados',      auth, authPremium, wrap(atendenteCtrl.atualizarDados));
 router.delete('/atendentes/:id',         auth, authPremium, wrap(atendenteCtrl.remover));

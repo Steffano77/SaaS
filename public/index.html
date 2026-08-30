@@ -879,6 +879,7 @@
         <h2 class="page-title">👥 Equipe</h2>
         <div class="page-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
           <button onclick="abrirModalNovoAtendente()" class="btn-primary">+ Novo atendente</button>
+          <button onclick="exportarEquipeExcel()" class="btn-secondary" title="Baixa uma planilha com todos os dados da equipe">📤 Exportar Excel</button>
         </div>
       </div>
       <p style="color:var(--slate-500);font-size:13px;margin:-8px 0 18px;">
@@ -918,7 +919,7 @@
 
     <!-- Modal: dados do funcionário (RH) — básico + sensível, só dono/gestor abrem -->
     <div id="modal-dados-atendente" class="modal-overlay hidden">
-      <div class="modal-box" style="max-width:480px;max-height:85vh;overflow-y:auto;">
+      <div class="modal-box" style="max-width:680px;max-height:85vh;overflow-y:auto;">
         <div class="modal-header">
           <span class="modal-title">📇 Dados de <span id="dados-atendente-nome"></span></span>
           <button onclick="fecharModal('modal-dados-atendente')" class="btn-icon">✕</button>
@@ -2071,7 +2072,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260830d"></script>
+<script src="/js/app.js?v=20260830e"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const ExcelJS = require('exceljs');
 const db = require('../database/connection');
 
 const PAPEIS_VALIDOS = ['atendente', 'caixa', 'gerente'];
@@ -81,6 +82,68 @@ exports.atualizarDados = async (req, res) => {
   vals.push(req.params.id, req.padaria.id);
   await db.query(`UPDATE atendentes SET ${sets.join(', ')} WHERE id = ? AND padaria_id = ?`, vals);
   res.json({ ok: true });
+};
+
+// Exporta a equipe inteira (básico + sensível) pra Excel — pro contador/RH, ou pra
+// levar pra outra ferramenta de folha de pagamento. Só dono ou gestor.
+exports.exportarExcel = async (req, res) => {
+  if (!souDonoOuGestor(req)) return res.status(403).json({ erro: 'Só o dono ou um gestor podem exportar a equipe.' });
+
+  const [lista] = await db.query(
+    `SELECT nome, role, gestor, ativo, telefone, email, cargo, data_admissao,
+       cpf, rg, data_nascimento, endereco, pix_chave, dados_bancarios, salario, contato_emergencia
+     FROM atendentes WHERE padaria_id = ? ORDER BY ativo DESC, nome`,
+    [req.padaria.id]
+  );
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Equipe');
+  ws.columns = [
+    { header: 'Nome', key: 'nome', width: 28 },
+    { header: 'Papel', key: 'role', width: 14 },
+    { header: 'Gestor', key: 'gestor', width: 10 },
+    { header: 'Ativo', key: 'ativo', width: 10 },
+    { header: 'Telefone', key: 'telefone', width: 18 },
+    { header: 'E-mail', key: 'email', width: 26 },
+    { header: 'Cargo', key: 'cargo', width: 22 },
+    { header: 'Data de admissão', key: 'data_admissao', width: 18 },
+    { header: 'CPF', key: 'cpf', width: 16 },
+    { header: 'RG', key: 'rg', width: 16 },
+    { header: 'Data de nascimento', key: 'data_nascimento', width: 18 },
+    { header: 'Endereço', key: 'endereco', width: 32 },
+    { header: 'Chave PIX', key: 'pix_chave', width: 22 },
+    { header: 'Dados bancários', key: 'dados_bancarios', width: 30 },
+    { header: 'Salário', key: 'salario', width: 14 },
+    { header: 'Contato de emergência', key: 'contato_emergencia', width: 26 },
+  ];
+  ws.getRow(1).font = { bold: true };
+  const fmtData = d => d ? new Date(d).toLocaleDateString('pt-BR') : '';
+  lista.forEach(a => {
+    ws.addRow({
+      nome: a.nome,
+      role: { atendente: 'Atendente', caixa: 'Caixa', gerente: 'Gerente' }[a.role] || a.role,
+      gestor: a.gestor ? 'Sim' : 'Não',
+      ativo: a.ativo ? 'Sim' : 'Não',
+      telefone: a.telefone || '',
+      email: a.email || '',
+      cargo: a.cargo || '',
+      data_admissao: fmtData(a.data_admissao),
+      cpf: a.cpf || '',
+      rg: a.rg || '',
+      data_nascimento: fmtData(a.data_nascimento),
+      endereco: a.endereco || '',
+      pix_chave: a.pix_chave || '',
+      dados_bancarios: a.dados_bancarios || '',
+      salario: a.salario != null ? parseFloat(a.salario) : '',
+      contato_emergencia: a.contato_emergencia || '',
+    });
+  });
+
+  const nomeArquivo = `equipe-${new Date().toISOString().slice(0, 10)}.xlsx`;
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="${nomeArquivo}"`);
+  await wb.xlsx.write(res);
+  res.end();
 };
 
 // Login por PIN — identifica QUEM está usando o tablet agora e devolve um token

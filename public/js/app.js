@@ -5266,6 +5266,25 @@ async function salvarDadosAtendente() {
   fecharModal('modal-dados-atendente');
 }
 
+// Baixa a equipe inteira (básico + sensível) numa planilha — pro contador/RH.
+function exportarEquipeExcel() {
+  const url = `${API}/atendentes/exportar`;
+  fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } })
+    .then(r => {
+      if (!r.ok) return r.json().then(d => { throw new Error(d.erro || 'Erro ao exportar.'); });
+      return r.blob();
+    })
+    .then(blob => {
+      const burl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = burl;
+      a.download = `equipe-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(burl), 5000);
+    })
+    .catch(e => mostrarToast(e.message, 'err'));
+}
+
 async function trocarGestorAtendente(id, gestor) {
   const r = await api(`/atendentes/${id}/gestor`, { method: 'POST', body: { gestor } });
   if (!r) { carregarEquipe(); return; } // desfaz visualmente se deu erro (ex: não é dono)
