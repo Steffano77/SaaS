@@ -5135,6 +5135,31 @@ async function confirmarFecharCaixa() {
   if (!document.getElementById('modal-comanda').classList.contains('hidden')) fecharModalComanda();
 }
 
+// Histórico de caixas fechados — pra reimprimir o comprovante se travou/foi
+// bloqueado na hora (nada se perde, fica tudo salvo no banco).
+async function abrirHistoricoCaixas() {
+  const lista = await api('/caixa/historico');
+  if (!lista) return;
+  document.getElementById('modal-historico-caixas').classList.remove('hidden');
+  const el = document.getElementById('historico-caixas-lista');
+  if (!lista.length) { el.innerHTML = '<p style="text-align:center;color:var(--slate-400);padding:20px;">Nenhum caixa fechado ainda.</p>'; return; }
+  el.innerHTML = lista.map(c => `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border:1px solid var(--slate-200,#e2e8f0);border-radius:10px;">
+      <div>
+        <div style="font-weight:700;font-size:13.5px;">${c.nome || 'Caixa'} — ${c.atendente || '—'}</div>
+        <div style="font-size:12px;color:var(--slate-500);">Fechado em ${fmtDataHoraBR(c.fechado_em)}</div>
+      </div>
+      <button class="btn-secondary" style="padding:8px 12px;font-size:12px;white-space:nowrap;" onclick="reimprimirFechamentoUI(${c.id})">🖨️ Reimprimir</button>
+    </div>
+  `).join('');
+}
+
+async function reimprimirFechamentoUI(caixaId) {
+  const r = await api(`/caixa/${caixaId}/reimprimir-fechamento`);
+  if (!r) return;
+  imprimirFechamentoCaixa(r.caixa, r.conferencia, r.diferenca);
+}
+
 // Comprovante impresso do fechamento de caixa — formato "relatório completo de
 // sessão" (mesmo padrão que a gerente pediu, igual ao relatório do Saurus).
 function imprimirFechamentoCaixa(caixa, conferencia, diferenca) {

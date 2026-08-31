@@ -203,6 +203,7 @@ router.get('/caixa/:id',            auth, authPremium, wrap(caixaCtrl.buscar));
 router.post('/caixa/abrir',         auth, authPremium, wrap(caixaCtrl.abrir));
 
 router.post('/caixa/:id/fechar',    auth, authPremium, wrap(caixaCtrl.fechar));
+router.get('/caixa/:id/reimprimir-fechamento', auth, authPremium, wrap(caixaCtrl.reimprimirFechamento));
 router.post('/caixa/:id/sangria',   auth, authPremium, wrap(caixaCtrl.sangria));
 router.post('/caixa/:id/pausar',    auth, authPremium, wrap(caixaCtrl.pausar));
 router.post('/caixa/:id/retomar',   auth, authPremium, exigirFuncionario(['caixa','gerente']), wrap(caixaCtrl.retomar));

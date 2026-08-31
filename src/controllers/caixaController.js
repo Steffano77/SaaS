@@ -146,6 +146,28 @@ async function montarResumoCaixa(caixa) {
   };
 }
 
+// Conferência por forma de pagamento: pra cada forma que teve movimento (mais
+// "Dinheiro" sempre, mesmo sem venda, porque a gaveta sempre tem o troco de
+// abertura pra conferir), calcula quanto o sistema lançou ("em caixa") e compara
+// com o que a atendente digitou que contou/bateu do extrato ("fechado"). Forma
+// não preenchida assume que bateu certinho — só a que ela digitar é conferida.
+// Compartilhada entre fechar() e reimprimirFechamento() (mesma conta, os dois).
+function calcularConferencia(caixa, resumo, formasInformadas) {
+  const formasParaConferir = [...(resumo.porForma || [])];
+  if (!formasParaConferir.some(f => f.forma_pagamento === 'Dinheiro')) {
+    formasParaConferir.unshift({ forma_pagamento: 'Dinheiro', total: 0 });
+  }
+  return formasParaConferir.map(f => {
+    const ehDinheiro = f.forma_pagamento === 'Dinheiro';
+    const emCaixa = ehDinheiro
+      ? parseFloat(caixa.valor_abertura) + parseFloat(f.total) + resumo.totalSuprimentos - resumo.totalSangrias
+      : parseFloat(f.total);
+    const bruto = formasInformadas[f.forma_pagamento];
+    const fechado = (bruto !== undefined && bruto !== null && bruto !== '') ? (parseFloat(bruto) || 0) : emCaixa;
+    return { forma_pagamento: f.forma_pagamento, em_caixa: emCaixa, fechado, diferenca: fechado - emCaixa };
+  });
+}
+
 exports.fechar = async (req, res) => {
   const padaria_id = req.padaria.id;
   const { valor_fechamento, observacao, fechamento_formas } = req.body;
@@ -156,26 +178,8 @@ exports.fechar = async (req, res) => {
   if (!caixa) return res.status(404).json({ erro: 'Caixa não encontrado ou já fechado.' });
 
   const resumo = await montarResumoCaixa(caixa);
-
-  // Conferência por forma de pagamento: pra cada forma que teve movimento (mais
-  // "Dinheiro" sempre, mesmo sem venda, porque a gaveta sempre tem o troco de
-  // abertura pra conferir), calcula quanto o sistema lançou ("em caixa") e compara
-  // com o que a atendente digitou que contou/bateu do extrato ("fechado"). Forma
-  // não preenchida assume que bateu certinho — só a que ela digitar é conferida.
   const formasInformadas = fechamento_formas && typeof fechamento_formas === 'object' ? fechamento_formas : {};
-  const formasParaConferir = [...(resumo.porForma || [])];
-  if (!formasParaConferir.some(f => f.forma_pagamento === 'Dinheiro')) {
-    formasParaConferir.unshift({ forma_pagamento: 'Dinheiro', total: 0 });
-  }
-  const conferencia = formasParaConferir.map(f => {
-    const ehDinheiro = f.forma_pagamento === 'Dinheiro';
-    const emCaixa = ehDinheiro
-      ? parseFloat(caixa.valor_abertura) + parseFloat(f.total) + resumo.totalSuprimentos - resumo.totalSangrias
-      : parseFloat(f.total);
-    const bruto = formasInformadas[f.forma_pagamento];
-    const fechado = (bruto !== undefined && bruto !== null && bruto !== '') ? (parseFloat(bruto) || 0) : emCaixa;
-    return { forma_pagamento: f.forma_pagamento, em_caixa: emCaixa, fechado, diferenca: fechado - emCaixa };
-  });
+  const conferencia = calcularConferencia(caixa, resumo, formasInformadas);
   const diferencaTotal = conferencia.reduce((s, c) => s + c.diferenca, 0);
   const informadoDinheiro = conferencia.find(c => c.forma_pagamento === 'Dinheiro')?.fechado
     ?? (parseFloat(valor_fechamento) || 0);
@@ -194,6 +198,27 @@ exports.fechar = async (req, res) => {
     conferencia,
     resumo,
   });
+};
+
+// Refaz o mesmo comprovante de fechamento pra reimprimir depois — usado quando a
+// impressão travou/foi bloqueada na hora. Funciona pra caixa aberto ou já fechado
+// (nesse caso usa o que ficou salvo em fechamento_formas na hora do fechamento).
+exports.reimprimirFechamento = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const [[caixa]] = await db.query(
+    `SELECT * FROM caixas WHERE id = ? AND padaria_id = ?`, [req.params.id, padaria_id]
+  );
+  if (!caixa) return res.status(404).json({ erro: 'Caixa não encontrado.' });
+
+  const resumo = await montarResumoCaixa(caixa);
+  let formasInformadas = {};
+  if (caixa.fechamento_formas) {
+    try { formasInformadas = JSON.parse(caixa.fechamento_formas) || {}; } catch { formasInformadas = {}; }
+  }
+  const conferencia = calcularConferencia(caixa, resumo, formasInformadas);
+  const diferencaTotal = conferencia.reduce((s, c) => s + c.diferenca, 0);
+
+  res.json({ caixa: { ...caixa, resumo }, conferencia, diferenca: diferencaTotal });
 };
 
 exports.sangria = async (req, res) => {
