@@ -5786,6 +5786,7 @@ function abrirVendaBalcaoVazia() {
   comandaAtualId = null;
   comandaAtualDados = { itens: [], total: 0, desconto: 0, acrescimo: 0, status: 'aberta' };
   comandaPagamentosPendentes = [];
+  resetEscolhaNFCe();
   document.getElementById('cmd-detalhe-titulo').textContent = '🧾 Nova venda';
   document.getElementById('cmd-item-busca').value = '';
   document.getElementById('cmd-item-produto-id').value = '';
@@ -5826,6 +5827,7 @@ async function abrirModalComanda(id) {
   if (!c) return;
   comandaAtualId = c.id;
   comandaPagamentosPendentes = [];
+  resetEscolhaNFCe();
   document.getElementById('cmd-detalhe-titulo').textContent = `🧾 ${c.identificador}${c.atendente ? ' · ' + c.atendente : ''}`;
   document.getElementById('cmd-item-busca').value = '';
   document.getElementById('cmd-item-produto-id').value = '';
@@ -6514,21 +6516,57 @@ function calcularRestante() {
   return Math.max(0, Math.round((total - pago) * 100) / 100);
 }
 
-// Atalhos F1–F5 pras formas de pagamento (padrão de PDV) enquanto a comanda está aberta.
+// ── Etapa "com/sem nota fiscal" — decidida ANTES da forma de pagamento, sem pop-up.
+// null = ainda não decidiu (grade de pagamento fica travada); true/false = já decidiu.
+let vendaComNFCe = null;
+
+function resetEscolhaNFCe() {
+  vendaComNFCe = null;
+  document.getElementById('cmd-nfce-escolha')?.classList.remove('hidden');
+  document.getElementById('cmd-pgto-secao')?.classList.add('hidden');
+}
+
+function escolherNFCeUI(comNota) {
+  if (comNota === null) { resetEscolhaNFCe(); return; } // toque no selinho = trocar de ideia
+  vendaComNFCe = comNota;
+  document.getElementById('cmd-nfce-escolha')?.classList.add('hidden');
+  document.getElementById('cmd-pgto-secao')?.classList.remove('hidden');
+  const badge = document.getElementById('cmd-nfce-badge');
+  if (badge) {
+    badge.className = 'cmd-nfce-badge ' + (comNota ? 'com-nota' : 'sem-nota');
+    badge.textContent = comNota ? '🧾 Com nota fiscal — toque pra trocar' : '🚫 Sem nota fiscal — toque pra trocar';
+  }
+}
+
+// Atalhos F1–F8 pras formas de pagamento (padrão de PDV) enquanto a comanda está aberta.
 const CMD_PGTO_ATALHOS = { F1: 'Dinheiro', F2: 'Crédito', F3: 'Débito', F4: 'Pix', F5: 'Voucher', F6: 'Faturado', F7: 'Padaria', F8: 'Cortesia' };
 document.addEventListener('keydown', (e) => {
-  // Se tiver um aviso de sim/não aberto (ex: "Emitir nota fiscal?"), o F1/F2 é dele
-  // (Sim/Não), não da forma de pagamento — senão os dois atalhos brigam.
+  // Se tiver um aviso de sim/não aberto, o F1/F2 é dele — senão os atalhos brigam.
   if (!document.getElementById('modal-confirmar-bonito')?.classList.contains('hidden')) return;
-  const forma = CMD_PGTO_ATALHOS[e.key];
-  if (!forma) return;
+  if (e.key !== 'F1' && e.key !== 'F2' && !CMD_PGTO_ATALHOS[e.key]) return;
   const modalAberto = !document.getElementById('modal-comanda')?.classList.contains('hidden');
   if (!modalAberto) return;
+  const temItens = !!(comandaAtualDados?.itens?.length);
+
+  // Etapa 1 (F1/F2 = com/sem nota fiscal), só depois de já ter item lançado.
+  if (vendaComNFCe === null) {
+    if (!temItens) return; // sem item ainda, deixa F1/F2 livre pra outra coisa (ex: navegação)
+    if (e.key === 'F1' || e.key === 'F2') {
+      e.preventDefault();
+      escolherNFCeUI(e.key === 'F1');
+    }
+    return;
+  }
+
+  // Etapa 2 (F1–F8 = forma de pagamento), só depois de já ter decidido a etapa 1.
+  const forma = CMD_PGTO_ATALHOS[e.key];
+  if (!forma) return;
   e.preventDefault(); // evita o comportamento padrão do navegador pra tecla F (ex: F1 = ajuda)
   adicionarPagamentoUI(forma);
 });
 
 function adicionarPagamentoUI(forma) {
+  if (vendaComNFCe === null) { mostrarToast('Escolhe primeiro: com ou sem nota fiscal (F1/F2).', 'warn'); return; }
   if (caixaAtualCache?.pausado) { mostrarToast('Caixa pausado — retome o caixa antes de cobrar.', 'warn'); return; }
   if (MODO_OFFLINE) { mostrarToast('Sem conexão — aguarda a internet voltar pra cobrar.', 'warn'); return; }
   if (!comandaAtualDados || !comandaAtualDados.itens || !comandaAtualDados.itens.length) {
@@ -6691,7 +6729,7 @@ async function emitirNotaFiscalComanda(comandaId, opts = {}) {
   const nf = await api(`/fiscal/nfce/comanda/${comandaId}`, { method: 'POST' });
   if (nf && nf.ok) {
     mostrarToast(`Nota fiscal autorizada! Protocolo ${nf.protocolo}`);
-    if (await confirmarBonito('Imprimir a nota fiscal (DANFE)?')) await imprimirDanfeNFCe(comandaId);
+    await imprimirDanfeNFCe(comandaId);
   } else if (nf) {
     mostrarToast(`Nota fiscal rejeitada: ${nf.motivo || 'erro desconhecido'} — confira em "Notas pendentes"`, 'warn');
     if (opts.imprimirReciboSeFalhar) imprimirReciboComanda(opts.imprimirReciboSeFalhar, opts.formaResumo);
@@ -6732,17 +6770,17 @@ async function finalizarVendaUI() {
   fecharModalComanda();
   await carregarComandas();
   // "Padaria" e "Cortesia" são consumo interno/cortesia — não teve venda de verdade,
-  // então não faz sentido (nem é permitido) emitir nota fiscal em cima disso.
+  // então não faz sentido (nem é permitido) emitir nota fiscal em cima disso, mesmo
+  // que o atendente tenha escolhido "com nota" na etapa 1.
   const consumoInterno = comandaPagamentosPendentes.some(p => p.forma_pagamento === 'Padaria' || p.forma_pagamento === 'Cortesia');
-  if (!consumoInterno && await fiscalConfigurado()) {
-    if (await confirmarBonito('Emitir nota fiscal dessa venda?')) {
-      await emitirNotaFiscalComanda(comandaFechadaId, { imprimirReciboSeFalhar: snapshot, formaResumo });
-    } else if (snapshot) {
-      if (await confirmarBonito('Imprimir recibo simples?')) imprimirReciboComanda(snapshot, formaResumo);
-    }
+  // Já foi decidido lá na etapa 1 (F1/F2, antes de escolher a forma de pagamento) —
+  // aqui só executa, sem perguntar de novo. Emite/imprime automático.
+  if (vendaComNFCe && !consumoInterno && await fiscalConfigurado()) {
+    await emitirNotaFiscalComanda(comandaFechadaId, { imprimirReciboSeFalhar: snapshot, formaResumo });
   } else if (snapshot) {
-    if (await confirmarBonito('Imprimir recibo?')) imprimirReciboComanda(snapshot, formaResumo);
+    imprimirReciboComanda(snapshot, formaResumo);
   }
+  resetEscolhaNFCe();
   // Venda de balcão: volta direto pra uma tela em branco, pronta pro próximo cliente
   // (fluxo contínuo, sem precisar passar pela lista de comandas de novo). Em modo
   // caixa isso já é feito de forma genérica dentro de fecharModalComanda() acima.
