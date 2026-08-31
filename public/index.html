@@ -1456,7 +1456,10 @@
           <span>Saldo do dia</span>
           <strong id="resumo-dia-saldo">R$ 0,00</strong>
         </div>
-        <button id="btn-resumo-dia-email" onclick="enviarResumoDiaPorEmail()" class="fin-confirmar-btn entrada" style="margin-top:14px;">✉️ Enviar por e-mail</button>
+        <div style="display:flex;gap:8px;margin-top:14px;">
+          <button onclick="imprimirResumoDiaUI()" class="btn-secondary" style="flex:1;">🖨️ Imprimir</button>
+          <button id="btn-resumo-dia-email" onclick="enviarResumoDiaPorEmail()" class="fin-confirmar-btn entrada" style="flex:1;margin:0;">✉️ E-mail</button>
+        </div>
       </div>
     </div>
 
@@ -2095,7 +2098,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260831i"></script>
+<script src="/js/app.js?v=20260831j"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

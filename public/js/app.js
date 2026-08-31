@@ -2532,6 +2532,8 @@ async function confirmarMaquininha() {
 }
 
 // ── Resumo de hoje ───────────────────────────────────────────────────────
+let _resumoDiaCache = null;
+
 async function abrirModalResumoDia() {
   document.getElementById('modal-resumo-dia').classList.remove('hidden');
   const lista = document.getElementById('resumo-dia-lista');
@@ -2539,6 +2541,7 @@ async function abrirModalResumoDia() {
 
   const d = await api('/financeiro/resumo-dia');
   if (!d) { lista.innerHTML = '<p style="padding:16px;color:var(--slate-400);text-align:center;">Erro ao carregar.</p>'; return; }
+  _resumoDiaCache = d;
 
   const dataLabel = new Date(d.data + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
   document.getElementById('resumo-dia-data').textContent = dataLabel;
@@ -2574,6 +2577,31 @@ async function abrirModalResumoDia() {
 
 function fecharModalResumoDia() {
   document.getElementById('modal-resumo-dia').classList.add('hidden');
+}
+
+function imprimirResumoDiaUI() {
+  const d = _resumoDiaCache;
+  if (!d) { mostrarToast('Espera carregar o resumo antes de imprimir.', 'warn'); return; }
+  const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
+  const dataLabel = new Date(d.data + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const linhas = (d.entradas_por_forma || []).map(item => `
+    <div class="linha"><span class="nome">${item.forma_pagamento}</span><span class="valor">${fmtMoeda(item.total)}</span></div>
+  `).join('') || '<div class="linha"><span class="nome">Nenhuma entrada hoje</span><span class="valor">—</span></div>';
+
+  abrirJanelaImpressaoTermica(`
+    <h1>${nomePadaria}</h1>
+    <div class="sub">Resumo de Hoje</div>
+    <div class="sub">${dataLabel}</div>
+    <hr/>
+    ${linhas}
+    <hr/>
+    <div class="linha"><span class="nome">Total de entradas</span><span class="valor">${fmtMoeda(d.total_entradas)}</span></div>
+    <div class="linha"><span class="nome">Total de saídas</span><span class="valor">${fmtMoeda(d.total_saidas)}</span></div>
+    <div class="total"><span>Saldo do dia</span><span>${fmtMoeda(d.saldo)}</span></div>
+    <hr/>
+    <div class="rodape">${nomePadaria} · PanificaPro</div>
+    <div class="rodape">${new Date().toLocaleString('pt-BR')}</div>
+  `);
 }
 
 async function enviarResumoDiaPorEmail() {
