@@ -6522,15 +6522,14 @@ let vendaComNFCe = null;
 
 function resetEscolhaNFCe() {
   vendaComNFCe = null;
-  document.getElementById('cmd-nfce-escolha')?.classList.remove('hidden');
-  document.getElementById('cmd-pgto-secao')?.classList.add('hidden');
+  document.getElementById('cmd-pgto-grid')?.classList.add('cmd-pgto-grid-bloqueada');
+  document.getElementById('cmd-nfce-badge')?.classList.add('hidden');
 }
 
 function escolherNFCeUI(comNota) {
   if (comNota === null) { resetEscolhaNFCe(); return; } // toque no selinho = trocar de ideia
   vendaComNFCe = comNota;
-  document.getElementById('cmd-nfce-escolha')?.classList.add('hidden');
-  document.getElementById('cmd-pgto-secao')?.classList.remove('hidden');
+  document.getElementById('cmd-pgto-grid')?.classList.remove('cmd-pgto-grid-bloqueada');
   const badge = document.getElementById('cmd-nfce-badge');
   if (badge) {
     badge.className = 'cmd-nfce-badge ' + (comNota ? 'com-nota' : 'sem-nota');

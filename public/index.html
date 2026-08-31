@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260831a"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260831b"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -841,21 +841,13 @@
               <div id="cmd-pagamentos-lista" class="cmd-pagamentos-lista"></div>
               <button id="cmd-btn-refazer" onclick="refazerPagamentos()" class="btn-ghost full hidden" style="color:#dc2626;margin-bottom:8px;">↺ Refazer Pagamentos</button>
 
-              <!-- Etapa 1: decide se essa venda vai ter nota fiscal, ANTES de escolher a forma de
-                   pagamento — F1 = com nota, F2 = sem nota. Sem pop-up, direto pelo teclado. -->
-              <div id="cmd-nfce-escolha" class="cmd-nfce-escolha">
-                <div class="cmd-pgto-label">Essa venda vai ter nota fiscal?</div>
-                <div class="cmd-nfce-escolha-grid">
-                  <button class="cmd-pgto-btn" onclick="escolherNFCeUI(true)"><span class="cmd-pgto-fkey">F1</span><span class="cmd-pgto-icone">🧾</span><span>Com nota fiscal</span></button>
-                  <button class="cmd-pgto-btn" onclick="escolherNFCeUI(false)"><span class="cmd-pgto-fkey">F2</span><span class="cmd-pgto-icone">🚫</span><span>Sem nota fiscal</span></button>
-                </div>
-              </div>
-
-              <!-- Etapa 2: forma de pagamento — só aparece depois da etapa 1 -->
-              <div id="cmd-pgto-secao" class="hidden">
-                <div class="cmd-nfce-badge" id="cmd-nfce-badge" onclick="escolherNFCeUI(null)" title="Toque pra trocar"></div>
+              <!-- Escolha de nota fiscal (F1 = com, F2 = sem) fica só no teclado, sem
+                   caixinha na tela — a grade de pagamento abaixo fica travada/apagada
+                   até decidir, e o texto do rótulo avisa o quê apertar. -->
+              <div id="cmd-pgto-secao">
+                <div class="cmd-nfce-badge hidden" id="cmd-nfce-badge" onclick="escolherNFCeUI(null)" title="Toque pra trocar"></div>
                 <div class="cmd-pgto-label" id="cmd-pgto-label">Toque na forma de pagamento pra lançar</div>
-                <div class="cmd-pgto-grid cmd-pgto-grid-grande">
+                <div class="cmd-pgto-grid cmd-pgto-grid-grande cmd-pgto-grid-bloqueada" id="cmd-pgto-grid">
                   <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Dinheiro')"><span class="cmd-pgto-fkey">F1</span><span class="cmd-pgto-icone">💵</span><span>Dinheiro</span></button>
                   <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Crédito')"><span class="cmd-pgto-fkey">F2</span><span class="cmd-pgto-icone">💳</span><span>Crédito</span></button>
                   <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Débito')"><span class="cmd-pgto-fkey">F3</span><span class="cmd-pgto-icone">💳</span><span>Débito</span></button>
@@ -2086,7 +2078,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260831e"></script>
+<script src="/js/app.js?v=20260831f"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

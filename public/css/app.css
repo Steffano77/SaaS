@@ -3058,29 +3058,9 @@ tr.tr-saida td { color: var(--red-600); }
   .cmd-pgto-grid-grande { grid-template-columns: repeat(3, 1fr); }
 }
 
-/* Etapa "com/sem nota fiscal" — aparece antes da forma de pagamento, F1/F2. */
-.cmd-nfce-escolha-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 4px;
-}
-.cmd-nfce-escolha-grid .cmd-pgto-btn {
-  position: relative;
-  padding: 22px 8px 16px;
-  border-radius: 14px;
-  background: var(--navy);
-  border: 2px solid transparent;
-  gap: 6px;
-}
-.cmd-nfce-escolha-grid .cmd-pgto-fkey {
-  position: absolute; top: 8px; left: 10px;
-  font-size: 13px; font-weight: 800; color: var(--orange);
-  background: rgba(249,115,22,0.15); padding: 2px 7px; border-radius: 6px;
-}
-.cmd-nfce-escolha-grid .cmd-pgto-icone { font-size: 36px; margin-top: 8px; }
-.cmd-nfce-escolha-grid .cmd-pgto-btn span:last-child { font-size: 15px; font-weight: 800; color: #fff; }
-.cmd-nfce-escolha-grid .cmd-pgto-btn:hover { border-color: var(--orange); background: var(--navy-light); }
+/* Grade de pagamento travada — antes de decidir F1 (com nota) / F2 (sem nota), a
+   grade fica visível mas apagada e sem clique, só como pista visual discreta. */
+.cmd-pgto-grid-bloqueada { opacity: .35; pointer-events: none; filter: grayscale(.4); }
 
 /* Selinho mostrando a escolha já feita (com/sem nota), em cima da grade de pagamento —
    toque nele pra trocar de ideia antes de finalizar. */
