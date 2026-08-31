@@ -6683,7 +6683,7 @@ async function emitirNotaFiscalComanda(comandaId, opts = {}) {
   const nf = await api(`/fiscal/nfce/comanda/${comandaId}`, { method: 'POST' });
   if (nf && nf.ok) {
     mostrarToast(`Nota fiscal autorizada! Protocolo ${nf.protocolo}`);
-    await imprimirDanfeNFCe(comandaId);
+    if (await confirmarBonito('Imprimir a nota fiscal (DANFE)?')) await imprimirDanfeNFCe(comandaId);
   } else if (nf) {
     mostrarToast(`Nota fiscal rejeitada: ${nf.motivo || 'erro desconhecido'} — confira em "Notas pendentes"`, 'warn');
     if (opts.imprimirReciboSeFalhar) imprimirReciboComanda(opts.imprimirReciboSeFalhar, opts.formaResumo);
@@ -6726,15 +6726,14 @@ async function finalizarVendaUI() {
   // "Padaria" e "Cortesia" são consumo interno/cortesia — não teve venda de verdade,
   // então não faz sentido (nem é permitido) emitir nota fiscal em cima disso.
   const consumoInterno = comandaPagamentosPendentes.some(p => p.forma_pagamento === 'Padaria' || p.forma_pagamento === 'Cortesia');
-  // Emissão e impressão agora são automáticas, sem perguntar — emitir a nota fiscal
-  // não é uma escolha de conveniência, é obrigação legal (toda venda de verdade tem
-  // que gerar nota), e a impressão já é confiável desde que resolvemos o driver da
-  // impressora. Deixar pra atendente decidir cada vez só cria risco de venda sem nota
-  // por pressa/distração.
   if (!consumoInterno && await fiscalConfigurado()) {
-    await emitirNotaFiscalComanda(comandaFechadaId, { imprimirReciboSeFalhar: snapshot, formaResumo });
+    if (await confirmarBonito('Emitir nota fiscal dessa venda?')) {
+      await emitirNotaFiscalComanda(comandaFechadaId, { imprimirReciboSeFalhar: snapshot, formaResumo });
+    } else if (snapshot) {
+      if (await confirmarBonito('Imprimir recibo simples?')) imprimirReciboComanda(snapshot, formaResumo);
+    }
   } else if (snapshot) {
-    imprimirReciboComanda(snapshot, formaResumo);
+    if (await confirmarBonito('Imprimir recibo?')) imprimirReciboComanda(snapshot, formaResumo);
   }
   // Venda de balcão: volta direto pra uma tela em branco, pronta pro próximo cliente
   // (fluxo contínuo, sem precisar passar pela lista de comandas de novo). Em modo
