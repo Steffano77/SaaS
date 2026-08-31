@@ -5853,6 +5853,11 @@ async function abrirModalComanda(id) {
   document.getElementById('cmd-calculadora').style.display = MODO_LANCAMENTO ? 'none' : 'block';
   const totalRow = document.querySelector('.cmd-pdv-total-row');
   if (totalRow) totalRow.style.display = MODO_LANCAMENTO ? 'none' : 'flex';
+  // Preço é coisa de quem cobra (caixa/dono) — o tablet do salão/copa só lança o
+  // pedido, nunca pode mudar o valor do produto.
+  const precoInput = document.getElementById('cmd-item-preco');
+  precoInput.readOnly = MODO_LANCAMENTO;
+  precoInput.classList.toggle('cmd-item-preco-travado', MODO_LANCAMENTO);
   if (bloqueada) document.getElementById('cmd-rapido-grid').style.display = 'none';
   if (btnCancelar) btnCancelar.style.display = (bloqueada || MODO_LANCAMENTO) ? 'none' : 'block';
   if (btnConcluir) btnConcluir.classList.toggle('hidden', bloqueada || !MODO_LANCAMENTO);
@@ -6358,7 +6363,9 @@ async function adicionarItemComandaUI() {
   const produto_id = document.getElementById('cmd-item-produto-id').value || null;
   const quantidade = parseFloat(document.getElementById('cmd-item-qtd').value);
   const precoInput = document.getElementById('cmd-item-preco').value;
-  const preco_unitario = precoInput !== '' ? parseFloat(precoInput) : null;
+  // No tablet de lançamento (copa/salão) o preço nunca é enviado, mesmo que alguém
+  // force o campo — o servidor sempre usa o preço de tabela do produto nesse caso.
+  const preco_unitario = (!MODO_LANCAMENTO && precoInput !== '') ? parseFloat(precoInput) : null;
 
   if (!nome) { mostrarToast('Digite ou selecione um item.', 'warn'); return; }
   if (!quantidade || quantidade <= 0) { mostrarToast('Quantidade inválida.', 'warn'); return; }

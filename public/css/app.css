@@ -2729,6 +2729,9 @@ tr.tr-saida td { color: var(--red-600); }
 .cmd-itens-lista.cmd-itens-lista-grande .cmd-item-nome strong { font-size: 20px; font-weight: 700; }
 .cmd-itens-lista.cmd-itens-lista-grande .cmd-item-subtotal { font-size: 20px; }
 .cmd-add-item .fi-busca-wrap { min-width: 200px; }
+/* Campo de preço travado no tablet de lançamento (copa/salão) — só quem cobra mexe nisso. */
+.cmd-item-preco-travado { opacity: .55; background: var(--slate-100, #f1f5f9); cursor: not-allowed; }
+[data-theme="dark"] .cmd-item-preco-travado { background: rgba(255,255,255,0.06); }
 .cmd-item-lista { top: 100%; left: 0; right: 0; }
 
 /* Busca rápida — estilo barra "Digite ou Passe o Produto/Comanda" do PDV */
