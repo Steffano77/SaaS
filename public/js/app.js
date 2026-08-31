@@ -6599,7 +6599,7 @@ function escolherNFCeUI(comNota) {
 }
 
 // Atalhos F1–F8 pras formas de pagamento (padrão de PDV) enquanto a comanda está aberta.
-const CMD_PGTO_ATALHOS = { F1: 'Dinheiro', F2: 'Crédito', F3: 'Débito', F4: 'Pix', F5: 'Voucher', F6: 'Faturado', F7: 'Padaria', F8: 'Cortesia' };
+const CMD_PGTO_ATALHOS = { F1: 'Dinheiro', F2: 'Crédito', F3: 'Débito', F4: 'Pix', F5: 'Voucher', F6: 'Faturado', F7: 'Padaria' };
 document.addEventListener('keydown', (e) => {
   // Se tiver um aviso de sim/não aberto, o F1/F2 é dele — senão os atalhos brigam.
   if (!document.getElementById('modal-confirmar-bonito')?.classList.contains('hidden')) return;
