@@ -75,12 +75,15 @@ exports.abrir = async (req, res) => {
   // Nome de quem atendeu no balcão/salão (pode ser diferente de quem opera o caixa) —
   // fica gravado desde a abertura, pra rastrear quem lançou os itens se der algum problema.
   const atendente = String(req.body.atendente || '').trim() || null;
+  // Qual caixa/PC abriu essa comanda de balcão — usado só pra cada aparelho saber
+  // recuperar a PRÓPRIA venda em andamento depois de um F5, sem pegar a de outro caixa.
+  const caixa_id = req.body.caixa_id ? Number(req.body.caixa_id) : null;
 
   const [r] = await db.query(
-    `INSERT INTO comandas (padaria_id, identificador, atendente) VALUES (?, ?, ?)`,
-    [padaria_id, identificador, atendente]
+    `INSERT INTO comandas (padaria_id, identificador, atendente, caixa_id) VALUES (?, ?, ?, ?)`,
+    [padaria_id, identificador, atendente, caixa_id]
   );
-  res.status(201).json({ id: r.insertId, identificador, atendente });
+  res.status(201).json({ id: r.insertId, identificador, atendente, caixa_id });
 };
 
 // Marca a comanda como "enviada pro caixa" (concluída no tablet do salão/lançamento) —

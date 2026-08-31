@@ -5776,7 +5776,7 @@ async function abrirTelaVendaBalcao() {
   // Recarregou a página (F5) no meio de uma venda? A comanda continua aberta no banco
   // mesmo com a variável local perdida — recupera ela em vez de começar do zero.
   const data = await api('/comandas');
-  const pendente = data?.abertas?.find(c => c.identificador?.startsWith('Balcão '));
+  const pendente = data?.abertas?.find(c => c.identificador?.startsWith('Balcão ') && Number(c.caixa_id) === Number(CAIXA_LOCAL_ID));
   if (pendente) { _balcaoComandaAtiva = pendente.id; abrirModalComanda(pendente.id); return; }
 
   abrirVendaBalcaoVazia();
@@ -5812,7 +5812,7 @@ function abrirVendaBalcaoVazia() {
 async function garantirComandaBalcaoAtiva() {
   if (comandaAtualId) return comandaAtualId;
   const identificador = 'Balcão ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  const nova = await api('/comandas', { method: 'POST', body: { identificador, atendente: _atendentePendente || null } });
+  const nova = await api('/comandas', { method: 'POST', body: { identificador, atendente: _atendentePendente || null, caixa_id: CAIXA_LOCAL_ID } });
   if (!nova) return null;
   comandaAtualId = nova.id;
   _balcaoComandaAtiva = nova.id;
