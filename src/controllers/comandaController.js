@@ -316,6 +316,45 @@ exports.fechar = async (req, res) => {
 };
 
 // Cancela uma comanda aberta (sem lançar nada)
+// Junta a comanda atual (com os itens já bipados) na comanda aberta de um cliente —
+// pra somar tudo numa cobrança só depois. Se o cliente ainda não tem comanda aberta
+// com esse nome, cria uma nova vazia e transfere os itens pra ela.
+exports.juntar = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const origem_id = Number(req.params.id);
+  const identificadorDestino = String(req.body.identificador || '').trim();
+  if (!identificadorDestino) return res.status(400).json({ erro: 'Informe o nome/número do cliente.' });
+
+  const [[origem]] = await db.query(
+    `SELECT id, status, atendente FROM comandas WHERE id = ? AND padaria_id = ?`, [origem_id, padaria_id]
+  );
+  if (!origem) return res.status(404).json({ erro: 'Comanda não encontrada.' });
+  if (origem.status !== 'aberta') return res.status(400).json({ erro: 'Essa comanda já foi fechada.' });
+
+  // Acha uma comanda aberta já existente com esse nome (que não seja ela mesma) —
+  // senão cria uma nova em branco pra receber os itens.
+  let [[destino]] = await db.query(
+    `SELECT id FROM comandas WHERE padaria_id = ? AND identificador = ? AND status = 'aberta' AND id <> ?
+     ORDER BY aberta_em DESC LIMIT 1`,
+    [padaria_id, identificadorDestino, origem_id]
+  );
+  if (!destino) {
+    const [r] = await db.query(
+      `INSERT INTO comandas (padaria_id, identificador, atendente) VALUES (?, ?, ?)`,
+      [padaria_id, identificadorDestino, origem.atendente]
+    );
+    destino = { id: r.insertId };
+  }
+
+  await db.query(`UPDATE itens_comanda SET comanda_id = ? WHERE comanda_id = ?`, [destino.id, origem_id]);
+  await recalcularTotal(destino.id);
+  // A comanda de origem fica vazia (0 itens) — cancela em vez de excluir, só por
+  // segurança/rastreio, mas não aparece mais como pendente de cobrança.
+  await db.query(`UPDATE comandas SET status = 'cancelada', fechada_em = NOW() WHERE id = ?`, [origem_id]);
+
+  res.json({ ok: true, destino_id: destino.id });
+};
+
 exports.cancelar = async (req, res) => {
   const padaria_id = req.padaria.id;
   const [[comanda]] = await db.query(

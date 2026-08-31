@@ -7015,6 +7015,24 @@ async function abrirComandaPorNumeroPdv(termoRaw) {
   abrirModalComanda(alvo.id);
 }
 
+// Junta a venda em andamento (itens já bipados) na comanda aberta de um cliente —
+// se o cliente já tinha algo lançado antes, soma tudo numa cobrança só depois.
+async function juntarComandaClienteUI() {
+  const nome = prompt('Nome (ou número) do cliente pra juntar essa venda:');
+  if (!nome || !nome.trim()) return;
+  const identificador = nome.trim();
+
+  // Ainda não bipou nenhum item — nada pra juntar ainda, só abre/cria a comanda do
+  // cliente direto (mesmo comportamento do campo "Abrir comanda Nº..." lá em cima).
+  if (!comandaAtualId) { await abrirComandaPorNumeroPdv(identificador); return; }
+
+  const r = await api(`/comandas/${comandaAtualId}/juntar`, { method: 'POST', body: { identificador } });
+  if (!r) return;
+  mostrarToast(`Juntado na comanda de "${identificador}"!`, 'ok');
+  _balcaoComandaAtiva = null;
+  abrirModalComanda(r.destino_id);
+}
+
 // Campo dedicado só pra número (teclado numérico no celular/tablet) — mesma lógica
 // do campo de busca completa, só que sem a parte de busca por nome de produto.
 async function abrirComandaPorNumeroRapido() {

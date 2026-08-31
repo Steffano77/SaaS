@@ -190,6 +190,7 @@ router.post('/comandas/:id/itens',     auth, authPremium, wrap(comandaCtrl.adici
 router.delete('/comandas/:id/itens/:itemId', auth, authPremium, exigirFuncionario(['gerente']), wrap(comandaCtrl.removerItem));
 router.post('/comandas/:id/fechar',    auth, authPremium, wrap(comandaCtrl.fechar));
 router.post('/comandas/:id/cancelar',  auth, authPremium, exigirFuncionario(['gerente']), wrap(comandaCtrl.cancelar));
+router.post('/comandas/:id/juntar',    auth, authPremium, wrap(comandaCtrl.juntar));
 router.delete('/comandas/:id',         auth, authPremium, exigirFuncionario(['gerente']), wrap(comandaCtrl.excluir));
 router.patch('/comandas/:id/ajuste',   auth, authPremium, wrap(comandaCtrl.definirAjuste));
 router.patch('/comandas/:id/atendente', auth, authPremium, wrap(comandaCtrl.definirAtendente));
