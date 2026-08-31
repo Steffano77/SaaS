@@ -99,10 +99,16 @@ exports.loginCaixa = async (req, res) => {
     const [[padaria]] = await db.query('SELECT * FROM padarias WHERE id = ? AND ativo = 1', [padaria_id]);
     if (!padaria) return res.status(404).json({ erro: 'Padaria não encontrada ou inativa.' });
 
-    const [[atendente]] = await db.query(
-      'SELECT * FROM atendentes WHERE padaria_id = ? AND nome = ? AND ativo = 1',
-      [padaria_id, nome]
+    // Nome digitado precisava bater EXATO com o cadastrado (maiúscula, acento, espaço
+    // a mais) — bug real: "Eloisa" não reconhecia "Eloísa" cadastrada com acento (ou
+    // vice-versa). Agora compara ignorando acento, maiúscula/minúscula e espaço extra.
+    const normalizar = (s) => String(s || '').trim().toLocaleLowerCase('pt-BR')
+      .normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ');
+    const [atendentesAtivos] = await db.query(
+      'SELECT * FROM atendentes WHERE padaria_id = ? AND ativo = 1',
+      [padaria_id]
     );
+    const atendente = atendentesAtivos.find(a => normalizar(a.nome) === normalizar(nome));
     if (!atendente || !atendente.pin_hash) return res.status(401).json({ erro: 'Nome ou PIN incorretos.' });
     const ok = await bcrypt.compare(pin, atendente.pin_hash);
     if (!ok) return res.status(401).json({ erro: 'Nome ou PIN incorretos.' });
