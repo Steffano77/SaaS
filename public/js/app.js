@@ -4967,6 +4967,7 @@ async function abrirPainelCaixaUI() {
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
         <button class="btn-ghost full" onclick="abrirModalCaixa('sangria')">💸 Sangria</button>
         <button class="btn-ghost full" onclick="abrirModalCaixa('suprimento')">💰 Suprimento</button>
+        <button class="btn-ghost full" onclick="reimprimirFechamentoUI(${caixa.id})">📄 Ver/imprimir relatório de hoje</button>
         <button class="btn-ghost full" onclick="pausarCaixaUI()">⏸️ Pausar caixa</button>
         <button class="btn-primary full" style="background:#dc2626;" onclick="abrirModalCaixa('fechar')">Fechar caixa</button>
       </div>
