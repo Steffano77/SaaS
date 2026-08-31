@@ -5229,6 +5229,7 @@ async function carregarEquipe() {
           <input type="checkbox" ${a.gestor ? 'checked' : ''} onchange="trocarGestorAtendente(${a.id}, this.checked)"/> Gestor
         </label>
         <button class="btn-icon" title="Editar dados (RH)" onclick="abrirDadosAtendente(${a.id}, '${a.nome.replace(/'/g,"\\'")}')">📇</button>
+        <button class="btn-icon" title="Resetar PIN" onclick="resetarPinAtendenteUI(${a.id}, '${a.nome.replace(/'/g,"\\'")}')">🔑</button>
         <button class="btn-icon" title="Exportar dados desse funcionário pra Excel" onclick="exportarAtendenteExcel(${a.id}, '${a.nome.replace(/'/g,"\\'")}')">📤</button>
         <button class="btn-icon" title="Desativar" onclick="desativarAtendenteUI(${a.id}, '${a.nome.replace(/'/g,"\\'")}')">✕</button>
       </div>
@@ -5285,6 +5286,15 @@ function exportarAtendenteExcel(id, nome) {
       setTimeout(() => URL.revokeObjectURL(burl), 5000);
     })
     .catch(e => mostrarToast(e.message, 'err'));
+}
+
+async function resetarPinAtendenteUI(id, nome) {
+  const pin = prompt(`Novo PIN de 4 números pra ${nome}:`);
+  if (pin === null) return;
+  if (!/^\d{4}$/.test(pin.trim())) { mostrarToast('O PIN precisa ter exatamente 4 números.', 'warn'); return; }
+  const r = await api(`/atendentes/${id}/resetar-pin`, { method: 'POST', body: { pin: pin.trim() } });
+  if (!r) return;
+  mostrarToast(`PIN de ${nome} resetado!`, 'ok');
 }
 
 async function trocarGestorAtendente(id, gestor) {

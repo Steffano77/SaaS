@@ -154,6 +154,17 @@ exports.exportarExcel = async (req, res) => {
   res.end();
 };
 
+// Reseta o PIN de um atendente (ex: esqueceu, ou o login-caixa não reconhece por
+// algum motivo) — só dono ou gestor.
+exports.resetarPin = async (req, res) => {
+  if (!souDonoOuGestor(req)) return res.status(403).json({ erro: 'Só o dono ou um gestor podem resetar o PIN.' });
+  const pin = String(req.body.pin || '').trim();
+  if (!/^\d{4}$/.test(pin)) return res.status(400).json({ erro: 'O PIN precisa ter exatamente 4 números.' });
+  const pin_hash = await bcrypt.hash(pin, 10);
+  await db.query(`UPDATE atendentes SET pin_hash = ? WHERE id = ? AND padaria_id = ?`, [pin_hash, req.params.id, req.padaria.id]);
+  res.json({ ok: true });
+};
+
 // Login por PIN — identifica QUEM está usando o tablet agora e devolve um token
 // próprio (separado do token da padaria) usado pra liberar ações restritas por papel
 // (excluir item, cancelar comanda, abrir caixa).
