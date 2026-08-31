@@ -6854,8 +6854,11 @@ function abrirJanelaImpressaoTermica(bodyHtml) {
     <style>
       @page { size: 80mm auto; margin: 0; }
       * { box-sizing: border-box; }
-      body { width: 80mm; margin: 0; padding: 6px 8px; font-family: 'Courier New', monospace; font-size: 12px; color: #000; }
-      h1 { font-size: 15px; text-align: center; margin: 0 0 2px; }
+      /* Negrito em tudo — em impressora térmica, fonte fina/normal sai fraca/cinza,
+         principalmente comparado a apps que mandam comando ESC/POS direto (que sempre
+         imprimem em preto sólido). Negrito compensa isso sem precisar mexer no driver. */
+      body { width: 80mm; margin: 0; padding: 6px 8px; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; color: #000; }
+      h1 { font-size: 15px; text-align: center; margin: 0 0 2px; font-weight: 800; }
       .sub { text-align: center; font-size: 11px; margin-bottom: 8px; }
       hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
       .linha { display: flex; justify-content: space-between; gap: 6px; margin: 3px 0; }
