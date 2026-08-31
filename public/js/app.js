@@ -6536,16 +6536,9 @@ function adicionarPagamentoUI(forma) {
     return;
   }
 
-  // Primeiro toque numa forma de pagamento (que não seja dinheiro): assume que é o valor
-  // total (caso mais comum, venda de balcão à vista numa forma só) e já cobra tudo, sem
-  // precisar digitar nada. Só pede o valor a partir do 2º toque, quando é divisão de verdade.
-  if (comandaPagamentosPendentes.length === 0) {
-    comandaPagamentosPendentes.push({ forma_pagamento: forma, valor: restante });
-    atualizarPagamentoUI();
-    if (calcularRestante() <= 0) finalizarVendaUI();
-    return;
-  }
-
+  // Sempre pergunta o valor, mesmo na 1ª forma de pagamento — já vem preenchido com o
+  // total (Enter confirma na hora, sem precisar digitar nada em venda de cartão único),
+  // mas dá chance de editar o valor pra dividir em mais de um cartão desde o começo.
   abrirModalValorPagamento(forma, restante, false);
 }
 
