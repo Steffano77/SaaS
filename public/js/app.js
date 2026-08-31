@@ -6496,6 +6496,11 @@ function _teclasConfirmarBonito(e) {
     e.preventDefault();
     _resolverConfirmarBonito(document.activeElement === btnCancelar ? false : true);
   }
+  // F1 = Sim, F2 = Não — rápido pra atendente decidir sem tirar a mão do teclado.
+  // stopImmediatePropagation evita que o F1/F2 também dispare o atalho de forma de
+  // pagamento (Dinheiro/Crédito) da tela de comanda, que fica aberta atrás desse aviso.
+  if (e.key === 'F1') { e.preventDefault(); e.stopImmediatePropagation(); _resolverConfirmarBonito(true); }
+  if (e.key === 'F2') { e.preventDefault(); e.stopImmediatePropagation(); _resolverConfirmarBonito(false); }
 }
 function _resolverConfirmarBonito(valor) {
   document.getElementById('modal-confirmar-bonito').classList.add('hidden');
@@ -6512,6 +6517,9 @@ function calcularRestante() {
 // Atalhos F1–F5 pras formas de pagamento (padrão de PDV) enquanto a comanda está aberta.
 const CMD_PGTO_ATALHOS = { F1: 'Dinheiro', F2: 'Crédito', F3: 'Débito', F4: 'Pix', F5: 'Voucher', F6: 'Faturado', F7: 'Padaria', F8: 'Cortesia' };
 document.addEventListener('keydown', (e) => {
+  // Se tiver um aviso de sim/não aberto (ex: "Emitir nota fiscal?"), o F1/F2 é dele
+  // (Sim/Não), não da forma de pagamento — senão os dois atalhos brigam.
+  if (!document.getElementById('modal-confirmar-bonito')?.classList.contains('hidden')) return;
   const forma = CMD_PGTO_ATALHOS[e.key];
   if (!forma) return;
   const modalAberto = !document.getElementById('modal-comanda')?.classList.contains('hidden');
