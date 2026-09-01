@@ -83,6 +83,7 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
   let somaVIBS = 0;
   let somaVCBS = 0;
   let somaVDesc = 0;
+  let somaVOutro = 0;
 
   // Desconto da comanda é um valor único (dado no fechamento), mas a Sefaz exige que o
   // <vDesc> total bata com a SOMA do <vDesc> de cada item (rejeição 537) — distribui
@@ -102,6 +103,19 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
     return parseFloat(num2(vDescontoBruto * (parseFloat(item.subtotal) / vProdTotalBruto)));
   });
 
+  // Mesma lógica pro acréscimo (rejeição 604: "Total do vOutro difere do somatório dos
+  // itens") — distribui proporcionalmente e joga a sobra no último item.
+  const vAcrescimoBruto = parseFloat(comanda.acrescimo || 0);
+  const acrescimosPorItem = itens.map((item, idx) => {
+    if (vAcrescimoBruto <= 0 || vProdTotalBruto <= 0) return 0;
+    if (idx === itens.length - 1) {
+      const somaAnteriores = itens.slice(0, -1).reduce((s, i) =>
+        s + parseFloat(num2(vAcrescimoBruto * (parseFloat(i.subtotal) / vProdTotalBruto))), 0);
+      return Math.max(0, parseFloat(num2(vAcrescimoBruto - somaAnteriores)));
+    }
+    return parseFloat(num2(vAcrescimoBruto * (parseFloat(item.subtotal) / vProdTotalBruto)));
+  });
+
   const detXml = itens.map((item, idx) => {
     const nItem = idx + 1;
     const qCom = num4(item.quantidade);
@@ -109,6 +123,8 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
     const vProd = num2(item.subtotal);
     const vDescItem = num2(descontosPorItem[idx]);
     somaVDesc += parseFloat(vDescItem);
+    const vOutroItem = num2(acrescimosPorItem[idx]);
+    somaVOutro += parseFloat(vOutroItem);
     const vIBSItem = (parseFloat(vProd) * 0.001).toFixed(2);
     const vCBSItem = (parseFloat(vProd) * 0.009).toFixed(2);
     somaVIBS += parseFloat(vIBSItem);
@@ -137,6 +153,7 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
         <qTrib>${qCom}</qTrib>
         <vUnTrib>${vUnCom}</vUnTrib>
         ${parseFloat(vDescItem) > 0 ? `<vDesc>${vDescItem}</vDesc>` : ''}
+        ${parseFloat(vOutroItem) > 0 ? `<vOutro>${vOutroItem}</vOutro>` : ''}
         <indTot>1</indTot>
       </prod>
       <imposto>
@@ -171,7 +188,9 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
   // Usa a SOMA dos vDesc de item (já arredondados, calculados acima) — nunca o valor
   // bruto da comanda direto — pro total bater exatamente com a soma declarada por item.
   const vDesconto = somaVDesc;
-  const vAcrescimo = parseFloat(comanda.acrescimo || 0);
+  // Usa a SOMA dos vOutro de item (já arredondados), nunca o valor bruto direto —
+  // mesmo motivo do vDesconto acima, pro total bater exatamente com a Sefaz.
+  const vAcrescimo = somaVOutro;
   const vNF = Math.max(0, vProdTotal - vDesconto + vAcrescimo);
 
   const pagXml = pagamentos.map(p => {
