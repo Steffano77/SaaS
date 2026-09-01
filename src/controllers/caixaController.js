@@ -112,6 +112,10 @@ async function montarResumoCaixa(caixa) {
   );
   const totalSangrias = movimentos.filter(m => m.tipo === 'sangria').reduce((s, m) => s + parseFloat(m.valor), 0);
   const totalSuprimentos = movimentos.filter(m => m.tipo === 'suprimento').reduce((s, m) => s + parseFloat(m.valor), 0);
+  // Despesas — sangria com motivo detalhado, lançada pela atendente na hora de fechar.
+  // Sai da gaveta igual sangria, mas fica listada uma a uma no relatório (não só o total).
+  const despesas = movimentos.filter(m => m.tipo === 'despesa');
+  const totalDespesas = despesas.reduce((s, m) => s + parseFloat(m.valor), 0);
 
   const [[ajustes]] = await db.query(
     `SELECT COALESCE(SUM(desconto), 0) AS totalDescontos, COALESCE(SUM(acrescimo), 0) AS totalAcrescimos
@@ -130,7 +134,7 @@ async function montarResumoCaixa(caixa) {
   );
 
   const esperadoEmDinheiro = parseFloat(caixa.valor_abertura) + parseFloat(totalDinheiro.total)
-    + totalSuprimentos - totalSangrias;
+    + totalSuprimentos - totalSangrias - totalDespesas;
 
   return {
     porForma,
@@ -139,6 +143,8 @@ async function montarResumoCaixa(caixa) {
     totalDescontos: parseFloat(ajustes.totalDescontos),
     totalAcrescimos: parseFloat(ajustes.totalAcrescimos),
     totalSangrias, totalSuprimentos,
+    totalDespesas,
+    despesas: despesas.map(d => ({ descricao: d.observacao || '(sem descrição)', valor: parseFloat(d.valor) })),
     movimentos,
     esperadoEmDinheiro,
     qtdVendas: contagem.qtdVendas,
@@ -160,7 +166,7 @@ function calcularConferencia(caixa, resumo, formasInformadas) {
   return formasParaConferir.map(f => {
     const ehDinheiro = f.forma_pagamento === 'Dinheiro';
     const emCaixa = ehDinheiro
-      ? parseFloat(caixa.valor_abertura) + parseFloat(f.total) + resumo.totalSuprimentos - resumo.totalSangrias
+      ? parseFloat(caixa.valor_abertura) + parseFloat(f.total) + resumo.totalSuprimentos - resumo.totalSangrias - (resumo.totalDespesas || 0)
       : parseFloat(f.total);
     const bruto = formasInformadas[f.forma_pagamento];
     const fechado = (bruto !== undefined && bruto !== null && bruto !== '') ? (parseFloat(bruto) || 0) : emCaixa;
@@ -176,6 +182,19 @@ exports.fechar = async (req, res) => {
     [req.params.id, padaria_id]
   );
   if (!caixa) return res.status(404).json({ erro: 'Caixa não encontrado ou já fechado.' });
+
+  // Despesas lançadas pela atendente na hora de fechar — grava ANTES de montar o
+  // resumo, pra já entrarem na conta do "esperado em dinheiro" e na conferência.
+  const despesas = Array.isArray(req.body.despesas) ? req.body.despesas : [];
+  for (const d of despesas) {
+    const valor = parseFloat(d.valor) || 0;
+    const descricao = String(d.descricao || '').trim();
+    if (valor <= 0 || !descricao) continue;
+    await db.query(
+      `INSERT INTO caixa_movimentos (caixa_id, tipo, valor, observacao) VALUES (?, 'despesa', ?, ?)`,
+      [caixa.id, valor, descricao]
+    );
+  }
 
   const resumo = await montarResumoCaixa(caixa);
   const formasInformadas = fechamento_formas && typeof fechamento_formas === 'object' ? fechamento_formas : {};

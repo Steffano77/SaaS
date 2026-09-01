@@ -5061,6 +5061,7 @@ async function abrirModalCaixa(modo) {
           ${r.totalAcrescimos > 0 ? `<div class="cmd-resumo-linha"><span>Acréscimos cobrados</span><span>+${fmtMoeda(r.totalAcrescimos)}</span></div>` : ''}
         ` : ''}
         <div class="cmd-resumo-linha"><span>Sangrias</span><span>-${fmtMoeda(r?.totalSangrias)}</span></div>
+        <div class="cmd-resumo-linha"><span>Despesas</span><span>-${fmtMoeda(r?.totalDespesas)}</span></div>
         <div class="cmd-resumo-linha"><span>Suprimentos</span><span>+${fmtMoeda(r?.totalSuprimentos)}</span></div>
         <div class="cmd-resumo-linha total"><span>Esperado em dinheiro na gaveta</span><span>${fmtMoeda(r?.esperadoEmDinheiro)}</span></div>
         ${naoDinheiro.length ? `
@@ -5072,10 +5073,15 @@ async function abrirModalCaixa(modo) {
 
     const avisoCego = `<div class="cmd-fechamento-aviso">Conte o dinheiro da gaveta e confira o extrato de cada forma. Digite exatamente o que você contou — não precisa bater com nada, é só o que você contou de verdade.</div>`;
 
+    _despesasFechamento = [];
     corpo.innerHTML = `
       ${cego ? avisoCego : resumoCompleto}
       <div class="cmd-resumo-secao" style="margin-top:10px;">Conferência por forma de pagamento</div>
       <div class="cmd-fechamento-grid">${camposConferencia}</div>
+      <div class="cmd-resumo-secao" style="margin-top:14px;">Despesas do caixa</div>
+      <p style="font-size:12px;color:var(--slate-500);margin:-4px 0 8px;">Dinheiro que saiu da gaveta hoje — gás, embalagem, troco pro entregador, etc.</p>
+      <div id="cmd-despesas-lista"></div>
+      <button type="button" class="btn-ghost full" style="margin-top:4px;" onclick="adicionarDespesaFechamentoUI()">+ Adicionar despesa</button>
       <div class="form-group" style="margin-top:10px;">
         <label class="form-label">Observação (opcional)</label>
         <input id="caixa-fechamento-obs" type="text" class="form-control"/>
@@ -5091,6 +5097,32 @@ async function sugerirNomeCaixa() {
   const abertos = await api('/caixa/abertos');
   const n = (abertos ? abertos.length : 0) + 1;
   return `Caixa ${n}`;
+}
+
+// Despesas lançadas na hora de fechar o caixa — cada linha some/aparece direto no DOM
+// (lidas ali na hora de confirmar), essa lista só controla quantas linhas existem.
+let _despesasFechamento = [];
+
+function adicionarDespesaFechamentoUI() {
+  _despesasFechamento.push({});
+  renderDespesasFechamentoUI();
+}
+
+function removerDespesaFechamentoUI(idx) {
+  _despesasFechamento.splice(idx, 1);
+  renderDespesasFechamentoUI();
+}
+
+function renderDespesasFechamentoUI() {
+  const el = document.getElementById('cmd-despesas-lista');
+  if (!el) return;
+  el.innerHTML = _despesasFechamento.map((_, idx) => `
+    <div class="cmd-despesa-linha" style="display:flex;gap:6px;margin-bottom:6px;align-items:center;">
+      <input type="text" class="form-control cmd-despesa-descricao" placeholder="O que foi (ex: gás, embalagem...)" style="flex:2;"/>
+      <input type="text" inputmode="numeric" class="form-control cmd-despesa-valor" placeholder="R$ 0,00" style="flex:1;" oninput="formatarCentavos(this)"/>
+      <button type="button" class="btn-icon" onclick="removerDespesaFechamentoUI(${idx})">✕</button>
+    </div>
+  `).join('');
 }
 
 async function confirmarAbrirCaixa() {
@@ -5137,10 +5169,20 @@ async function confirmarFecharCaixa() {
     if (inp.value !== '') fechamento_formas[inp.dataset.forma] = paraNumeroMoeda(inp.value);
   });
   const cego = !!sessionStorage.getItem('pp_modo_caixa_restrito');
+  // Despesas lançadas na hora de fechar — cada linha tem descrição (obrigatória) e valor.
+  const despesas = [];
+  document.querySelectorAll('.cmd-despesa-linha').forEach(linha => {
+    const descricao = linha.querySelector('.cmd-despesa-descricao').value.trim();
+    const valor = paraNumeroMoeda(linha.querySelector('.cmd-despesa-valor').value);
+    if (descricao && valor > 0) despesas.push({ descricao, valor });
+  });
   if (!confirm('Fechar o caixa agora? Confira os valores contados antes de confirmar.')) return;
-  const caixaSnapshot = caixaAtualCache; // guarda o resumo antes de fechar, pro comprovante impresso
-  const r = await api(`/caixa/${CAIXA_LOCAL_ID}/fechar`, { method: 'POST', body: { fechamento_formas, observacao } });
+  const caixaSnapshot = caixaAtualCache; // guarda os dados fixos do caixa (nome, aberto_em...) pro comprovante
+  const r = await api(`/caixa/${CAIXA_LOCAL_ID}/fechar`, { method: 'POST', body: { fechamento_formas, observacao, despesas } });
   if (!r) return;
+  // O resumo que volta do fechamento já inclui as despesas recém-lançadas — o snapshot
+  // de antes de fechar não tem isso ainda, por isso troca o resumo aqui.
+  if (caixaSnapshot) caixaSnapshot.resumo = r.resumo;
   localStorage.removeItem('pp_caixa_id');
   CAIXA_LOCAL_ID = null;
   const dif = r.diferenca;
@@ -5212,6 +5254,18 @@ function imprimirFechamentoCaixa(caixa, conferencia, diferenca) {
 
   const difLabel = Math.abs(diferenca) < 0.01 ? '0,00' : fmtMoeda(diferenca);
 
+  // Despesas do caixa, listadas uma a uma (não só o total) — o que a atendente lançou
+  // na hora de fechar, dizendo em que usou o dinheiro que saiu da gaveta.
+  const linhasDespesas = (r?.despesas || []).map(d =>
+    `<div class="linha"><span class="nome">${d.descricao}</span><span class="valor">${fmtMoeda(d.valor)}</span></div>`
+  ).join('');
+  const blocoDespesas = (r?.despesas || []).length ? `
+    <hr/>
+    <div class="rodape" style="text-align:left;font-weight:bold;">Despesas do Caixa</div>
+    ${linhasDespesas}
+    <div class="linha total"><span>Total Despesas</span><span>${fmtMoeda(r?.totalDespesas)}</span></div>
+  ` : '';
+
   abrirJanelaImpressaoTermica(`
     <h1>${nomePadaria}</h1>
     <div class="sub">Relatório Completo de Sessão</div>
@@ -5227,6 +5281,8 @@ function imprimirFechamentoCaixa(caixa, conferencia, diferenca) {
     <div class="linha"><span class="nome">Abertura</span><span class="valor">${fmtMoeda(caixa?.valor_abertura)}</span></div>
     <div class="linha"><span class="nome">Suprimento</span><span class="valor">${fmtMoeda(r?.totalSuprimentos)}</span></div>
     <div class="linha"><span class="nome">Sangria</span><span class="valor">${fmtMoeda(r?.totalSangrias)}</span></div>
+    <div class="linha"><span class="nome">Despesas</span><span class="valor">${fmtMoeda(r?.totalDespesas)}</span></div>
+    ${blocoDespesas}
     <hr/>
     <div class="rodape" style="text-align:left;font-weight:bold;">Fechamento Caixa</div>
     <table style="width:100%;font-size:11px;border-collapse:collapse;margin-top:4px;">
@@ -5238,6 +5294,7 @@ function imprimirFechamentoCaixa(caixa, conferencia, diferenca) {
     <div class="linha"><span class="nome">Abertura</span><span class="valor">${fmtMoeda(caixa?.valor_abertura)}</span></div>
     <div class="linha"><span class="nome">Suprimento</span><span class="valor">${fmtMoeda(r?.totalSuprimentos)}</span></div>
     <div class="linha"><span class="nome">Sangria</span><span class="valor">${fmtMoeda(r?.totalSangrias)}</span></div>
+    <div class="linha"><span class="nome">Despesas</span><span class="valor">${fmtMoeda(r?.totalDespesas)}</span></div>
     <hr/>
     <div class="linha"><span class="nome">Valor em Caixa</span><span class="valor">${fmtMoeda(r?.esperadoEmDinheiro)}</span></div>
     <div class="linha"><span class="nome">Valor Fechamento</span><span class="valor">${fmtMoeda(informado)}</span></div>

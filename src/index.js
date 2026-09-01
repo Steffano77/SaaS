@@ -428,6 +428,9 @@ app.use(express.static(path.join(__dirname, '../public'), {
       )`,
       'ALTER TABLE comandas ADD COLUMN cliente_nome VARCHAR(150) NULL',
       'ALTER TABLE comandas ADD COLUMN cliente_documento VARCHAR(18) NULL',
+      // Despesas do caixa, lançadas pela atendente na hora de fechar (dinheiro que saiu
+      // da gaveta, com o motivo detalhado) — usa a mesma tabela de sangria/suprimento.
+      "ALTER TABLE caixa_movimentos MODIFY COLUMN tipo ENUM('sangria','suprimento','despesa') NOT NULL",
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
 
