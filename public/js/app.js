@@ -7016,10 +7016,14 @@ function refazerPagamentos() {
 
 // NFC-e ainda em homologação (teste) — só oferece o botão de emitir pras padarias
 // que já configuraram certificado fiscal, pra não incomodar quem ainda não usa isso.
+// Só guarda em cache o resultado POSITIVO (configurado e válido) — um "não configurado"
+// pode ter sido só uma falha passageira de rede, e o PC do caixa fica com a mesma aba
+// aberta o dia inteiro sem recarregar, então nunca podemos travar num "false" errado
+// pro resto do turno. Sempre tenta de novo até confirmar que está tudo certo.
 let _fiscalConfiguradoCache = null;
 let _fiscalAmbienteCache = null;
 async function fiscalConfigurado() {
-  if (_fiscalConfiguradoCache === null) {
+  if (_fiscalConfiguradoCache !== true) {
     try {
       const r = await api('/fiscal/certificado/status');
       _fiscalConfiguradoCache = !!(r && r.configurado && r.valido);
