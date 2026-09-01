@@ -6800,7 +6800,7 @@ async function confirmarSenhaFaturadoUI() {
   const pin = document.getElementById('senha-faturado-input').value.trim();
   const erro = document.getElementById('senha-faturado-erro');
   if (!/^\d{4}$/.test(pin)) { erro.textContent = 'A senha precisa ter 4 números.'; erro.classList.remove('hidden'); return; }
-  const r = await fetch(`${API}/financeiro/pin`, {
+  const r = await fetch(`${API}/clientes-faturado/verificar-pin`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
     body: JSON.stringify({ pin }),
   });

@@ -140,6 +140,12 @@ router.get('/clientes-faturado/cnpj/:cnpj', auth, authPremium, wrap(clienteFatur
 router.post('/clientes-faturado',           auth, authPremium, wrap(clienteFaturadoCtrl.criar));
 router.put('/clientes-faturado/:id',        auth, authPremium, wrap(clienteFaturadoCtrl.atualizar));
 router.delete('/clientes-faturado/:id',     auth, authPremium, wrap(clienteFaturadoCtrl.remover));
+// Senha fixa (1234) só pra confirmar o lançamento em "Faturado" — separada da senha do
+// Financeiro, de propósito (essa aqui todo mundo do time sabe, a do Financeiro não).
+router.post('/clientes-faturado/verificar-pin', auth, authPremium, wrap((req, res) => {
+  if (String(req.body.pin || '') !== '1234') return res.status(401).json({ erro: 'Senha incorreta.' });
+  res.json({ ok: true });
+}));
 
 router.get('/financeiro',                   auth, authPremium, wrap(financeiroCtrl.listar));
 router.post('/financeiro',                  auth, authPremium, wrap(financeiroCtrl.criar));
