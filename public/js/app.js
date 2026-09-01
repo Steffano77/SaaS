@@ -5841,6 +5841,7 @@ function abrirVendaBalcaoVazia() {
   comandaAtualDados = { itens: [], total: 0, desconto: 0, acrescimo: 0, status: 'aberta' };
   comandaPagamentosPendentes = [];
   resetEscolhaNFCe();
+  _faturadoClienteSelecionado = null;
   document.getElementById('cmd-detalhe-titulo').textContent = '🧾 Nova venda';
   document.getElementById('cmd-item-busca').value = '';
   document.getElementById('cmd-item-produto-id').value = '';
@@ -5882,6 +5883,7 @@ async function abrirModalComanda(id) {
   comandaAtualId = c.id;
   comandaPagamentosPendentes = [];
   resetEscolhaNFCe();
+  _faturadoClienteSelecionado = null;
   document.getElementById('cmd-detalhe-titulo').textContent = `🧾 ${c.identificador}${c.atendente ? ' · ' + c.atendente : ''}`;
   document.getElementById('cmd-item-busca').value = '';
   document.getElementById('cmd-item-produto-id').value = '';
@@ -6581,6 +6583,10 @@ function calcularRestante() {
 // null = ainda não decidiu (grade de pagamento fica travada); true/false = já decidiu.
 let vendaComNFCe = null;
 
+// Cliente (CNPJ/nome) identificado pra pagamento em "Faturado" — usado no fechamento
+// da comanda e impresso no recibo. Some a cada venda nova.
+let _faturadoClienteSelecionado = null;
+
 function resetEscolhaNFCe() {
   vendaComNFCe = null;
   document.getElementById('cmd-pgto-grid')?.classList.add('cmd-pgto-grid-bloqueada');
@@ -6625,7 +6631,7 @@ document.addEventListener('keydown', (e) => {
   adicionarPagamentoUI(forma);
 });
 
-function adicionarPagamentoUI(forma) {
+async function adicionarPagamentoUI(forma) {
   if (vendaComNFCe === null) { mostrarToast('Escolhe primeiro: com ou sem nota fiscal (F1/F2).', 'warn'); return; }
   if (caixaAtualCache?.pausado) { mostrarToast('Caixa pausado — retome o caixa antes de cobrar.', 'warn'); return; }
   if (MODO_OFFLINE) { mostrarToast('Sem conexão — aguarda a internet voltar pra cobrar.', 'warn'); return; }
@@ -6635,6 +6641,14 @@ function adicionarPagamentoUI(forma) {
   }
   const restante = calcularRestante();
   if (restante <= 0) { mostrarToast('Essa comanda já está totalmente paga.', 'warn'); return; }
+
+  // "Faturado" precisa identificar o cliente (CNPJ/nome) ANTES de cobrar — é o que vai
+  // impresso no recibo. Só avança se a pessoa confirmar/cadastrar um cliente.
+  if (forma === 'Faturado') {
+    const cliente = await identificarClienteFaturadoUI();
+    if (!cliente) return; // cancelou — não lança o pagamento
+    _faturadoClienteSelecionado = cliente;
+  }
 
   // Dinheiro sempre pede o valor recebido — é o único jeito de calcular troco.
   if (forma === 'Dinheiro') {
@@ -6646,6 +6660,135 @@ function adicionarPagamentoUI(forma) {
   // total (Enter confirma na hora, sem precisar digitar nada em venda de cartão único),
   // mas dá chance de editar o valor pra dividir em mais de um cartão desde o começo.
   abrirModalValorPagamento(forma, restante, false);
+}
+
+// ── Cadastro de clientes faturado (tela de gerenciar, em Financeiro) ─────
+async function abrirClientesFaturado() {
+  const lista = await api('/clientes-faturado');
+  if (!lista) return;
+  document.getElementById('modal-clientes-faturado').classList.remove('hidden');
+  renderClientesFaturadoLista(lista);
+}
+
+function renderClientesFaturadoLista(lista) {
+  const el = document.getElementById('clientes-faturado-lista');
+  if (!lista.length) { el.innerHTML = '<p style="text-align:center;color:var(--slate-400);padding:20px;">Nenhum cliente cadastrado ainda.</p>'; return; }
+  el.innerHTML = lista.map(c => `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border:1px solid var(--slate-200,#e2e8f0);border-radius:10px;">
+      <div>
+        <div style="font-weight:700;font-size:13.5px;">${c.nome}</div>
+        <div style="font-size:12px;color:var(--slate-500);">${formatarCnpjUI(c.cnpj)}${c.telefone ? ' · ' + c.telefone : ''}</div>
+        ${c.endereco ? `<div style="font-size:12px;color:var(--slate-500);">${c.endereco}</div>` : ''}
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0;">
+        <button class="btn-icon" title="Editar" onclick="editarClienteFaturadoUI(${c.id},'${(c.nome||'').replace(/'/g,"\\'")}','${(c.endereco||'').replace(/'/g,"\\'")}','${(c.telefone||'').replace(/'/g,"\\'")}')">✏️</button>
+        <button class="btn-icon" title="Excluir" onclick="excluirClienteFaturadoUI(${c.id})">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function abrirNovoClienteFaturadoUI() {
+  const cnpj = prompt('CNPJ do cliente (só números ou com pontuação):');
+  if (!cnpj || !cnpj.trim()) return;
+  const nome = prompt('Nome / Razão social:');
+  if (!nome || !nome.trim()) return;
+  const endereco = prompt('Endereço (opcional, deixa vazio se não quiser):') || '';
+  const telefone = prompt('Telefone (opcional):') || '';
+  const r = await api('/clientes-faturado', { method: 'POST', body: { cnpj, nome, endereco, telefone } });
+  if (!r) return;
+  mostrarToast(`${nome} cadastrado!`, 'ok');
+  abrirClientesFaturado();
+}
+
+async function editarClienteFaturadoUI(id, nomeAtual, enderecoAtual, telefoneAtual) {
+  const nome = prompt('Nome / Razão social:', nomeAtual);
+  if (!nome || !nome.trim()) return;
+  const endereco = prompt('Endereço:', enderecoAtual) || '';
+  const telefone = prompt('Telefone:', telefoneAtual) || '';
+  const r = await api(`/clientes-faturado/${id}`, { method: 'PUT', body: { nome, endereco, telefone } });
+  if (!r) return;
+  mostrarToast('Atualizado!', 'ok');
+  abrirClientesFaturado();
+}
+
+async function excluirClienteFaturadoUI(id) {
+  if (!(await confirmarBonito('Excluir esse cliente? Não afeta vendas já feitas, só some do cadastro.'))) return;
+  const r = await api(`/clientes-faturado/${id}`, { method: 'DELETE' });
+  if (!r) return;
+  mostrarToast('Excluído.', 'ok');
+  abrirClientesFaturado();
+}
+
+// ── Identificar cliente (CNPJ) pra pagamento "Faturado" ──────────────────
+let _resolverIdentificarCliente = null;
+
+function identificarClienteFaturadoUI() {
+  return new Promise((resolve) => {
+    _resolverIdentificarCliente = resolve;
+    document.getElementById('idcli-cnpj').value = '';
+    document.getElementById('idcli-resultado').innerHTML = '';
+    document.getElementById('modal-identificar-cliente').classList.remove('hidden');
+    setTimeout(() => document.getElementById('idcli-cnpj')?.focus(), 100);
+  });
+}
+
+function _fecharIdentificarCliente(cliente) {
+  document.getElementById('modal-identificar-cliente').classList.add('hidden');
+  if (_resolverIdentificarCliente) { const r = _resolverIdentificarCliente; _resolverIdentificarCliente = null; r(cliente); }
+}
+
+async function buscarClienteFaturadoUI() {
+  const cnpjDigitado = document.getElementById('idcli-cnpj').value;
+  const cnpjLimpo = cnpjDigitado.replace(/\D/g, '');
+  const resultado = document.getElementById('idcli-resultado');
+  if (cnpjLimpo.length !== 14) { resultado.innerHTML = '<p style="color:#dc2626;font-size:12.5px;">CNPJ precisa ter 14 números.</p>'; return; }
+
+  resultado.innerHTML = '<p style="color:var(--slate-400);font-size:12.5px;">Buscando...</p>';
+  const r = await fetch(`${API}/clientes-faturado/cnpj/${cnpjLimpo}`, { headers: { 'Authorization': `Bearer ${TOKEN}` } });
+  const d = await r.json().catch(() => null);
+
+  if (r.ok && d) {
+    resultado.innerHTML = `
+      <div style="background:var(--navy,#1e3a5f);border-radius:10px;padding:12px;margin-bottom:10px;">
+        <div style="font-weight:700;color:#fff;">${d.nome}</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:2px;">${formatarCnpjUI(d.cnpj)}</div>
+        ${d.endereco ? `<div style="font-size:12px;color:rgba(255,255,255,0.7);">${d.endereco}</div>` : ''}
+        ${d.telefone ? `<div style="font-size:12px;color:rgba(255,255,255,0.7);">${d.telefone}</div>` : ''}
+      </div>
+      <button class="btn-primary full" onclick='_fecharIdentificarCliente(${JSON.stringify({ nome: d.nome, cnpj: d.cnpj })})'>✅ Confirmar e cobrar pra este cliente</button>
+    `;
+    return;
+  }
+
+  // Não achou — oferece cadastrar na hora, sem precisar sair da venda.
+  resultado.innerHTML = `
+    <p style="font-size:12.5px;color:var(--slate-400);margin-bottom:8px;">Nenhum cliente com esse CNPJ. Cadastra agora:</p>
+    <div class="form-group"><label class="form-label">Nome / Razão social</label>
+      <input type="text" id="idcli-novo-nome" class="form-control" placeholder="Nome da empresa"/></div>
+    <div class="form-group"><label class="form-label">Endereço (opcional)</label>
+      <input type="text" id="idcli-novo-endereco" class="form-control"/></div>
+    <div class="form-group"><label class="form-label">Telefone (opcional)</label>
+      <input type="text" id="idcli-novo-telefone" class="form-control"/></div>
+    <button class="btn-primary full" onclick="cadastrarClienteFaturadoUI('${cnpjLimpo}')">💾 Cadastrar e cobrar pra este cliente</button>
+  `;
+}
+
+async function cadastrarClienteFaturadoUI(cnpjLimpo) {
+  const nome = document.getElementById('idcli-novo-nome').value.trim();
+  if (!nome) { mostrarToast('Digite o nome do cliente.', 'warn'); return; }
+  const endereco = document.getElementById('idcli-novo-endereco').value.trim();
+  const telefone = document.getElementById('idcli-novo-telefone').value.trim();
+  const r = await api('/clientes-faturado', { method: 'POST', body: { cnpj: cnpjLimpo, nome, endereco, telefone } });
+  if (!r) return;
+  mostrarToast(`${nome} cadastrado!`, 'ok');
+  _fecharIdentificarCliente({ nome, cnpj: cnpjLimpo });
+}
+
+function formatarCnpjUI(cnpj) {
+  const d = String(cnpj || '').replace(/\D/g, '');
+  if (d.length !== 14) return cnpj;
+  return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12,14)}`;
 }
 
 // ── Modal de valor recebido (troco no dinheiro + divisão de pagamento) ──
@@ -6704,7 +6847,14 @@ function confirmarValorPagamento() {
   }
   const aplicado = Math.min(valor, _pgtoRestante);
   const troco = _pgtoEhDinheiro ? Math.max(0, Math.round((valor - _pgtoRestante) * 100) / 100) : 0;
-  comandaPagamentosPendentes.push({ forma_pagamento: _pgtoForma, valor: aplicado, troco });
+  const pagamento = { forma_pagamento: _pgtoForma, valor: aplicado, troco };
+  // Faturado carrega o cliente identificado antes de abrir essa caixinha de valor —
+  // vai junto no fechamento da comanda, pra imprimir no recibo.
+  if (_pgtoForma === 'Faturado' && _faturadoClienteSelecionado) {
+    pagamento.cliente_nome = _faturadoClienteSelecionado.nome;
+    pagamento.cliente_documento = _faturadoClienteSelecionado.cnpj;
+  }
+  comandaPagamentosPendentes.push(pagamento);
   document.getElementById('modal-valor-pagamento').classList.add('hidden');
   atualizarPagamentoUI();
   if (troco > 0) {
@@ -6822,8 +6972,23 @@ async function finalizarVendaUI() {
   const comandaFechadaId = comandaAtualId; // guarda ANTES de fechar o modal, que zera comandaAtualId
   const snapshot = comandaAtualDados; // guarda os itens antes de fechar, pro recibo
   const formaResumo = comandaPagamentosPendentes.map(p => p.forma_pagamento).join(' + ');
-  const r = await api(`/comandas/${comandaAtualId}/fechar`, { method: 'POST', body: { pagamentos: comandaPagamentosPendentes, caixa_id: CAIXA_LOCAL_ID } });
+  // Cliente identificado no pagamento "Faturado" — vai junto pro fechamento (grava na
+  // comanda) e pro recibo impresso (Cliente:/Documento:).
+  const pgtoFaturado = comandaPagamentosPendentes.find(p => p.forma_pagamento === 'Faturado' && p.cliente_nome);
+  if (pgtoFaturado && snapshot) {
+    snapshot.cliente_nome = pgtoFaturado.cliente_nome;
+    snapshot.cliente_documento = pgtoFaturado.cliente_documento;
+  }
+  const r = await api(`/comandas/${comandaAtualId}/fechar`, {
+    method: 'POST',
+    body: {
+      pagamentos: comandaPagamentosPendentes, caixa_id: CAIXA_LOCAL_ID,
+      cliente_nome: pgtoFaturado?.cliente_nome || null,
+      cliente_documento: pgtoFaturado?.cliente_documento || null,
+    }
+  });
   if (!r) return;
+  _faturadoClienteSelecionado = null;
   const foiBalcao = comandaAtualId === _balcaoComandaAtiva;
   if (foiBalcao) _balcaoComandaAtiva = null;
   mostrarToast(`Comanda fechada — ${formaResumo}!`, 'ok');
@@ -6841,6 +7006,7 @@ async function finalizarVendaUI() {
     imprimirReciboComanda(snapshot, formaResumo);
   }
   resetEscolhaNFCe();
+  _faturadoClienteSelecionado = null;
   // Venda de balcão: volta direto pra uma tela em branco, pronta pro próximo cliente
   // (fluxo contínuo, sem precisar passar pela lista de comandas de novo). Em modo
   // caixa isso já é feito de forma genérica dentro de fecharModalComanda() acima.
@@ -6918,9 +7084,15 @@ function imprimirReciboComanda(c, forma_pagamento) {
     </div>
   `).join('');
   const total = c.itens.reduce((s, i) => s + parseFloat(i.subtotal), 0);
+  // "Faturado" com cliente identificado imprime Cliente/Documento, igual à nota do Saurus.
+  const linhaCliente = c.cliente_nome
+    ? `<div class="sub" style="text-align:left;margin-top:6px;">Cliente: ${c.cliente_nome}</div>
+       <div class="sub" style="text-align:left;">Documento: ${formatarCnpjUI(c.cliente_documento)}</div>`
+    : '';
   abrirJanelaImpressaoTermica(`
     <h1>${nomePadaria}</h1>
     <div class="sub">Comanda ${c.identificador} · ${agora}</div>
+    ${linhaCliente}
     <hr/>
     ${linhas}
     <hr/>

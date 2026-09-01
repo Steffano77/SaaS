@@ -413,6 +413,21 @@ app.use(express.static(path.join(__dirname, '../public'), {
       'ALTER TABLE atendentes ADD COLUMN dados_bancarios VARCHAR(255) NULL',
       'ALTER TABLE atendentes ADD COLUMN salario DECIMAL(10,2) NULL',
       'ALTER TABLE atendentes ADD COLUMN contato_emergencia VARCHAR(150) NULL',
+      // Cadastro de clientes faturados (CNPJ/Nome/Endereço/Telefone) — identificado na hora
+      // de cobrar em "Faturado", pra imprimir "Cliente:" e "Documento:" no recibo.
+      `CREATE TABLE IF NOT EXISTS clientes_faturado (
+        id          INT AUTO_INCREMENT PRIMARY KEY,
+        padaria_id  INT NOT NULL,
+        cnpj        VARCHAR(18) NOT NULL,
+        nome        VARCHAR(150) NOT NULL,
+        endereco    VARCHAR(255) NULL,
+        telefone    VARCHAR(20) NULL,
+        criado_em   DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_cliente_faturado_cnpj (padaria_id, cnpj),
+        INDEX idx_clientes_faturado_padaria (padaria_id)
+      )`,
+      'ALTER TABLE comandas ADD COLUMN cliente_nome VARCHAR(150) NULL',
+      'ALTER TABLE comandas ADD COLUMN cliente_documento VARCHAR(18) NULL',
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
 

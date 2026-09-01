@@ -299,9 +299,13 @@ exports.fechar = async (req, res) => {
     }
 
     const forma_pagamento_resumo = formasResumo.join(' + ');
+    // Cliente identificado na hora de cobrar em "Faturado" (CNPJ/nome) — fica gravado
+    // na comanda pra imprimir "Cliente:" e "Documento:" no recibo.
+    const cliente_nome = String(req.body.cliente_nome || '').trim() || null;
+    const cliente_documento = String(req.body.cliente_documento || '').trim() || null;
     await conn.query(
-      `UPDATE comandas SET status = 'fechada', total = ?, forma_pagamento = ?, caixa_id = ?, atendente = ?, fechada_em = NOW() WHERE id = ?`,
-      [totalGeral, forma_pagamento_resumo, caixa_id, atendente, comanda.id]
+      `UPDATE comandas SET status = 'fechada', total = ?, forma_pagamento = ?, caixa_id = ?, atendente = ?, cliente_nome = ?, cliente_documento = ?, fechada_em = NOW() WHERE id = ?`,
+      [totalGeral, forma_pagamento_resumo, caixa_id, atendente, cliente_nome, cliente_documento, comanda.id]
     );
 
     await conn.commit();

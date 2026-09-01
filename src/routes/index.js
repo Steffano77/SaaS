@@ -46,6 +46,7 @@ const comandaCtrl    = require('../controllers/comandaController');
 const caixaCtrl       = require('../controllers/caixaController');
 const atendenteCtrl   = require('../controllers/atendenteController');
 const encomendaCtrl   = require('../controllers/encomendaController');
+const clienteFaturadoCtrl = require('../controllers/clienteFaturadoController');
 
 // Webhook Hotmart (sem auth — validação de assinatura feita dentro do controller)
 router.post('/hotmart/webhook', hotmartCtrl.webhook);
@@ -134,6 +135,12 @@ router.post('/sync/saurus', auth, upload.single('arquivo'), syncCtrl.importarSau
 router.post('/saurus/limpar-zerados', auth, saurusCtrl.limparZerados);
 
 // Financeiro — Premium apenas
+router.get('/clientes-faturado',            auth, authPremium, wrap(clienteFaturadoCtrl.listar));
+router.get('/clientes-faturado/cnpj/:cnpj', auth, authPremium, wrap(clienteFaturadoCtrl.buscarPorCnpj));
+router.post('/clientes-faturado',           auth, authPremium, wrap(clienteFaturadoCtrl.criar));
+router.put('/clientes-faturado/:id',        auth, authPremium, wrap(clienteFaturadoCtrl.atualizar));
+router.delete('/clientes-faturado/:id',     auth, authPremium, wrap(clienteFaturadoCtrl.remover));
+
 router.get('/financeiro',                   auth, authPremium, wrap(financeiroCtrl.listar));
 router.post('/financeiro',                  auth, authPremium, wrap(financeiroCtrl.criar));
 router.delete('/financeiro/:id',            auth, authPremium, wrap(financeiroCtrl.excluir));
