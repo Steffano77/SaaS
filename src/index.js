@@ -431,6 +431,16 @@ app.use(express.static(path.join(__dirname, '../public'), {
       // Despesas do caixa, lançadas pela atendente na hora de fechar (dinheiro que saiu
       // da gaveta, com o motivo detalhado) — usa a mesma tabela de sangria/suprimento.
       "ALTER TABLE caixa_movimentos MODIFY COLUMN tipo ENUM('sangria','suprimento','despesa') NOT NULL",
+      // Clientes faturado agora também podem ser funcionários (CPF, com limite de R$500
+      // de saldo) além de empresas (CNPJ, sem limite). "cnpj" guarda CNPJ ou CPF, conforme
+      // o tipo — nome mantido por compatibilidade, sem quebrar o que já existia.
+      "ALTER TABLE clientes_faturado ADD COLUMN tipo ENUM('empresa','funcionario') NOT NULL DEFAULT 'empresa'",
+      'ALTER TABLE clientes_faturado ADD COLUMN limite DECIMAL(10,2) NULL',
+      // Cada pagamento em "Faturado" agora carrega o próprio cliente e se já foi quitado —
+      // é daqui que sai o saldo devedor (soma dos não quitados) pra travar no limite de R$500.
+      'ALTER TABLE comanda_pagamentos ADD COLUMN cliente_documento VARCHAR(18) NULL',
+      'ALTER TABLE comanda_pagamentos ADD COLUMN cliente_nome VARCHAR(150) NULL',
+      'ALTER TABLE comanda_pagamentos ADD COLUMN quitado_em DATETIME NULL',
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
 

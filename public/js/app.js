@@ -6747,31 +6747,92 @@ async function abrirClientesFaturado() {
 function renderClientesFaturadoLista(lista) {
   const el = document.getElementById('clientes-faturado-lista');
   if (!lista.length) { el.innerHTML = '<p style="text-align:center;color:var(--slate-400);padding:20px;">Nenhum cliente cadastrado ainda.</p>'; return; }
-  el.innerHTML = lista.map(c => `
+  el.innerHTML = lista.map(c => {
+    const ehFuncionario = c.tipo === 'funcionario';
+    const saldo = parseFloat(c.saldo_devedor || 0);
+    const limite = parseFloat(c.limite || 0);
+    const estourado = ehFuncionario && saldo >= limite && limite > 0;
+    return `
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border:1px solid var(--slate-200,#e2e8f0);border-radius:10px;">
       <div>
-        <div style="font-weight:700;font-size:13.5px;">${c.nome}</div>
+        <div style="font-weight:700;font-size:13.5px;">${ehFuncionario ? '👤' : '🏢'} ${c.nome}</div>
         <div style="font-size:12px;color:var(--slate-500);">${formatarCnpjUI(c.cnpj)}${c.telefone ? ' · ' + c.telefone : ''}</div>
         ${c.endereco ? `<div style="font-size:12px;color:var(--slate-500);">${c.endereco}</div>` : ''}
+        ${ehFuncionario ? `<div style="font-size:12px;font-weight:600;color:${estourado ? '#dc2626' : 'var(--orange)'};margin-top:2px;">Saldo: ${fmtMoeda(saldo)} / ${fmtMoeda(limite)}${estourado ? ' — limite estourado' : ''}</div>` : ''}
       </div>
-      <div style="display:flex;gap:4px;flex-shrink:0;">
+      <div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
+        <button class="btn-icon" title="Extrato / imprimir" onclick="abrirExtratoFaturadoUI('${c.cnpj}','${(c.nome||'').replace(/'/g,"\\'")}')">📋</button>
+        ${saldo > 0 ? `<button class="btn-icon" title="Dar baixa (marcar como pago)" onclick="darBaixaFaturadoUI('${c.cnpj}','${(c.nome||'').replace(/'/g,"\\'")}')">💰</button>` : ''}
         <button class="btn-icon" title="Editar" onclick="editarClienteFaturadoUI(${c.id},'${(c.nome||'').replace(/'/g,"\\'")}','${(c.endereco||'').replace(/'/g,"\\'")}','${(c.telefone||'').replace(/'/g,"\\'")}')">✏️</button>
         <button class="btn-icon" title="Excluir" onclick="excluirClienteFaturadoUI(${c.id})">🗑️</button>
       </div>
     </div>
+  `;
+  }).join('');
+}
+
+// Extrato de consumo de um faturado (empresa ou funcionário) — lista tudo que ele
+// lançou em "Faturado", com opção de imprimir (mesmo formato térmico do resto do sistema).
+async function abrirExtratoFaturadoUI(documento, nome) {
+  const linhas = await api(`/clientes-faturado/documento/${documento}/extrato`);
+  if (!linhas) return;
+  _extratoFaturadoCache = { documento, nome, linhas };
+  if (!linhas.length) { mostrarToast(`${nome} ainda não consumiu nada em Faturado.`, 'warn'); return; }
+  const total = linhas.reduce((s, l) => s + parseFloat(l.valor), 0);
+  const totalAberto = linhas.filter(l => !l.quitado_em).reduce((s, l) => s + parseFloat(l.valor), 0);
+  const corpo = linhas.map(l =>
+    `${l.quitado_em ? '✅' : '🟠'} Comanda ${l.identificador} — ${fmtDataHoraBR(l.fechada_em)} — ${fmtMoeda(l.valor)}${l.quitado_em ? ' (quitado)' : ''}`
+  ).join('\n');
+  if (await confirmarBonito(`Extrato de ${nome}\n\nTotal geral: ${fmtMoeda(total)}\nEm aberto: ${fmtMoeda(totalAberto)}\n\n${corpo}\n\nImprimir esse extrato?`)) {
+    imprimirExtratoFaturadoUI();
+  }
+}
+
+let _extratoFaturadoCache = null;
+function imprimirExtratoFaturadoUI() {
+  const d = _extratoFaturadoCache;
+  if (!d) return;
+  const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
+  const total = d.linhas.reduce((s, l) => s + parseFloat(l.valor), 0);
+  const totalAberto = d.linhas.filter(l => !l.quitado_em).reduce((s, l) => s + parseFloat(l.valor), 0);
+  const linhasHtml = d.linhas.map(l => `
+    <div class="linha"><span class="nome">${l.quitado_em ? '✅' : '🟠'} Cmd ${l.identificador} · ${fmtDataHoraBR(l.fechada_em)}</span><span class="valor">${fmtMoeda(l.valor)}</span></div>
   `).join('');
+  abrirJanelaImpressaoTermica(`
+    <h1>${nomePadaria}</h1>
+    <div class="sub">Extrato Faturado</div>
+    <div class="sub">${d.nome} — ${formatarCnpjUI(d.documento)}</div>
+    <hr/>
+    ${linhasHtml}
+    <hr/>
+    <div class="linha"><span class="nome">Total geral</span><span class="valor">${fmtMoeda(total)}</span></div>
+    <div class="total"><span>Em aberto</span><span>${fmtMoeda(totalAberto)}</span></div>
+    <div class="rodape">${new Date().toLocaleString('pt-BR')}</div>
+  `);
+}
+
+// "Dar baixa" — marca tudo que esse faturado deve como pago, zerando o saldo e
+// liberando o limite de novo (só faz sentido pra funcionário, mas funciona pra qualquer um).
+async function darBaixaFaturadoUI(documento, nome) {
+  if (!(await confirmarBonito(`Confirma que ${nome} pagou/quitou a fatura em aberto? Isso zera o saldo devedor dele.`))) return;
+  const r = await api(`/clientes-faturado/documento/${documento}/liquidar`, { method: 'POST' });
+  if (!r) return;
+  mostrarToast(`Fatura de ${nome} quitada!`, 'ok');
+  abrirClientesFaturado();
 }
 
 async function abrirNovoClienteFaturadoUI() {
-  const cnpj = prompt('CNPJ do cliente (só números ou com pontuação):');
+  const ehFuncionario = await confirmarBonito('É um funcionário (CPF, limite de R$500)? "Não" = empresa (CNPJ, sem limite).');
+  const tipo = ehFuncionario ? 'funcionario' : 'empresa';
+  const cnpj = prompt(ehFuncionario ? 'CPF do funcionário (só números ou com pontuação):' : 'CNPJ da empresa (só números ou com pontuação):');
   if (!cnpj || !cnpj.trim()) return;
-  const nome = prompt('Nome / Razão social:');
+  const nome = prompt('Nome' + (ehFuncionario ? ' do funcionário:' : ' / Razão social:'));
   if (!nome || !nome.trim()) return;
   const endereco = prompt('Endereço (opcional, deixa vazio se não quiser):') || '';
   const telefone = prompt('Telefone (opcional):') || '';
-  const r = await api('/clientes-faturado', { method: 'POST', body: { cnpj, nome, endereco, telefone } });
+  const r = await api('/clientes-faturado', { method: 'POST', body: { cnpj, nome, endereco, telefone, tipo } });
   if (!r) return;
-  mostrarToast(`${nome} cadastrado!`, 'ok');
+  mostrarToast(`${nome} cadastrado!${ehFuncionario ? ' Limite de R$500.' : ''}`, 'ok');
   _clientesFaturadoCache = null; // força buscar de novo na próxima venda em "Faturado"
   abrirClientesFaturado();
 }
@@ -6833,18 +6894,32 @@ function filtrarClienteFaturadoUI(input) {
     return;
   }
   lista.innerHTML = filtrados.map(c => `
-    <div class="autocomplete-item" onclick='selecionarClienteFaturadoUI(${JSON.stringify({ nome: c.nome, cnpj: c.cnpj })})'>
-      <strong>${c.nome}</strong><br/><span style="font-size:11.5px;color:var(--slate-400);">${formatarCnpjUI(c.cnpj)}</span>
+    <div class="autocomplete-item" onclick='selecionarClienteFaturadoUI(${JSON.stringify({ nome: c.nome, cnpj: c.cnpj, tipo: c.tipo })})'>
+      <strong>${c.nome}</strong> ${c.tipo === 'funcionario' ? '👤' : '🏢'}<br/><span style="font-size:11.5px;color:var(--slate-400);">${formatarCnpjUI(c.cnpj)}</span>
     </div>
   `).join('');
   lista.classList.remove('hidden');
 }
 
-function selecionarClienteFaturadoUI(cliente) {
+async function selecionarClienteFaturadoUI(cliente) {
   document.getElementById('idcli-nome').value = cliente.nome;
   document.getElementById('idcli-nome-lista').classList.add('hidden');
+  document.getElementById('idcli-resultado').innerHTML = '<p style="font-size:12px;color:var(--slate-400);">Verificando saldo...</p>';
+
+  // Funcionário tem limite de R$500 (empresa/CNPJ nunca tem) — busca o saldo devedor
+  // atual pra já mostrar/travar aqui, antes de seguir pro pagamento.
+  const saldoInfo = await api(`/clientes-faturado/documento/${cliente.cnpj}/saldo`);
+  const clienteCompleto = { ...cliente, ...(saldoInfo || {}) };
+
+  const avisoLimite = (clienteCompleto.tipo === 'funcionario' && clienteCompleto.limite != null) ? `
+    <div style="background:${clienteCompleto.disponivel <= 0 ? 'rgba(220,38,38,0.12)' : 'rgba(249,115,22,0.1)'};border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12.5px;">
+      Saldo usado: <strong>${fmtMoeda(clienteCompleto.saldoDevedor)}</strong> de ${fmtMoeda(clienteCompleto.limite)}
+      ${clienteCompleto.disponivel <= 0 ? '<br/><strong style="color:#dc2626;">⛔ Limite estourado — precisa quitar antes de lançar mais.</strong>' : `<br/>Disponível: ${fmtMoeda(clienteCompleto.disponivel)}`}
+    </div>` : '';
+
   document.getElementById('idcli-resultado').innerHTML = `
-    <button class="btn-primary full" onclick='pedirSenhaFaturadoUI(${JSON.stringify(cliente)})'>✅ Confirmar e cobrar pra este cliente</button>
+    ${avisoLimite}
+    <button class="btn-primary full" ${clienteCompleto.disponivel === 0 ? 'disabled' : ''} onclick='pedirSenhaFaturadoUI(${JSON.stringify(clienteCompleto)})'>✅ Confirmar e cobrar pra este cliente</button>
     <p style="font-size:12px;color:var(--slate-400);text-align:center;margin-top:10px;">
       Não achou o cliente? <a href="#" onclick="event.preventDefault();abrirClientesFaturado();" style="color:var(--orange);">Cadastra em Financeiro → Clientes faturado</a>.
     </p>
@@ -6883,10 +6958,11 @@ async function confirmarSenhaFaturadoUI() {
   _fecharSenhaFaturado(true);
 }
 
-function formatarCnpjUI(cnpj) {
-  const d = String(cnpj || '').replace(/\D/g, '');
-  if (d.length !== 14) return cnpj;
-  return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12,14)}`;
+function formatarCnpjUI(doc) {
+  const d = String(doc || '').replace(/\D/g, '');
+  if (d.length === 14) return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12,14)}`;
+  if (d.length === 11) return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9,11)}`;
+  return doc;
 }
 
 // ── Modal de valor recebido (troco no dinheiro + divisão de pagamento) ──
@@ -6942,6 +7018,14 @@ function confirmarValorPagamento() {
   if (!_pgtoEhDinheiro && valor > _pgtoRestante + 0.01) {
     mostrarToast(`O valor não pode passar do restante (${fmtMoeda(_pgtoRestante)}).`, 'warn');
     return;
+  }
+  // Funcionário tem limite de R$500 de saldo — trava aqui se esse valor for passar do
+  // que ainda está disponível (empresa/CNPJ nunca tem limite, disponivel fica null).
+  if (_pgtoForma === 'Faturado' && _faturadoClienteSelecionado?.tipo === 'funcionario' && _faturadoClienteSelecionado.disponivel != null) {
+    if (valor > _faturadoClienteSelecionado.disponivel + 0.01) {
+      mostrarToast(`Limite de ${_faturadoClienteSelecionado.nome} estourado — disponível: ${fmtMoeda(_faturadoClienteSelecionado.disponivel)}. Precisa quitar antes de lançar mais.`, 'warn');
+      return;
+    }
   }
   const aplicado = Math.min(valor, _pgtoRestante);
   const troco = _pgtoEhDinheiro ? Math.max(0, Math.round((valor - _pgtoRestante) * 100) / 100) : 0;

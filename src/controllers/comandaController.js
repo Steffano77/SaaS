@@ -252,6 +252,31 @@ exports.fechar = async (req, res) => {
   // acontecer junto ou não acontecer nada — sem transação, um erro no meio (como já
   // aconteceu antes) deixava pagamento/estoque/financeiro gravados só pela metade, e
   // cada tentativa de novo duplicava tudo, porque a comanda continuava "aberta".
+  // Trava o limite de R$500 do funcionário no servidor também (não só na tela) — confere
+  // ANTES de abrir a transação, pra recusar de vez se passar do limite (CNPJ/empresa
+  // nunca tem limite, então não entra nessa checagem).
+  for (const p of pagamentos) {
+    if (String(p.forma_pagamento) !== 'Faturado' || !p.cliente_documento) continue;
+    const [[cliente]] = await db.query(
+      `SELECT tipo, limite FROM clientes_faturado WHERE padaria_id = ? AND cnpj = ?`,
+      [padaria_id, p.cliente_documento]
+    );
+    if (!cliente || cliente.tipo !== 'funcionario') continue;
+    const [[{ saldo }]] = await db.query(
+      `SELECT COALESCE(SUM(cp.valor), 0) AS saldo
+       FROM comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
+       WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND cp.quitado_em IS NULL AND cp.cliente_documento = ?`,
+      [padaria_id, p.cliente_documento]
+    );
+    const limite = parseFloat(cliente.limite || 0);
+    const novoSaldo = parseFloat(saldo) + (parseFloat(p.valor) || 0);
+    if (novoSaldo > limite + 0.01) {
+      return res.status(400).json({
+        erro: `Limite de ${limite.toFixed(2)} estourado — ${p.cliente_nome || 'esse funcionário'} já deve ${parseFloat(saldo).toFixed(2)}. Precisa quitar antes de lançar mais.`
+      });
+    }
+  }
+
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
@@ -262,9 +287,11 @@ exports.fechar = async (req, res) => {
       const valor = parseFloat(p.valor) || 0;
       const troco = parseFloat(p.troco) || 0;
       if (valor <= 0) continue;
+      const clienteDoc = forma === 'Faturado' ? (p.cliente_documento || null) : null;
+      const clienteNome = forma === 'Faturado' ? (p.cliente_nome || null) : null;
       await conn.query(
-        `INSERT INTO comanda_pagamentos (comanda_id, forma_pagamento, valor, troco) VALUES (?,?,?,?)`,
-        [comanda.id, forma, valor, troco]
+        `INSERT INTO comanda_pagamentos (comanda_id, forma_pagamento, valor, troco, cliente_documento, cliente_nome) VALUES (?,?,?,?,?,?)`,
+        [comanda.id, forma, valor, troco, clienteDoc, clienteNome]
       );
       // "Padaria" é consumo interno (ex: produção usando o próprio estoque) e "Cortesia" é
       // brinde/cortesia pro cliente — em ambos o estoque sai normal, mas não é dinheiro
