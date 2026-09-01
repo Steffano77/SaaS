@@ -6630,6 +6630,23 @@ function _resolverConfirmarBonito(valor) {
   if (_resolverConfirmarBonitoAtual) { const r = _resolverConfirmarBonitoAtual; _resolverConfirmarBonitoAtual = null; r(valor); }
 }
 
+// Atalho "C" — enquanto a tela de venda estiver aberta, pula direto pro campo
+// "Abrir comanda Nº..." (topo da tela), pra abrir/buscar uma comanda rapidinho sem
+// tirar a mão do teclado. Só dispara se não tiver digitando em outro campo (senão
+// atrapalharia digitar a letra "c" em qualquer busca normal).
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'c' && e.key !== 'C') return;
+  const modalAberto = !document.getElementById('modal-comanda')?.classList.contains('hidden');
+  if (!modalAberto) return;
+  const el = document.activeElement;
+  const digitando = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+  if (digitando) return;
+  e.preventDefault();
+  const campo = document.getElementById('cmd-pdv-busca-numero');
+  campo?.focus();
+  campo?.select();
+});
+
 function calcularRestante() {
   const total = comandaAtualDados ? parseFloat(comandaAtualDados.total) : 0;
   const pago = comandaPagamentosPendentes.reduce((s, p) => s + p.valor, 0);
@@ -7015,24 +7032,32 @@ async function fiscalConfigurado() {
 // opts.imprimirReciboSeFalhar: se a nota não sair (rejeitada/erro), imprime o recibo
 // comum como reserva — assim o cliente sempre sai com algum comprovante na mão, e a
 // nota rejeitada fica registrada em "Notas pendentes" pra corrigir depois.
+// opts.janelaPre: janela de impressão já aberta ANTES de emitir a nota (ver finalizarVendaUI) —
+// evita o Chrome bloquear o pop-up por causa da espera de rede até a nota sair.
 async function emitirNotaFiscalComanda(comandaId, opts = {}) {
   mostrarToast('Emitindo nota fiscal...');
   const nf = await api(`/fiscal/nfce/comanda/${comandaId}`, { method: 'POST' });
   if (nf && nf.ok) {
     mostrarToast(`Nota fiscal autorizada! Protocolo ${nf.protocolo}`);
-    await imprimirDanfeNFCe(comandaId);
+    await imprimirDanfeNFCe(comandaId, opts.janelaPre);
   } else if (nf) {
     mostrarToast(`Nota fiscal rejeitada: ${nf.motivo || 'erro desconhecido'} — confira em "Notas pendentes"`, 'warn');
-    if (opts.imprimirReciboSeFalhar) imprimirReciboComanda(opts.imprimirReciboSeFalhar, opts.formaResumo);
+    if (opts.imprimirReciboSeFalhar) imprimirReciboComanda(opts.imprimirReciboSeFalhar, opts.formaResumo, opts.janelaPre);
+    else opts.janelaPre?.close();
   } else if (opts.imprimirReciboSeFalhar) {
-    imprimirReciboComanda(opts.imprimirReciboSeFalhar, opts.formaResumo);
+    imprimirReciboComanda(opts.imprimirReciboSeFalhar, opts.formaResumo, opts.janelaPre);
+  } else {
+    opts.janelaPre?.close();
   }
 }
 
-async function imprimirDanfeNFCe(comandaId) {
+// janelaPre: se já tiver uma janela aberta (ver finalizarVendaUI), reaproveita ela em vez
+// de chamar window.open() de novo — chamar window.open() depois de uma espera de rede
+// (emitir a nota) o Chrome trata como fora do "toque" do usuário e bloqueia sem avisar.
+async function imprimirDanfeNFCe(comandaId, janelaPre) {
   const r = await api(`/fiscal/nfce/comanda/${comandaId}/danfe`);
-  if (!r || !r.html) return;
-  const janela = window.open('', '_blank', 'width=400,height=700');
+  const janela = (janelaPre && !janelaPre.closed) ? janelaPre : window.open('', '_blank', 'width=400,height=700');
+  if (!r || !r.html) { janela?.close(); return; }
   if (!janela) { mostrarToast('O navegador bloqueou a janela de impressão — permite pop-up nesse site.', 'warn'); return; }
   janela.document.write(r.html);
   janela.document.close();
@@ -7048,8 +7073,17 @@ async function finalizarVendaUI() {
     mostrarToast('Abra o caixa deste aparelho antes de cobrar.', 'warn');
     return;
   }
+  // Abre a janela de impressão JÁ, ainda dentro do toque/tecla que chamou essa função —
+  // depois disso vêm várias esperas de rede (fechar a venda, emitir a nota fiscal, buscar
+  // o DANFE) e o Chrome bloqueia pop-up aberto só depois dessas esperas, sem avisar direito.
+  // O conteúdo de verdade só é escrito nela mais tarde (emitirNotaFiscalComanda/imprimirReciboComanda).
+  const janelaImpressao = window.open('', '_blank', 'width=400,height=700');
+  if (janelaImpressao) {
+    janelaImpressao.document.write('<!doctype html><html><body style="font-family:sans-serif;padding:24px;text-align:center;color:#888;">Preparando impressão...</body></html>');
+  }
+
   const resumo = comandaPagamentosPendentes.map(p => `${p.forma_pagamento}: ${fmtMoeda(p.valor)}`).join(' + ');
-  if (!(await confirmarBonito(`Confirmar recebimento — ${resumo}?`))) return;
+  if (!(await confirmarBonito(`Confirmar recebimento — ${resumo}?`))) { janelaImpressao?.close(); return; }
   const comandaFechadaId = comandaAtualId; // guarda ANTES de fechar o modal, que zera comandaAtualId
   const snapshot = comandaAtualDados; // guarda os itens antes de fechar, pro recibo
   const formaResumo = comandaPagamentosPendentes.map(p => p.forma_pagamento).join(' + ');
@@ -7082,9 +7116,9 @@ async function finalizarVendaUI() {
   // Já foi decidido lá na etapa 1 (F1/F2, antes de escolher a forma de pagamento) —
   // aqui só executa, sem perguntar de novo. Emite/imprime automático.
   if (vendaComNFCe && !consumoInterno && await fiscalConfigurado()) {
-    await emitirNotaFiscalComanda(comandaFechadaId, { imprimirReciboSeFalhar: snapshot, formaResumo });
+    await emitirNotaFiscalComanda(comandaFechadaId, { imprimirReciboSeFalhar: snapshot, formaResumo, janelaPre: janelaImpressao });
   } else if (snapshot) {
-    imprimirReciboComanda(snapshot, formaResumo);
+    imprimirReciboComanda(snapshot, formaResumo, janelaImpressao);
   }
   resetEscolhaNFCe();
   _faturadoClienteSelecionado = null;
@@ -7095,7 +7129,9 @@ async function finalizarVendaUI() {
 }
 
 // ── Impressão térmica (80mm) ─────────────────────────────────────
-function abrirJanelaImpressaoTermica(bodyHtml) {
+// janelaPre: reaproveita uma janela já aberta (ver finalizarVendaUI) em vez de chamar
+// window.open() de novo — evita bloqueio de pop-up depois de uma espera de rede.
+function abrirJanelaImpressaoTermica(bodyHtml, janelaPre) {
   const html = `<!doctype html><html><head><meta charset="utf-8">
     <title>Imprimir</title>
     <style>
@@ -7120,7 +7156,7 @@ function abrirJanelaImpressaoTermica(bodyHtml) {
       window.onload = () => { window.print(); window.onafterprint = () => window.close(); setTimeout(() => window.close(), 2000); };
     <\/script>
     </body></html>`;
-  const w = window.open('', '_blank', 'width=380,height=600');
+  const w = (janelaPre && !janelaPre.closed) ? janelaPre : window.open('', '_blank', 'width=380,height=600');
   if (!w) { mostrarToast('O navegador bloqueou a janela de impressão — permite pop-up nesse site.', 'warn'); return; }
   w.document.write(html);
   w.document.close();
@@ -7154,7 +7190,7 @@ async function imprimirFichaCozinha() {
 }
 
 // Recibo do cliente — com valores e forma de pagamento, impresso após o fechamento
-function imprimirReciboComanda(c, forma_pagamento) {
+function imprimirReciboComanda(c, forma_pagamento, janelaPre) {
   const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
   const agora = new Date().toLocaleString('pt-BR');
   const linhas = c.itens.map(i => `
@@ -7180,7 +7216,7 @@ function imprimirReciboComanda(c, forma_pagamento) {
     <div class="total"><span>TOTAL</span><span>${fmtMoeda(total)}</span></div>
     <div class="sub" style="margin-top:4px;">Pagamento: ${forma_pagamento}</div>
     <div class="rodape">Obrigado pela preferência!</div>
-  `);
+  `, janelaPre);
 }
 
 // Busca rápida por número/identificação da comanda (estilo "Digite ou passe a comanda" do PDV)
