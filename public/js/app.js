@@ -6698,6 +6698,7 @@ async function abrirNovoClienteFaturadoUI() {
   const r = await api('/clientes-faturado', { method: 'POST', body: { cnpj, nome, endereco, telefone } });
   if (!r) return;
   mostrarToast(`${nome} cadastrado!`, 'ok');
+  _clientesFaturadoCache = null; // força buscar de novo na próxima venda em "Faturado"
   abrirClientesFaturado();
 }
 
@@ -6709,6 +6710,7 @@ async function editarClienteFaturadoUI(id, nomeAtual, enderecoAtual, telefoneAtu
   const r = await api(`/clientes-faturado/${id}`, { method: 'PUT', body: { nome, endereco, telefone } });
   if (!r) return;
   mostrarToast('Atualizado!', 'ok');
+  _clientesFaturadoCache = null;
   abrirClientesFaturado();
 }
 
@@ -6717,19 +6719,26 @@ async function excluirClienteFaturadoUI(id) {
   const r = await api(`/clientes-faturado/${id}`, { method: 'DELETE' });
   if (!r) return;
   mostrarToast('Excluído.', 'ok');
+  _clientesFaturadoCache = null;
   abrirClientesFaturado();
 }
 
-// ── Identificar cliente (CNPJ) pra pagamento "Faturado" ──────────────────
+// ── Identificar cliente (por NOME, já cadastrado) pra pagamento "Faturado" ──
+// Fluxo: digita o nome → escolhe da lista → digita a senha financeira (4 dígitos,
+// a mesma de Financeiro → Alterar PIN) → confirma o lançamento.
 let _resolverIdentificarCliente = null;
+let _clientesFaturadoCache = null;
+let _clienteFaturadoSelecionadoTemp = null;
 
-function identificarClienteFaturadoUI() {
+async function identificarClienteFaturadoUI() {
+  if (!_clientesFaturadoCache) _clientesFaturadoCache = await api('/clientes-faturado') || [];
   return new Promise((resolve) => {
     _resolverIdentificarCliente = resolve;
-    document.getElementById('idcli-cnpj').value = '';
+    document.getElementById('idcli-nome').value = '';
+    document.getElementById('idcli-nome-lista').classList.add('hidden');
     document.getElementById('idcli-resultado').innerHTML = '';
     document.getElementById('modal-identificar-cliente').classList.remove('hidden');
-    setTimeout(() => document.getElementById('idcli-cnpj')?.focus(), 100);
+    setTimeout(() => document.getElementById('idcli-nome')?.focus(), 100);
   });
 }
 
@@ -6738,51 +6747,66 @@ function _fecharIdentificarCliente(cliente) {
   if (_resolverIdentificarCliente) { const r = _resolverIdentificarCliente; _resolverIdentificarCliente = null; r(cliente); }
 }
 
-async function buscarClienteFaturadoUI() {
-  const cnpjDigitado = document.getElementById('idcli-cnpj').value;
-  const cnpjLimpo = cnpjDigitado.replace(/\D/g, '');
-  const resultado = document.getElementById('idcli-resultado');
-  if (cnpjLimpo.length !== 14) { resultado.innerHTML = '<p style="color:#dc2626;font-size:12.5px;">CNPJ precisa ter 14 números.</p>'; return; }
-
-  resultado.innerHTML = '<p style="color:var(--slate-400);font-size:12.5px;">Buscando...</p>';
-  const r = await fetch(`${API}/clientes-faturado/cnpj/${cnpjLimpo}`, { headers: { 'Authorization': `Bearer ${TOKEN}` } });
-  const d = await r.json().catch(() => null);
-
-  if (r.ok && d) {
-    resultado.innerHTML = `
-      <div style="background:var(--navy,#1e3a5f);border-radius:10px;padding:12px;margin-bottom:10px;">
-        <div style="font-weight:700;color:#fff;">${d.nome}</div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:2px;">${formatarCnpjUI(d.cnpj)}</div>
-        ${d.endereco ? `<div style="font-size:12px;color:rgba(255,255,255,0.7);">${d.endereco}</div>` : ''}
-        ${d.telefone ? `<div style="font-size:12px;color:rgba(255,255,255,0.7);">${d.telefone}</div>` : ''}
-      </div>
-      <button class="btn-primary full" onclick='_fecharIdentificarCliente(${JSON.stringify({ nome: d.nome, cnpj: d.cnpj })})'>✅ Confirmar e cobrar pra este cliente</button>
-    `;
+function filtrarClienteFaturadoUI(input) {
+  const termo = input.value.trim().toLowerCase();
+  const lista = document.getElementById('idcli-nome-lista');
+  document.getElementById('idcli-resultado').innerHTML = '';
+  if (!termo) { lista.classList.add('hidden'); return; }
+  const filtrados = (_clientesFaturadoCache || []).filter(c => c.nome.toLowerCase().includes(termo)).slice(0, 8);
+  if (!filtrados.length) {
+    lista.innerHTML = `<div class="autocomplete-item" style="color:var(--slate-400);cursor:default;">Nenhum cliente com esse nome.</div>`;
+    lista.classList.remove('hidden');
     return;
   }
+  lista.innerHTML = filtrados.map(c => `
+    <div class="autocomplete-item" onclick='selecionarClienteFaturadoUI(${JSON.stringify({ nome: c.nome, cnpj: c.cnpj })})'>
+      <strong>${c.nome}</strong><br/><span style="font-size:11.5px;color:var(--slate-400);">${formatarCnpjUI(c.cnpj)}</span>
+    </div>
+  `).join('');
+  lista.classList.remove('hidden');
+}
 
-  // Não achou — oferece cadastrar na hora, sem precisar sair da venda.
-  resultado.innerHTML = `
-    <p style="font-size:12.5px;color:var(--slate-400);margin-bottom:8px;">Nenhum cliente com esse CNPJ. Cadastra agora:</p>
-    <div class="form-group"><label class="form-label">Nome / Razão social</label>
-      <input type="text" id="idcli-novo-nome" class="form-control" placeholder="Nome da empresa"/></div>
-    <div class="form-group"><label class="form-label">Endereço (opcional)</label>
-      <input type="text" id="idcli-novo-endereco" class="form-control"/></div>
-    <div class="form-group"><label class="form-label">Telefone (opcional)</label>
-      <input type="text" id="idcli-novo-telefone" class="form-control"/></div>
-    <button class="btn-primary full" onclick="cadastrarClienteFaturadoUI('${cnpjLimpo}')">💾 Cadastrar e cobrar pra este cliente</button>
+function selecionarClienteFaturadoUI(cliente) {
+  document.getElementById('idcli-nome').value = cliente.nome;
+  document.getElementById('idcli-nome-lista').classList.add('hidden');
+  document.getElementById('idcli-resultado').innerHTML = `
+    <button class="btn-primary full" onclick='pedirSenhaFaturadoUI(${JSON.stringify(cliente)})'>✅ Confirmar e cobrar pra este cliente</button>
+    <p style="font-size:12px;color:var(--slate-400);text-align:center;margin-top:10px;">
+      Não achou o cliente? <a href="#" onclick="event.preventDefault();abrirClientesFaturado();" style="color:var(--orange);">Cadastra em Financeiro → Clientes faturado</a>.
+    </p>
   `;
 }
 
-async function cadastrarClienteFaturadoUI(cnpjLimpo) {
-  const nome = document.getElementById('idcli-novo-nome').value.trim();
-  if (!nome) { mostrarToast('Digite o nome do cliente.', 'warn'); return; }
-  const endereco = document.getElementById('idcli-novo-endereco').value.trim();
-  const telefone = document.getElementById('idcli-novo-telefone').value.trim();
-  const r = await api('/clientes-faturado', { method: 'POST', body: { cnpj: cnpjLimpo, nome, endereco, telefone } });
-  if (!r) return;
-  mostrarToast(`${nome} cadastrado!`, 'ok');
-  _fecharIdentificarCliente({ nome, cnpj: cnpjLimpo });
+// ── Senha financeira (4 dígitos) pra confirmar o lançamento ──────────────
+let _resolverSenhaFaturado = null;
+
+function pedirSenhaFaturadoUI(cliente) {
+  _clienteFaturadoSelecionadoTemp = cliente;
+  document.getElementById('modal-identificar-cliente').classList.add('hidden');
+  document.getElementById('senha-faturado-cliente').textContent = `Cliente: ${cliente.nome}`;
+  document.getElementById('senha-faturado-input').value = '';
+  document.getElementById('senha-faturado-erro').classList.add('hidden');
+  document.getElementById('modal-senha-faturado').classList.remove('hidden');
+  setTimeout(() => document.getElementById('senha-faturado-input')?.focus(), 100);
+}
+
+function _fecharSenhaFaturado(ok) {
+  document.getElementById('modal-senha-faturado').classList.add('hidden');
+  if (!ok) { _fecharIdentificarCliente(null); return; }
+  _fecharIdentificarCliente(_clienteFaturadoSelecionadoTemp);
+}
+
+async function confirmarSenhaFaturadoUI() {
+  const pin = document.getElementById('senha-faturado-input').value.trim();
+  const erro = document.getElementById('senha-faturado-erro');
+  if (!/^\d{4}$/.test(pin)) { erro.textContent = 'A senha precisa ter 4 números.'; erro.classList.remove('hidden'); return; }
+  const r = await fetch(`${API}/financeiro/pin`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
+    body: JSON.stringify({ pin }),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) { erro.textContent = d.erro || 'Senha incorreta.'; erro.classList.remove('hidden'); return; }
+  _fecharSenhaFaturado(true);
 }
 
 function formatarCnpjUI(cnpj) {
