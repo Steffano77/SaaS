@@ -847,6 +847,9 @@
                    até decidir, e o texto do rótulo avisa o quê apertar. -->
               <div id="cmd-pgto-secao">
                 <div class="cmd-nfce-badge hidden" id="cmd-nfce-badge" onclick="escolherNFCeUI(null)" title="Toque pra trocar"></div>
+                <div style="text-align:center;margin-bottom:6px;">
+                  <a href="#" id="cmd-cpf-nota-link" onclick="event.preventDefault();pedirCpfNotaUI();" style="font-size:12px;color:var(--slate-400);text-decoration:underline;">📄 Adicionar CPF na nota (opcional)</a>
+                </div>
                 <div class="cmd-pgto-label" id="cmd-pgto-label">Toque na forma de pagamento pra lançar</div>
                 <div class="cmd-pgto-grid cmd-pgto-grid-grande cmd-pgto-grid-bloqueada" id="cmd-pgto-grid">
                   <button class="cmd-pgto-btn" onclick="adicionarPagamentoUI('Dinheiro')"><span class="cmd-pgto-fkey">F1</span><span class="cmd-pgto-icone">💵</span><span>Dinheiro</span></button>
@@ -2151,7 +2154,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260901h"></script>
+<script src="/js/app.js?v=20260901i"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

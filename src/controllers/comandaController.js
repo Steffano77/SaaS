@@ -1,5 +1,25 @@
 const db = require('../database/connection');
 
+function limparDoc(doc) {
+  return String(doc || '').replace(/\D/g, '');
+}
+
+// Valida CPF de verdade (dígitos verificadores), não só a quantidade de números —
+// CPF inválido é rejeição na certa na Sefaz, então confere antes de gravar/emitir.
+function cpfValido(cpf) {
+  const c = limparDoc(cpf);
+  if (c.length !== 11 || /^(\d)\1{10}$/.test(c)) return false;
+  const digitos = c.split('').map(Number);
+  for (let dv = 9; dv <= 10; dv++) {
+    let soma = 0;
+    for (let i = 0; i < dv; i++) soma += digitos[i] * (dv + 1 - i);
+    const resto = (soma * 10) % 11;
+    const esperado = resto === 10 ? 0 : resto;
+    if (digitos[dv] !== esperado) return false;
+  }
+  return true;
+}
+
 // Lista comandas abertas + um histórico recente das fechadas/canceladas
 exports.listar = async (req, res) => {
   const padaria_id = req.padaria.id;
@@ -349,10 +369,23 @@ exports.fechar = async (req, res) => {
     // na comanda pra imprimir "Cliente:" e "Documento:" no recibo.
     const cliente_nome = String(req.body.cliente_nome || '').trim() || null;
     const cliente_documento = String(req.body.cliente_documento || '').trim() || null;
-    await conn.query(
-      `UPDATE comandas SET status = 'fechada', total = ?, forma_pagamento = ?, caixa_id = ?, atendente = ?, cliente_nome = ?, cliente_documento = ?, fechada_em = NOW() WHERE id = ?`,
-      [totalGeral, forma_pagamento_resumo, caixa_id, atendente, cliente_nome, cliente_documento, comanda.id]
-    );
+    // CPF na nota — opcional, digitado na hora pelo cliente comum (nada a ver com
+    // Faturado). Só aceita se for um CPF matematicamente válido (senão a Sefaz rejeita).
+    const cpfDigitado = limparDoc(req.body.cpf_nota);
+    const cpf_nota = cpfValido(cpfDigitado) ? cpfDigitado : null;
+
+    try {
+      await conn.query(
+        `UPDATE comandas SET status = 'fechada', total = ?, forma_pagamento = ?, caixa_id = ?, atendente = ?, cliente_nome = ?, cliente_documento = ?, cpf_nota = ?, fechada_em = NOW() WHERE id = ?`,
+        [totalGeral, forma_pagamento_resumo, caixa_id, atendente, cliente_nome, cliente_documento, cpf_nota, comanda.id]
+      );
+    } catch (e) {
+      if (e.code !== 'ER_BAD_FIELD_ERROR') throw e;
+      await conn.query(
+        `UPDATE comandas SET status = 'fechada', total = ?, forma_pagamento = ?, caixa_id = ?, atendente = ?, cliente_nome = ?, cliente_documento = ?, fechada_em = NOW() WHERE id = ?`,
+        [totalGeral, forma_pagamento_resumo, caixa_id, atendente, cliente_nome, cliente_documento, comanda.id]
+      );
+    }
 
     await conn.commit();
     res.json({ ok: true, total: totalGeral });

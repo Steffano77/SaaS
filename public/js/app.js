@@ -5917,6 +5917,8 @@ function abrirVendaBalcaoVazia() {
   comandaPagamentosPendentes = [];
   resetEscolhaNFCe();
   _faturadoClienteSelecionado = null;
+  _cpfNotaSelecionado = null;
+  atualizarLinkCpfNotaUI();
   document.getElementById('cmd-detalhe-titulo').textContent = '🧾 Nova venda';
   document.getElementById('cmd-item-busca').value = '';
   document.getElementById('cmd-item-produto-id').value = '';
@@ -5959,6 +5961,8 @@ async function abrirModalComanda(id) {
   comandaPagamentosPendentes = [];
   resetEscolhaNFCe();
   _faturadoClienteSelecionado = null;
+  _cpfNotaSelecionado = null;
+  atualizarLinkCpfNotaUI();
   document.getElementById('cmd-detalhe-titulo').textContent = `🧾 ${c.identificador}${c.atendente ? ' · ' + c.atendente : ''}`;
   document.getElementById('cmd-item-busca').value = '';
   document.getElementById('cmd-item-produto-id').value = '';
@@ -6679,6 +6683,44 @@ let vendaComNFCe = null;
 // da comanda e impresso no recibo. Some a cada venda nova.
 let _faturadoClienteSelecionado = null;
 
+// CPF do cliente na nota fiscal — opcional, digitado na hora quando o cliente pede
+// (nada a ver com Faturado). Some a cada venda nova.
+let _cpfNotaSelecionado = null;
+
+function cpfValidoUI(cpf) {
+  const c = String(cpf || '').replace(/\D/g, '');
+  if (c.length !== 11 || /^(\d)\1{10}$/.test(c)) return false;
+  const digitos = c.split('').map(Number);
+  for (let dv = 9; dv <= 10; dv++) {
+    let soma = 0;
+    for (let i = 0; i < dv; i++) soma += digitos[i] * (dv + 1 - i);
+    const resto = (soma * 10) % 11;
+    const esperado = resto === 10 ? 0 : resto;
+    if (digitos[dv] !== esperado) return false;
+  }
+  return true;
+}
+
+function pedirCpfNotaUI() {
+  const cpfAtual = _cpfNotaSelecionado ? _cpfNotaSelecionado.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '';
+  const digitado = prompt('CPF do cliente pra colocar na nota (só números):', cpfAtual);
+  if (digitado === null) return; // cancelou
+  const limpo = digitado.replace(/\D/g, '');
+  if (!limpo) { _cpfNotaSelecionado = null; atualizarLinkCpfNotaUI(); mostrarToast('CPF removido da nota.', 'ok'); return; }
+  if (!cpfValidoUI(limpo)) { mostrarToast('CPF inválido — confere os números e tenta de novo.', 'warn'); return; }
+  _cpfNotaSelecionado = limpo;
+  atualizarLinkCpfNotaUI();
+  mostrarToast('CPF adicionado na nota!', 'ok');
+}
+
+function atualizarLinkCpfNotaUI() {
+  const el = document.getElementById('cmd-cpf-nota-link');
+  if (!el) return;
+  el.textContent = _cpfNotaSelecionado
+    ? `📄 CPF na nota: ${_cpfNotaSelecionado.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')} (toque pra mudar)`
+    : '📄 Adicionar CPF na nota (opcional)';
+}
+
 function resetEscolhaNFCe() {
   vendaComNFCe = null;
   document.getElementById('cmd-pgto-grid')?.classList.add('cmd-pgto-grid-bloqueada');
@@ -7206,10 +7248,13 @@ async function finalizarVendaUI() {
       pagamentos: comandaPagamentosPendentes, caixa_id: CAIXA_LOCAL_ID,
       cliente_nome: pgtoFaturado?.cliente_nome || null,
       cliente_documento: pgtoFaturado?.cliente_documento || null,
+      cpf_nota: _cpfNotaSelecionado || null,
     }
   });
   if (!r) return;
   _faturadoClienteSelecionado = null;
+  _cpfNotaSelecionado = null;
+  atualizarLinkCpfNotaUI();
   const foiBalcao = comandaAtualId === _balcaoComandaAtiva;
   if (foiBalcao) _balcaoComandaAtiva = null;
   mostrarToast(`Comanda fechada — ${formaResumo}!`, 'ok');
@@ -7228,6 +7273,8 @@ async function finalizarVendaUI() {
   }
   resetEscolhaNFCe();
   _faturadoClienteSelecionado = null;
+  _cpfNotaSelecionado = null;
+  atualizarLinkCpfNotaUI();
   // Venda de balcão: volta direto pra uma tela em branco, pronta pro próximo cliente
   // (fluxo contínuo, sem precisar passar pela lista de comandas de novo). Em modo
   // caixa isso já é feito de forma genérica dentro de fecharModalComanda() acima.

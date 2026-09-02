@@ -15,6 +15,10 @@ function fmtCnpj(cnpj) {
   const c = String(cnpj || '').replace(/\D/g, '').padStart(14, '0');
   return `${c.slice(0,2)}.${c.slice(2,5)}.${c.slice(5,8)}/${c.slice(8,12)}-${c.slice(12,14)}`;
 }
+function fmtCpf(cpf) {
+  const c = String(cpf || '').replace(/\D/g, '').padStart(11, '0');
+  return `${c.slice(0,3)}.${c.slice(3,6)}.${c.slice(6,9)}-${c.slice(9,11)}`;
+}
 function fmtChave(chave) {
   return String(chave || '').replace(/(\d{4})(?=\d)/g, '$1 ');
 }
@@ -162,6 +166,12 @@ exports.imprimirDanfe = async (req, res) => {
 
     const [itens] = await db.query(`SELECT * FROM itens_comanda WHERE comanda_id = ?`, [comanda_id]);
     const [pagamentos] = await db.query(`SELECT * FROM comanda_pagamentos WHERE comanda_id = ?`, [comanda_id]);
+    // CPF do cliente na nota (opcional) — só existe se a coluna já foi criada nesse banco.
+    let cpfNotaCliente = null;
+    try {
+      const [[comandaCpf]] = await db.query(`SELECT cpf_nota FROM comandas WHERE id = ?`, [comanda_id]);
+      cpfNotaCliente = comandaCpf?.cpf_nota || null;
+    } catch (e) { /* coluna ainda não existe nesse banco — segue sem mostrar */ }
 
     // Usa o CSC do ambiente em que a nota foi realmente emitida (nota.ambiente),
     // não o ambiente atual da padaria — senão uma nota velha de homologação
@@ -205,6 +215,7 @@ exports.imprimirDanfe = async (req, res) => {
     };
     const pagamentosHtml = pagamentos.map(linhaPagamento).join('');
 
+    const linhaCpfNota = cpfNotaCliente ? `<div class="danfe-linha"><span>CONSUMIDOR</span><span>CPF ${fmtCpf(cpfNotaCliente)}</span></div>` : '';
     const homolog = Number(nota.ambiente) === 2
       ? `<div class="danfe-homolog">EMITIDA EM AMBIENTE DE HOMOLOGAÇÃO<br/>SEM VALOR FISCAL</div>` : '';
 
@@ -238,6 +249,7 @@ exports.imprimirDanfe = async (req, res) => {
         <div class="danfe-hr"></div>
         ${itensHtml}
         <div class="danfe-hr"></div>
+        ${linhaCpfNota}
         <div class="danfe-linha"><span>Qtd. Itens</span><span>${itens.length}</span></div>
         <div class="danfe-linha"><strong>Valor Total R$</strong><strong>${fmtMoeda(nota.valor_total)}</strong></div>
         ${pagamentosHtml}

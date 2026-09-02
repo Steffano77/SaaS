@@ -184,6 +184,14 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
     </det>`;
   }).join('');
 
+  // CPF do cliente na nota — opcional, digitado na hora (já validado antes de chegar
+  // aqui, no fechamento da comanda). Sem CPF, sai sem <dest> (consumidor não identificado,
+  // permitido em NFC-e).
+  const cpfLimpoNota = String(comanda.cpf_nota || '').replace(/\D/g, '');
+  const destXml = cpfLimpoNota.length === 11
+    ? `<dest>\n      <CPF>${cpfLimpoNota}</CPF>\n      <indIEDest>9</indIEDest>\n    </dest>`
+    : '';
+
   const vProdTotal = itens.reduce((s, i) => s + parseFloat(i.subtotal), 0);
   // Usa a SOMA dos vDesc de item (já arredondados, calculados acima) — nunca o valor
   // bruto da comanda direto — pro total bater exatamente com a soma declarada por item.
@@ -256,6 +264,7 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
       <IE>${String(padaria.nfce_inscricao_estadual || '').replace(/\D/g, '')}</IE>
       <CRT>1</CRT>
     </emit>
+    ${destXml}
     ${detXml}
     <total>
       <ICMSTot>

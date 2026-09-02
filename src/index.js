@@ -441,6 +441,9 @@ app.use(express.static(path.join(__dirname, '../public'), {
       'ALTER TABLE comanda_pagamentos ADD COLUMN cliente_documento VARCHAR(18) NULL',
       'ALTER TABLE comanda_pagamentos ADD COLUMN cliente_nome VARCHAR(150) NULL',
       'ALTER TABLE comanda_pagamentos ADD COLUMN quitado_em DATETIME NULL',
+      // CPF do cliente na nota fiscal (opcional, digitado na hora, sem cadastro nenhum) —
+      // diferente do Faturado, é só informativo pra Sefaz, não tem limite/saldo.
+      'ALTER TABLE comandas ADD COLUMN cpf_nota VARCHAR(14) NULL',
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
 
