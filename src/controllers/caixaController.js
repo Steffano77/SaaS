@@ -190,10 +190,17 @@ exports.fechar = async (req, res) => {
     const valor = parseFloat(d.valor) || 0;
     const descricao = String(d.descricao || '').trim();
     if (valor <= 0 || !descricao) continue;
-    await db.query(
-      `INSERT INTO caixa_movimentos (caixa_id, tipo, valor, observacao) VALUES (?, 'despesa', ?, ?)`,
-      [caixa.id, valor, descricao]
-    );
+    // Se o banco ainda não tem 'despesa' na lista de tipos (ALTER TABLE sem permissão no
+    // servidor), não pode derrubar o fechamento do caixa inteiro por causa disso — avisa
+    // no log e segue sem essa despesa, em vez de travar a atendente sem conseguir fechar.
+    try {
+      await db.query(
+        `INSERT INTO caixa_movimentos (caixa_id, tipo, valor, observacao) VALUES (?, 'despesa', ?, ?)`,
+        [caixa.id, valor, descricao]
+      );
+    } catch (e) {
+      console.error('Despesa do caixa não gravada (tipo "despesa" ainda não existe nesse banco?):', e.code || e.message);
+    }
   }
 
   const resumo = await montarResumoCaixa(caixa);
