@@ -5607,6 +5607,24 @@ async function atualizarBadgeNotasPendentes() {
   badge.textContent = qtd > 0 ? `(${qtd})` : '';
 }
 
+// Diagnóstico fiscal — tudo num botão só, pra quando o F12/Console estiver bloqueado
+// no PC (modo kiosk). Mostra o status do certificado + as últimas notas rejeitadas/pendentes.
+async function diagnosticoFiscalUI() {
+  mostrarToast('Verificando...');
+  const status = await api('/fiscal/certificado/status');
+  const pendentes = await api('/fiscal/nfce/pendentes');
+  const lista = Array.isArray(pendentes) ? pendentes : (pendentes?.pendentes || pendentes?.notas || []);
+  const ultimas = lista.slice(0, 5).map(n =>
+    `Comanda ${n.comanda_id} — ${n.status}\nMotivo: ${n.motivo_rejeicao || n.motivo || '(sem motivo)'}\n${n.criado_em || n.emitida_em || ''}`
+  ).join('\n\n');
+
+  await confirmarBonito(
+    `🩺 Diagnóstico fiscal\n\n` +
+    `Certificado: ${status?.configurado ? 'configurado' : 'NÃO configurado'} · ${status?.valido ? 'válido' : 'inválido'} · ambiente: ${status?.ambiente || '?'}\n\n` +
+    `Notas pendentes/rejeitadas (${lista.length}):\n${ultimas || '(nenhuma)'}`
+  );
+}
+
 async function abrirNotasPendentes() {
   document.getElementById('modal-notas-pendentes').classList.remove('hidden');
   await renderNotasPendentes();
