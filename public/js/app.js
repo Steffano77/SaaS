@@ -6731,11 +6731,7 @@ function escolherNFCeUI(comNota) {
   if (comNota === null) { resetEscolhaNFCe(); return; } // toque no selinho = trocar de ideia
   vendaComNFCe = comNota;
   document.getElementById('cmd-pgto-grid')?.classList.remove('cmd-pgto-grid-bloqueada');
-  const badge = document.getElementById('cmd-nfce-badge');
-  if (badge) {
-    badge.className = 'cmd-nfce-badge ' + (comNota ? 'com-nota' : 'sem-nota');
-    badge.textContent = comNota ? '🧾 Com nota fiscal — toque pra trocar' : '🚫 Sem nota fiscal — toque pra trocar';
-  }
+  // Sem aviso na tela — atendente já sabe o fluxo (F1/F2 antes, F1-F7 depois).
 }
 
 // Atalhos F1–F7 pras formas de pagamento (padrão de PDV) enquanto a comanda está aberta.
