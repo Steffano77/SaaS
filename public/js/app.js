@@ -192,6 +192,14 @@ async function fazerLoginCaixa(e) {
 function aplicarRestricaoModoCaixa() {
   const papel = sessionStorage.getItem('pp_modo_caixa_restrito');
   if (!papel) return false;
+  // Se a página recarregar no meio do modo manutenção, mantém o menu liberado
+  // (não trava a sidebar de novo sozinho) — só o botão de relock cuida disso.
+  if (sessionStorage.getItem('pp_manutencao_ativa') === '1') {
+    document.getElementById('btn-manutencao-modo-caixa')?.classList.remove('hidden');
+    document.getElementById('icone-manutencao-modo-caixa').textContent = '🔒';
+    document.getElementById('texto-manutencao-modo-caixa').textContent = 'Voltar ao caixa';
+    return false;
+  }
   // Esconde a sidebar inteira — modo caixa fica só com a tela de Comandas,
   // sem menu nenhum. O único jeito de sair é o botão flutuante.
   document.getElementById('sidebar')?.classList.add('hidden');
@@ -199,6 +207,12 @@ function aplicarRestricaoModoCaixa() {
   // Gestor tem um botão flutuante extra pra chegar na tela de Equipe, mesmo com o
   // menu lateral inteiro escondido pra todo mundo em modo caixa.
   document.getElementById('btn-equipe-modo-caixa')?.classList.toggle('hidden', sessionStorage.getItem('pp_modo_caixa_gestor') !== '1');
+  // Botão de manutenção — dono destrava o menu completo com a senha financeira,
+  // sem deslogar a atendente. Some se já estiver em modo manutenção (o botão de
+  // relock cuida disso separado, pra não sumir o único jeito de voltar).
+  if (sessionStorage.getItem('pp_manutencao_ativa') !== '1') {
+    document.getElementById('btn-manutencao-modo-caixa')?.classList.remove('hidden');
+  }
   // Marca o <html> pra CSS específico de modo caixa (esconde calculadora,
   // leitor de código de barras por câmera etc — só nessa tela).
   document.documentElement.classList.add('modo-caixa-ativo');
@@ -206,6 +220,46 @@ function aplicarRestricaoModoCaixa() {
   mostrarPagina('comandas', false);
   entrarTelaCheiaSeAtivo();
   return true;
+}
+
+// Modo manutenção — dono libera o menu completo (sidebar) SEM deslogar a atendente,
+// usando a senha financeira como confirmação de identidade. Aperta o botão de novo
+// pra voltar ao modo caixa dela exatamente como estava.
+async function toggleManutencaoModoCaixa() {
+  const ativo = sessionStorage.getItem('pp_manutencao_ativa') === '1';
+
+  if (ativo) {
+    // Voltar pro modo caixa não precisa de senha — só travar de novo.
+    sessionStorage.removeItem('pp_manutencao_ativa');
+    document.getElementById('sidebar')?.classList.add('hidden');
+    document.documentElement.classList.add('modo-caixa-ativo');
+    document.getElementById('icone-manutencao-modo-caixa').textContent = '🔓';
+    document.getElementById('texto-manutencao-modo-caixa').textContent = 'Manutenção';
+    document.getElementById('btn-sair-modo-caixa')?.classList.remove('hidden');
+    document.getElementById('btn-equipe-modo-caixa')?.classList.toggle('hidden', sessionStorage.getItem('pp_modo_caixa_gestor') !== '1');
+    history.replaceState({ pg: 'comandas' }, '', '#comandas');
+    mostrarPagina('comandas', false);
+    mostrarToast('Voltou pro modo caixa.', 'ok');
+    return;
+  }
+
+  const pin = prompt('Senha financeira, pra liberar o menu completo (manutenção):');
+  if (pin === null) return;
+  const r = await fetch(`${API}/financeiro/pin`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
+    body: JSON.stringify({ pin: pin.trim() }),
+  });
+  if (!r.ok) { mostrarToast('Senha incorreta.', 'warn'); return; }
+
+  sessionStorage.setItem('pp_manutencao_ativa', '1');
+  document.getElementById('sidebar')?.classList.remove('hidden');
+  document.documentElement.classList.remove('modo-caixa-ativo');
+  document.getElementById('icone-manutencao-modo-caixa').textContent = '🔒';
+  document.getElementById('texto-manutencao-modo-caixa').textContent = 'Voltar ao caixa';
+  // Some os outros flutuantes enquanto em manutenção — o menu normal já cobre tudo.
+  document.getElementById('btn-sair-modo-caixa')?.classList.add('hidden');
+  document.getElementById('btn-equipe-modo-caixa')?.classList.add('hidden');
+  mostrarToast('Menu liberado pra manutenção. Aperta o botão de novo pra voltar ao caixa.', 'ok');
 }
 
 function salvarConfigAparelho() {
@@ -516,7 +570,9 @@ function sair() {
   sessionStorage.removeItem('pptoken');
   sessionStorage.removeItem('pp_modo_caixa_restrito');
   sessionStorage.removeItem('pp_modo_caixa_gestor');
+  sessionStorage.removeItem('pp_manutencao_ativa');
   document.getElementById('btn-equipe-modo-caixa')?.classList.add('hidden');
+  document.getElementById('btn-manutencao-modo-caixa')?.classList.add('hidden');
   document.documentElement.classList.remove('modo-caixa-ativo');
   document.getElementById('app').classList.add('hidden');
   // Aparelho fixado pro caixa: volta pro login simples (nome+PIN), não pro
