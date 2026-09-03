@@ -444,6 +444,9 @@ app.use(express.static(path.join(__dirname, '../public'), {
       // CPF do cliente na nota fiscal (opcional, digitado na hora, sem cadastro nenhum) —
       // diferente do Faturado, é só informativo pra Sefaz, não tem limite/saldo.
       'ALTER TABLE comandas ADD COLUMN cpf_nota VARCHAR(14) NULL',
+      // Email da contabilidade — recebe o zip com os XMLs das NFC-e do mês, enviado
+      // automaticamente todo dia 1º. Fica em branco até o dono configurar.
+      'ALTER TABLE padarias ADD COLUMN email_contabilidade VARCHAR(120) NULL',
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
 
@@ -489,6 +492,7 @@ app.use(express.static(path.join(__dirname, '../public'), {
 })();
 
 require('./jobs/relatorioDiario').iniciarJobRelatorioDiario();
+require('./jobs/relatorioContabilMensal').iniciarJobRelatorioContabilMensal();
 
 app.use('/api', require('./routes'));
 

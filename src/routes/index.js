@@ -813,6 +813,17 @@ router.post('/admin/relatorio-diario/testar', auth, authAdmin, wrap(async (req, 
   res.json({ ok: true });
 }));
 
+// Dispara manualmente o envio do relatório contábil mensal (zip de XMLs das NFC-e) por email.
+// Sem "referencia" no body, manda o mês passado (comportamento normal do dia 1º);
+// com { "referencia": "2026-08-15" } simula rodar como se fosse nessa data (útil pra reenviar
+// um mês antigo — o job sempre manda o mês ANTERIOR à data de referência).
+router.post('/admin/relatorio-contabil/testar', auth, authAdmin, wrap(async (req, res) => {
+  const { enviarRelatorioContabilMensal } = require('../jobs/relatorioContabilMensal');
+  const referencia = req.body?.referencia ? new Date(req.body.referencia) : new Date();
+  await enviarRelatorioContabilMensal(referencia);
+  res.json({ ok: true });
+}));
+
 router.get('/admin/padarias', auth, authAdmin, wrap(async (req, res) => {
   const db = require('../database/connection');
   const [rows] = await db.query(`
