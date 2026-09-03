@@ -203,7 +203,7 @@ router.get('/comandas/historico',      auth, authPremium, exigirFuncionario(['ge
 router.post('/comandas',               auth, authPremium, wrap(comandaCtrl.abrir));
 router.get('/comandas/:id',            auth, authPremium, wrap(comandaCtrl.buscar));
 router.post('/comandas/:id/itens',     auth, authPremium, wrap(comandaCtrl.adicionarItem));
-router.delete('/comandas/:id/itens/:itemId', auth, authPremium, exigirFuncionario(['gerente']), wrap(comandaCtrl.removerItem));
+router.delete('/comandas/:id/itens/:itemId', auth, authPremium, wrap(comandaCtrl.removerItem));
 router.post('/comandas/:id/fechar',    auth, authPremium, wrap(comandaCtrl.fechar));
 router.post('/comandas/:id/cancelar',  auth, authPremium, exigirFuncionario(['gerente']), wrap(comandaCtrl.cancelar));
 router.post('/comandas/:id/juntar',    auth, authPremium, wrap(comandaCtrl.juntar));

@@ -6133,7 +6133,7 @@ function renderItensComanda(c) {
         <div class="cmd-item-qtdpreco">${fmtQtd(i.quantidade)} ${i.unidade} × ${fmtMoeda(i.preco_unitario)}</div>
         <div class="cmd-item-direita">
           <span class="cmd-item-subtotal">${fmtMoeda(i.subtotal)}</span>
-          ${c.status === 'aberta' ? `<button class="btn-icon" onclick="removerItemComandaPedirPin('${i.id}')" title="Excluir item (requer PIN de gerente)">✕</button>` : ''}
+          ${c.status === 'aberta' ? `<button class="btn-icon" onclick="removerItemComandaPedirPin('${i.id}')" title="Excluir item">✕</button>` : ''}
         </div>
       </div>
     `).join('')

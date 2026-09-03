@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260831c"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260902a"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -717,8 +717,8 @@
             <button id="btn-equipe-modo-caixa" class="btn-icon hidden" onclick="mostrarPagina('equipe')" title="Equipe">👥</button>
             <button id="btn-sair-modo-caixa" class="btn-icon hidden" onclick="sair()" title="Sair">🚪</button>
             <button onclick="abrirPainelCaixaUI()" class="btn-icon" title="Caixa (fechar, sangria, suprimento)">💰</button>
-            <button onclick="imprimirFichaCozinha()" class="btn-icon" title="Imprimir ficha pra cozinha">🖨️</button>
-            <button onclick="fecharModalComanda()" class="btn-icon">✕</button>
+            <button onclick="imprimirFichaCozinha()" class="btn-icon esconde-modo-caixa" title="Imprimir ficha pra cozinha">🖨️</button>
+            <button onclick="fecharModalComanda()" class="btn-icon esconde-modo-caixa">✕</button>
           </div>
         </div>
 
@@ -2146,7 +2146,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260902e"></script>
+<script src="/js/app.js?v=20260902f"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

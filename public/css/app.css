@@ -3305,6 +3305,9 @@ tr.tr-saida td { color: var(--red-600); }
 .modo-caixa-ativo #btn-scanner-camera-comanda,
 .modo-caixa-ativo #btn-teclado-numerico-comanda,
 .modo-caixa-ativo .cmd-calculadora { display: none !important; }
+/* Ficha pra cozinha e fechar (✕) somem só no modo caixa — continuam existindo
+   pro dono/gerente fora dele. */
+.modo-caixa-ativo .esconde-modo-caixa { display: none !important; }
 
 /* ── Modal de valor recebido (dinheiro/divisão de pagamento) ─── */
 .pgto-valor-troco { text-align: center; font-size: 18px; font-weight: 700; color: var(--green-700); margin: 8px 0 4px; }
