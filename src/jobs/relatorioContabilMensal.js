@@ -37,10 +37,13 @@ async function montarZipDoMes(padaria_id, ano, mes) {
   const fimData = new Date(ano, parseInt(mes, 10), 1); // dia 1 do mês seguinte
   const fim = fimData.toISOString().slice(0, 10) + ' 00:00:00';
 
+  // ambiente = 1 é Produção (nota que vale de verdade); ambiente = 2 é Homologação
+  // (teste da Sefaz, não tem validade nenhuma) — a contabilidade só pode receber as de
+  // Produção, senão mistura nota de teste com nota real no livro fiscal dela.
   const [notas] = await db.query(
     `SELECT id, numero, serie, chave_acesso, status, valor_total, xml_assinado, autorizada_em
      FROM notas_fiscais
-     WHERE padaria_id = ? AND status = 'autorizada'
+     WHERE padaria_id = ? AND status = 'autorizada' AND ambiente = 1
        AND autorizada_em >= ? AND autorizada_em < ?
      ORDER BY numero`,
     [padaria_id, inicio, fim]
