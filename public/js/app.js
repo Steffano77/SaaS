@@ -196,8 +196,8 @@ function aplicarRestricaoModoCaixa() {
   // (não trava a sidebar de novo sozinho) — só o botão de relock cuida disso.
   if (sessionStorage.getItem('pp_manutencao_ativa') === '1') {
     document.getElementById('btn-manutencao-modo-caixa')?.classList.remove('hidden');
-    document.getElementById('icone-manutencao-modo-caixa').textContent = '🔒';
-    document.getElementById('texto-manutencao-modo-caixa').textContent = 'Voltar ao caixa';
+    const icone = document.getElementById('icone-manutencao-modo-caixa');
+    if (icone) icone.textContent = '🔒';
     return false;
   }
   // Esconde a sidebar inteira — modo caixa fica só com a tela de Comandas,
@@ -233,8 +233,8 @@ async function toggleManutencaoModoCaixa() {
     sessionStorage.removeItem('pp_manutencao_ativa');
     document.getElementById('sidebar')?.classList.add('hidden');
     document.documentElement.classList.add('modo-caixa-ativo');
-    document.getElementById('icone-manutencao-modo-caixa').textContent = '🔓';
-    document.getElementById('texto-manutencao-modo-caixa').textContent = 'Manutenção';
+    const iconeLock = document.getElementById('icone-manutencao-modo-caixa');
+    if (iconeLock) iconeLock.textContent = '🔓';
     document.getElementById('btn-sair-modo-caixa')?.classList.remove('hidden');
     document.getElementById('btn-equipe-modo-caixa')?.classList.toggle('hidden', sessionStorage.getItem('pp_modo_caixa_gestor') !== '1');
     history.replaceState({ pg: 'comandas' }, '', '#comandas');
@@ -254,8 +254,8 @@ async function toggleManutencaoModoCaixa() {
   sessionStorage.setItem('pp_manutencao_ativa', '1');
   document.getElementById('sidebar')?.classList.remove('hidden');
   document.documentElement.classList.remove('modo-caixa-ativo');
-  document.getElementById('icone-manutencao-modo-caixa').textContent = '🔒';
-  document.getElementById('texto-manutencao-modo-caixa').textContent = 'Voltar ao caixa';
+  const iconeUnlock = document.getElementById('icone-manutencao-modo-caixa');
+  if (iconeUnlock) iconeUnlock.textContent = '🔒';
   // Some os outros flutuantes enquanto em manutenção — o menu normal já cobre tudo.
   document.getElementById('btn-sair-modo-caixa')?.classList.add('hidden');
   document.getElementById('btn-equipe-modo-caixa')?.classList.add('hidden');
