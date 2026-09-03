@@ -6718,7 +6718,7 @@ function abrirGavetaUI() {
   const janela = window.open('', '_blank', 'width=200,height=200');
   if (!janela) { mostrarToast('O navegador bloqueou a janela — permite pop-up nesse site.', 'warn'); return; }
   janela.document.write(`<!doctype html><html><head><meta charset="utf-8"/>
-    <style>@page{margin:0;size:58mm 5mm;}body{margin:0;}</style></head><body>
+    <style>@page{margin:0;}body{margin:0;padding:0;height:1px;font-size:1px;line-height:1px;}</style></head><body>&nbsp;
     <script>
     window.onload = () => {
       window.print();
