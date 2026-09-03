@@ -6710,6 +6710,37 @@ document.addEventListener('keydown', (e) => {
   campo?.select();
 });
 
+// Atalho "G" — abre a gaveta de dinheiro. A gaveta é ligada na impressora térmica e
+// abre sozinha toda vez que ela imprime algo (é assim que o DANFE já abre a gaveta hoje) —
+// então aqui a gente manda pra impressora um tíquete mínimo (praticamente em branco, sem
+// gastar papel de verdade) só pra pulsar a gaveta, sem precisar imprimir uma nota de verdade.
+function abrirGavetaUI() {
+  const janela = window.open('', '_blank', 'width=200,height=200');
+  if (!janela) { mostrarToast('O navegador bloqueou a janela — permite pop-up nesse site.', 'warn'); return; }
+  janela.document.write(`<!doctype html><html><head><meta charset="utf-8"/>
+    <style>@page{margin:0;size:58mm 5mm;}body{margin:0;}</style></head><body>
+    <script>
+    window.onload = () => {
+      window.print();
+      window.onafterprint = () => window.close();
+      setTimeout(() => window.close(), 1500);
+    };
+    <\/script>
+    </body></html>`);
+  janela.document.close();
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'g' && e.key !== 'G') return;
+  const modalAberto = !document.getElementById('modal-comanda')?.classList.contains('hidden');
+  if (!modalAberto) return;
+  const el = document.activeElement;
+  const digitando = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+  if (digitando) return;
+  e.preventDefault();
+  abrirGavetaUI();
+});
+
 function calcularRestante() {
   const total = comandaAtualDados ? parseFloat(comandaAtualDados.total) : 0;
   const pago = comandaPagamentosPendentes.reduce((s, p) => s + p.valor, 0);
