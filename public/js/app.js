@@ -1349,7 +1349,7 @@ function imprimirSaidas() {
     <style>
       @page { margin: 0.5cm 1cm; size: A4 portrait; }
       html { font-family: Arial, sans-serif; font-size: 11px; color: #000; }
-      body { padding: 12px; box-sizing: border-box; width: 770px; max-width: 770px; margin: 0 auto; }
+      body { padding: 12px; box-sizing: border-box; width: 100%; margin: 0 auto; }
       .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
       .page-header-left h2 { color: #1e3a5f; margin: 0 0 2px; font-size: 16px; }
       .page-header-left p { color: #1e3a5f; margin: 0; font-size: 10px; font-weight: 600; }
@@ -1364,6 +1364,8 @@ function imprimirSaidas() {
       tr.loja-header td { background: #fff; color: #1e3a5f; font-weight: 700; font-size: 11px; padding: 5px 7px; border-top: 2px solid #1e3a5f; border-bottom: 1px solid #1e3a5f; }
       tr.forn-header td { background: #fff; color: #1e3a5f; font-weight: 700; padding: 4px 7px 4px 18px; font-size: 10px; border-bottom: 1px solid #cbd5e1; }
       .total { text-align: right; font-weight: 700; margin-top: 8px; font-size: 12px; color: #dc2626; }
+      thead { display: table-header-group; }
+      tr { page-break-inside: avoid; }
     </style></head><body>
     <div class="page-header">
       <div class="page-header-left">
@@ -1382,17 +1384,6 @@ function imprimirSaidas() {
     <div class="total">Total geral: R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
     <script>
     window.onload = () => {
-      const body = document.body;
-      const pageH = 267; // A4 altura útil em mm (297 - margens)
-      const mmToPx = 3.7795;
-      const pageHpx = pageH * mmToPx;
-      const contentH = body.scrollHeight;
-      if (contentH > pageHpx) {
-        const scale = pageHpx / contentH;
-        body.style.transformOrigin = 'top left';
-        body.style.transform = 'scale(' + scale + ')';
-        body.style.width = Math.round(100 / scale) + '%';
-      }
       window.print();
       window.onafterprint = () => window.close();
       setTimeout(() => window.close(), 2000);
@@ -1479,7 +1470,7 @@ async function imprimirEstoquePorCategoria() {
     <style>
       @page { margin: 0.5cm 1cm; size: A4 portrait; }
       html { font-family: Arial, sans-serif; font-size: 11px; color: #000; }
-      body { padding: 12px; box-sizing: border-box; width: 770px; max-width: 770px; margin: 0 auto; }
+      body { padding: 12px; box-sizing: border-box; width: 100%; margin: 0 auto; }
       .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
       .page-header-left h2 { color: #1e3a5f; margin: 0 0 2px; font-size: 16px; }
       .page-header-left p { color: #1e3a5f; margin: 0; font-size: 10px; font-weight: 600; }
@@ -1490,6 +1481,8 @@ async function imprimirEstoquePorCategoria() {
       th { background: #fff; color: #1e3a5f; padding: 5px 7px; text-align: left; font-size: 10px; font-weight: 700; border-bottom: 2px solid #1e3a5f; }
       td { padding: 5px 7px; border-bottom: 1px solid #cbd5e1; color: #000; font-size: 10px; }
       tr:nth-child(even) td { background: #f1f5f9; }
+      thead { display: table-header-group; }
+      tr { page-break-inside: avoid; }
     </style></head><body>
     <div class="page-header">
       <div class="page-header-left">
@@ -1507,17 +1500,6 @@ async function imprimirEstoquePorCategoria() {
     </table>
     <script>
     window.onload = () => {
-      const body = document.body;
-      const pageH = 267;
-      const mmToPx = 3.7795;
-      const pageHpx = pageH * mmToPx;
-      const contentH = body.scrollHeight;
-      if (contentH > pageHpx) {
-        const scale = pageHpx / contentH;
-        body.style.transformOrigin = 'top left';
-        body.style.transform = 'scale(' + scale + ')';
-        body.style.width = Math.round(100 / scale) + '%';
-      }
       window.print();
       window.onafterprint = () => window.close();
       setTimeout(() => window.close(), 2000);
