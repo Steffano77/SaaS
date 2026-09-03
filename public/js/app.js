@@ -254,12 +254,15 @@ async function toggleManutencaoModoCaixa() {
   sessionStorage.setItem('pp_manutencao_ativa', '1');
   document.getElementById('sidebar')?.classList.remove('hidden');
   document.documentElement.classList.remove('modo-caixa-ativo');
+  // Já deixa o ícone marcado como "voltar" pra quando a tela de venda reabrir de novo.
   const iconeUnlock = document.getElementById('icone-manutencao-modo-caixa');
   if (iconeUnlock) iconeUnlock.textContent = '🔒';
-  // Some os outros flutuantes enquanto em manutenção — o menu normal já cobre tudo.
-  document.getElementById('btn-sair-modo-caixa')?.classList.add('hidden');
-  document.getElementById('btn-equipe-modo-caixa')?.classList.add('hidden');
-  mostrarToast('Menu liberado pra manutenção. Aperta o botão de novo pra voltar ao caixa.', 'ok');
+  // A tela de venda é uma janela por cima de tudo (mesmo z-index alto de qualquer modal) —
+  // precisa fechar ela de verdade pra sidebar aparecer, senão fica destravada só por trás.
+  document.getElementById('modal-comanda')?.classList.add('hidden');
+  if (_cmdRelogioTimer) { clearInterval(_cmdRelogioTimer); _cmdRelogioTimer = null; }
+  mostrarToast('Menu liberado pra manutenção. Aperta o botão de novo (no painel do caixa) pra voltar ao caixa.', 'ok');
+  mostrarPagina('dashboard', true);
 }
 
 function salvarConfigAparelho() {
