@@ -6905,11 +6905,15 @@ function renderClientesFaturadoLista(lista) {
   if (!lista.length) { el.innerHTML = '<p style="text-align:center;color:var(--slate-400);padding:20px;">Nenhum cliente cadastrado ainda.</p>'; return; }
   const empresas = lista.filter(c => c.tipo !== 'funcionario');
   const funcionarios = lista.filter(c => c.tipo === 'funcionario');
-  const secao = (titulo, itens) => !itens.length ? '' : `
-    <div style="font-size:11.5px;font-weight:800;color:var(--slate-500);text-transform:uppercase;letter-spacing:0.5px;margin:4px 0 -2px;">${titulo} (${itens.length})</div>
-    ${itens.map(cartaoClienteFaturadoHtml).join('')}
+  // Cada seção é uma coluna própria (grid de 2 colunas no container pai) — assim
+  // empresas e funcionários ficam lado a lado, cada um empilhado dentro da sua coluna.
+  const coluna = (titulo, itens) => `
+    <div style="display:flex;flex-direction:column;gap:8px;min-width:0;">
+      <div style="font-size:11.5px;font-weight:800;color:var(--slate-500);text-transform:uppercase;letter-spacing:0.5px;">${titulo} (${itens.length})</div>
+      ${itens.length ? itens.map(cartaoClienteFaturadoHtml).join('') : '<p style="font-size:12.5px;color:var(--slate-400);">Nenhum cadastrado.</p>'}
+    </div>
   `;
-  el.innerHTML = secao('🏢 Empresas (CNPJ)', empresas) + secao('👤 Funcionários (CPF)', funcionarios);
+  el.innerHTML = coluna('🏢 Empresas (CNPJ)', empresas) + coluna('👤 Funcionários (CPF)', funcionarios);
 }
 
 // Imprime a lista inteira (empresas + funcionários), separada por seção — pra
