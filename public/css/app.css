@@ -2826,19 +2826,22 @@ tr.tr-saida td { color: var(--red-600); }
 .cmd-pdv-relogio { margin-left: auto; font-variant-numeric: tabular-nums; color: #fff; font-weight: 700; }
 @media (max-width: 600px) {
   .cmd-pdv-topbar { gap: 8px 14px; padding: 8px 12px; }
-  .cmd-pdv-busca-numero { width: 110px; }
+  .cmd-pdv-busca-numero { width: 150px; font-size: 18px; padding: 8px 10px; }
 }
-.cmd-pdv-busca-numero-wrap { display: flex; align-items: center; gap: 4px; }
+.cmd-pdv-busca-numero-wrap { display: flex; align-items: center; gap: 6px; }
+/* Aumentado bastante (era 12.5px/150px, quase ilegível) — atendente relatou
+   dificuldade de enxergar. Fundo mais sólido e borda mais grossa pra destacar
+   do navy escuro do topbar, fonte maior e em negrito. */
 .cmd-pdv-busca-numero {
-  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
-  border-radius: 8px; color: #fff; padding: 5px 10px; font-size: 12.5px;
-  width: 150px; outline: none;
+  background: rgba(255,255,255,0.22); border: 2px solid rgba(255,255,255,0.4);
+  border-radius: 10px; color: #fff; padding: 10px 14px; font-size: 20px; font-weight: 800;
+  font-variant-numeric: tabular-nums; width: 210px; outline: none;
 }
-.cmd-pdv-busca-numero::placeholder { color: rgba(255,255,255,0.55); }
-.cmd-pdv-busca-numero:focus { border-color: var(--orange); background: rgba(255,255,255,0.18); }
+.cmd-pdv-busca-numero::placeholder { color: rgba(255,255,255,0.7); font-size: 15px; font-weight: 600; }
+.cmd-pdv-busca-numero:focus { border-color: var(--orange); background: rgba(255,255,255,0.3); }
 .cmd-pdv-busca-numero-btn {
-  background: var(--orange); color: #fff; border: none; border-radius: 8px;
-  padding: 5px 12px; font-size: 12px; font-weight: 700; cursor: pointer;
+  background: var(--orange); color: #fff; border: none; border-radius: 10px;
+  padding: 10px 18px; font-size: 16px; font-weight: 800; cursor: pointer;
 }
 .cmd-pdv-busca-numero-btn:hover { background: var(--orange-dark); }
 
