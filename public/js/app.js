@@ -6872,15 +6872,14 @@ async function abrirClientesFaturado() {
   renderClientesFaturadoLista(lista);
 }
 
-function renderClientesFaturadoLista(lista) {
-  const el = document.getElementById('clientes-faturado-lista');
-  if (!lista.length) { el.innerHTML = '<p style="text-align:center;color:var(--slate-400);padding:20px;">Nenhum cliente cadastrado ainda.</p>'; return; }
-  el.innerHTML = lista.map(c => {
-    const ehFuncionario = c.tipo === 'funcionario';
-    const saldo = parseFloat(c.saldo_devedor || 0);
-    const limite = parseFloat(c.limite || 0);
-    const estourado = ehFuncionario && saldo >= limite && limite > 0;
-    return `
+let _clientesFaturadoListaCache = [];
+
+function cartaoClienteFaturadoHtml(c) {
+  const ehFuncionario = c.tipo === 'funcionario';
+  const saldo = parseFloat(c.saldo_devedor || 0);
+  const limite = parseFloat(c.limite || 0);
+  const estourado = ehFuncionario && saldo >= limite && limite > 0;
+  return `
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border:1px solid var(--slate-200,#e2e8f0);border-radius:10px;">
       <div>
         <div style="font-weight:700;font-size:13.5px;">${ehFuncionario ? '👤' : '🏢'} ${c.nome}</div>
@@ -6896,7 +6895,48 @@ function renderClientesFaturadoLista(lista) {
       </div>
     </div>
   `;
-  }).join('');
+}
+
+// Separado em duas seções — empresa (CNPJ) e funcionário (CPF) — pra ficar mais fácil
+// de achar quem é quem numa lista grande, em vez de tudo misturado.
+function renderClientesFaturadoLista(lista) {
+  _clientesFaturadoListaCache = lista;
+  const el = document.getElementById('clientes-faturado-lista');
+  if (!lista.length) { el.innerHTML = '<p style="text-align:center;color:var(--slate-400);padding:20px;">Nenhum cliente cadastrado ainda.</p>'; return; }
+  const empresas = lista.filter(c => c.tipo !== 'funcionario');
+  const funcionarios = lista.filter(c => c.tipo === 'funcionario');
+  const secao = (titulo, itens) => !itens.length ? '' : `
+    <div style="font-size:11.5px;font-weight:800;color:var(--slate-500);text-transform:uppercase;letter-spacing:0.5px;margin:4px 0 -2px;">${titulo} (${itens.length})</div>
+    ${itens.map(cartaoClienteFaturadoHtml).join('')}
+  `;
+  el.innerHTML = secao('🏢 Empresas (CNPJ)', empresas) + secao('👤 Funcionários (CPF)', funcionarios);
+}
+
+// Imprime a lista inteira (empresas + funcionários), separada por seção — pra
+// conferência física de quem está cadastrado, com saldo/limite de cada funcionário.
+function imprimirListaClientesFaturadoUI() {
+  const lista = _clientesFaturadoListaCache;
+  if (!lista.length) { mostrarToast('Nenhum cliente cadastrado ainda.', 'warn'); return; }
+  const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
+  const agora = new Date().toLocaleString('pt-BR');
+  const empresas = lista.filter(c => c.tipo !== 'funcionario');
+  const funcionarios = lista.filter(c => c.tipo === 'funcionario');
+  const linhaEmpresa = (c) => `<div class="linha"><span class="nome">${c.nome}</span></div>
+    <div class="sub" style="text-align:left;margin:-2px 0 4px;">${formatarCnpjUI(c.cnpj)}</div>`;
+  const linhaFuncionario = (c) => {
+    const saldo = parseFloat(c.saldo_devedor || 0);
+    const limite = parseFloat(c.limite || 0);
+    return `<div class="linha"><span class="nome">${c.nome}</span></div>
+    <div class="sub" style="text-align:left;margin:-2px 0 4px;">${formatarCnpjUI(c.cnpj)} · Saldo ${fmtMoeda(saldo)} / ${fmtMoeda(limite)}</div>`;
+  };
+  abrirJanelaImpressaoTermica(`
+    <h1>${nomePadaria}</h1>
+    <div class="sub">Clientes Faturado · ${agora}</div>
+    <hr/>
+    ${empresas.length ? `<div class="sub" style="text-align:left;font-weight:800;">🏢 EMPRESAS — CNPJ (${empresas.length})</div><hr/>${empresas.map(linhaEmpresa).join('')}` : ''}
+    ${funcionarios.length ? `<div class="sub" style="text-align:left;font-weight:800;margin-top:8px;">👤 FUNCIONÁRIOS — CPF (${funcionarios.length})</div><hr/>${funcionarios.map(linhaFuncionario).join('')}` : ''}
+    <div class="rodape">${lista.length} cadastrados no total</div>
+  `);
 }
 
 // Extrato de consumo de um faturado (empresa ou funcionário) — lista tudo que ele
