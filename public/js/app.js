@@ -6854,6 +6854,10 @@ async function adicionarPagamentoUI(forma) {
 
   // Dinheiro sempre pede o valor recebido — é o único jeito de calcular troco.
   if (forma === 'Dinheiro') {
+    // Abre a gaveta JÁ, assim que escolhe "Dinheiro" — não espera terminar de
+    // digitar o valor/troco nem fechar a venda. É na hora de escolher a forma de
+    // pagamento que a atendente precisa da gaveta aberta pra pegar/trocar dinheiro.
+    abrirGavetaUI();
     abrirModalValorPagamento(forma, restante, true);
     return;
   }
@@ -7394,11 +7398,6 @@ async function finalizarVendaUI() {
   // guardar/conferir, uma pro cliente levar se quiser.
   if (pgtoFaturado?.cliente_documento) {
     imprimirAutorizacaoFaturadoUI(pgtoFaturado.cliente_nome, pgtoFaturado.cliente_documento, pgtoFaturado.valor);
-  }
-  // Pagou em dinheiro (mesmo que junto com outra forma) — abre a gaveta sozinha,
-  // sem precisar apertar G.
-  if (comandaPagamentosPendentes.some(p => p.forma_pagamento === 'Dinheiro')) {
-    abrirGavetaUI();
   }
   resetEscolhaNFCe();
   _faturadoClienteSelecionado = null;
