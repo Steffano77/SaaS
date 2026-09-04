@@ -6891,7 +6891,7 @@ function renderClientesFaturadoLista(lista) {
       <div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
         <button class="btn-icon" title="Extrato / imprimir" onclick="abrirExtratoFaturadoUI('${c.cnpj}','${(c.nome||'').replace(/'/g,"\\'")}')">📋</button>
         ${saldo > 0 ? `<button class="btn-icon" title="Dar baixa (marcar como pago)" onclick="darBaixaFaturadoUI('${c.cnpj}','${(c.nome||'').replace(/'/g,"\\'")}')">💰</button>` : ''}
-        <button class="btn-icon" title="Editar" onclick="editarClienteFaturadoUI(${c.id},'${(c.nome||'').replace(/'/g,"\\'")}','${(c.endereco||'').replace(/'/g,"\\'")}','${(c.telefone||'').replace(/'/g,"\\'")}')">✏️</button>
+        <button class="btn-icon" title="Editar" onclick="editarClienteFaturadoUI(${c.id},'${(c.nome||'').replace(/'/g,"\\'")}','${(c.endereco||'').replace(/'/g,"\\'")}','${(c.telefone||'').replace(/'/g,"\\'")}','${c.tipo}',${limite})">✏️</button>
         <button class="btn-icon" title="Excluir" onclick="excluirClienteFaturadoUI(${c.id})">🗑️</button>
       </div>
     </div>
@@ -6965,12 +6965,18 @@ async function abrirNovoClienteFaturadoUI() {
   abrirClientesFaturado();
 }
 
-async function editarClienteFaturadoUI(id, nomeAtual, enderecoAtual, telefoneAtual) {
+async function editarClienteFaturadoUI(id, nomeAtual, enderecoAtual, telefoneAtual, tipo, limiteAtual) {
   const nome = prompt('Nome / Razão social:', nomeAtual);
   if (!nome || !nome.trim()) return;
   const endereco = prompt('Endereço:', enderecoAtual) || '';
   const telefone = prompt('Telefone:', telefoneAtual) || '';
-  const r = await api(`/clientes-faturado/${id}`, { method: 'PUT', body: { nome, endereco, telefone } });
+  const body = { nome, endereco, telefone };
+  if (tipo === 'funcionario') {
+    const limiteDigitado = prompt('Limite de crédito desse funcionário (R$):', String(limiteAtual || 0));
+    if (limiteDigitado === null) return; // cancelou
+    body.limite = limiteDigitado.replace(',', '.');
+  }
+  const r = await api(`/clientes-faturado/${id}`, { method: 'PUT', body });
   if (!r) return;
   mostrarToast('Atualizado!', 'ok');
   _clientesFaturadoCache = null;
@@ -7339,6 +7345,12 @@ async function finalizarVendaUI() {
   } else if (snapshot) {
     imprimirReciboComanda(snapshot, formaResumo, janelaImpressao);
   }
+  // Pagou em "Faturado" com funcionário identificado — imprime o comprovante de
+  // autorização (limite/saldo devedor/saldo disponível) em 2 vias: uma pra padaria
+  // guardar/conferir, uma pro cliente levar se quiser.
+  if (pgtoFaturado?.cliente_documento) {
+    imprimirAutorizacaoFaturadoUI(pgtoFaturado.cliente_nome, pgtoFaturado.cliente_documento, pgtoFaturado.valor);
+  }
   resetEscolhaNFCe();
   _faturadoClienteSelecionado = null;
   _cpfNotaSelecionado = null;
@@ -7384,6 +7396,41 @@ function abrirJanelaImpressaoTermica(bodyHtml, janelaPre) {
   // Sem isso, o diálogo de impressão às vezes abre ATRÁS da janela principal e
   // trava a tela (a pessoa acha que travou, mas é só o diálogo escondido).
   w.focus();
+}
+
+// Comprovante de autorização do Faturado (parecido com um comprovante de
+// cartão/fidelidade) — mostra limite, saldo devedor e saldo disponível do funcionário
+// na hora da compra, pra conferência. Sai em 2 vias: uma da padaria, uma do cliente.
+async function imprimirAutorizacaoFaturadoUI(nomeCliente, documento, valor) {
+  const saldoInfo = await api(`/clientes-faturado/documento/${documento}/saldo`);
+  if (!saldoInfo) return; // não trava a venda por causa disso — venda já fechou
+  const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
+  const agora = new Date().toLocaleString('pt-BR');
+  const transacaoId = 'FAT-' + Date.now().toString(36).toUpperCase();
+  const via = (titulo) => `
+    <h1>PROGRAMA DE FIDELIDADE</h1>
+    <h1>AUTORIZAÇÃO</h1>
+    <div class="sub">Transação realizada · ${agora}</div>
+    <hr/>
+    <div class="sub" style="text-align:left;font-weight:800;">Dados do autorizador</div>
+    <hr/>
+    <div class="linha"><span class="nome">${nomePadaria}</span></div>
+    <hr/>
+    <div class="sub" style="text-align:left;font-weight:800;">Dados da transação</div>
+    <hr/>
+    <div class="linha"><span class="nome">Transação:</span><span class="valor">${transacaoId}</span></div>
+    <div class="linha"><span class="nome">Valor:</span><span class="valor">${fmtMoeda(valor)}</span></div>
+    <div class="sub" style="text-align:left;font-weight:800;margin-top:6px;">Informações do cartão</div>
+    <hr/>
+    <div class="linha"><span class="nome">Cliente:</span><span class="valor">${nomeCliente}</span></div>
+    <div class="linha"><span class="nome">Limite:</span><span class="valor">${fmtMoeda(saldoInfo.limite)}</span></div>
+    <div class="linha"><span class="nome">Saldo devedor:</span><span class="valor">${fmtMoeda(saldoInfo.saldoDevedor)}</span></div>
+    <div class="linha"><span class="nome">Saldo disponível:</span><span class="valor">${fmtMoeda(saldoInfo.disponivel)}</span></div>
+    <hr/>
+    <div class="rodape">${titulo}</div>
+  `;
+  abrirJanelaImpressaoTermica(via('VIA DA LOJA'));
+  abrirJanelaImpressaoTermica(via('VIA DO CLIENTE'));
 }
 
 // Ficha pra cozinha/produção — sem valores, só os itens pra separar/preparar

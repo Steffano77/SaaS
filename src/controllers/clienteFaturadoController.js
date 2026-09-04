@@ -81,10 +81,25 @@ exports.atualizar = async (req, res) => {
   const telefone = String(req.body.telefone || '').trim() || null;
   if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório.' });
 
-  await db.query(
-    `UPDATE clientes_faturado SET nome = ?, endereco = ?, telefone = ? WHERE id = ? AND padaria_id = ?`,
-    [nome, endereco, telefone, req.params.id, padaria_id]
+  // Limite só existe (e só pode ser mudado) pra funcionário — CNPJ (empresa) continua sem limite.
+  const [[atual]] = await db.query(
+    `SELECT tipo FROM clientes_faturado WHERE id = ? AND padaria_id = ?`, [req.params.id, padaria_id]
   );
+  if (!atual) return res.status(404).json({ erro: 'Cliente não encontrado.' });
+
+  if (atual.tipo === 'funcionario' && req.body.limite !== undefined && req.body.limite !== null && req.body.limite !== '') {
+    const limite = parseFloat(req.body.limite);
+    if (isNaN(limite) || limite < 0) return res.status(400).json({ erro: 'Limite inválido.' });
+    await db.query(
+      `UPDATE clientes_faturado SET nome = ?, endereco = ?, telefone = ?, limite = ? WHERE id = ? AND padaria_id = ?`,
+      [nome, endereco, telefone, limite, req.params.id, padaria_id]
+    );
+  } else {
+    await db.query(
+      `UPDATE clientes_faturado SET nome = ?, endereco = ?, telefone = ? WHERE id = ? AND padaria_id = ?`,
+      [nome, endereco, telefone, req.params.id, padaria_id]
+    );
+  }
   res.json({ ok: true });
 };
 
