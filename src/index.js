@@ -123,6 +123,9 @@ const limitePin = rateLimit({
 app.use('/api/financeiro/pin', limitePin);
 app.use('/api/caixa/abrir', limitePin);
 app.use(/^\/api\/atendentes\/\d+\/verificar-pin$/, limitePin);
+// Login do aparelho fixado (nome + PIN de 4 dígitos) — mesma trava, senão dá pra
+// tentar as 10.000 combinações usando só o limite geral da API.
+app.use('/api/auth/login-caixa', limitePin);
 
 app.use(express.json({ limit: '512kb' }));
 // O sw.js (service worker) é notoriamente teimoso pra cache — navegadores (principalmente
