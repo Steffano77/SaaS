@@ -149,4 +149,4 @@ function iniciarJobRelatorioContabilMensal() {
   console.log('[relatorio-contabil] Job agendado para dia 1º às 6h (America/Sao_Paulo).');
 }
 
-module.exports = { iniciarJobRelatorioContabilMensal, enviarRelatorioContabilMensal, mesAnterior };
+module.exports = { iniciarJobRelatorioContabilMensal, enviarRelatorioContabilMensal, mesAnterior, montarZipDoMes, montarHtmlEmail };
