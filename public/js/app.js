@@ -5062,13 +5062,14 @@ async function abrirModalCaixa(modo) {
     titulo.textContent = '💰 Fechar caixa';
     const caixa = caixaAtualCache;
     const r = caixa?.resumo;
-    // Em modo caixa (atendente), a tela é "cega": nenhum valor do sistema aparece —
-    // só campos em branco pra ela digitar o que contou de verdade. Isso evita que ela
-    // veja o valor esperado e simplesmente digite ele pra "bater certo" escondendo uma
-    // quebra de caixa. A comparação completa só aparece depois, no comprovante impresso,
-    // pra gerência conferir. Fora do modo caixa (dono/gerente mexendo direto), mantém a
-    // tela completa de sempre — não tem risco de fraude contra si mesmo.
-    const cego = !!sessionStorage.getItem('pp_modo_caixa_restrito');
+    // A tela é sempre "cega": nenhum valor do sistema aparece — só campos em branco
+    // pra digitar o que contou de verdade (nem o "esperado", nem os valores de cada
+    // forma como placeholder). Isso evita que quem está fechando veja o valor esperado
+    // e simplesmente digite ele pra "bater certo", escondendo uma quebra de caixa —
+    // mesmo que seja o próprio dono fechando, o hábito de sempre contar de verdade
+    // vale mais que a conveniência de ver o total na hora. A comparação completa
+    // aparece depois, no comprovante impresso, pra conferir.
+    const cego = true;
 
     const formasConferir = [...(r?.porForma || [])];
     if (!formasConferir.some(f => f.forma_pagamento === 'Dinheiro')) formasConferir.unshift({ forma_pagamento: 'Dinheiro', total: 0 });
