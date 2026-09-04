@@ -7395,6 +7395,11 @@ async function finalizarVendaUI() {
   if (pgtoFaturado?.cliente_documento) {
     imprimirAutorizacaoFaturadoUI(pgtoFaturado.cliente_nome, pgtoFaturado.cliente_documento, pgtoFaturado.valor);
   }
+  // Pagou em dinheiro (mesmo que junto com outra forma) — abre a gaveta sozinha,
+  // sem precisar apertar G.
+  if (comandaPagamentosPendentes.some(p => p.forma_pagamento === 'Dinheiro')) {
+    abrirGavetaUI();
+  }
   resetEscolhaNFCe();
   _faturadoClienteSelecionado = null;
   _cpfNotaSelecionado = null;
