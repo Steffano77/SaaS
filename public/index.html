@@ -2050,6 +2050,12 @@
             <input type="number" id="prod-saldo" step="0.001" min="0" value="0" class="form-control"/>
             <button type="button" onclick="toggleModoEstoquePorEmbalagem()" style="background:none;border:none;color:var(--orange);font-size:11px;font-weight:600;cursor:pointer;padding:4px 0 0;">🧮 Tenho em embalagens (sacas, caixas...)</button>
           </div>
+          <!-- Só aparece editando um produto que já existe — soma no estoque atual sozinho
+               (registrando a entrada no histórico), sem precisar calcular a mão. -->
+          <div class="form-group hidden" id="wrap-reposicao">
+            <label>Reposição <span style="font-weight:400;color:var(--slate-500);">(quantidade que chegou)</span></label>
+            <input type="number" id="prod-reposicao" step="0.001" min="0" placeholder="0" class="form-control"/>
+          </div>
           <div id="bloco-estoque-embalagem" class="hidden form-group col-full" style="background:var(--slate-50);border-radius:10px;padding:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
             <div class="form-group" style="margin:0;flex:1;min-width:130px;">
               <label style="font-size:12px;">Quantas embalagens?</label>
@@ -2146,7 +2152,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260905b"></script>
+<script src="/js/app.js?v=20260905c"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

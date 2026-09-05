@@ -3501,6 +3501,9 @@ function abrirModalProduto() {
   _codBalancaAutoPreenchido = true; // produto novo — pode auto-preencher
   document.getElementById('wrap-prod-cest').classList.add('hidden');
   document.getElementById('wrap-saldo').classList.remove('hidden');
+  // Reposição só faz sentido em produto que já existe (soma no que já tem) —
+  // produto novo é só o "Estoque atual" mesmo, direto.
+  document.getElementById('wrap-reposicao').classList.add('hidden');
   document.getElementById('bloco-embalagem').classList.add('hidden');
   document.getElementById('prod-embalagem-resultado').textContent = '—';
   document.getElementById('bloco-estoque-embalagem').classList.add('hidden');
@@ -3539,6 +3542,8 @@ async function editarProduto(id) {
   document.getElementById('prod-venda-rapida').checked = !!p.venda_rapida;
   document.getElementById('prod-controla-estoque').checked = p.controla_estoque !== 0;
   document.getElementById('wrap-saldo').classList.remove('hidden');
+  document.getElementById('prod-reposicao').value = '';
+  document.getElementById('wrap-reposicao').classList.remove('hidden');
   atualizarLabelEmbalagem();
   if (p.embalagem_preco && p.embalagem_qtd) {
     document.getElementById('prod-embalagem-preco').value = p.embalagem_preco;
@@ -3673,6 +3678,16 @@ async function salvarProduto(e) {
     mostrarToast(d.erro || 'Erro ao salvar.', 'err');
     return null;
   });
+  // Reposição (quantidade que chegou) — registra como ENTRADA de verdade (fica no
+  // histórico de movimentações), somando em cima do estoque que acabou de ser salvo
+  // acima, em vez de só editar o número do Saldo e perder o registro de quando chegou.
+  const reposicao = parseFloat(document.getElementById('prod-reposicao')?.value || 0);
+  if (id && res && reposicao > 0) {
+    await api('/movimentacoes', {
+      method: 'POST',
+      body: { produto_id: parseInt(id), tipo: 'entrada', quantidade: reposicao, custo_unit: custo || 0, observacao: 'Reposição' }
+    });
+  }
   setBtnLoading(submitBtn, false);
   if (id && res) {
     // Show success message in modal before closing
