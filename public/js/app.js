@@ -9,6 +9,28 @@ const API = '/api';
   }
 })();
 
+// DIAGNÓSTICO TEMPORÁRIO — detecta reload/navegação escondida no meio de uma venda.
+(function () {
+  try {
+    const navEntry = performance.getEntriesByType('navigation')[0];
+    const tipoNav = navEntry ? navEntry.type : 'desconhecido';
+    const ultimoUnload = sessionStorage.getItem('_debug_last_unload');
+    if (tipoNav !== 'navigate' || ultimoUnload) {
+      setTimeout(() => {
+        if (typeof mostrarToast === 'function') {
+          mostrarToast(`🩺 PÁGINA RECARREGOU — tipo: ${tipoNav} · antes disso: ${ultimoUnload || 'sem registro'}`, 'err');
+        }
+      }, 800);
+    }
+    sessionStorage.removeItem('_debug_last_unload');
+    window.addEventListener('beforeunload', () => {
+      try {
+        sessionStorage.setItem('_debug_last_unload', new Date().toLocaleTimeString('pt-BR') + ' · foco em: ' + (document.activeElement?.id || document.activeElement?.tagName || '?'));
+      } catch (e) {}
+    });
+  } catch (e) {}
+})();
+
 let TOKEN = localStorage.getItem('pptoken') || sessionStorage.getItem('pptoken') || '';
 let PLANO_ATUAL = '';
 let ROLE_ATUAL = '';
