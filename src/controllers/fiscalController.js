@@ -110,12 +110,25 @@ exports.ativarProducao = async (req, res) => {
 // Salva os dados fiscais da padaria (endereço, IE, regime tributário) — obrigatórios
 // pra Sefaz aceitar a nota. Nenhum desses dados é segredo (são públicos, tipo o que
 // já está no cartão CNPJ ou no alvará), então não precisa de criptografia.
+// Dados de cadastro da padaria (nome, endereço, CNPJ, IE) — usado pra montar o
+// cabeçalho do recibo de Faturado no frontend, sem precisar emitir nota fiscal.
+exports.dadosFiscais = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const [[p]] = await db.query(
+    `SELECT nfce_razao_social, cnpj, nfce_inscricao_estadual, nfce_logradouro, nfce_numero,
+       nfce_bairro, nfce_municipio, nfce_uf
+     FROM padarias WHERE id = ?`,
+    [padaria_id]
+  );
+  res.json(p || {});
+};
+
 exports.salvarDadosFiscais = async (req, res) => {
   try {
     const padaria_id = req.padaria.id;
     const {
       inscricao_estadual, regime_tributario, logradouro, numero, bairro,
-      municipio, codigo_municipio_ibge, cep, uf, razao_social,
+      municipio, codigo_municipio_ibge, cep, uf, razao_social, cnpj,
     } = req.body;
 
     const campos = {
@@ -129,6 +142,7 @@ exports.salvarDadosFiscais = async (req, res) => {
       nfce_cep: cep,
       nfce_uf: uf,
       nfce_razao_social: razao_social,
+      cnpj,
     };
     const sets = []; const vals = [];
     for (const [coluna, valor] of Object.entries(campos)) {

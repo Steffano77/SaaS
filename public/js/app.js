@@ -7507,9 +7507,17 @@ async function imprimirFichaCozinha() {
 }
 
 // Recibo do cliente — com valores e forma de pagamento, impresso após o fechamento
-function imprimirReciboComanda(c, forma_pagamento, janelaPre) {
+// Dados de cadastro da padaria (nome, endereço, CNPJ, IE) pro cabeçalho do recibo
+// de Faturado — busca uma vez só e guarda, não muda durante o uso do sistema.
+let _dadosFiscaisCache = null;
+async function buscarDadosFiscaisUI() {
+  if (!_dadosFiscaisCache) _dadosFiscaisCache = await api('/fiscal/dados') || {};
+  return _dadosFiscaisCache;
+}
+
+async function imprimirReciboComanda(c, forma_pagamento, janelaPre) {
   const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
-  const agora = new Date().toLocaleString('pt-BR');
+  const agora = new Date();
   const linhas = c.itens.map(i => `
     <div class="linha">
       <span class="qtd">${fmtQtd(i.quantidade)}x</span>
@@ -7518,14 +7526,54 @@ function imprimirReciboComanda(c, forma_pagamento, janelaPre) {
     </div>
   `).join('');
   const total = c.itens.reduce((s, i) => s + parseFloat(i.subtotal), 0);
-  // "Faturado" com cliente identificado imprime Cliente/Documento, igual à nota do Saurus.
+
+  // Faturado sai num layout mais completo (parecido com a nota antiga do
+  // Saurus) — cabeçalho com endereço/CNPJ/IE da padaria, número da venda e o
+  // aviso de que não é documento fiscal. As outras formas seguem como estava.
+  if (forma_pagamento === 'Faturado' && c.cliente_nome) {
+    const d = await buscarDadosFiscaisUI();
+    const endereco = [d.nfce_logradouro, d.nfce_numero].filter(Boolean).join(', ');
+    const cidadeUf = [d.nfce_bairro, [d.nfce_municipio, d.nfce_uf].filter(Boolean).join('/')].filter(Boolean).join(' — ');
+    const linhasComCodigo = c.itens.map((i, idx) => `
+      <div class="linha">
+        <span class="qtd">${String(idx + 1).padStart(3, '0')} ${String(i.produto_id || '').padStart(3, '0')}</span>
+        <span class="nome">${i.nome_produto}</span>
+      </div>
+      <div class="linha" style="padding-left:10px;">
+        <span class="nome" style="font-size:11px;">${fmtQtd(i.quantidade)} ${i.unidade || 'UN'} x ${fmtMoeda(i.preco_unitario)}</span>
+        <span class="valor">${fmtMoeda(i.subtotal)}</span>
+      </div>
+    `).join('');
+    abrirJanelaImpressaoTermica(`
+      <h1>${(d.nfce_razao_social || nomePadaria).toUpperCase()}</h1>
+      ${endereco ? `<div class="sub">${endereco}</div>` : ''}
+      ${cidadeUf ? `<div class="sub">${cidadeUf}</div>` : ''}
+      <div class="sub">${d.cnpj ? 'CNPJ ' + formatarCnpjUI(d.cnpj) : ''}${d.nfce_inscricao_estadual ? ' · IE ' + d.nfce_inscricao_estadual : ''}</div>
+      <hr/>
+      <div class="sub" style="font-weight:800;">VENDA SIMPLES</div>
+      <div class="sub">Número: ${c.identificador} &nbsp; ${agora.toLocaleDateString('pt-BR')} ${agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
+      <hr/>
+      <div class="sub" style="font-weight:800;">NÃO É DOCUMENTO FISCAL</div>
+      <hr/>
+      <div class="sub" style="text-align:left;">Cliente: ${c.cliente_nome}</div>
+      <div class="sub" style="text-align:left;">Documento: ${formatarCnpjUI(c.cliente_documento)}</div>
+      <hr/>
+      ${linhasComCodigo}
+      <hr/>
+      <div class="total"><span>TOTAL</span><span>${fmtMoeda(total)}</span></div>
+      <div class="sub" style="margin-top:4px;">Pagamento: Faturado</div>
+      <div class="rodape">Obrigado pela preferência!</div>
+    `, janelaPre);
+    return;
+  }
+
   const linhaCliente = c.cliente_nome
     ? `<div class="sub" style="text-align:left;margin-top:6px;">Cliente: ${c.cliente_nome}</div>
        <div class="sub" style="text-align:left;">Documento: ${formatarCnpjUI(c.cliente_documento)}</div>`
     : '';
   abrirJanelaImpressaoTermica(`
     <h1>${nomePadaria}</h1>
-    <div class="sub">Comanda ${c.identificador} · ${agora}</div>
+    <div class="sub">Comanda ${c.identificador} · ${agora.toLocaleString('pt-BR')}</div>
     ${linhaCliente}
     <hr/>
     ${linhas}

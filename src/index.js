@@ -450,6 +450,10 @@ app.use(express.static(path.join(__dirname, '../public'), {
       // Email da contabilidade — recebe o zip com os XMLs das NFC-e do mês, enviado
       // automaticamente todo dia 1º. Fica em branco até o dono configurar.
       'ALTER TABLE padarias ADD COLUMN email_contabilidade VARCHAR(120) NULL',
+      // CNPJ da própria padaria — usado no cabeçalho do recibo de Faturado (igual o
+      // recibo antigo do Saurus). Diferente do CNPJ que já existe embutido dentro da
+      // chave de acesso da NFC-e, esse fica solto pra imprimir mesmo sem nota emitida.
+      'ALTER TABLE padarias ADD COLUMN cnpj VARCHAR(18) NULL',
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
 

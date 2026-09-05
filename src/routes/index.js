@@ -111,6 +111,7 @@ const fiscalCtrl = require('../controllers/fiscalController');
 router.post('/fiscal/certificado', auth, fiscalCtrl.configurarCertificado);
 router.get('/fiscal/certificado/status', auth, fiscalCtrl.statusCertificado);
 router.post('/fiscal/csc', auth, fiscalCtrl.configurarCsc);
+router.get('/fiscal/dados', auth, fiscalCtrl.dadosFiscais);
 router.post('/fiscal/dados', auth, fiscalCtrl.salvarDadosFiscais);
 router.post('/fiscal/ativar-producao', auth, fiscalCtrl.ativarProducao);
 router.post('/fiscal/corrigir-colunas', auth, fiscalCtrl.corrigirColunasFiscais);
