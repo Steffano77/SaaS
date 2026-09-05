@@ -7398,6 +7398,35 @@ async function imprimirDanfeNFCe(comandaId, janelaPre) {
   janela.focus();
 }
 
+// Guarda a última venda de cada caixa (localStorage, sobrevive a reload) — pra
+// reimprimir o recibo comum sob demanda (tecla "I"), já que venda sem nota fiscal
+// não imprime mais nada sozinha.
+function salvarUltimaVendaCaixaUI(snapshot, formaResumo) {
+  try {
+    localStorage.setItem(`pp_ultima_venda_caixa_${CAIXA_LOCAL_ID}`, JSON.stringify({ snapshot, formaResumo }));
+  } catch (e) { /* localStorage cheio ou indisponível — não trava a venda por causa disso */ }
+}
+
+// Tecla "I" — só na tela de comandas (o caixa), reimprime o recibo comum da última
+// venda fechada NESSE caixa (o cliente pediu depois de já ter saído sem levar nada).
+function reimprimirUltimaVendaCaixaUI() {
+  let dado;
+  try { dado = JSON.parse(localStorage.getItem(`pp_ultima_venda_caixa_${CAIXA_LOCAL_ID}`) || 'null'); } catch (e) { dado = null; }
+  if (!dado) { mostrarToast('Nenhuma venda recente pra reimprimir nesse caixa.', 'warn'); return; }
+  imprimirReciboComanda(dado.snapshot, dado.formaResumo);
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'i' && e.key !== 'I') return;
+  const telaComandas = !document.getElementById('pg-comandas')?.classList.contains('hidden');
+  if (!telaComandas) return;
+  const el = document.activeElement;
+  const digitando = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+  if (digitando) return;
+  e.preventDefault();
+  reimprimirUltimaVendaCaixaUI();
+});
+
 let _finalizandoVenda = false; // trava contra clique duplo/tecla+clique chamando isso 2x junto
 async function finalizarVendaUI() {
   if (_finalizandoVenda) return;
@@ -7415,8 +7444,9 @@ async function finalizarVendaUI() {
   // Abre a janela de impressão JÁ, ainda dentro do toque/tecla que chamou essa função —
   // depois disso vêm várias esperas de rede (fechar a venda, emitir a nota fiscal, buscar
   // o DANFE) e o Chrome bloqueia pop-up aberto só depois dessas esperas, sem avisar direito.
-  // O conteúdo de verdade só é escrito nela mais tarde (emitirNotaFiscalComanda/imprimirReciboComanda).
-  const janelaImpressao = window.open('', '_blank', 'width=400,height=700');
+  // O conteúdo de verdade só é escrito nela mais tarde (emitirNotaFiscalComanda). Minúscula e
+  // fora da tela — a impressão acontece igual, só não fica aparecendo visível pra atendente.
+  const janelaImpressao = window.open('', '_blank', 'width=1,height=1,left=-2000,top=-2000');
   if (janelaImpressao) {
     janelaImpressao.document.write('<!doctype html><html><body style="font-family:sans-serif;padding:24px;text-align:center;color:#888;">Preparando impressão...</body></html>');
   }
@@ -7461,8 +7491,13 @@ async function finalizarVendaUI() {
   // relida agora — evita perder a escolha se algo no meio do caminho der problema.
   if (_comNotaCapturada && !consumoInterno && await fiscalConfigurado()) {
     await emitirNotaFiscalComanda(comandaFechadaId, { imprimirReciboSeFalhar: snapshot, formaResumo, janelaPre: janelaImpressao });
-  } else if (snapshot) {
-    imprimirReciboComanda(snapshot, formaResumo, janelaImpressao);
+  } else {
+    // Venda sem nota fiscal — não imprime mais nada sozinho (só se o cliente pedir,
+    // apertando "I", que reimprime a última venda desse caixa). Só guarda o dado.
+    janelaImpressao?.close();
+  }
+  if (snapshot && CAIXA_LOCAL_ID) {
+    salvarUltimaVendaCaixaUI(snapshot, formaResumo);
   }
   // Pagou em "Faturado" com funcionário identificado — imprime o comprovante de
   // autorização (limite/saldo devedor/saldo disponível) em 2 vias: uma pra padaria
