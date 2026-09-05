@@ -7398,13 +7398,20 @@ async function imprimirDanfeNFCe(comandaId, janelaPre) {
   janela.focus();
 }
 
+let _finalizandoVenda = false; // trava contra clique duplo/tecla+clique chamando isso 2x junto
 async function finalizarVendaUI() {
+  if (_finalizandoVenda) return;
+  // Captura JÁ, antes de qualquer espera de rede ou diálogo — algo nesse fluxo estava
+  // fazendo a escolha "com nota" se perder entre aqui e o final da função.
+  const _comNotaCapturada = localStorage.getItem('pp_venda_com_nfce') === '1';
   if (!comandaAtualId || !comandaPagamentosPendentes.length) return;
   if (MODO_OFFLINE) { mostrarToast('Sem conexão — aguarda a internet voltar pra cobrar.', 'warn'); return; }
   if (!CAIXA_LOCAL_ID) {
     mostrarToast('Abra o caixa deste aparelho antes de cobrar.', 'warn');
     return;
   }
+  _finalizandoVenda = true;
+  try {
   // Abre a janela de impressão JÁ, ainda dentro do toque/tecla que chamou essa função —
   // depois disso vêm várias esperas de rede (fechar a venda, emitir a nota fiscal, buscar
   // o DANFE) e o Chrome bloqueia pop-up aberto só depois dessas esperas, sem avisar direito.
@@ -7449,13 +7456,10 @@ async function finalizarVendaUI() {
   // que o atendente tenha escolhido "com nota" na etapa 1.
   const consumoInterno = comandaPagamentosPendentes.some(p => p.forma_pagamento === 'Padaria' || p.forma_pagamento === 'Cortesia');
   // Já foi decidido lá na etapa 1 (F1/F2, antes de escolher a forma de pagamento) —
-  // aqui só executa, sem perguntar de novo. Emite/imprime automático.
-  // Lê do sessionStorage, não da variável em memória — em alguns PCs a tela vem
-  // reiniciando escondida bem no meio da venda (causa ainda não confirmada) e isso
-  // zerava a variável antes de chegar aqui, perdendo a escolha "com nota" e travando
-  // a emissão fiscal do dia inteiro. sessionStorage sobrevive a esse reinício.
-  const vendaComNFCePersistido = localStorage.getItem('pp_venda_com_nfce') === '1';
-  if (vendaComNFCePersistido && !consumoInterno && await fiscalConfigurado()) {
+  // aqui só executa, sem perguntar de novo. Emite/imprime automático. Usa o valor
+  // capturado lá no início da função (_comNotaCapturada), não uma variável/storage
+  // relida agora — evita perder a escolha se algo no meio do caminho der problema.
+  if (_comNotaCapturada && !consumoInterno && await fiscalConfigurado()) {
     await emitirNotaFiscalComanda(comandaFechadaId, { imprimirReciboSeFalhar: snapshot, formaResumo, janelaPre: janelaImpressao });
   } else if (snapshot) {
     imprimirReciboComanda(snapshot, formaResumo, janelaImpressao);
@@ -7474,6 +7478,9 @@ async function finalizarVendaUI() {
   // (fluxo contínuo, sem precisar passar pela lista de comandas de novo). Em modo
   // caixa isso já é feito de forma genérica dentro de fecharModalComanda() acima.
   if (foiBalcao && !sessionStorage.getItem('pp_modo_caixa_restrito')) abrirVendaBalcaoVazia();
+  } finally {
+    _finalizandoVenda = false;
+  }
 }
 
 // ── Impressão térmica (80mm) ─────────────────────────────────────
