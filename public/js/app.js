@@ -6816,7 +6816,7 @@ function atualizarLinkCpfNotaUI() {
 // na hora de decidir se emite nota — a variável fica só de cache rápido.
 function resetEscolhaNFCe() {
   vendaComNFCe = null;
-  sessionStorage.removeItem('pp_venda_com_nfce');
+  localStorage.removeItem('pp_venda_com_nfce');
   document.getElementById('cmd-pgto-grid')?.classList.add('cmd-pgto-grid-bloqueada');
   document.getElementById('cmd-nfce-badge')?.classList.add('hidden');
 }
@@ -6824,7 +6824,7 @@ function resetEscolhaNFCe() {
 function escolherNFCeUI(comNota) {
   if (comNota === null) { resetEscolhaNFCe(); return; } // toque no selinho = trocar de ideia
   vendaComNFCe = comNota;
-  sessionStorage.setItem('pp_venda_com_nfce', comNota ? '1' : '0');
+  localStorage.setItem('pp_venda_com_nfce', comNota ? '1' : '0');
   document.getElementById('cmd-pgto-grid')?.classList.remove('cmd-pgto-grid-bloqueada');
   // Sem aviso na tela — atendente já sabe o fluxo (F1/F2 antes, F1-F7 depois).
 }
@@ -7454,7 +7454,7 @@ async function finalizarVendaUI() {
   // reiniciando escondida bem no meio da venda (causa ainda não confirmada) e isso
   // zerava a variável antes de chegar aqui, perdendo a escolha "com nota" e travando
   // a emissão fiscal do dia inteiro. sessionStorage sobrevive a esse reinício.
-  const vendaComNFCePersistido = sessionStorage.getItem('pp_venda_com_nfce') === '1';
+  const vendaComNFCePersistido = localStorage.getItem('pp_venda_com_nfce') === '1';
   if (vendaComNFCePersistido && !consumoInterno && await fiscalConfigurado()) {
     await emitirNotaFiscalComanda(comandaFechadaId, { imprimirReciboSeFalhar: snapshot, formaResumo, janelaPre: janelaImpressao });
   } else if (snapshot) {
