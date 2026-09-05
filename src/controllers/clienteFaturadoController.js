@@ -139,12 +139,28 @@ exports.extrato = async (req, res) => {
   const padaria_id = req.padaria.id;
   const docLimpo = limparDoc(req.params.documento);
   const [linhas] = await db.query(
-    `SELECT c.identificador, c.fechada_em, cp.valor, cp.quitado_em
+    `SELECT c.id AS comanda_id, c.identificador, c.fechada_em, cp.valor, cp.quitado_em
      FROM comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
      WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND cp.cliente_documento = ?
      ORDER BY c.fechada_em DESC`,
     [padaria_id, docLimpo]
   );
+  // Junto com cada comanda, os itens dela — pra dar pra reimprimir o recibo completo
+  // (igual o de uma venda de verdade) direto do histórico, não só o resumo do valor.
+  if (linhas.length) {
+    const ids = linhas.map(l => l.comanda_id);
+    const [itens] = await db.query(
+      `SELECT comanda_id, produto_id, nome_produto, unidade, quantidade, preco_unitario, subtotal
+       FROM itens_comanda WHERE comanda_id IN (?)`,
+      [ids]
+    );
+    const itensPorComanda = {};
+    for (const i of itens) {
+      if (!itensPorComanda[i.comanda_id]) itensPorComanda[i.comanda_id] = [];
+      itensPorComanda[i.comanda_id].push(i);
+    }
+    for (const l of linhas) l.itens = itensPorComanda[l.comanda_id] || [];
+  }
   res.json(linhas);
 };
 

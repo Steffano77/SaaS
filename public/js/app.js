@@ -6966,26 +6966,65 @@ async function abrirExtratoFaturadoUI(documento, nome) {
 }
 
 let _extratoFaturadoCache = null;
-function imprimirExtratoFaturadoUI() {
+// Imprime o extrato completo: um resumo (total geral/em aberto) seguido de CADA
+// comanda reimpressa no layout completo (mesmo cabeçalho/itens/código do recibo de
+// venda) — não só a linha resumida de valor, dá pra conferir item por item do histórico.
+async function imprimirExtratoFaturadoUI() {
   const d = _extratoFaturadoCache;
   if (!d) return;
+  const fd = await buscarDadosFiscaisUI();
   const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
+  const razaoSocial = (fd.nfce_razao_social || nomePadaria).toUpperCase();
+  const endereco = [fd.nfce_logradouro, fd.nfce_numero].filter(Boolean).join(', ');
+  const cidadeUf = [fd.nfce_bairro, [fd.nfce_municipio, fd.nfce_uf].filter(Boolean).join('/')].filter(Boolean).join(' — ');
+  const cnpjIe = `${fd.cnpj ? 'CNPJ ' + formatarCnpjUI(fd.cnpj) : ''}${fd.nfce_inscricao_estadual ? ' · IE ' + fd.nfce_inscricao_estadual : ''}`;
+
   const total = d.linhas.reduce((s, l) => s + parseFloat(l.valor), 0);
   const totalAberto = d.linhas.filter(l => !l.quitado_em).reduce((s, l) => s + parseFloat(l.valor), 0);
-  const linhasHtml = d.linhas.map(l => `
-    <div class="linha"><span class="nome">${l.quitado_em ? '✅' : '🟠'} Cmd ${l.identificador} · ${fmtDataHoraBR(l.fechada_em)}</span><span class="valor">${fmtMoeda(l.valor)}</span></div>
-  `).join('');
-  abrirJanelaImpressaoTermica(`
-    <h1>${nomePadaria}</h1>
-    <div class="sub">Extrato Faturado</div>
-    <div class="sub">${d.nome} — ${formatarCnpjUI(d.documento)}</div>
+
+  const cabecalho = `
+    <h1>${razaoSocial}</h1>
+    ${endereco ? `<div class="sub">${endereco}</div>` : ''}
+    ${cidadeUf ? `<div class="sub">${cidadeUf}</div>` : ''}
+    ${cnpjIe ? `<div class="sub">${cnpjIe}</div>` : ''}
+  `;
+
+  const resumoHtml = `
+    ${cabecalho}
     <hr/>
-    ${linhasHtml}
+    <div class="sub" style="font-weight:800;">EXTRATO FATURADO</div>
+    <div class="sub" style="text-align:left;">Cliente: ${d.nome}</div>
+    <div class="sub" style="text-align:left;">Documento: ${formatarCnpjUI(d.documento)}</div>
     <hr/>
     <div class="linha"><span class="nome">Total geral</span><span class="valor">${fmtMoeda(total)}</span></div>
     <div class="total"><span>Em aberto</span><span>${fmtMoeda(totalAberto)}</span></div>
-    <div class="rodape">${new Date().toLocaleString('pt-BR')}</div>
-  `);
+    <div class="rodape">Impresso em ${new Date().toLocaleString('pt-BR')}</div>
+  `;
+
+  // Cada comanda reimpressa igual sairia numa venda de verdade — com os itens e
+  // código de cada produto, não só o valor total daquela compra.
+  const comandasHtml = d.linhas.map(l => {
+    const linhasItens = (l.itens || []).map((i, idx) => `
+      <div class="linha">
+        <span class="qtd">${String(idx + 1).padStart(3, '0')} ${String(i.produto_id || '').padStart(3, '0')}</span>
+        <span class="nome">${i.nome_produto}</span>
+      </div>
+      <div class="linha" style="padding-left:10px;">
+        <span class="nome" style="font-size:11px;">${fmtQtd(i.quantidade)} ${i.unidade || 'UN'} x ${fmtMoeda(i.preco_unitario)}</span>
+        <span class="valor">${fmtMoeda(i.subtotal)}</span>
+      </div>
+    `).join('');
+    return `
+      <hr/>
+      <div class="sub" style="font-weight:800;">VENDA SIMPLES ${l.quitado_em ? '· QUITADA ✅' : '· EM ABERTO 🟠'}</div>
+      <div class="sub">Número: ${l.identificador} &nbsp; ${fmtDataHoraBR(l.fechada_em)}</div>
+      <hr/>
+      ${linhasItens || '<div class="sub">Itens não disponíveis.</div>'}
+      <div class="total" style="margin-top:4px;"><span>TOTAL</span><span>${fmtMoeda(l.valor)}</span></div>
+    `;
+  }).join('');
+
+  abrirJanelaImpressaoTermica(`${resumoHtml}${comandasHtml}<div class="rodape" style="margin-top:10px;">Fim do extrato</div>`);
 }
 
 // "Dar baixa" — marca tudo que esse faturado deve como pago, zerando o saldo e
