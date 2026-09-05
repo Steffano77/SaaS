@@ -6810,6 +6810,7 @@ function atualizarLinkCpfNotaUI() {
 }
 
 function resetEscolhaNFCe() {
+  if (vendaComNFCe !== null) mostrarToast('🩺 resetEscolhaNFCe() chamada — zerando escolha da nota!', 'err'); // DIAGNÓSTICO TEMPORÁRIO
   vendaComNFCe = null;
   document.getElementById('cmd-pgto-grid')?.classList.add('cmd-pgto-grid-bloqueada');
   document.getElementById('cmd-nfce-badge')?.classList.add('hidden');
