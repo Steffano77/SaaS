@@ -9,28 +9,6 @@ const API = '/api';
   }
 })();
 
-// DIAGNÓSTICO TEMPORÁRIO — detecta reload/navegação escondida no meio de uma venda.
-(function () {
-  try {
-    const navEntry = performance.getEntriesByType('navigation')[0];
-    const tipoNav = navEntry ? navEntry.type : 'desconhecido';
-    const ultimoUnload = sessionStorage.getItem('_debug_last_unload');
-    if (tipoNav !== 'navigate' || ultimoUnload) {
-      setTimeout(() => {
-        if (typeof mostrarToast === 'function') {
-          mostrarToast(`🩺 PÁGINA RECARREGOU — tipo: ${tipoNav} · antes disso: ${ultimoUnload || 'sem registro'}`, 'err');
-        }
-      }, 800);
-    }
-    sessionStorage.removeItem('_debug_last_unload');
-    window.addEventListener('beforeunload', () => {
-      try {
-        sessionStorage.setItem('_debug_last_unload', new Date().toLocaleTimeString('pt-BR') + ' · foco em: ' + (document.activeElement?.id || document.activeElement?.tagName || '?'));
-      } catch (e) {}
-    });
-  } catch (e) {}
-})();
-
 let TOKEN = localStorage.getItem('pptoken') || sessionStorage.getItem('pptoken') || '';
 let PLANO_ATUAL = '';
 let ROLE_ATUAL = '';
@@ -6831,9 +6809,14 @@ function atualizarLinkCpfNotaUI() {
     : '📄 Adicionar CPF na nota (opcional)';
 }
 
+// A escolha "com/sem nota" também é salva no sessionStorage (não só na variável em
+// memória) — em alguns PCs a tela vinha reiniciando escondida no meio da venda por
+// motivo ainda não identificado, e isso zerava a variável, perdendo a escolha antes
+// de fechar. sessionStorage sobrevive a esse reinício, então é a fonte de verdade
+// na hora de decidir se emite nota — a variável fica só de cache rápido.
 function resetEscolhaNFCe() {
-  if (vendaComNFCe !== null) mostrarToast('🩺 resetEscolhaNFCe() chamada — zerando escolha da nota!', 'err'); // DIAGNÓSTICO TEMPORÁRIO
   vendaComNFCe = null;
+  sessionStorage.removeItem('pp_venda_com_nfce');
   document.getElementById('cmd-pgto-grid')?.classList.add('cmd-pgto-grid-bloqueada');
   document.getElementById('cmd-nfce-badge')?.classList.add('hidden');
 }
@@ -6841,6 +6824,7 @@ function resetEscolhaNFCe() {
 function escolherNFCeUI(comNota) {
   if (comNota === null) { resetEscolhaNFCe(); return; } // toque no selinho = trocar de ideia
   vendaComNFCe = comNota;
+  sessionStorage.setItem('pp_venda_com_nfce', comNota ? '1' : '0');
   document.getElementById('cmd-pgto-grid')?.classList.remove('cmd-pgto-grid-bloqueada');
   // Sem aviso na tela — atendente já sabe o fluxo (F1/F2 antes, F1-F7 depois).
 }
@@ -6857,11 +6841,9 @@ document.addEventListener('keydown', (e) => {
 
   // Etapa 1 (F1/F2 = com/sem nota fiscal), só depois de já ter item lançado.
   if (vendaComNFCe === null) {
-    if (!temItens) { mostrarToast(`🩺 F1/F2 ignorado — sem item ainda (comandaAtualId=${comandaAtualId})`, 'warn'); return; } // sem item ainda, deixa F1/F2 livre pra outra coisa (ex: navegação)
+    if (!temItens) return; // sem item ainda, deixa F1/F2 livre pra outra coisa (ex: navegação)
     if (e.key === 'F1' || e.key === 'F2') {
       e.preventDefault();
-      sessionStorage.setItem('_debug_vendaComNFCe', e.key === 'F1' ? 'true' : 'false'); // DIAGNÓSTICO — sobrevive a reload, ao contrário da variável normal
-      mostrarToast(`🩺 Etapa 1 registrada: ${e.key === 'F1' ? 'COM nota' : 'sem nota'}`, 'ok');
       escolherNFCeUI(e.key === 'F1');
     }
     return;
@@ -7468,9 +7450,12 @@ async function finalizarVendaUI() {
   const consumoInterno = comandaPagamentosPendentes.some(p => p.forma_pagamento === 'Padaria' || p.forma_pagamento === 'Cortesia');
   // Já foi decidido lá na etapa 1 (F1/F2, antes de escolher a forma de pagamento) —
   // aqui só executa, sem perguntar de novo. Emite/imprime automático.
-  const _fiscalOk = await fiscalConfigurado(); // DIAGNÓSTICO TEMPORÁRIO — remover depois
-  mostrarToast(`🩺 vendaComNFCe=${vendaComNFCe} · sessionStorage=${sessionStorage.getItem('_debug_vendaComNFCe')} · consumoInterno=${consumoInterno} · fiscalOk=${_fiscalOk}`, 'warn');
-  if (vendaComNFCe && !consumoInterno && _fiscalOk) {
+  // Lê do sessionStorage, não da variável em memória — em alguns PCs a tela vem
+  // reiniciando escondida bem no meio da venda (causa ainda não confirmada) e isso
+  // zerava a variável antes de chegar aqui, perdendo a escolha "com nota" e travando
+  // a emissão fiscal do dia inteiro. sessionStorage sobrevive a esse reinício.
+  const vendaComNFCePersistido = sessionStorage.getItem('pp_venda_com_nfce') === '1';
+  if (vendaComNFCePersistido && !consumoInterno && await fiscalConfigurado()) {
     await emitirNotaFiscalComanda(comandaFechadaId, { imprimirReciboSeFalhar: snapshot, formaResumo, janelaPre: janelaImpressao });
   } else if (snapshot) {
     imprimirReciboComanda(snapshot, formaResumo, janelaImpressao);
