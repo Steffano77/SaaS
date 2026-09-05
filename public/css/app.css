@@ -3273,10 +3273,11 @@ tr.tr-saida td { color: var(--red-600); }
 /* max-height em vh trava o tamanho da logo pela ALTURA da tela também, não só
    pela largura — sem isso, em monitores mais baixos (ex: notebook com barra
    do navegador ocupando espaço), a logo sozinha já estourava a altura disponível.
-   aspect-ratio + object-fit:contain garantem que ela NUNCA achata/estica —
-   sempre redonda, encolhendo os dois lados junto, igual (width e max-height
-   juntos sem isso deixavam o círculo virar uma "oval"). */
-.cmd-zona-logo-svg { width: min(94%, 420px); max-height: 22vh; height: auto; aspect-ratio: 1 / 1; object-fit: contain; flex-shrink: 0; }
+   object-fit:contain garante que ela NUNCA achata/estica, só encolhe/cresce
+   mantendo a proporção original da imagem (essa logo é vertical, não quadrada
+   como a antiga — por isso sem aspect-ratio forçado, senão sobraria espaço
+   vazio em cima/embaixo dela dentro de uma caixa quadrada). */
+.cmd-zona-logo-svg { width: min(98%, 620px); max-height: 46vh; height: auto; object-fit: contain; flex-shrink: 0; }
 .cmd-zona-logo-marca { font-size: clamp(18px, 12cqw, 38px); font-weight: 800; letter-spacing: .04em; color: var(--navy); text-align: center; white-space: nowrap; }
 [data-theme="dark"] .cmd-zona-logo-marca { color: #f1f5f9; }
 .cmd-zona-logo-marca span { color: var(--orange); }
