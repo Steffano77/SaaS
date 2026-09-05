@@ -6834,9 +6834,10 @@ document.addEventListener('keydown', (e) => {
 
   // Etapa 1 (F1/F2 = com/sem nota fiscal), só depois de já ter item lançado.
   if (vendaComNFCe === null) {
-    if (!temItens) return; // sem item ainda, deixa F1/F2 livre pra outra coisa (ex: navegação)
+    if (!temItens) { mostrarToast(`🩺 F1/F2 ignorado — sem item ainda (comandaAtualId=${comandaAtualId})`, 'warn'); return; } // sem item ainda, deixa F1/F2 livre pra outra coisa (ex: navegação)
     if (e.key === 'F1' || e.key === 'F2') {
       e.preventDefault();
+      mostrarToast(`🩺 Etapa 1 registrada: ${e.key === 'F1' ? 'COM nota' : 'sem nota'}`, 'ok');
       escolherNFCeUI(e.key === 'F1');
     }
     return;
