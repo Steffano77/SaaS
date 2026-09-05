@@ -236,7 +236,7 @@ exports.imprimirDanfe = async (req, res) => {
         strong { font-weight: bold; }
         @media print { body { width: 80mm; } }
       </style></head>
-      <body onload="window.print(); window.onafterprint = () => window.close(); setTimeout(() => window.close(), 2500);">
+      <body onload="window.print(); window.onafterprint = () => window.close(); setTimeout(() => window.close(), 8000);">
         <div class="danfe-center"><strong>${(padaria.nfce_razao_social || padaria.nome || '').toUpperCase()}</strong></div>
         <div class="danfe-center">${padaria.nfce_logradouro || ''}, ${padaria.nfce_numero || ''} ${padaria.nfce_bairro || ''}</div>
         <div class="danfe-center">${padaria.nfce_municipio || ''}/${padaria.nfce_uf || ''}</div>
