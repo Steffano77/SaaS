@@ -7443,7 +7443,9 @@ async function finalizarVendaUI() {
   const consumoInterno = comandaPagamentosPendentes.some(p => p.forma_pagamento === 'Padaria' || p.forma_pagamento === 'Cortesia');
   // Já foi decidido lá na etapa 1 (F1/F2, antes de escolher a forma de pagamento) —
   // aqui só executa, sem perguntar de novo. Emite/imprime automático.
-  if (vendaComNFCe && !consumoInterno && await fiscalConfigurado()) {
+  const _fiscalOk = await fiscalConfigurado(); // DIAGNÓSTICO TEMPORÁRIO — remover depois
+  mostrarToast(`🩺 vendaComNFCe=${vendaComNFCe} · consumoInterno=${consumoInterno} · fiscalOk=${_fiscalOk}`, 'warn');
+  if (vendaComNFCe && !consumoInterno && _fiscalOk) {
     await emitirNotaFiscalComanda(comandaFechadaId, { imprimirReciboSeFalhar: snapshot, formaResumo, janelaPre: janelaImpressao });
   } else if (snapshot) {
     imprimirReciboComanda(snapshot, formaResumo, janelaImpressao);
