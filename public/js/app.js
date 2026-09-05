@@ -6872,11 +6872,11 @@ async function adicionarPagamentoUI(forma) {
 
   // Dinheiro sempre pede o valor recebido — é o único jeito de calcular troco.
   if (forma === 'Dinheiro') {
-    // Mostra a tela de calcular troco JÁ (não espera nada) — só depois disso dispara
-    // a gaveta. window.print() trava a aba até mandar pra impressora, então chamar
-    // ele ANTES do modal atrasava a atendente ver a tela de troco (por isso o "esperando").
+    // A abertura automática da gaveta aqui foi DESLIGADA — abrir uma janela de
+    // impressão nesse momento parece causar um recarregamento da tela nesse PC (perdia
+    // a escolha "com nota" da etapa 1, zerando a emissão fiscal do dia). Usa a tecla G
+    // pra abrir manualmente até resolver a causa direito.
     abrirModalValorPagamento(forma, restante, true);
-    setTimeout(() => abrirGavetaUI(), 50);
     return;
   }
 
