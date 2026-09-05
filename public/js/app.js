@@ -6838,6 +6838,7 @@ document.addEventListener('keydown', (e) => {
     if (!temItens) { mostrarToast(`🩺 F1/F2 ignorado — sem item ainda (comandaAtualId=${comandaAtualId})`, 'warn'); return; } // sem item ainda, deixa F1/F2 livre pra outra coisa (ex: navegação)
     if (e.key === 'F1' || e.key === 'F2') {
       e.preventDefault();
+      sessionStorage.setItem('_debug_vendaComNFCe', e.key === 'F1' ? 'true' : 'false'); // DIAGNÓSTICO — sobrevive a reload, ao contrário da variável normal
       mostrarToast(`🩺 Etapa 1 registrada: ${e.key === 'F1' ? 'COM nota' : 'sem nota'}`, 'ok');
       escolherNFCeUI(e.key === 'F1');
     }
@@ -7446,7 +7447,7 @@ async function finalizarVendaUI() {
   // Já foi decidido lá na etapa 1 (F1/F2, antes de escolher a forma de pagamento) —
   // aqui só executa, sem perguntar de novo. Emite/imprime automático.
   const _fiscalOk = await fiscalConfigurado(); // DIAGNÓSTICO TEMPORÁRIO — remover depois
-  mostrarToast(`🩺 vendaComNFCe=${vendaComNFCe} · consumoInterno=${consumoInterno} · fiscalOk=${_fiscalOk}`, 'warn');
+  mostrarToast(`🩺 vendaComNFCe=${vendaComNFCe} · sessionStorage=${sessionStorage.getItem('_debug_vendaComNFCe')} · consumoInterno=${consumoInterno} · fiscalOk=${_fiscalOk}`, 'warn');
   if (vendaComNFCe && !consumoInterno && _fiscalOk) {
     await emitirNotaFiscalComanda(comandaFechadaId, { imprimirReciboSeFalhar: snapshot, formaResumo, janelaPre: janelaImpressao });
   } else if (snapshot) {
