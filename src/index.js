@@ -454,6 +454,14 @@ app.use(express.static(path.join(__dirname, '../public'), {
       // recibo antigo do Saurus). Diferente do CNPJ que já existe embutido dentro da
       // chave de acesso da NFC-e, esse fica solto pra imprimir mesmo sem nota emitida.
       'ALTER TABLE padarias ADD COLUMN cnpj VARCHAR(18) NULL',
+      // Trava contra comanda duplicada: se duas pessoas (ou a mesma, duas vezes rápido)
+      // tentarem abrir "comanda Nº 5" quase ao mesmo tempo, cada uma confere se já existe
+      // uma aberta ANTES da outra terminar de criar — as duas não acham nenhuma e as duas
+      // criam. Coluna gerada: só tem valor quando a comanda está aberta (fechada/cancelada
+      // vira NULL, que o MySQL nunca considera duplicado) — garante 1 aberta por número,
+      // por padaria, de verdade, não só na conferência feita no app.
+      "ALTER TABLE comandas ADD COLUMN identificador_ativo VARCHAR(60) GENERATED ALWAYS AS (IF(status = 'aberta', identificador, NULL)) STORED",
+      'ALTER TABLE comandas ADD UNIQUE KEY uq_comandas_identificador_ativo (padaria_id, identificador_ativo)',
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
 

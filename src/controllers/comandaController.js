@@ -99,11 +99,25 @@ exports.abrir = async (req, res) => {
   // recuperar a PRÓPRIA venda em andamento depois de um F5, sem pegar a de outro caixa.
   const caixa_id = req.body.caixa_id ? Number(req.body.caixa_id) : null;
 
-  const [r] = await db.query(
-    `INSERT INTO comandas (padaria_id, identificador, atendente, caixa_id) VALUES (?, ?, ?, ?)`,
-    [padaria_id, identificador, atendente, caixa_id]
-  );
-  res.status(201).json({ id: r.insertId, identificador, atendente, caixa_id });
+  try {
+    const [r] = await db.query(
+      `INSERT INTO comandas (padaria_id, identificador, atendente, caixa_id) VALUES (?, ?, ?, ?)`,
+      [padaria_id, identificador, atendente, caixa_id]
+    );
+    res.status(201).json({ id: r.insertId, identificador, atendente, caixa_id });
+  } catch (e) {
+    // Duas pessoas (ou a mesma, duas vezes rápido) tentaram abrir o mesmo número quase
+    // junto — em vez de criar uma comanda duplicada vazia, devolve a que já existe.
+    if (e.code === 'ER_DUP_ENTRY') {
+      const [[existente]] = await db.query(
+        `SELECT id, identificador, atendente, caixa_id FROM comandas WHERE padaria_id = ? AND identificador = ? AND status = 'aberta' LIMIT 1`,
+        [padaria_id, identificador]
+      );
+      if (existente) return res.status(200).json(existente);
+    }
+    console.error('Erro ao abrir comanda:', e);
+    res.status(500).json({ erro: 'Erro ao abrir comanda.' });
+  }
 };
 
 // Marca a comanda como "enviada pro caixa" (concluída no tablet do salão/lançamento) —
