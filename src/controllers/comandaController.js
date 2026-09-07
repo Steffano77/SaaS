@@ -109,9 +109,14 @@ exports.abrir = async (req, res) => {
     // Duas pessoas (ou a mesma, duas vezes rápido) tentaram abrir o mesmo número quase
     // junto — em vez de criar uma comanda duplicada vazia, devolve a que já existe.
     if (e.code === 'ER_DUP_ENTRY') {
+      // Só devolve a comanda existente se for do MESMO caixa (ou nenhum caixa envolvido,
+      // caso de comanda nomeada tipo "Mesa 3"). Nunca devolve a comanda de outro caixa —
+      // isso já causou produtos de um cliente aparecerem na tela de outro caixa.
       const [[existente]] = await db.query(
-        `SELECT id, identificador, atendente, caixa_id FROM comandas WHERE padaria_id = ? AND identificador = ? AND status = 'aberta' LIMIT 1`,
-        [padaria_id, identificador]
+        `SELECT id, identificador, atendente, caixa_id FROM comandas
+         WHERE padaria_id = ? AND identificador = ? AND status = 'aberta'
+           AND caixa_id <=> ? LIMIT 1`,
+        [padaria_id, identificador, caixa_id]
       );
       if (existente) return res.status(200).json(existente);
     }

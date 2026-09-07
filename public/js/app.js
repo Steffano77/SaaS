@@ -6001,7 +6001,7 @@ function abrirVendaBalcaoVazia() {
 // não existir (1ª venda da tela em branco). Usado antes de qualquer lançamento de item.
 async function garantirComandaBalcaoAtiva() {
   if (comandaAtualId) return comandaAtualId;
-  const identificador = 'Balcão ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const identificador = nomeBalcaoUnico();
   const nova = await api('/comandas', { method: 'POST', body: { identificador, atendente: _atendentePendente || null, caixa_id: CAIXA_LOCAL_ID } });
   if (!nova) return null;
   comandaAtualId = nova.id;
@@ -7789,8 +7789,8 @@ async function onKeydownBuscaRapidaComanda(e) {
     // soma nela em vez de abrir uma comanda nova a cada item.
     let comandaId = _balcaoComandaAtiva;
     if (!comandaId) {
-      const identificador = 'Balcão ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      const nova = await api('/comandas', { method: 'POST', body: { identificador } });
+      const identificador = nomeBalcaoUnico();
+      const nova = await api('/comandas', { method: 'POST', body: { identificador, caixa_id: CAIXA_LOCAL_ID } });
       if (!nova) return;
       comandaId = nova.id;
       _balcaoComandaAtiva = comandaId;
@@ -7810,6 +7810,16 @@ async function onKeydownBuscaRapidaComanda(e) {
   abrirModalVinculoBalanca(info.codigoProduto, info.preco, lancar);
 }
 let _balcaoComandaAtiva = null;
+
+// Nome da venda de balcão sempre inclui o caixa que abriu — antes era só "Balcão HH:MM",
+// e se dois caixas bipassem o 1º item no mesmo minuto, os dois geravam o MESMO nome.
+// A trava anti-duplicata do banco (que existe pra não deixar abrir 2x a mesma comanda)
+// então devolvia pro 2º caixa a comanda que já pertencia ao 1º — misturando os produtos
+// de clientes diferentes na mesma tela. Incluindo o caixa no nome, cada um tem o seu.
+function nomeBalcaoUnico() {
+  const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return CAIXA_LOCAL_ID ? `Balcão C${CAIXA_LOCAL_ID} ${hora}` : `Balcão ${hora}`;
+}
 
 // Busca comanda por número direto da tela de venda (topbar), sem precisar fechar
 // pra voltar à lista — é assim que o caixa acha a comanda que o salão/balcão lançou.
