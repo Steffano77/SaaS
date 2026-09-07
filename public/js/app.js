@@ -6056,6 +6056,9 @@ async function abrirModalComanda(id) {
 
   document.getElementById('modal-comanda').classList.remove('hidden');
   atualizarTopbarPdv();
+  // Depois de digitar o número da comanda e dar Enter, o cursor já pula direto pro
+  // campo de buscar/digitar produto — a atendente não precisa clicar de novo.
+  if (!bloqueada) setTimeout(() => document.getElementById('cmd-item-busca')?.focus(), 100);
 }
 
 // Barrinha "Vendedor / Cliente / Relógio" do topo da tela de venda, estilo PDV.
