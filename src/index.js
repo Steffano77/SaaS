@@ -462,6 +462,11 @@ app.use(express.static(path.join(__dirname, '../public'), {
       // por padaria, de verdade, não só na conferência feita no app.
       "ALTER TABLE comandas ADD COLUMN identificador_ativo VARCHAR(60) GENERATED ALWAYS AS (IF(status = 'aberta', identificador, NULL)) STORED",
       'ALTER TABLE comandas ADD UNIQUE KEY uq_comandas_identificador_ativo (padaria_id, identificador_ativo)',
+      // Mesma trava, agora pros caixas: nunca 2 aparelhos abertos com o mesmo nome
+      // (ex: dois "Caixa 1" ao mesmo tempo) — isso confundia o app sobre qual caixa
+      // é qual e misturava venda de um cliente com a de outro.
+      "ALTER TABLE caixas ADD COLUMN nome_ativo VARCHAR(60) GENERATED ALWAYS AS (IF(status = 'aberto', nome, NULL)) STORED",
+      'ALTER TABLE caixas ADD UNIQUE KEY uq_caixas_nome_ativo (padaria_id, nome_ativo)',
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
 

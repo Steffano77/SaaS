@@ -74,11 +74,32 @@ exports.abrir = async (req, res) => {
     atendenteNome = atendente.nome;
   }
 
-  const [r] = await db.query(
-    `INSERT INTO caixas (padaria_id, nome, atendente, valor_abertura, observacao) VALUES (?,?,?,?,?)`,
-    [padaria_id, nome, atendenteNome, parseFloat(valor_abertura) || 0, observacao || null]
+  // Nunca deixa abrir 2 caixas com o mesmo nome ao mesmo tempo (ex: dois aparelhos
+  // logando como "Caixa 1" junto) — isso já causou vendas de um se misturarem com o
+  // outro, porque o app usa o nome pra saber qual caixa é "o meu" depois de um F5.
+  const [[jaAberto]] = await db.query(
+    `SELECT id FROM caixas WHERE padaria_id = ? AND nome = ? AND status = 'aberto' LIMIT 1`,
+    [padaria_id, nome]
   );
-  res.status(201).json({ id: r.insertId, nome, atendente: atendenteNome });
+  if (jaAberto) {
+    return res.status(409).json({ erro: `Já existe um caixa aberto com o nome "${nome}". Escolha outro nome (ex: "${nome} B") ou feche o outro caixa primeiro.` });
+  }
+
+  try {
+    const [r] = await db.query(
+      `INSERT INTO caixas (padaria_id, nome, atendente, valor_abertura, observacao) VALUES (?,?,?,?,?)`,
+      [padaria_id, nome, atendenteNome, parseFloat(valor_abertura) || 0, observacao || null]
+    );
+    res.status(201).json({ id: r.insertId, nome, atendente: atendenteNome });
+  } catch (e) {
+    // Corrida (2 aparelhos clicando "abrir" no mesmíssimo instante) — a trava do banco
+    // (uq_caixas_nome_ativo) pega o que a checagem acima não pegou a tempo.
+    if (e.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ erro: `Já existe um caixa aberto com o nome "${nome}". Escolha outro nome ou feche o outro caixa primeiro.` });
+    }
+    console.error('Erro ao abrir caixa:', e);
+    res.status(500).json({ erro: 'Erro ao abrir caixa.' });
+  }
 };
 
 async function montarResumoCaixa(caixa) {
