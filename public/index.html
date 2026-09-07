@@ -700,6 +700,7 @@
           <span id="cmd-pdv-cliente">Cliente: CONSUMIDOR</span>
           <span class="cmd-pdv-busca-numero-wrap">
             <input type="text" id="cmd-pdv-busca-numero" class="cmd-pdv-busca-numero" placeholder="🔍 Abrir comanda Nº..."
+              inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/\D/g,'')"
               onkeydown="if(event.key==='Enter') abrirComandaPorNumeroPdv(this.value)"/>
             <button type="button" onclick="abrirComandaPorNumeroPdv(document.getElementById('cmd-pdv-busca-numero').value)" class="cmd-pdv-busca-numero-btn">Abrir</button>
           </span>
