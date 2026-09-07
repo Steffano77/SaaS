@@ -5994,8 +5994,14 @@ function abrirVendaBalcaoVazia() {
 
   document.getElementById('modal-comanda').classList.remove('hidden');
   atualizarTopbarPdv();
-  setTimeout(() => document.getElementById('cmd-item-busca')?.focus(), 100);
+  if (_standbyAposVenda) {
+    _standbyAposVenda = false;
+    document.activeElement?.blur();
+  } else {
+    setTimeout(() => document.getElementById('cmd-item-busca')?.focus(), 100);
+  }
 }
+let _standbyAposVenda = false;
 
 // Garante que existe uma comanda de balcão de verdade no banco — cria na hora se ainda
 // não existir (1ª venda da tela em branco). Usado antes de qualquer lançamento de item.
@@ -7430,6 +7436,22 @@ document.addEventListener('keydown', (e) => {
   reimprimirUltimaVendaCaixaUI();
 });
 
+// Depois de finalizar uma venda, o cursor fica em stand-by (sem foco em nada) — a
+// atendente escolhe: B pra ir direto na busca de produto (digitar ou bipar), ou
+// C pra digitar o número de uma comanda. Só funciona na tela de Comandas, e só
+// quando não tem nada sendo digitado em outro campo.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'b' && e.key !== 'B' && e.key !== 'c' && e.key !== 'C') return;
+  const telaComandas = !document.getElementById('pg-comandas')?.classList.contains('hidden');
+  if (!telaComandas) return;
+  const el = document.activeElement;
+  const digitando = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+  if (digitando) return;
+  e.preventDefault();
+  if (e.key === 'b' || e.key === 'B') document.getElementById('cmd-item-busca')?.focus();
+  else document.getElementById('cmd-pdv-busca-numero')?.focus();
+});
+
 let _finalizandoVenda = false; // trava contra clique duplo/tecla+clique chamando isso 2x junto
 async function finalizarVendaUI() {
   if (_finalizandoVenda) return;
@@ -7482,6 +7504,11 @@ async function finalizarVendaUI() {
   const foiBalcao = comandaAtualId === _balcaoComandaAtiva;
   if (foiBalcao) _balcaoComandaAtiva = null;
   mostrarToast(`Comanda fechada — ${formaResumo}!`, 'ok');
+  // Depois de finalizar, o cursor fica em "stand-by" (sem foco em nenhum campo) em vez
+  // de já pular pra busca de produto sozinho — a atendente escolhe com B (buscar/bipar
+  // produto) ou C (digitar número de comanda), pra não vender sem querer se alguém
+  // digitar ou escanear alguma coisa achando que ainda tá na venda anterior.
+  _standbyAposVenda = true;
   fecharModalComanda();
   await carregarComandas();
   // "Padaria" e "Cortesia" são consumo interno/cortesia — não teve venda de verdade,
