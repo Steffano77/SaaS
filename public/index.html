@@ -583,6 +583,7 @@
         <span class="cmd-busca-rapida-icone">🔢</span>
         <input type="text" id="cmd-abrir-numero-rapido" class="cmd-busca-rapida-input" placeholder="Nº da comanda"
           inputmode="numeric" pattern="[0-9]*" autocomplete="off"
+          oninput="this.value=this.value.replace(/\D/g,'')"
           onkeydown="if(event.key==='Enter'){event.preventDefault();abrirComandaPorNumeroRapido();}"/>
         <button onclick="abrirComandaPorNumeroRapido()" class="cmd-busca-rapida-btn">Abrir</button>
       </div>
