@@ -467,6 +467,15 @@ app.use(express.static(path.join(__dirname, '../public'), {
       // é qual e misturava venda de um cliente com a de outro.
       "ALTER TABLE caixas ADD COLUMN nome_ativo VARCHAR(60) GENERATED ALWAYS AS (IF(status = 'aberto', nome, NULL)) STORED",
       'ALTER TABLE caixas ADD UNIQUE KEY uq_caixas_nome_ativo (padaria_id, nome_ativo)',
+      // Otimizações de performance (só índices — não mudam nenhum resultado, só
+      // aceleram consultas que já existiam em telas de bastante uso):
+      // Tela do caixa (resumo, fechamento) filtra "comandas" por caixa_id sem índice.
+      'ALTER TABLE comandas ADD INDEX idx_comandas_caixa (caixa_id)',
+      // Painel de produtos consulta "movimentacoes" por padaria_id sem índice pra isso
+      // (só tinha índice por produto_id).
+      'ALTER TABLE movimentacoes ADD INDEX idx_movimentacoes_padaria (padaria_id, data)',
+      // Clientes Faturado (fiado) filtra "comanda_pagamentos" por forma+documento sem índice.
+      'ALTER TABLE comanda_pagamentos ADD INDEX idx_comanda_pagamentos_faturado (forma_pagamento, cliente_documento, quitado_em)',
     ];
     await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
 
