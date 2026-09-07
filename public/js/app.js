@@ -882,6 +882,16 @@ function mostrarToast(msg, tipo) {
 // e sincroniza sozinho quando voltar), mas bloqueia cobrança até confirmar conexão.
 let MODO_OFFLINE = false;
 let _filaOfflineItens = []; // [{comandaId, produto_id, nome_produto, quantidade, preco_unitario}]
+// Vendas fechadas em Dinheiro enquanto a internet estava caída — ficam guardadas aqui
+// e sincronizam sozinhas quando a conexão voltar (ver finalizarVendaUI e tentarReconectar).
+let _filaOfflineFechamentos = [];
+try { _filaOfflineFechamentos = JSON.parse(localStorage.getItem('pp_fila_fechamentos_offline') || '[]'); } catch (e) { _filaOfflineFechamentos = []; }
+function _salvarFilaFechamentosOffline() {
+  localStorage.setItem('pp_fila_fechamentos_offline', JSON.stringify(_filaOfflineFechamentos));
+}
+// IDs de comanda fechadas offline mas que o servidor ainda não sabe — escondidas da
+// lista de "Abertas" mesmo antes de sincronizar, pra não parecer que ainda estão em aberto.
+let _comandasFechadasOfflinePendentes = new Set();
 
 function atualizarFaixaOffline(estado) {
   const faixa = document.getElementById('cmd-pdv-faixa-offline');
@@ -889,8 +899,15 @@ function atualizarFaixaOffline(estado) {
   const btnsPagamento = document.querySelectorAll('.cmd-pgto-btn, #cmd-btn-finalizar');
   if (estado === 'offline') {
     faixa.className = 'cmd-pdv-faixa-offline offline';
-    faixa.textContent = `🔴 Sem conexão — os itens continuam sendo lançados e ficam guardados aqui, sincroniza sozinho quando a internet voltar.${_filaOfflineItens.length ? ` (${_filaOfflineItens.length} pendente${_filaOfflineItens.length > 1 ? 's' : ''})` : ''}`;
-    btnsPagamento.forEach(b => b.disabled = true);
+    const pendFechamentos = _filaOfflineFechamentos.length ? ` · ${_filaOfflineFechamentos.length} venda${_filaOfflineFechamentos.length > 1 ? 's' : ''} em Dinheiro aguardando sincronizar` : '';
+    faixa.textContent = `🔴 Sem conexão — pode continuar vendendo em Dinheiro normalmente. Cartão/Pix ficam bloqueados até a internet voltar.${_filaOfflineItens.length ? ` (${_filaOfflineItens.length} item${_filaOfflineItens.length > 1 ? 's' : ''} pendente${_filaOfflineItens.length > 1 ? 's' : ''})` : ''}${pendFechamentos}`;
+    // Só o que não depende de sinal externo continua liberado: Dinheiro e Padaria
+    // (consumo interno). Cartão/Débito/Pix/Voucher usam maquininha, que também
+    // depende de conexão — não tem como confiar nesse pagamento offline.
+    btnsPagamento.forEach(b => {
+      const permiteOffline = b.id === 'cmd-btn-finalizar' || /'Dinheiro'|'Padaria'/.test(b.getAttribute('onclick') || '');
+      b.disabled = !permiteOffline;
+    });
   } else if (estado === 'reconectando') {
     faixa.className = 'cmd-pdv-faixa-offline reconectando';
     faixa.textContent = '🟠 Conexão voltou — sincronizando itens pendentes...';
@@ -930,8 +947,32 @@ async function tentarReconectar() {
 
   if (_filaOfflineItens.length) { atualizarFaixaOffline('offline'); return; }
 
+  // Agora as vendas em Dinheiro fechadas durante a queda — fecha a comanda de verdade
+  // no servidor (mesma coisa que finalizarVendaUI faria online) e, se a venda era pra
+  // sair nota fiscal, dispara a emissão em segundo plano (sem tela de impressão — o
+  // cliente já levou o recibo comum na hora; a nota fica disponível no histórico).
+  for (const f of [..._filaOfflineFechamentos]) {
+    const r = await fetch(`${API}/comandas/${f.comandaId}/fechar`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(f.body)
+    }).catch(() => null);
+    if (!r || !r.ok) break; // ainda instável — para e tenta de novo depois
+    _filaOfflineFechamentos.shift();
+    _salvarFilaFechamentosOffline();
+    _comandasFechadasOfflinePendentes.delete(f.comandaId);
+    if (f.comNota) {
+      fetch(`${API}/fiscal/nfce/comanda/${f.comandaId}`, {
+        method: 'POST', headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      }).catch(() => {}); // silencioso — se falhar, fica em "Notas pendentes" pra reenviar manual
+    }
+  }
+
+  if (_filaOfflineFechamentos.length) { atualizarFaixaOffline('offline'); return; }
+
   MODO_OFFLINE = false;
   atualizarFaixaOffline('ok');
+  await carregarComandas(); // tira as fechadas offline da lista de "Abertas" pra valer
   // Recarrega a comanda atual do servidor pra refletir os itens sincronizados de verdade
   if (comandaAtualId) {
     const c = await api(`/comandas/${comandaAtualId}`);
@@ -4894,7 +4935,12 @@ async function carregarComandas() {
   // No tablet de Modo Lançamento, some da lista assim que o pedido é enviado pro caixa —
   // quem lança pedido não precisa (nem deve) continuar vendo/mexendo numa comanda que já
   // foi concluída e está só esperando ser cobrada.
-  const abertas = MODO_LANCAMENTO ? data.abertas.filter(c => !c.pronta_pagamento) : data.abertas;
+  let abertas = MODO_LANCAMENTO ? data.abertas.filter(c => !c.pronta_pagamento) : data.abertas;
+  // Vendas em Dinheiro já fechadas offline, mas que o servidor ainda não sabe (fila
+  // aguardando internet voltar) — não pode continuar aparecendo como "aberta".
+  if (_comandasFechadasOfflinePendentes.size) {
+    abertas = abertas.filter(c => !_comandasFechadasOfflinePendentes.has(c.id));
+  }
 
   elAbertas.innerHTML = abertas.length
     ? abertas.map(cardComandaHtml).join('')
@@ -7452,6 +7498,53 @@ document.addEventListener('keydown', (e) => {
   else document.getElementById('cmd-pdv-busca-numero')?.focus();
 });
 
+// Fecha a venda sem falar com o servidor — guarda tudo localmente e sincroniza sozinho
+// quando a internet voltar (ver tentarReconectar). Só chamada quando é 100% Dinheiro/
+// Padaria (checado em finalizarVendaUI antes de chegar aqui).
+async function finalizarVendaOfflineUI(comNotaCapturada) {
+  if (_finalizandoVenda) return;
+  _finalizandoVenda = true;
+  try {
+    const resumo = comandaPagamentosPendentes.map(p => `${p.forma_pagamento}: ${fmtMoeda(p.valor)}`).join(' + ');
+    if (!(await confirmarBonito(`Confirmar recebimento — ${resumo}? (sem internet — nota fiscal, se houver, sai depois de reconectar)`))) return;
+
+    const comandaFechadaId = comandaAtualId;
+    const snapshot = comandaAtualDados;
+    const formaResumo = comandaPagamentosPendentes.map(p => p.forma_pagamento).join(' + ');
+
+    _filaOfflineFechamentos.push({
+      comandaId: comandaFechadaId,
+      comNota: comNotaCapturada,
+      body: {
+        pagamentos: comandaPagamentosPendentes, caixa_id: CAIXA_LOCAL_ID,
+        cliente_nome: null, cliente_documento: null, cpf_nota: _cpfNotaSelecionado || null,
+      },
+    });
+    _salvarFilaFechamentosOffline();
+    _comandasFechadasOfflinePendentes.add(comandaFechadaId);
+
+    const foiBalcao = comandaAtualId === _balcaoComandaAtiva;
+    if (foiBalcao) _balcaoComandaAtiva = null;
+    mostrarToast(`Comanda fechada (offline) — ${formaResumo}! Sincroniza quando a internet voltar.`, 'ok');
+    _standbyAposVenda = true;
+    fecharModalComanda();
+    atualizarFaixaOffline('offline'); // atualiza a contagem de pendentes na faixa
+    await carregarComandas();
+
+    // Imprime o recibo comum de qualquer jeito — a nota fiscal (se pedida) só sai
+    // depois de reconectar, então não tem DANFE pra mostrar agora.
+    if (snapshot) await imprimirReciboComanda(snapshot, formaResumo);
+    if (snapshot && CAIXA_LOCAL_ID) salvarUltimaVendaCaixaUI(snapshot, formaResumo);
+
+    resetEscolhaNFCe();
+    _cpfNotaSelecionado = null;
+    atualizarLinkCpfNotaUI();
+    if (foiBalcao && !sessionStorage.getItem('pp_modo_caixa_restrito')) abrirVendaBalcaoVazia();
+  } finally {
+    _finalizandoVenda = false;
+  }
+}
+
 let _finalizandoVenda = false; // trava contra clique duplo/tecla+clique chamando isso 2x junto
 async function finalizarVendaUI() {
   if (_finalizandoVenda) return;
@@ -7459,9 +7552,20 @@ async function finalizarVendaUI() {
   // fazendo a escolha "com nota" se perder entre aqui e o final da função.
   const _comNotaCapturada = localStorage.getItem('pp_venda_com_nfce') === '1';
   if (!comandaAtualId || !comandaPagamentosPendentes.length) return;
-  if (MODO_OFFLINE) { mostrarToast('Sem conexão — aguarda a internet voltar pra cobrar.', 'warn'); return; }
   if (!CAIXA_LOCAL_ID) {
     mostrarToast('Abra o caixa deste aparelho antes de cobrar.', 'warn');
+    return;
+  }
+  if (MODO_OFFLINE) {
+    // Sem internet: só fecha se for tudo em Dinheiro (ou "Padaria"/consumo interno) —
+    // Cartão/Débito/Pix/Voucher dependem da maquininha ter sinal, não dá pra confiar
+    // nesse pagamento sem confirmação de verdade.
+    const soPermitidoOffline = comandaPagamentosPendentes.every(p => p.forma_pagamento === 'Dinheiro' || p.forma_pagamento === 'Padaria');
+    if (!soPermitidoOffline) {
+      mostrarToast('Sem internet — só dá pra fechar em Dinheiro enquanto a conexão não volta.', 'warn');
+      return;
+    }
+    await finalizarVendaOfflineUI(_comNotaCapturada);
     return;
   }
   _finalizandoVenda = true;
