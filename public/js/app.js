@@ -5273,12 +5273,21 @@ async function confirmarFecharCaixa() {
   });
   const cego = !!sessionStorage.getItem('pp_modo_caixa_restrito');
   // Despesas lançadas na hora de fechar — cada linha tem descrição (obrigatória) e valor.
+  // Antes, uma linha com só um dos dois campos preenchido (ex: nome digitado mas valor
+  // ficou em branco/zerado) era descartada em silêncio — a despesa simplesmente sumia
+  // do fechamento sem avisar ninguém. Agora bloqueia e avisa qual linha está incompleta.
   const despesas = [];
+  let despesaIncompleta = false;
   document.querySelectorAll('.cmd-despesa-linha').forEach(linha => {
     const descricao = linha.querySelector('.cmd-despesa-descricao').value.trim();
     const valor = paraNumeroMoeda(linha.querySelector('.cmd-despesa-valor').value);
-    if (descricao && valor > 0) despesas.push({ descricao, valor });
+    if (descricao && valor > 0) { despesas.push({ descricao, valor }); return; }
+    if (descricao || valor > 0) despesaIncompleta = true; // só um dos dois preenchido
   });
+  if (despesaIncompleta) {
+    mostrarToast('Tem uma despesa com o nome ou o valor em branco — preenche os dois ou apaga a linha antes de fechar.', 'warn');
+    return;
+  }
   if (!confirm('Fechar o caixa agora? Confira os valores contados antes de confirmar.')) return;
   const caixaSnapshot = caixaAtualCache; // guarda os dados fixos do caixa (nome, aberto_em...) pro comprovante
   const r = await api(`/caixa/${CAIXA_LOCAL_ID}/fechar`, { method: 'POST', body: { fechamento_formas, observacao, despesas } });
