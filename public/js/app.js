@@ -6555,6 +6555,32 @@ function tecladoCaixaClear() {
 async function tecladoCaixaBuscar() {
   const codigo = document.getElementById('teclado-caixa-visor').value.trim();
   if (!codigo) return;
+  // Etiqueta impressa pela balança (13 dígitos, começa com "2") já traz o preço
+  // calculado pelo peso embutido — precisa decodificar ANTES de tratar como um
+  // código de produto qualquer, senão sempre usa o preço de tabela (por kg) em
+  // vez do valor de verdade que saiu na balança.
+  const info = decodificarCodigoBalanca(codigo);
+  if (info) {
+    const produtoBalanca = produtosCache.find(p => p.codigo_balanca && codigosBalancaIguais(p.codigo_balanca, info.codigoProduto));
+    if (produtoBalanca) {
+      document.getElementById('cmd-item-busca').value = produtoBalanca.nome;
+      document.getElementById('cmd-item-produto-id').value = produtoBalanca.id;
+      document.getElementById('cmd-item-qtd').value = '1';
+      document.getElementById('cmd-item-preco').value = info.preco.toFixed(2);
+      await adicionarItemComandaUI();
+      tecladoCaixaClear();
+      return;
+    }
+    tecladoCaixaClear();
+    abrirModalVinculoBalanca(info.codigoProduto, info.preco, async (produtoFinal) => {
+      document.getElementById('cmd-item-busca').value = produtoFinal.nome;
+      document.getElementById('cmd-item-produto-id').value = produtoFinal.id;
+      document.getElementById('cmd-item-qtd').value = '1';
+      document.getElementById('cmd-item-preco').value = info.preco.toFixed(2);
+      await adicionarItemComandaUI();
+    });
+    return;
+  }
   // Mesma ordem de busca usada no código digitado no campo principal: balança, id, barras
   const produto = produtosCache.find(p => p.codigo_balanca && codigosBalancaIguais(p.codigo_balanca, codigo))
     || produtosCache.find(p => String(p.id) === codigo)
