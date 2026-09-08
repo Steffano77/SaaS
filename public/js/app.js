@@ -5132,10 +5132,7 @@ async function abrirModalCaixa(modo) {
     // aparece depois, no comprovante impresso, pra conferir.
     const cego = true;
 
-    // "Faturado" é fiado — não tem nada físico na gaveta pra conferir, então nem
-    // aparece como campo de digitar aqui (senão a atendente não sabe o que pôr e
-    // acaba criando uma "diferença" que não existe de verdade).
-    const formasConferir = (r?.porForma || []).filter(f => f.forma_pagamento !== 'Faturado');
+    const formasConferir = [...(r?.porForma || [])];
     if (!formasConferir.some(f => f.forma_pagamento === 'Dinheiro')) formasConferir.unshift({ forma_pagamento: 'Dinheiro', total: 0 });
     const camposConferencia = formasConferir.map(f => {
       const ehDinheiro = f.forma_pagamento === 'Dinheiro';

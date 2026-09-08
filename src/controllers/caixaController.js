@@ -183,10 +183,10 @@ async function montarResumoCaixa(caixa) {
 // não preenchida assume que bateu certinho — só a que ela digitar é conferida.
 // Compartilhada entre fechar() e reimprimirFechamento() (mesma conta, os dois).
 function calcularConferencia(caixa, resumo, formasInformadas) {
-  // "Faturado" é fiado — não existe nada físico na gaveta pra conferir (o cliente nem
-  // pagou ainda). Entrava na conferência igual dinheiro/cartão e gerava diferença falsa
-  // toda vez que a atendente não sabia o que digitar ali. Fica de fora, só informativo.
-  const formasParaConferir = (resumo.porForma || []).filter(f => f.forma_pagamento !== 'Faturado');
+  // "Faturado" volta a aparecer aqui pra atendente confirmar o valor (pedido da
+  // gerência) — só não soma mais no Total Vendido/Total da Sessão (isso é tratado à
+  // parte, na query de totalVendas acima).
+  const formasParaConferir = [...(resumo.porForma || [])];
   if (!formasParaConferir.some(f => f.forma_pagamento === 'Dinheiro')) {
     formasParaConferir.unshift({ forma_pagamento: 'Dinheiro', total: 0 });
   }
