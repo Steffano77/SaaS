@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20260905a"/>
+  <link rel="stylesheet" href="/css/app.css?v=20260908a"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -1145,16 +1145,19 @@
     <!-- Modal: identificar cliente pra pagamento "Faturado" — busca por NOME (já
          cadastrado) e pede a senha de 4 dígitos (fixa, 1234) pra confirmar o lançamento. -->
     <div id="modal-identificar-cliente" class="modal-overlay hidden">
-      <div class="modal-box" style="max-width:400px;">
+      <div class="modal-box" style="max-width:640px;width:92vw;">
         <div class="modal-header">
-          <span class="modal-title">👤 Identifique o cliente</span>
+          <span class="modal-title" style="font-size:22px;">👤 Identifique o cliente</span>
           <button onclick="_fecharIdentificarCliente(null)" class="btn-icon">✕</button>
         </div>
         <div class="form-group" style="position:relative;">
-          <label class="form-label">Nome do cliente</label>
+          <label class="form-label" style="font-size:16px;margin-bottom:8px;">Nome do cliente</label>
           <input type="text" id="idcli-nome" class="form-control" placeholder="Digite pra buscar..." autocomplete="off"
+            style="font-size:22px;padding:16px 18px;height:auto;"
             oninput="filtrarClienteFaturadoUI(this)" onfocus="filtrarClienteFaturadoUI(this)"/>
-          <div id="idcli-nome-lista" class="autocomplete-lista hidden"></div>
+          <!-- Lista fica no fluxo normal (não flutua por cima) — senão a própria caixa
+               do modal (overflow-y:auto) cortava ela, forçando scroll escondido. -->
+          <div id="idcli-nome-lista" class="autocomplete-lista hidden" style="position:static;box-shadow:none;border:1.5px solid var(--slate-200);margin-top:10px;max-height:min(58vh,480px);font-size:18px;"></div>
         </div>
         <div id="idcli-resultado"></div>
       </div>

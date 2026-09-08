@@ -1873,6 +1873,10 @@ tr.tr-saida td { color: var(--red-600); }
 .autocomplete-item:hover { background: var(--slate-50); }
 [data-theme="dark"] .autocomplete-item:hover { background: rgba(255,255,255,0.06); }
 .autocomplete-item.novo { color: var(--orange); font-weight: 600; border-top: 1px solid var(--slate-100); border-bottom: none; }
+
+/* Modal "Identifique o cliente" (Faturado) — versão maior, pra usar direto na tela
+   de venda sem precisar apertar os olhos nem rolar a lista. */
+#idcli-nome-lista .autocomplete-item { padding: 16px 18px; font-size: 18px; }
 [data-theme="dark"] .autocomplete-item.novo { border-top-color: rgba(255,255,255,0.06); }
 
 /* ── Toast dinâmico (pp-toast) ── */
