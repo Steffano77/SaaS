@@ -113,15 +113,13 @@ async function montarResumoCaixa(caixa) {
   );
   // "Padaria" (consumo interno) e "Cortesia" não são receita de verdade — exclui do
   // Total Vendido pra bater exatamente com o Financeiro (mesma regra de lá), evitando
-  // dois números diferentes de "total vendido" pro mesmo turno. "Faturado" também fica
-  // de fora: fica registrado no sistema normal (o cliente vai pagar depois, aparece em
-  // Clientes Faturado), mas não é dinheiro/cartão que passou por ESSE caixa nesse turno
-  // — não pode somar no Total Vendido/Total da Sessão do caixa.
+  // dois números diferentes de "total vendido" pro mesmo turno. "Faturado" conta
+  // normal aqui (igual Pix/Débito/etc) — decisão da gerência.
   const [[totalVendas]] = await db.query(
     `SELECT COALESCE(SUM(cp.valor), 0) AS total
      FROM comanda_pagamentos cp
      JOIN comandas c ON c.id = cp.comanda_id
-     WHERE c.caixa_id = ? AND cp.forma_pagamento NOT IN ('Padaria', 'Cortesia', 'Faturado')`,
+     WHERE c.caixa_id = ? AND cp.forma_pagamento NOT IN ('Padaria', 'Cortesia')`,
     [caixa.id]
   );
   const [[totalDinheiro]] = await db.query(
@@ -183,9 +181,9 @@ async function montarResumoCaixa(caixa) {
 // não preenchida assume que bateu certinho — só a que ela digitar é conferida.
 // Compartilhada entre fechar() e reimprimirFechamento() (mesma conta, os dois).
 function calcularConferencia(caixa, resumo, formasInformadas) {
-  // "Faturado" volta a aparecer aqui pra atendente confirmar o valor (pedido da
-  // gerência) — só não soma mais no Total Vendido/Total da Sessão (isso é tratado à
-  // parte, na query de totalVendas acima).
+  // "Faturado" entra na conferência igual qualquer outra forma de pagamento
+  // (Pix/Débito/etc) — a atendente confirma o valor e ele conta pra diferença
+  // oficial do caixa se não bater, e soma normal no Total Vendido também.
   const formasParaConferir = [...(resumo.porForma || [])];
   if (!formasParaConferir.some(f => f.forma_pagamento === 'Dinheiro')) {
     formasParaConferir.unshift({ forma_pagamento: 'Dinheiro', total: 0 });
