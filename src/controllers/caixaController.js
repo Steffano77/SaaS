@@ -113,12 +113,15 @@ async function montarResumoCaixa(caixa) {
   );
   // "Padaria" (consumo interno) e "Cortesia" não são receita de verdade — exclui do
   // Total Vendido pra bater exatamente com o Financeiro (mesma regra de lá), evitando
-  // dois números diferentes de "total vendido" pro mesmo turno.
+  // dois números diferentes de "total vendido" pro mesmo turno. "Faturado" também fica
+  // de fora: fica registrado no sistema normal (o cliente vai pagar depois, aparece em
+  // Clientes Faturado), mas não é dinheiro/cartão que passou por ESSE caixa nesse turno
+  // — não pode somar no Total Vendido/Total da Sessão do caixa.
   const [[totalVendas]] = await db.query(
     `SELECT COALESCE(SUM(cp.valor), 0) AS total
      FROM comanda_pagamentos cp
      JOIN comandas c ON c.id = cp.comanda_id
-     WHERE c.caixa_id = ? AND cp.forma_pagamento NOT IN ('Padaria', 'Cortesia')`,
+     WHERE c.caixa_id = ? AND cp.forma_pagamento NOT IN ('Padaria', 'Cortesia', 'Faturado')`,
     [caixa.id]
   );
   const [[totalDinheiro]] = await db.query(
