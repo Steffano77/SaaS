@@ -6588,6 +6588,32 @@ async function abrirScannerCodigoBarras() {
       if (codigos.length) {
         const valor = codigos[0].rawValue.trim();
         status.textContent = `Código lido: ${valor}`;
+        // Etiqueta de balança (peso variável) — o código de barras completo (13 dígitos,
+        // começando com "2") não é igual ao código de balança cadastrado no produto (só
+        // 6 dígitos internos); precisa decodificar primeiro pra achar o produto e já vem
+        // com o preço certo calculado pelo peso, igual o campo de digitar já fazia.
+        const info = decodificarCodigoBalanca(valor);
+        if (info) {
+          const produtoBalanca = produtosCache.find(p => p.codigo_balanca && p.codigo_balanca.trim() === info.codigoProduto);
+          if (produtoBalanca) {
+            fecharScannerCodigoBarras();
+            document.getElementById('cmd-item-busca').value = produtoBalanca.nome;
+            document.getElementById('cmd-item-produto-id').value = produtoBalanca.id;
+            document.getElementById('cmd-item-qtd').value = '1';
+            document.getElementById('cmd-item-preco').value = info.preco.toFixed(2);
+            await adicionarItemComandaUI();
+            return;
+          }
+          fecharScannerCodigoBarras();
+          abrirModalVinculoBalanca(info.codigoProduto, info.preco, async (produtoFinal) => {
+            document.getElementById('cmd-item-busca').value = produtoFinal.nome;
+            document.getElementById('cmd-item-produto-id').value = produtoFinal.id;
+            document.getElementById('cmd-item-qtd').value = '1';
+            document.getElementById('cmd-item-preco').value = info.preco.toFixed(2);
+            await adicionarItemComandaUI();
+          });
+          return;
+        }
         const produto = produtosCache.find(p => p.codigo_barras && p.codigo_barras.trim() === valor)
           || produtosCache.find(p => p.codigo_balanca && p.codigo_balanca.trim() === valor);
         if (produto) {
