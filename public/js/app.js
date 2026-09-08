@@ -6868,8 +6868,11 @@ document.addEventListener('keydown', (e) => {
 // abre sozinha toda vez que ela imprime algo (é assim que o DANFE já abre a gaveta hoje) —
 // então aqui a gente manda pra impressora um tíquete mínimo (praticamente em branco, sem
 // gastar papel de verdade) só pra pulsar a gaveta, sem precisar imprimir uma nota de verdade.
-function abrirGavetaUI() {
-  const janela = window.open('', '_blank', 'width=200,height=200');
+// janelaPre: reaproveita uma janela já aberta ainda dentro do clique/tecla que
+// disparou a ação (ver finalizarVendaUI) — abrir na hora, sem esperar rede antes,
+// evita o Chrome bloquear o pop-up silenciosamente depois de um await.
+function abrirGavetaUI(janelaPre) {
+  const janela = janelaPre || window.open('', '_blank', 'width=200,height=200');
   if (!janela) { mostrarToast('O navegador bloqueou a janela — permite pop-up nesse site.', 'warn'); return; }
   janela.document.write(`<!doctype html><html><head><meta charset="utf-8"/>
     <style>@page{margin:0;}body{margin:0;padding:0;height:1px;font-size:1px;line-height:1px;}</style></head><body>&nbsp;
@@ -7588,8 +7591,12 @@ async function finalizarVendaOfflineUI(comNotaCapturada) {
   if (_finalizandoVenda) return;
   _finalizandoVenda = true;
   try {
+    // Abre a janela da gaveta JÁ, ainda dentro do clique — depois do await do
+    // confirmarBonito ela pode ser bloqueada em silêncio pelo navegador.
+    const temDinheiro = comandaPagamentosPendentes.some(p => p.forma_pagamento === 'Dinheiro');
+    const janelaGaveta = temDinheiro ? window.open('', '_blank', 'width=200,height=200') : null;
     const resumo = comandaPagamentosPendentes.map(p => `${p.forma_pagamento}: ${fmtMoeda(p.valor)}`).join(' + ');
-    if (!(await confirmarBonito(`Confirmar recebimento — ${resumo}? (sem internet — nota fiscal, se houver, sai depois de reconectar)`))) return;
+    if (!(await confirmarBonito(`Confirmar recebimento — ${resumo}? (sem internet — nota fiscal, se houver, sai depois de reconectar)`))) { janelaGaveta?.close(); return; }
 
     const comandaFechadaId = comandaAtualId;
     const snapshot = comandaAtualDados;
@@ -7609,6 +7616,8 @@ async function finalizarVendaOfflineUI(comNotaCapturada) {
     const foiBalcao = comandaAtualId === _balcaoComandaAtiva;
     if (foiBalcao) _balcaoComandaAtiva = null;
     mostrarToast(`Comanda fechada (offline) — ${formaResumo}! Sincroniza quando a internet voltar.`, 'ok');
+    // Venda em dinheiro — abre a gaveta pra atendente dar o troco, sem precisar apertar G.
+    if (temDinheiro) abrirGavetaUI(janelaGaveta);
     _standbyAposVenda = true;
     fecharModalComanda();
     atualizarFaixaOffline('offline'); // atualiza a contagem de pendentes na faixa
@@ -7662,9 +7671,14 @@ async function finalizarVendaUI() {
   if (janelaImpressao) {
     janelaImpressao.document.write('<!doctype html><html><body style="font-family:sans-serif;padding:24px;text-align:center;color:#888;">Preparando impressão...</body></html>');
   }
+  // Venda em dinheiro — abre a janela da gaveta JÁ (mesmo motivo da janela de cima:
+  // depois do await ela pode ser bloqueada em silêncio). Só imprime de verdade lá
+  // embaixo, se a venda for confirmada.
+  const temDinheiro = comandaPagamentosPendentes.some(p => p.forma_pagamento === 'Dinheiro');
+  const janelaGaveta = temDinheiro ? window.open('', '_blank', 'width=200,height=200') : null;
 
   const resumo = comandaPagamentosPendentes.map(p => `${p.forma_pagamento}: ${fmtMoeda(p.valor)}`).join(' + ');
-  if (!(await confirmarBonito(`Confirmar recebimento — ${resumo}?`))) { janelaImpressao?.close(); return; }
+  if (!(await confirmarBonito(`Confirmar recebimento — ${resumo}?`))) { janelaImpressao?.close(); janelaGaveta?.close(); return; }
   const comandaFechadaId = comandaAtualId; // guarda ANTES de fechar o modal, que zera comandaAtualId
   const snapshot = comandaAtualDados; // guarda os itens antes de fechar, pro recibo
   const formaResumo = comandaPagamentosPendentes.map(p => p.forma_pagamento).join(' + ');
@@ -7691,6 +7705,8 @@ async function finalizarVendaUI() {
   const foiBalcao = comandaAtualId === _balcaoComandaAtiva;
   if (foiBalcao) _balcaoComandaAtiva = null;
   mostrarToast(`Comanda fechada — ${formaResumo}!`, 'ok');
+  // Venda em dinheiro — abre a gaveta pra atendente dar o troco, sem precisar apertar G.
+  if (temDinheiro) abrirGavetaUI(janelaGaveta);
   // Depois de finalizar, o cursor fica em "stand-by" (sem foco em nenhum campo) em vez
   // de já pular pra busca de produto sozinho — a atendente escolhe com B (buscar/bipar
   // produto) ou C (digitar número de comanda), pra não vender sem querer se alguém
