@@ -6368,6 +6368,7 @@ async function onKeydownBuscaComanda(e, input) {
     document.getElementById('cmd-item-produto-id').value = produto.id;
     document.getElementById('cmd-item-qtd').value = '1';
     document.getElementById('cmd-item-preco').value = info.preco.toFixed(2);
+    _precoBalancaForcado = true;
     await adicionarItemComandaUI();
     return;
   }
@@ -6378,6 +6379,7 @@ async function onKeydownBuscaComanda(e, input) {
     document.getElementById('cmd-item-produto-id').value = produtoVinculado.id;
     document.getElementById('cmd-item-qtd').value = '1';
     document.getElementById('cmd-item-preco').value = info.preco.toFixed(2);
+    _precoBalancaForcado = true;
     await adicionarItemComandaUI();
   });
 }
@@ -6567,6 +6569,7 @@ async function tecladoCaixaBuscar() {
       document.getElementById('cmd-item-produto-id').value = produtoBalanca.id;
       document.getElementById('cmd-item-qtd').value = '1';
       document.getElementById('cmd-item-preco').value = info.preco.toFixed(2);
+      _precoBalancaForcado = true;
       await adicionarItemComandaUI();
       tecladoCaixaClear();
       return;
@@ -6577,6 +6580,7 @@ async function tecladoCaixaBuscar() {
       document.getElementById('cmd-item-produto-id').value = produtoFinal.id;
       document.getElementById('cmd-item-qtd').value = '1';
       document.getElementById('cmd-item-preco').value = info.preco.toFixed(2);
+      _precoBalancaForcado = true;
       await adicionarItemComandaUI();
     });
     return;
@@ -6638,6 +6642,7 @@ async function abrirScannerCodigoBarras() {
             document.getElementById('cmd-item-produto-id').value = produtoBalanca.id;
             document.getElementById('cmd-item-qtd').value = '1';
             document.getElementById('cmd-item-preco').value = info.preco.toFixed(2);
+            _precoBalancaForcado = true;
             await adicionarItemComandaUI();
             return;
           }
@@ -6647,6 +6652,7 @@ async function abrirScannerCodigoBarras() {
             document.getElementById('cmd-item-produto-id').value = produtoFinal.id;
             document.getElementById('cmd-item-qtd').value = '1';
             document.getElementById('cmd-item-preco').value = info.preco.toFixed(2);
+            _precoBalancaForcado = true;
             await adicionarItemComandaUI();
           });
           return;
@@ -6676,6 +6682,7 @@ function fecharScannerCodigoBarras() {
   document.getElementById('modal-scanner').classList.add('hidden');
 }
 
+let _precoBalancaForcado = false; // ver adicionarItemComandaUI — deixa passar preço da balança mesmo no Modo Lançamento
 async function adicionarItemComandaUI() {
   if (caixaAtualCache?.pausado) { mostrarToast('Caixa pausado — retome o caixa antes de lançar item.', 'warn'); return; }
   const nome = document.getElementById('cmd-item-busca').value.trim();
@@ -6684,7 +6691,11 @@ async function adicionarItemComandaUI() {
   const precoInput = document.getElementById('cmd-item-preco').value;
   // No tablet de lançamento (copa/salão) o preço nunca é enviado, mesmo que alguém
   // force o campo — o servidor sempre usa o preço de tabela do produto nesse caso.
-  const preco_unitario = (!MODO_LANCAMENTO && precoInput !== '') ? parseFloat(precoInput) : null;
+  // EXCEÇÃO: preço vindo de etiqueta de balança (já calculado pelo peso real, não
+  // digitado por ninguém) — esse precisa valer também no tablet, senão sempre sai
+  // o preço por quilo em vez do valor pesado de verdade.
+  const preco_unitario = (!MODO_LANCAMENTO || _precoBalancaForcado) && precoInput !== '' ? parseFloat(precoInput) : null;
+  _precoBalancaForcado = false;
 
   if (!nome) { mostrarToast('Digite ou selecione um item.', 'warn'); return; }
   if (!quantidade || quantidade <= 0) { mostrarToast('Quantidade inválida.', 'warn'); return; }
