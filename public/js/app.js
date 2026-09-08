@@ -6244,6 +6244,17 @@ function decodificarCodigoBalanca(codigo) {
   return { codigoProduto, preco: precoCentavos / 100 };
 }
 
+// Compara código de balança "350" com "035000" e considera igual — a etiqueta
+// da balança sempre vem com 6 dígitos (zeros na frente), mas quem cadastra o
+// produto na mão às vezes digita só "350", sem os zeros. Numericamente é o
+// mesmo código, então a comparação ignora esses zeros em vez de exigir texto idêntico.
+function codigosBalancaIguais(a, b) {
+  if (!a || !b) return false;
+  const na = parseInt(String(a).trim(), 10);
+  const nb = parseInt(String(b).trim(), 10);
+  return !isNaN(na) && !isNaN(nb) && na === nb;
+}
+
 // ── Leitor de código de barras "global" na tela de Comandas ──
 // O leitor físico digita rápido e manda Enter no final, como um teclado. Isso captura
 // esse bipe em qualquer lugar da tela (sem precisar clicar no campo de busca antes),
@@ -6311,7 +6322,7 @@ async function onKeydownBuscaComanda(e, input) {
     input.parentElement.querySelector('.cmd-item-lista')?.classList.add('hidden');
     // Busca por código de balança primeiro (o mais comum pra item pesado), depois
     // pelo ID do produto e pelo código de barras, pra cobrir o que já tiver cadastrado.
-    const produto = produtosCache.find(p => p.codigo_balanca && p.codigo_balanca.trim() === pesoVezes.codigoProduto)
+    const produto = produtosCache.find(p => p.codigo_balanca && codigosBalancaIguais(p.codigo_balanca, pesoVezes.codigoProduto))
       || produtosCache.find(p => String(p.id) === pesoVezes.codigoProduto)
       || produtosCache.find(p => p.codigo_barras && p.codigo_barras.trim() === pesoVezes.codigoProduto);
     if (!produto) {
@@ -6351,7 +6362,7 @@ async function onKeydownBuscaComanda(e, input) {
   e.preventDefault();
   input.parentElement.querySelector('.cmd-item-lista')?.classList.add('hidden');
 
-  const produto = produtosCache.find(p => p.codigo_balanca && p.codigo_balanca.trim() === info.codigoProduto);
+  const produto = produtosCache.find(p => p.codigo_balanca && codigosBalancaIguais(p.codigo_balanca, info.codigoProduto));
   if (produto) {
     document.getElementById('cmd-item-busca').value = produto.nome;
     document.getElementById('cmd-item-produto-id').value = produto.id;
@@ -6545,7 +6556,7 @@ async function tecladoCaixaBuscar() {
   const codigo = document.getElementById('teclado-caixa-visor').value.trim();
   if (!codigo) return;
   // Mesma ordem de busca usada no código digitado no campo principal: balança, id, barras
-  const produto = produtosCache.find(p => p.codigo_balanca && p.codigo_balanca.trim() === codigo)
+  const produto = produtosCache.find(p => p.codigo_balanca && codigosBalancaIguais(p.codigo_balanca, codigo))
     || produtosCache.find(p => String(p.id) === codigo)
     || produtosCache.find(p => p.codigo_barras && p.codigo_barras.trim() === codigo);
   if (!produto) {
@@ -6594,7 +6605,7 @@ async function abrirScannerCodigoBarras() {
         // com o preço certo calculado pelo peso, igual o campo de digitar já fazia.
         const info = decodificarCodigoBalanca(valor);
         if (info) {
-          const produtoBalanca = produtosCache.find(p => p.codigo_balanca && p.codigo_balanca.trim() === info.codigoProduto);
+          const produtoBalanca = produtosCache.find(p => p.codigo_balanca && codigosBalancaIguais(p.codigo_balanca, info.codigoProduto));
           if (produtoBalanca) {
             fecharScannerCodigoBarras();
             document.getElementById('cmd-item-busca').value = produtoBalanca.nome;
@@ -7951,7 +7962,7 @@ async function onKeydownBuscaRapidaComanda(e) {
   e.preventDefault();
 
   input.value = '';
-  const produto = produtosCache.find(p => p.codigo_balanca && p.codigo_balanca.trim() === info.codigoProduto);
+  const produto = produtosCache.find(p => p.codigo_balanca && codigosBalancaIguais(p.codigo_balanca, info.codigoProduto));
 
   const lancar = async (produtoFinal) => {
     // Se já tem uma venda de balcão em aberto (cliente bipando vários produtos seguidos),
