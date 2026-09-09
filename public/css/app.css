@@ -1381,6 +1381,26 @@
 .fin-mov-val.saida   { color: #dc2626; }
 .fin-date-header { padding: 7px 16px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--slate-500); background: var(--slate-50); border-bottom: 1px solid var(--slate-100); }
 
+/* Movimentações em tabela — Data | Descrição | Categoria | Forma | Valor, cada uma
+   na sua coluna (Forma bem separada, pra Faturado/Padaria não se misturarem com
+   dinheiro/cartão de verdade). */
+.fin-mov-tabela { width: 100%; border-collapse: collapse; font-size: 13px; white-space: nowrap; }
+.fin-mov-tabela thead th {
+  text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .04em; color: var(--slate-400); padding: 8px 12px;
+  border-bottom: 1.5px solid var(--slate-100);
+}
+.fin-mov-tabela td { padding: 10px 12px; border-bottom: 1px solid var(--slate-100); }
+.fin-mov-linha:hover { background: var(--slate-50); }
+[data-theme="dark"] .fin-mov-linha:hover { background: rgba(255,255,255,0.04); }
+.fin-mov-td-data { color: var(--slate-400); font-size: 12px; }
+.fin-mov-td-desc { font-weight: 600; }
+.fin-mov-td-cat  { color: var(--slate-500); font-size: 12px; }
+.fin-mov-td-valor { font-weight: 800; text-align: right; }
+.fin-mov-td-valor.entrada { color: #16a34a; }
+.fin-mov-td-valor.saida   { color: #dc2626; }
+.fin-mov-td-acao { text-align: center; }
+
 /* ── Onboarding ── */
 .onboarding-step {
   display: flex;

@@ -2233,37 +2233,33 @@ function renderMovimentacoes(movs) {
     lista.innerHTML = '<p style="text-align:center;color:var(--slate-400);padding:32px 16px;font-size:14px;">Nenhuma movimentação no período.</p>';
     return;
   }
-  const pgtoTag = p => {
-    const cores = { Pix:'#eff6ff:#2563eb', Dinheiro:'#f0fdf4:#16a34a', Crédito:'#fdf4ff:#9333ea', Débito:'#fdf4ff:#9333ea', Transferência:'#eff6ff:#2563eb', Boleto:'#fefce8:#ca8a04', Faturado:'#fff7ed:#c2410c', Padaria:'#f1f5f9:#334155' };
-    const [bg, color] = (cores[p] || '#f1f5f9:#64748b').split(':');
-    // Faturado (fiado) e Padaria (consumo interno) não são receita normal — chamam mais
-    // atenção que as outras formas (borda colorida + ícone), pra separar de cara na lista.
-    const destaque = (p === 'Faturado' || p === 'Padaria');
-    const icone = p === 'Faturado' ? '📇 ' : p === 'Padaria' ? '🏠 ' : '';
-    const borda = destaque ? `border:1.5px solid ${color};` : '';
-    return `<span style="background:${bg};color:${color};${borda}border-radius:4px;padding:${destaque ? '2px 8px' : '1px 6px'};font-size:${destaque ? '11px' : '10px'};font-weight:700;">${icone}${p||'Dinheiro'}</span>`;
-  };
-  let html = '', dataAtual = '';
-  movs.forEach(m => {
-    const d = new Date(String(m.data).slice(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'2-digit' });
-    if (d !== dataAtual) { dataAtual = d; html += `<div class="fin-date-header">${d}</div>`; }
+  // Faturado (fiado) e Padaria (consumo interno) não são receita normal — cor própria
+  // na coluna "Forma", pra diferenciar de cara do dinheiro/cartão de verdade.
+  const coresForma = { Pix:'#2563eb', Dinheiro:'#16a34a', Crédito:'#9333ea', Débito:'#9333ea', Transferência:'#2563eb', Boleto:'#ca8a04', Faturado:'#c2410c', Padaria:'#334155' };
+  const linhas = movs.map(m => {
+    const d = new Date(String(m.data).slice(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' });
     const icone = FIN_ICONES[m.categoria] || '💵';
     const sinal = m.tipo === 'entrada' ? '+' : '−';
-    html += `<div class="fin-mov-item">
-      <div class="fin-mov-icon ${m.tipo}">${icone}</div>
-      <div style="flex:1;min-width:0;">
-        <div class="fin-mov-desc">${m.descricao}</div>
-        <div class="fin-mov-cat" style="display:flex;gap:6px;align-items:center;margin-top:2px;">
-          <span>${m.categoria}</span>${pgtoTag(m.forma_pagamento)}
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div class="fin-mov-val ${m.tipo}">${sinal}${fmt(m.valor)}</div>
-        <button onclick="finExcluir(${m.id})" class="btn-icon" style="color:#dc2626;font-size:13px;" title="Excluir">🗑</button>
-      </div>
+    const forma = m.forma_pagamento || 'Dinheiro';
+    const corForma = coresForma[forma] || '#64748b';
+    return `<tr class="fin-mov-linha">
+      <td class="fin-mov-td-data">${d}</td>
+      <td class="fin-mov-td-desc"><span style="margin-right:6px;">${icone}</span>${m.descricao}</td>
+      <td class="fin-mov-td-cat">${m.categoria}</td>
+      <td class="fin-mov-td-forma"><span style="color:${corForma};font-weight:700;">${forma}</span></td>
+      <td class="fin-mov-td-valor ${m.tipo}">${sinal}${fmt(m.valor)}</td>
+      <td class="fin-mov-td-acao"><button onclick="finExcluir(${m.id})" class="btn-icon" style="color:#dc2626;font-size:13px;" title="Excluir">🗑</button></td>
+    </tr>`;
+  }).join('');
+  lista.innerHTML = `
+    <div style="overflow-x:auto;">
+      <table class="fin-mov-tabela">
+        <thead>
+          <tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Forma</th><th style="text-align:right;">Valor</th><th></th></tr>
+        </thead>
+        <tbody>${linhas}</tbody>
+      </table>
     </div>`;
-  });
-  lista.innerHTML = html;
 }
 
 function renderGrafico(dados) {
