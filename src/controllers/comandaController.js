@@ -358,9 +358,14 @@ exports.fechar = async (req, res) => {
       // separado do dinheiro que já entrou, pra não inflar o caixa do dia.
       if (forma !== 'Padaria' && forma !== 'Cortesia') {
         const categoria = forma === 'Faturado' ? 'Fiado (a receber)' : 'Vendas';
+        // No Faturado, junta o nome do cliente na descrição — sem isso, a tela do
+        // Financeiro só mostra "Comanda X", sem saber pra quem ficou o fiado.
+        const descricao = (forma === 'Faturado' && clienteNome)
+          ? `Comanda ${comanda.identificador} — Fiado: ${clienteNome}`
+          : `Comanda ${comanda.identificador}`;
         await conn.query(
           `INSERT INTO financeiro (padaria_id, tipo, valor, descricao, categoria, forma_pagamento, data) VALUES (?,?,?,?,?,?,CURDATE())`,
-          [padaria_id, 'entrada', valor, `Comanda ${comanda.identificador}`, categoria, forma]
+          [padaria_id, 'entrada', valor, descricao, categoria, forma]
         );
       }
       formasResumo.push(`${forma} ${valor.toFixed(2)}`);
