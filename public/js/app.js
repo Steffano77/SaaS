@@ -1,5 +1,12 @@
 const API = '/api';
 
+// Normaliza texto pra busca sem acento/maiúscula — "acai" acha "Açaí", "cafe" acha
+// "Café". Usado em todo campo de buscar produto/cliente, pra atendente não precisar
+// digitar acentuação certinha correndo no meio de uma venda.
+function normalizarBusca(txt) {
+  return (txt || '').toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+
 // Força logout via ?logout=1 (usado no e-mail de boas-vindas)
 (function() {
   if (new URLSearchParams(window.location.search).get('logout') === '1') {
@@ -2033,10 +2040,10 @@ let _pedidoItens = [];
 let _produtosParaRepor = [];
 
 function filtrarProdutosCompra() {
-  const termo = document.getElementById('compra-prod-texto').value.trim().toLowerCase();
+  const termo = normalizarBusca(document.getElementById('compra-prod-texto').value.trim());
   const lista = document.getElementById('compra-prod-lista');
   if (!termo) { lista.classList.add('hidden'); document.getElementById('compra-produto').value = ''; document.getElementById('novo-prod-inline').classList.add('hidden'); return; }
-  const filtrados = _produtosCache.filter(p => p.nome.toLowerCase().includes(termo));
+  const filtrados = _produtosCache.filter(p => normalizarBusca(p.nome).includes(termo));
   const itens = filtrados.slice(0, 8).map(p =>
     `<div data-prod-id="${p.id}" data-prod-nome="${p.nome.replace(/"/g,'&quot;')}" data-prod-unidade="${p.unidade}" class="autocomplete-item">${p.nome} <span style="color:var(--slate-400);font-size:12px;">${p.unidade}</span></div>`
   );
@@ -3081,13 +3088,13 @@ function filtrarCorrecaoItem(itemKey) {
   const inp = document.getElementById(`inp-${itemKey}`);
   const lista = document.getElementById(`lista-${itemKey}`);
   const btn = document.getElementById(`btn-salvar-${itemKey}`);
-  const termo = inp.value.trim().toLowerCase();
+  const termo = normalizarBusca(inp.value.trim());
   delete _correcaoSelecionado[itemKey];
   btn.disabled = true;
 
   if (termo.length < 1) { lista.classList.add('hidden'); return; }
 
-  const prods = (_produtosCache || []).filter(p => p.nome.toLowerCase().includes(termo));
+  const prods = (_produtosCache || []).filter(p => normalizarBusca(p.nome).includes(termo));
   if (!prods.length) {
     // Permite digitar nome novo
     lista.innerHTML = `<div class="autocomplete-item" onclick="selecionarCorrecaoNovo('${itemKey}', '${inp.value.replace(/'/g,"\\'")}')">
@@ -4614,10 +4621,10 @@ async function abrirModalCodigosUsados(tipo) {
 function renderCodigosUsados() {
   const campo = _codigosUsadosTipo === 'ncm' ? 'ncm' : 'codigo_balanca';
   const rotuloColuna = _codigosUsadosTipo === 'ncm' ? 'NCM' : 'Cód. balança';
-  const termo = document.getElementById('codigos-usados-busca').value.trim().toLowerCase();
+  const termo = normalizarBusca(document.getElementById('codigos-usados-busca').value.trim());
   const el = document.getElementById('codigos-usados-lista');
   const usados = produtosCache
-    .filter(p => p[campo] && (!termo || p.nome.toLowerCase().includes(termo)))
+    .filter(p => p[campo] && (!termo || normalizarBusca(p.nome).includes(termo)))
     .sort((a, b) => String(a[campo]).localeCompare(String(b[campo])));
 
   if (!usados.length) {
@@ -4857,10 +4864,10 @@ function adicionarLinhaIngrediente(item = null) {
 }
 
 function filtrarIngredienteFicha(input) {
-  const termo = input.value.trim().toLowerCase();
+  const termo = normalizarBusca(input.value.trim());
   const lista = input.parentElement.querySelector('.fi-lista');
   if (!termo) { lista.classList.add('hidden'); return; }
-  const filtrados = produtosCache.filter(p => p.nome.toLowerCase().includes(termo)).slice(0, 8);
+  const filtrados = produtosCache.filter(p => normalizarBusca(p.nome).includes(termo)).slice(0, 8);
   const itensHtml = filtrados.map(p =>
     `<div class="autocomplete-item fi-item" data-produto-id="${p.id}" data-nome="${p.nome.replace(/"/g,'&quot;')}" data-unidade="${p.unidade||'un'}">${p.nome} <span style="color:var(--slate-400);font-size:12px;">${p.unidade||'un'}</span></div>`
   );
@@ -6402,10 +6409,10 @@ function abrirModalVinculoBalanca(codigo, preco, callback) {
 }
 
 function filtrarVinculoBalanca(input) {
-  const termo = input.value.trim().toLowerCase();
+  const termo = normalizarBusca(input.value.trim());
   const lista = document.getElementById('vinc-lista');
   if (!termo) { lista.classList.add('hidden'); lista.innerHTML = ''; return; }
-  const filtrados = produtosCache.filter(p => p.nome.toLowerCase().includes(termo)).slice(0, 8);
+  const filtrados = produtosCache.filter(p => normalizarBusca(p.nome).includes(termo)).slice(0, 8);
   if (!filtrados.length) {
     lista.innerHTML = `<div class="autocomplete-item" style="color:var(--slate-400);cursor:default;">Nenhum produto encontrado.</div>`;
     lista.classList.remove('hidden');
@@ -6484,9 +6491,9 @@ function abrirProdutosDaCategoria(categoria) {
 }
 
 function filtrarProdutosCategoriaUI(input) {
-  const termo = input.value.trim().toLowerCase();
+  const termo = normalizarBusca(input.value.trim());
   const filtrados = termo
-    ? _catComandaProdutosTodos.filter(p => p.nome.toLowerCase().includes(termo))
+    ? _catComandaProdutosTodos.filter(p => normalizarBusca(p.nome).includes(termo))
     : _catComandaProdutosTodos;
   renderGridProdutosCategoria(filtrados);
 }
@@ -6507,14 +6514,14 @@ async function adicionarProdutoCategoriaUI(produtoId) {
 }
 
 function filtrarProdutoComanda(input) {
-  const termo = input.value.trim().toLowerCase();
+  const termo = normalizarBusca(input.value.trim());
   const lista = input.parentElement.querySelector('.cmd-item-lista');
   document.getElementById('cmd-item-produto-id').value = '';
   if (!termo) { lista.classList.add('hidden'); return; }
   const souNumero = /^\d+$/.test(termo);
   const filtrados = souNumero
     ? produtosCache.filter(p => String(p.id) === termo || (p.codigo_barras && p.codigo_barras.startsWith(termo))).slice(0, 8)
-    : produtosCache.filter(p => p.nome.toLowerCase().includes(termo)).slice(0, 8);
+    : produtosCache.filter(p => normalizarBusca(p.nome).includes(termo)).slice(0, 8);
   const itensHtml = filtrados.map(p =>
     `<div class="autocomplete-item cmd-item-opt" data-produto-id="${p.id}" data-nome="${p.nome.replace(/"/g,'&quot;')}" data-preco="${p.preco_venda || 0}" data-unidade="${p.unidade||'un'}">${p.nome} <span style="color:var(--slate-400);font-size:12px;">${p.codigo_barras ? 'Cód '+p.codigo_barras+' · ' : ''}${fmtMoeda(p.preco_venda||0)}</span></div>`
   );
@@ -7268,11 +7275,11 @@ function _fecharIdentificarCliente(cliente) {
 }
 
 function filtrarClienteFaturadoUI(input) {
-  const termo = input.value.trim().toLowerCase();
+  const termo = normalizarBusca(input.value.trim());
   const lista = document.getElementById('idcli-nome-lista');
   document.getElementById('idcli-resultado').innerHTML = '';
   if (!termo) { lista.classList.add('hidden'); return; }
-  const filtrados = (_clientesFaturadoCache || []).filter(c => c.nome.toLowerCase().includes(termo)).slice(0, 8);
+  const filtrados = (_clientesFaturadoCache || []).filter(c => normalizarBusca(c.nome).includes(termo)).slice(0, 8);
   if (!filtrados.length) {
     lista.innerHTML = `<div class="autocomplete-item" style="color:var(--slate-400);cursor:default;">Nenhum cliente com esse nome.</div>`;
     lista.classList.remove('hidden');
@@ -7929,7 +7936,7 @@ async function imprimirReciboComanda(c, forma_pagamento, janelaPre) {
 // Busca produtos por nome ou por ID/código enquanto digita no campo principal
 // (ex: "coca" → lista todas as Cocas; "3967" → acha o produto de ID/código 3967 E ainda permite abrir a comanda 3967)
 function filtrarBuscaComanda(input) {
-  const termo = input.value.trim().toLowerCase();
+  const termo = normalizarBusca(input.value.trim());
   const lista = document.getElementById('cmd-busca-produtos-lista');
   if (!termo) { lista.classList.add('hidden'); return; }
 
@@ -7938,7 +7945,7 @@ function filtrarBuscaComanda(input) {
     // Número: busca por ID exato ou por código de barras que comece com o número digitado
     ? produtosCache.filter(p => String(p.id) === termo || (p.codigo_barras && p.codigo_barras.startsWith(termo))).slice(0, 10)
     // Texto: busca por nome
-    : produtosCache.filter(p => p.nome.toLowerCase().includes(termo)).slice(0, 10);
+    : produtosCache.filter(p => normalizarBusca(p.nome).includes(termo)).slice(0, 10);
 
   if (souNumero && !filtrados.length) { lista.classList.add('hidden'); return; }
   if (!filtrados.length) {
@@ -8258,7 +8265,7 @@ function renderRelatorioVendas() {
   const r = _relVendasDados;
   if (!r) return;
   const termoBruto = (document.getElementById('rel-vendas-busca')?.value || '').trim();
-  const norm = txt => txt.toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const norm = normalizarBusca;
   const termo = norm(termoBruto);
   const produtos = termo ? r.produtos.filter(p => norm(p.produto).includes(termo)) : r.produtos;
 
@@ -8302,7 +8309,7 @@ function imprimirRelatorioVendas() {
 
   // Respeita o filtro digitado na tela — imprime só o que está sendo visto ali.
   const termoBruto = (document.getElementById('rel-vendas-busca')?.value || '').trim();
-  const norm = txt => txt.toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const norm = normalizarBusca;
   const termo = norm(termoBruto);
   const produtos = termo ? r.produtos.filter(p => norm(p.produto).includes(termo)) : r.produtos;
 
