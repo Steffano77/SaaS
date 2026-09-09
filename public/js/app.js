@@ -2234,9 +2234,14 @@ function renderMovimentacoes(movs) {
     return;
   }
   const pgtoTag = p => {
-    const cores = { Pix:'#eff6ff:#2563eb', Dinheiro:'#f0fdf4:#16a34a', Crédito:'#fdf4ff:#9333ea', Débito:'#fdf4ff:#9333ea', Transferência:'#eff6ff:#2563eb', Boleto:'#fefce8:#ca8a04', Faturado:'#fff7ed:#c2410c', Padaria:'#f8fafc:#64748b' };
+    const cores = { Pix:'#eff6ff:#2563eb', Dinheiro:'#f0fdf4:#16a34a', Crédito:'#fdf4ff:#9333ea', Débito:'#fdf4ff:#9333ea', Transferência:'#eff6ff:#2563eb', Boleto:'#fefce8:#ca8a04', Faturado:'#fff7ed:#c2410c', Padaria:'#f1f5f9:#334155' };
     const [bg, color] = (cores[p] || '#f1f5f9:#64748b').split(':');
-    return `<span style="background:${bg};color:${color};border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;">${p||'Dinheiro'}</span>`;
+    // Faturado (fiado) e Padaria (consumo interno) não são receita normal — chamam mais
+    // atenção que as outras formas (borda colorida + ícone), pra separar de cara na lista.
+    const destaque = (p === 'Faturado' || p === 'Padaria');
+    const icone = p === 'Faturado' ? '📇 ' : p === 'Padaria' ? '🏠 ' : '';
+    const borda = destaque ? `border:1.5px solid ${color};` : '';
+    return `<span style="background:${bg};color:${color};${borda}border-radius:4px;padding:${destaque ? '2px 8px' : '1px 6px'};font-size:${destaque ? '11px' : '10px'};font-weight:700;">${icone}${p||'Dinheiro'}</span>`;
   };
   let html = '', dataAtual = '';
   movs.forEach(m => {
