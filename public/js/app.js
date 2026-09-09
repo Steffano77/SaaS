@@ -7536,11 +7536,15 @@ async function emitirNotaFiscalComanda(comandaId, opts = {}) {
 // (emitir a nota) o Chrome trata como fora do "toque" do usuário e bloqueia sem avisar.
 async function imprimirDanfeNFCe(comandaId, janelaPre) {
   const r = await api(`/fiscal/nfce/comanda/${comandaId}/danfe`);
-  const janela = (janelaPre && !janelaPre.closed) ? janelaPre : window.open('', '_blank', 'width=400,height=700');
+  const janela = (janelaPre && !janelaPre.closed) ? janelaPre : window.open('', '_blank', 'width=1,height=1,left=-2000,top=-2000');
   if (!r || !r.html) { janela?.close(); return; }
   if (!janela) { mostrarToast('O navegador bloqueou a janela de impressão — permite pop-up nesse site.', 'warn'); return; }
   janela.document.write(r.html);
   janela.document.close();
+  // Escrever o HTML da DANFE dentro da janelinha (que começou 1x1 fora da tela)
+  // pode fazer o navegador "esticar" ela de volta pro tamanho do conteúdo — força
+  // de novo pequena e fora da tela, senão ela pisca visível bem na hora de imprimir.
+  try { janela.resizeTo(1, 1); janela.moveTo(-2000, -2000); } catch (e) { /* alguns navegadores bloqueiam resize/move em janela que não foi aberta por script — ignora */ }
   // Sem isso, o diálogo de impressão às vezes abre ATRÁS da janela principal e
   // trava a tela (a pessoa acha que travou, mas é só o diálogo escondido).
   janela.focus();
