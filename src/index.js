@@ -477,7 +477,15 @@ app.use(express.static(path.join(__dirname, '../public'), {
       // Clientes Faturado (fiado) filtra "comanda_pagamentos" por forma+documento sem índice.
       'ALTER TABLE comanda_pagamentos ADD INDEX idx_comanda_pagamentos_faturado (forma_pagamento, cliente_documento, quitado_em)',
     ];
-    await Promise.all(migrations.map(sql => db.query(sql).catch(() => {})));
+    // Uma de cada vez, não todas juntas: num banco novinho (primeira vez rodando,
+    // ex: servidor local de teste), várias dessas ALTER TABLE mexem na MESMA tabela
+    // (ex: "produtos") — disparadas em paralelo, o MySQL trava (lock de metadados) e
+    // várias falham silenciosamente (erro engolido pelo .catch), deixando colunas pra
+    // trás sem avisar ninguém. Sequencial evita esse problema; no servidor de produção
+    // (onde quase tudo já existe) o tempo extra é imperceptível.
+    for (const sql of migrations) {
+      await db.query(sql).catch(() => {});
+    }
 
     await db.query(`
       DELETE FROM categorias
