@@ -6884,7 +6884,7 @@ document.addEventListener('keydown', (e) => {
 // disparou a ação (ver finalizarVendaUI) — abrir na hora, sem esperar rede antes,
 // evita o Chrome bloquear o pop-up silenciosamente depois de um await.
 function abrirGavetaUI(janelaPre) {
-  const janela = janelaPre || window.open('', '_blank', 'width=200,height=200');
+  const janela = janelaPre || window.open('', '_blank', 'width=1,height=1,left=-2000,top=-2000');
   if (!janela) { mostrarToast('O navegador bloqueou a janela — permite pop-up nesse site.', 'warn'); return; }
   janela.document.write(`<!doctype html><html><head><meta charset="utf-8"/>
     <style>@page{margin:0;}body{margin:0;padding:0;height:1px;font-size:1px;line-height:1px;}</style></head><body>&nbsp;
@@ -6897,6 +6897,9 @@ function abrirGavetaUI(janelaPre) {
     <\/script>
     </body></html>`);
   janela.document.close();
+  // Escrever o conteúdo pode fazer o navegador "esticar" a janela de volta pro
+  // visível — força pequena e fora da tela de novo (mesmo ajuste já feito na DANFE).
+  try { janela.resizeTo(1, 1); janela.moveTo(-2000, -2000); } catch (e) { /* alguns navegadores bloqueiam — ignora */ }
 }
 
 document.addEventListener('keydown', (e) => {
@@ -7610,7 +7613,7 @@ async function finalizarVendaOfflineUI(comNotaCapturada) {
     // Abre a janela da gaveta JÁ, ainda dentro do clique — depois do await do
     // confirmarBonito ela pode ser bloqueada em silêncio pelo navegador.
     const temDinheiro = comandaPagamentosPendentes.some(p => p.forma_pagamento === 'Dinheiro');
-    const janelaGaveta = temDinheiro ? window.open('', '_blank', 'width=200,height=200') : null;
+    const janelaGaveta = temDinheiro ? window.open('', '_blank', 'width=1,height=1,left=-2000,top=-2000') : null;
     const resumo = comandaPagamentosPendentes.map(p => `${p.forma_pagamento}: ${fmtMoeda(p.valor)}`).join(' + ');
     if (!(await confirmarBonito(`Confirmar recebimento — ${resumo}? (sem internet — nota fiscal, se houver, sai depois de reconectar)`))) { janelaGaveta?.close(); return; }
 
@@ -7691,7 +7694,7 @@ async function finalizarVendaUI() {
   // depois do await ela pode ser bloqueada em silêncio). Só imprime de verdade lá
   // embaixo, se a venda for confirmada.
   const temDinheiro = comandaPagamentosPendentes.some(p => p.forma_pagamento === 'Dinheiro');
-  const janelaGaveta = temDinheiro ? window.open('', '_blank', 'width=200,height=200') : null;
+  const janelaGaveta = temDinheiro ? window.open('', '_blank', 'width=1,height=1,left=-2000,top=-2000') : null;
 
   const resumo = comandaPagamentosPendentes.map(p => `${p.forma_pagamento}: ${fmtMoeda(p.valor)}`).join(' + ');
   if (!(await confirmarBonito(`Confirmar recebimento — ${resumo}?`))) { janelaImpressao?.close(); janelaGaveta?.close(); return; }
