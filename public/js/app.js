@@ -2179,6 +2179,12 @@ async function exportarParaBalanca(produtoIdFiltro) {
 
 // ── Testar exportação pra balança com 1 produto só (antes de exportar o catálogo inteiro) ──
 async function abrirTesteExportarBalanca() {
+  // produtosCache só é carregado quando abre certas telas (Comandas, etc.) — no
+  // Estoque ele pode estar vazio, então busca aqui se ainda não tiver nada.
+  if (!produtosCache.length) {
+    const prods = await api('/produtos');
+    produtosCache = prods || [];
+  }
   document.getElementById('teste-balanca-busca').value = '';
   document.getElementById('teste-balanca-lista').classList.add('hidden');
   document.getElementById('modal-teste-balanca').classList.remove('hidden');
