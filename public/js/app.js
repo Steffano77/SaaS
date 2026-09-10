@@ -6942,7 +6942,7 @@ function abrirGavetaUI(janelaPre) {
     janela.print();
     janela.onafterprint = () => janela.close();
   } catch (e) { /* janela pode já ter sido fechada pelo usuário nesse meio-tempo — ignora */ }
-  setTimeout(() => { try { janela.close(); } catch (e) {} }, 1500);
+  setTimeout(() => { try { janela.close(); } catch (e) {} }, 500);
 }
 
 document.addEventListener('keydown', (e) => {
