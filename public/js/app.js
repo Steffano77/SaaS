@@ -6342,6 +6342,7 @@ async function onKeydownBuscaComanda(e, input) {
     document.getElementById('cmd-item-qtd').value = pesoVezes.peso;
     document.getElementById('cmd-item-preco').value = parseFloat(produto.preco_venda || 0).toFixed(2);
     await adicionarItemComandaUI();
+    input.blur(); // some o cursor daqui — só volta com B/C ou clique manual, igual o stand-by pós-venda
     return;
   }
 
@@ -6365,6 +6366,7 @@ async function onKeydownBuscaComanda(e, input) {
     // Texto normal (nome de produto digitado ou já selecionado no autocomplete) —
     // Enter lança o item direto, igual clicar no "+", sem precisar tocar em mais nada.
     await adicionarItemComandaUI();
+    input.blur(); // some o cursor daqui — só volta com B/C ou clique manual, igual o stand-by pós-venda
     return;
   }
   e.preventDefault();
@@ -6378,6 +6380,7 @@ async function onKeydownBuscaComanda(e, input) {
     document.getElementById('cmd-item-preco').value = info.preco.toFixed(2);
     _precoBalancaForcado = true;
     await adicionarItemComandaUI();
+    input.blur(); // some o cursor daqui — só volta com B/C ou clique manual, igual o stand-by pós-venda
     return;
   }
 
@@ -6389,6 +6392,7 @@ async function onKeydownBuscaComanda(e, input) {
     document.getElementById('cmd-item-preco').value = info.preco.toFixed(2);
     _precoBalancaForcado = true;
     await adicionarItemComandaUI();
+    input.blur(); // some o cursor daqui — só volta com B/C ou clique manual, igual o stand-by pós-venda
   });
 }
 
