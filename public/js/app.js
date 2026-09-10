@@ -6931,15 +6931,18 @@ function abrirGavetaUI(janelaPre) {
   if (!janela) { mostrarToast('O navegador bloqueou a janela — permite pop-up nesse site.', 'warn'); return; }
   janela.document.write(`<!doctype html><html><head><meta charset="utf-8"/>
     <style>@page{margin:0;}body{margin:0;padding:0;height:1px;font-size:1px;line-height:1px;}</style></head><body>&nbsp;
-    <script>
-    window.onload = () => {
-      window.print();
-      window.onafterprint = () => window.close();
-      setTimeout(() => window.close(), 1500);
-    };
-    <\/script>
     </body></html>`);
   janela.document.close();
+  // Antes isso disparava sozinho no onload da própria janela — mas numa janela
+  // REAPROVEITADA (já aberta antes), o onload às vezes não dispara de novo depois
+  // do document.write, e o print/fechamento automático nunca acontecia (atendente
+  // tinha que fechar no X manualmente). Chamando direto daqui, sempre funciona,
+  // não importa se a janela é nova ou reaproveitada. Mesmo tempo de espera de antes.
+  try {
+    janela.print();
+    janela.onafterprint = () => janela.close();
+  } catch (e) { /* janela pode já ter sido fechada pelo usuário nesse meio-tempo — ignora */ }
+  setTimeout(() => { try { janela.close(); } catch (e) {} }, 1500);
 }
 
 document.addEventListener('keydown', (e) => {
@@ -7592,6 +7595,17 @@ async function imprimirDanfeNFCe(comandaId, janelaPre) {
   // Sem isso, o diálogo de impressão às vezes abre ATRÁS da janela principal e
   // trava a tela (a pessoa acha que travou, mas é só o diálogo escondido).
   janela.focus();
+  // Dispara o print/fechamento daqui, direto — antes isso vinha embutido no HTML
+  // da nota (onload do body) e dependia do onload disparar de novo numa janela
+  // REAPROVEITADA, o que nem sempre acontecia (ficava esperando a atendente
+  // clicar no X). Chamando explicitamente aqui, funciona sempre, janela nova ou
+  // reaproveitada. Mesmo tempo de segurança de antes (8s) só como rede de proteção
+  // — na prática fecha quase na hora, assim que o "afterprint" dispara.
+  try {
+    janela.print();
+    janela.onafterprint = () => janela.close();
+  } catch (e) { /* janela pode já ter sido fechada nesse meio-tempo — ignora */ }
+  setTimeout(() => { try { janela.close(); } catch (e) {} }, 8000);
 }
 
 // Guarda a última venda de cada caixa (localStorage, sobrevive a reload) — pra
