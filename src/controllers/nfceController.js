@@ -227,7 +227,7 @@ exports.imprimirDanfe = async (req, res) => {
         .danfe-linha { display:flex; justify-content:space-between; }
         .danfe-hr { border-top: 1px dashed #000; margin: 6px 0; }
         .danfe-item-linha1 { margin-top: 4px; }
-        .danfe-item-linha2 { padding-left: 10px; color:#333; }
+        .danfe-item-linha2 { padding-left: 10px; color:#000; }
         .danfe-homolog { text-align:center; font-weight:bold; border:1px solid #000; padding:4px; margin:6px 0; }
         .danfe-titulo { text-align:center; font-weight:bold; margin: 6px 0; }
         .danfe-aviso { text-align:center; font-size: 10px; margin: 4px 0; }
