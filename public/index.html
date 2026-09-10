@@ -366,6 +366,7 @@
           <button class="btn-secondary estoque-action-btn" onclick="abrirModalImprimirEstoque()" title="Imprimir lista de estoque"><span class="btn-emoji">🖨️</span>Imprimir</button>
           <button class="btn-secondary estoque-action-btn" onclick="preencherCodigosBalanca()" title="Preenche o código da balança em todos os produtos com código curto do Saurus"><span class="btn-emoji">⚖️</span>Códigos da balança</button>
           <button class="btn-secondary estoque-action-btn" onclick="exportarParaBalanca()" title="Gera o arquivo cadtxt.txt pra importar no Gerenciador de Balanças Triunfo"><span class="btn-emoji">📤</span>Exportar p/ balança</button>
+          <button class="btn-secondary estoque-action-btn" onclick="abrirTesteExportarBalanca()" title="Gera o arquivo só com 1 produto escolhido, pra testar antes de exportar tudo"><span class="btn-emoji">🧪</span>Testar 1 produto</button>
           <button class="btn-secondary estoque-action-btn" onclick="abrirVerificarCodigos()" title="Mostra quais produtos estão sem código de barras e sem código de balança"><span class="btn-emoji">🔍</span>Verificar códigos</button>
         </div>
       </div>
@@ -675,6 +676,27 @@
             <div id="vinc-lista" class="autocomplete-lista hidden"></div>
           </div>
           <button class="btn-ghost full" onclick="criarProdutoParaVinculoBalanca()" style="margin-top:16px;">+ Criar produto novo com esse código</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: exportar 1 produto só pra balança (teste) -->
+    <div id="modal-teste-balanca" class="modal-overlay hidden">
+      <div class="modal-box" style="max-width:420px;">
+        <div class="modal-header">
+          <span class="modal-title">🧪 Testar 1 produto na balança</span>
+          <button onclick="fecharModal('modal-teste-balanca')" class="btn-icon">✕</button>
+        </div>
+        <div style="padding:20px;">
+          <p style="color:var(--slate-500);font-size:14px;margin:0 0 16px;">
+            Escolhe o produto — o sistema gera o mesmo arquivo <code>cadtxt.txt</code>, só que com essa 1 linha, pra você testar a importação na balança antes de mandar o catálogo inteiro.
+          </p>
+          <div class="form-group" style="position:relative;margin-bottom:0;">
+            <label class="form-label">Produto</label>
+            <input type="text" id="teste-balanca-busca" class="form-control" placeholder="Digite o nome do produto..."
+              autocomplete="off" oninput="filtrarTesteBalanca(this)"/>
+            <div id="teste-balanca-lista" class="autocomplete-lista hidden"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -2157,7 +2179,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260910b"></script>
+<script src="/js/app.js?v=20260910c"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
