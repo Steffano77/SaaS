@@ -7605,7 +7605,7 @@ async function imprimirDanfeNFCe(comandaId, janelaPre) {
     janela.print();
     janela.onafterprint = () => janela.close();
   } catch (e) { /* janela pode já ter sido fechada nesse meio-tempo — ignora */ }
-  setTimeout(() => { try { janela.close(); } catch (e) {} }, 8000);
+  setTimeout(() => { try { janela.close(); } catch (e) {} }, 5000);
 }
 
 // Guarda a última venda de cada caixa (localStorage, sobrevive a reload) — pra
