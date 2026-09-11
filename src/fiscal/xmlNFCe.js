@@ -39,14 +39,13 @@ function num4(valor) { return parseFloat(valor || 0).toFixed(4); }
 // (ICMS já recolhido antes, tipo bebida/cerveja/água) — orientação do contador.
 function definirCfop(item) {
   // A situação de ICMS (ST/isento) manda mais que "produção própria x revenda" — um item
-  // pode ser das duas coisas ao mesmo tempo (ex: pão feito na padaria mas com ST), e nesse
-  // caso o CFOP tem que refletir o ST, senão fica com CSOSN 500/400 e CFOP 5101/5102, que
-  // é combinação inválida pra Sefaz (rejeição 386: "CFOP não permitido para o CSOSN informado").
-  const propria = item.origem_producao === 'propria';
-  if (item.situacao_icms === 'st' || item.situacao_icms === 'isento') {
-    return propria ? '5401' : '5405'; // produção própria sujeita a ST : revenda sujeita a ST
-  }
-  return propria ? '5101' : '5102'; // venda de produção própria : revenda normal
+  // pode ser das duas coisas ao mesmo tempo (ex: pão feito na padaria mas com ST). Testamos
+  // usar 5401 (produção própria c/ ST) nesse caso, mas a Sefaz rejeitou com "725: CFOP
+  // inválido" — a NFC-e (DANFE Simplificado Tipo 2) só aceita um conjunto restrito de CFOPs,
+  // e 5401 não está nele. Então pra ST/isento usamos sempre 5405, independente da origem —
+  // é o único CFOP de ST validado nesse tipo de nota (evita a 386 "CFOP não permitido pro CSOSN").
+  if (item.situacao_icms === 'st' || item.situacao_icms === 'isento') return '5405';
+  return item.origem_producao === 'propria' ? '5101' : '5102'; // produção própria : revenda normal
 }
 function montarBlocoIcms(item) {
   if (item.situacao_icms === 'st') return '<ICMSSN500><orig>0</orig><CSOSN>500</CSOSN></ICMSSN500>';
