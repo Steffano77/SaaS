@@ -489,6 +489,16 @@ app.use(express.static(path.join(__dirname, '../public'), {
         atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         UNIQUE KEY uq_sync_resumo_padaria_data (padaria_id, data)
       )`,
+      // Trava de emissão de NFC-e: PRIMARY KEY (padaria_id, comanda_id) faz o INSERT ser
+      // atômico no banco, então dois cliques/requisições quase simultâneas pra emitir nota
+      // da MESMA comanda nunca conseguem passar os dois — só um insere, o outro recebe erro
+      // na hora (evita repetir o bug de notas fiscais duplicadas autorizadas encontrado em 29/08).
+      `CREATE TABLE IF NOT EXISTS nfce_emissao_em_andamento (
+        padaria_id INT NOT NULL,
+        comanda_id INT NOT NULL,
+        iniciado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (padaria_id, comanda_id)
+      )`,
     ];
     // Uma de cada vez, não todas juntas: num banco novinho (primeira vez rodando,
     // ex: servidor local de teste), várias dessas ALTER TABLE mexem na MESMA tabela

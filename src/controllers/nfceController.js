@@ -61,6 +61,24 @@ exports.emitirParaComanda = async (req, res) => {
       });
     }
 
+    // A checagem acima (SELECT) não é suficiente sozinha: se duas requisições chegarem
+    // quase juntas (dois cliques rápidos, duplo clique), as duas podem passar por ela
+    // ANTES de qualquer uma terminar de falar com a Sefaz — e aí as duas emitem nota
+    // autorizada (foi exatamente isso que gerou notas duplicadas em 29/08). Um INSERT
+    // com chave única É atômico no banco: só uma requisição consegue inserir a trava,
+    // a outra recebe erro na hora, sem brecha de tempo entre checar e agir.
+    try {
+      await db.query(
+        `INSERT INTO nfce_emissao_em_andamento (padaria_id, comanda_id) VALUES (?, ?)`,
+        [padaria_id, comanda_id]
+      );
+    } catch (e) {
+      if (e.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ erro: 'Já tem uma emissão em andamento pra essa comanda — aguarde terminar antes de tentar de novo.' });
+      }
+      throw e;
+    }
+
     // Traz o NCM cadastrado no produto (join) — a nota usa ele quando tiver, e só cai
     // no código genérico (dentro do montarXmlNFCe) se o produto não tiver NCM definido.
     const [itens] = await db.query(
@@ -148,6 +166,13 @@ exports.emitirParaComanda = async (req, res) => {
   } catch (e) {
     console.error('Erro ao emitir NFC-e:', e);
     res.status(500).json({ erro: `Erro interno ao emitir: ${e.message}` });
+  } finally {
+    // Libera a trava sempre — sucesso, rejeição ou erro — senão uma comanda fica travada
+    // pra sempre depois de uma tentativa (ex: erro de rede) e nunca mais deixa reemitir.
+    await db.query(
+      `DELETE FROM nfce_emissao_em_andamento WHERE padaria_id = ? AND comanda_id = ?`,
+      [padaria_id, comanda_id]
+    ).catch((e) => console.error('Falha ao liberar trava de emissão:', e.message));
   }
 };
 
