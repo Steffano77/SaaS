@@ -121,6 +121,7 @@ router.post('/fiscal/corrigir-colunas', auth, fiscalCtrl.corrigirColunasFiscais)
 // dia, nunca dados brutos. Ver src/jobs/syncResumoLocal.js (roda no servidor local).
 router.post('/sync/resumo-local', auth, wrap(syncResumoCtrl.salvar));
 router.get('/sync/resumo-local', auth, wrap(syncResumoCtrl.buscar));
+router.get('/sync/catalogo-produtos', auth, wrap(syncResumoCtrl.catalogoProdutos));
 
 const nfceCtrl = require('../controllers/nfceController');
 router.post('/fiscal/nfce/comanda/:comanda_id', auth, nfceCtrl.emitirParaComanda);

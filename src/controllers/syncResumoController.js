@@ -40,3 +40,21 @@ exports.buscar = async (req, res) => {
   if (!resumo) return res.json({ existe: false, data: dia });
   res.json({ existe: true, ...resumo });
 };
+
+// Exporta o catálogo de produtos completo dessa padaria — usado pelo servidor LOCAL
+// pra puxar cadastro/preço atualizado da nuvem (nunca o contrário: o local nunca manda
+// produto pra cá, só lê). Não inclui estoque de propósito — estoque é sempre controlado
+// localmente pelo sistema que está de fato vendendo, puxar o número da nuvem aqui
+// sobrescreveria um estoque que já está desatualizado no momento em que chega.
+exports.catalogoProdutos = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const [produtos] = await db.query(
+    `SELECT id, categoria_id, codigo_barras, codigo_balanca, nome, unidade, custo_unitario,
+            preco_venda, estoque_minimo, validade, ativo, fornecedor_id, embalagem_preco,
+            embalagem_qtd, venda_rapida, controla_estoque, ncm, origem_producao,
+            situacao_icms, cest
+     FROM produtos WHERE padaria_id = ?`,
+    [padaria_id]
+  );
+  res.json({ produtos });
+};

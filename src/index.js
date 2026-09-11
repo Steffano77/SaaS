@@ -544,6 +544,7 @@ app.use(express.static(path.join(__dirname, '../public'), {
 require('./jobs/relatorioDiario').iniciarJobRelatorioDiario();
 require('./jobs/relatorioContabilMensal').iniciarJobRelatorioContabilMensal();
 require('./jobs/syncResumoLocal').iniciarJobSyncResumoLocal();
+require('./jobs/syncCatalogoLocal').iniciarJobSyncCatalogoLocal();
 
 app.use('/api', require('./routes'));
 
