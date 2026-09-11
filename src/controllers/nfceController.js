@@ -211,7 +211,10 @@ exports.imprimirDanfe = async (req, res) => {
     // montarUrlQrCode já devolve a URL completa (com https://) — não duplicar aqui,
     // senão vira "https://https://..." e o QR Code aponta pra um endereço inválido
     // (bug real, achado escaneando o QR de uma nota de produção de verdade).
-    const qrImgDataUrl = await QRCode.toDataURL(qrUrl, { margin: 1, width: 220 });
+    // errorCorrectionLevel 'H' (alto) dá mais redundância interna ao QR Code — mesmo que
+    // a impressão saia fraca (densidade baixa na térmica), ainda tem mais chance de o
+    // leitor conseguir ler com parte dos módulos apagados/borrados.
+    const qrImgDataUrl = await QRCode.toDataURL(qrUrl, { margin: 1, width: 220, errorCorrectionLevel: 'H' });
 
     const itensHtml = itens.map((i, idx) => {
       const cod = String(i.produto_id || '').padStart(3, '0');
