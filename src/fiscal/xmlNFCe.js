@@ -39,7 +39,9 @@ function num4(valor) { return parseFloat(valor || 0).toFixed(4); }
 // (ICMS já recolhido antes, tipo bebida/cerveja/água) — orientação do contador.
 function definirCfop(item) {
   if (item.origem_producao === 'propria') return '5101'; // venda de produção do estabelecimento
-  if (item.situacao_icms === 'st') return '5405'; // revenda de mercadoria com ST (substituído)
+  // CSOSN 400 (isento) e CSOSN 500 (ST) exigem CFOP 5405 — usar 5102/5101 com esses CSOSN
+  // é combinação inválida pra Sefaz (rejeição 386: "CFOP não permitido para o CSOSN informado").
+  if (item.situacao_icms === 'st' || item.situacao_icms === 'isento') return '5405';
   return '5102'; // revenda normal
 }
 function montarBlocoIcms(item) {
