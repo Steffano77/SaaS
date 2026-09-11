@@ -476,6 +476,19 @@ app.use(express.static(path.join(__dirname, '../public'), {
       'ALTER TABLE movimentacoes ADD INDEX idx_movimentacoes_padaria (padaria_id, data)',
       // Clientes Faturado (fiado) filtra "comanda_pagamentos" por forma+documento sem índice.
       'ALTER TABLE comanda_pagamentos ADD INDEX idx_comanda_pagamentos_faturado (forma_pagamento, cliente_documento, quitado_em)',
+      // Servidor local (projeto de resiliência offline): guarda só um RESUMO do dia
+      // (não os dados brutos) mandado periodicamente pelo servidor rodando na padaria
+      // pra cá — dá pra acompanhar de casa sem juntar dois bancos de dados de verdade.
+      `CREATE TABLE IF NOT EXISTS sync_resumo_local (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        padaria_id INT NOT NULL,
+        data DATE NOT NULL,
+        total_vendas DECIMAL(10,2) NOT NULL DEFAULT 0,
+        qtd_comandas_fechadas INT NOT NULL DEFAULT 0,
+        qtd_comandas_abertas INT NOT NULL DEFAULT 0,
+        atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_sync_resumo_padaria_data (padaria_id, data)
+      )`,
     ];
     // Uma de cada vez, não todas juntas: num banco novinho (primeira vez rodando,
     // ex: servidor local de teste), várias dessas ALTER TABLE mexem na MESMA tabela
@@ -530,6 +543,7 @@ app.use(express.static(path.join(__dirname, '../public'), {
 
 require('./jobs/relatorioDiario').iniciarJobRelatorioDiario();
 require('./jobs/relatorioContabilMensal').iniciarJobRelatorioContabilMensal();
+require('./jobs/syncResumoLocal').iniciarJobSyncResumoLocal();
 
 app.use('/api', require('./routes'));
 

@@ -34,6 +34,7 @@ const authCtrl  = require('../controllers/authController');
 const prodCtrl  = require('../controllers/produtosController');
 const movCtrl   = require('../controllers/movimentacoesController');
 const syncCtrl   = require('../controllers/syncController');
+const syncResumoCtrl = require('../controllers/syncResumoController');
 const importCtrl = require('../controllers/importController');
 const dadosCtrl  = require('../controllers/dadosController');
 
@@ -115,6 +116,11 @@ router.get('/fiscal/dados', auth, fiscalCtrl.dadosFiscais);
 router.post('/fiscal/dados', auth, fiscalCtrl.salvarDadosFiscais);
 router.post('/fiscal/ativar-producao', auth, fiscalCtrl.ativarProducao);
 router.post('/fiscal/corrigir-colunas', auth, fiscalCtrl.corrigirColunasFiscais);
+
+// Servidor local (projeto de resiliência offline) — recebe/devolve só um RESUMO do
+// dia, nunca dados brutos. Ver src/jobs/syncResumoLocal.js (roda no servidor local).
+router.post('/sync/resumo-local', auth, wrap(syncResumoCtrl.salvar));
+router.get('/sync/resumo-local', auth, wrap(syncResumoCtrl.buscar));
 
 const nfceCtrl = require('../controllers/nfceController');
 router.post('/fiscal/nfce/comanda/:comanda_id', auth, nfceCtrl.emitirParaComanda);

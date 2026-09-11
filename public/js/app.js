@@ -1110,6 +1110,21 @@ function _aplicarVisibilidadeValor() {
 }
 
 // ── Dashboard ────────────────────────────────────────────────
+// Servidor local (projeto de resiliência offline) — mostra o resumo do dia mandado
+// de lá, se existir algum. Fica escondido pra quem não tem esse servidor configurado.
+async function carregarPainelServidorLocal() {
+  const r = await api('/sync/resumo-local');
+  const bloco = document.getElementById('painel-servidor-local');
+  if (!bloco) return;
+  if (!r || !r.existe) { bloco.classList.add('hidden'); return; }
+  const atualizadoEm = new Date(r.atualizado_em);
+  const minutosAtras = Math.round((Date.now() - atualizadoEm.getTime()) / 60000);
+  const haQuanto = minutosAtras < 1 ? 'agora mesmo' : minutosAtras < 60 ? `há ${minutosAtras} min` : `há ${Math.round(minutosAtras / 60)}h`;
+  document.getElementById('painel-servidor-local-texto').textContent =
+    `Hoje: ${fmtMoeda(r.total_vendas)} vendido · ${r.qtd_comandas_fechadas} comandas fechadas · ${r.qtd_comandas_abertas} abertas agora — atualizado ${haQuanto}`;
+  bloco.classList.remove('hidden');
+}
+
 async function carregarDashboard() {
   const d = await api('/dashboard');
   if (!d) return;
@@ -1132,6 +1147,7 @@ async function carregarDashboard() {
   const onb = document.getElementById('onboarding-vazio');
   if (onb) onb.classList.toggle('hidden', k.total_produtos > 0);
   carregarPainelEncomendas();
+  carregarPainelServidorLocal();
 
   document.getElementById('lista-repor').innerHTML = d.repor.length
     ? d.repor.map(p => `
