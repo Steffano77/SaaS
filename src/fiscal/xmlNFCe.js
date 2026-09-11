@@ -38,11 +38,15 @@ function num4(valor) { return parseFloat(valor || 0).toFixed(4); }
 // na própria padaria ou comprado pronto pra revender, e se tem Substituição Tributária
 // (ICMS já recolhido antes, tipo bebida/cerveja/água) — orientação do contador.
 function definirCfop(item) {
-  if (item.origem_producao === 'propria') return '5101'; // venda de produção do estabelecimento
-  // CSOSN 400 (isento) e CSOSN 500 (ST) exigem CFOP 5405 — usar 5102/5101 com esses CSOSN
+  // A situação de ICMS (ST/isento) manda mais que "produção própria x revenda" — um item
+  // pode ser das duas coisas ao mesmo tempo (ex: pão feito na padaria mas com ST), e nesse
+  // caso o CFOP tem que refletir o ST, senão fica com CSOSN 500/400 e CFOP 5101/5102, que
   // é combinação inválida pra Sefaz (rejeição 386: "CFOP não permitido para o CSOSN informado").
-  if (item.situacao_icms === 'st' || item.situacao_icms === 'isento') return '5405';
-  return '5102'; // revenda normal
+  const propria = item.origem_producao === 'propria';
+  if (item.situacao_icms === 'st' || item.situacao_icms === 'isento') {
+    return propria ? '5401' : '5405'; // produção própria sujeita a ST : revenda sujeita a ST
+  }
+  return propria ? '5101' : '5102'; // venda de produção própria : revenda normal
 }
 function montarBlocoIcms(item) {
   if (item.situacao_icms === 'st') return '<ICMSSN500><orig>0</orig><CSOSN>500</CSOSN></ICMSSN500>';
