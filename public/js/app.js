@@ -7617,11 +7617,25 @@ async function imprimirDanfeNFCe(comandaId, janelaPre) {
   // clicar no X). Chamando explicitamente aqui, funciona sempre, janela nova ou
   // reaproveitada. Mesmo tempo de segurança de antes (8s) só como rede de proteção
   // — na prática fecha quase na hora, assim que o "afterprint" dispara.
-  try {
-    janela.print();
-    janela.onafterprint = () => janela.close();
-  } catch (e) { /* janela pode já ter sido fechada nesse meio-tempo — ignora */ }
-  setTimeout(() => { try { janela.close(); } catch (e) {} }, 5000);
+  const dispararImpressao = () => {
+    try {
+      janela.print();
+      janela.onafterprint = () => janela.close();
+    } catch (e) { /* janela pode já ter sido fechada nesse meio-tempo — ignora */ }
+    setTimeout(() => { try { janela.close(); } catch (e) {} }, 5000);
+  };
+  // O QR Code é uma imagem — mesmo embutida (não busca na rede), o navegador ainda
+  // leva um instante pra decodificar/desenhar. Chamar print() antes disso terminar
+  // fazia o QR sair em branco (bug real: o texto sempre carrega a tempo, só a
+  // imagem que às vezes fica atrás). Espera ela carregar antes de imprimir.
+  const imgQr = janela.document.querySelector('img');
+  if (imgQr && !imgQr.complete) {
+    imgQr.onload = dispararImpressao;
+    imgQr.onerror = dispararImpressao; // não trava a impressão se o QR falhar por algum motivo
+    setTimeout(dispararImpressao, 1200); // rede de segurança, caso onload não dispare
+  } else {
+    dispararImpressao();
+  }
 }
 
 // Guarda a última venda de cada caixa (localStorage, sobrevive a reload) — pra
