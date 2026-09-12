@@ -7628,13 +7628,22 @@ async function imprimirDanfeNFCe(comandaId, janelaPre) {
   // leva um instante pra decodificar/desenhar. Chamar print() antes disso terminar
   // fazia o QR sair em branco (bug real: o texto sempre carrega a tempo, só a
   // imagem que às vezes fica atrás). Espera ela carregar antes de imprimir.
+  // "once" garante que só dispara UMA vez — sem isso, se a imagem carregasse (onload)
+  // E o temporizador de segurança também disparasse logo depois, imprimia duas vezes
+  // seguidas (bug real: DANFE saindo duplicada).
+  let jaDisparou = false;
+  const dispararUmaVez = () => {
+    if (jaDisparou) return;
+    jaDisparou = true;
+    dispararImpressao();
+  };
   const imgQr = janela.document.querySelector('img');
   if (imgQr && !imgQr.complete) {
-    imgQr.onload = dispararImpressao;
-    imgQr.onerror = dispararImpressao; // não trava a impressão se o QR falhar por algum motivo
-    setTimeout(dispararImpressao, 1200); // rede de segurança, caso onload não dispare
+    imgQr.onload = dispararUmaVez;
+    imgQr.onerror = dispararUmaVez; // não trava a impressão se o QR falhar por algum motivo
+    setTimeout(dispararUmaVez, 1200); // rede de segurança, caso onload não dispare
   } else {
-    dispararImpressao();
+    dispararUmaVez();
   }
 }
 
