@@ -96,7 +96,30 @@ exports.emitirParaComanda = async (req, res) => {
     }
 
     const ambienteNum = padaria.nfce_ambiente || 2; // 2 = homologação por padrão, só muda depois de validar
-    const numero = padaria.nfce_proximo_numero || 1;
+
+    // Reserva o próximo número de forma atômica (transação + FOR UPDATE, trava a linha
+    // da padaria até terminar). Antes, o número só era lido aqui e incrementado bem mais
+    // tarde (só depois da Sefaz responder) — se duas comandas DIFERENTES emitissem quase
+    // ao mesmo tempo, as duas liam o mesmo "próximo número" e mandavam pra Sefaz com o
+    // mesmo nNF, cada uma com uma chave diferente (bug real: rejeição 539 "Duplicidade de
+    // NF-e com diferença na Chave de Acesso"). A trava de emissão por comanda (acima) não
+    // protegia esse caso, porque comandas diferentes têm chaves de trava diferentes.
+    const conexaoNumero = await db.getConnection();
+    let numero;
+    try {
+      await conexaoNumero.beginTransaction();
+      const [[linhaPadaria]] = await conexaoNumero.query(
+        `SELECT nfce_proximo_numero FROM padarias WHERE id = ? FOR UPDATE`, [padaria_id]
+      );
+      numero = linhaPadaria.nfce_proximo_numero || 1;
+      await conexaoNumero.query(`UPDATE padarias SET nfce_proximo_numero = ? WHERE id = ?`, [numero + 1, padaria_id]);
+      await conexaoNumero.commit();
+    } catch (e) {
+      await conexaoNumero.rollback().catch(() => {});
+      throw e;
+    } finally {
+      conexaoNumero.release();
+    }
 
     const { xml, chave, dhEmi } = montarXmlNFCe({
       padaria: { ...padaria, cnpj: cert.cnpj },
@@ -151,9 +174,9 @@ exports.emitirParaComanda = async (req, res) => {
       ]
     );
 
-    if (autorizada) {
-      await db.query(`UPDATE padarias SET nfce_proximo_numero = nfce_proximo_numero + 1 WHERE id = ?`, [padaria_id]);
-    }
+    // (número já foi reservado e incrementado atomicamente lá em cima, antes de emitir —
+    // não incrementa de novo aqui. Se a nota for rejeitada, o número fica "pulado" mesmo,
+    // o que é normal e permitido pela Sefaz — o importante é nunca repetir um número.)
 
     res.json({
       ok: autorizada,
