@@ -250,7 +250,9 @@ exports.imprimirDanfe = async (req, res) => {
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>DANFE NFC-e</title>
       <style>
         @page { margin: 0; }
-        body { font-family: 'Courier New', monospace; font-size: 11px; width: 80mm; margin: 0 auto; padding: 8px; color:#000; }
+        /* Negrito em tudo — em impressora térmica, fonte fina/normal sai fraca/cinza
+           (mesmo ajuste já usado no recibo de fechamento de caixa, que sai forte). */
+        body { font-family: 'Courier New', monospace; font-size: 11px; font-weight: 700; width: 80mm; margin: 0 auto; padding: 8px; color:#000; }
         .danfe-center { text-align: center; }
         .danfe-linha { display:flex; justify-content:space-between; }
         .danfe-hr { border-top: 1px dashed #000; margin: 6px 0; }
