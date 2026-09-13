@@ -27,6 +27,14 @@ if (process.env.DISABLE_COMPRESSION !== '1') {
 fs.mkdirSync('/tmp/panificapro', { recursive: true });
 
 // Segurança: cabeçalhos HTTP
+// O servidor LOCAL (rede da própria padaria) fala HTTP simples, sem certificado —
+// helmet por padrão manda "upgrade-insecure-requests" (CSP) e Strict-Transport-Security
+// (HSTS), que dizem pro navegador "sempre tenta HTTPS nesse site". Isso é ótimo pra
+// nuvem (HTTPS de verdade), mas no servidor local faz o navegador tentar HTTPS em CSS/
+// JS/imagens e falhar (bug real: ERR_SSL_PROTOCOL_ERROR / ERR_CONNECTION_RESET em vários
+// aparelhos diferentes na rede local, só resolveu identificando esse cabeçalho). Detecta
+// pelo APP_URL: só ativa esses dois se o site em si for https.
+const ehHttps = (process.env.APP_URL || '').startsWith('https');
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -39,8 +47,10 @@ app.use(helmet({
       connectSrc: ["'self'", 'https://cdn.jsdelivr.net', 'https://static.cloudflareinsights.com'],
       frameSrc: ["'none'"],
       objectSrc: ["'none'"],
+      upgradeInsecureRequests: ehHttps ? [] : null,
     },
   },
+  hsts: ehHttps,
 }));
 
 // Permissões de navegador: só câmera (scanner de código de barras / foto da maquininha),
