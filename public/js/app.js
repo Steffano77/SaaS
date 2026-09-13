@@ -1141,7 +1141,7 @@ async function carregarDashboard() {
       <div class="kpi-value" id="kpi-valor-estoque" style="color:var(--orange);font-size:26px;letter-spacing:-0.5px">${'R$ ' + parseFloat(k.valor_total_estoque||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
       <div class="kpi-label">Valor em estoque</div>
     </div>
-    <div class="kpi-card kpi-clickable kpi-saidas" onclick="abrirTelaSaidas()"><div style="display:flex;align-items:center;justify-content:space-between;"><div><div class="kpi-value" style="color:var(--red-500);font-size:26px;letter-spacing:-0.5px">${parseInt(k.qtd_saidas_30d||0)} saídas</div><div class="kpi-label">Saídas — últimos 30 dias</div></div><div class="kpi-hint" style="font-size:13px;">Ver detalhes →</div></div></div>
+    <div class="kpi-card kpi-clickable kpi-saidas" onclick="abrirTelaSaidas()"><div style="display:flex;align-items:center;justify-content:space-between;"><div><div class="kpi-value" style="color:var(--red-500);font-size:26px;letter-spacing:-0.5px">${Math.round(parseInt(k.qtd_saidas_30d||0)/30)}/dia</div><div class="kpi-label">Saídas em média · ${parseInt(k.qtd_saidas_30d||0).toLocaleString('pt-BR')} nos últimos 30 dias</div></div><div class="kpi-hint" style="font-size:13px;">Ver detalhes →</div></div></div>
   `;
   _aplicarVisibilidadeValor();
   const onb = document.getElementById('onboarding-vazio');
