@@ -15,7 +15,13 @@ app.set('trust proxy', 1);
 
 // Comprime as respostas (JS, CSS, JSON da API) antes de mandar — o app.js sozinho
 // tem ~350KB, isso reduz bastante o que trafega pela rede, sobretudo no 3G/4G da loja.
-app.use(compression());
+// DISABLE_COMPRESSION=1 desliga isso — usado no servidor local (rede da própria padaria,
+// onde compressão não faz falta) depois de um bug real: alguns aparelhos na rede local
+// tomavam ERR_CONNECTION_RESET especificamente no app.css comprimido, mesmo o arquivo
+// abrindo normal quando acessado direto (sem passar pela resposta comprimida em stream).
+if (process.env.DISABLE_COMPRESSION !== '1') {
+  app.use(compression());
+}
 
 // Garante pasta de upload
 fs.mkdirSync('/tmp/panificapro', { recursive: true });
