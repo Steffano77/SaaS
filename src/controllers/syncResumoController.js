@@ -48,6 +48,12 @@ exports.buscar = async (req, res) => {
 // sobrescreveria um estoque que já está desatualizado no momento em que chega.
 exports.catalogoProdutos = async (req, res) => {
   const padaria_id = req.padaria.id;
+  // Categorias vêm junto — produtos referenciam categoria_id com FK no banco local,
+  // então o produto não pode ser salvo se a categoria dele ainda não existir localmente
+  // (bug real: gravar produto antes de garantir a categoria travava com erro de FK).
+  const [categorias] = await db.query(
+    `SELECT id, nome FROM categorias WHERE padaria_id = ?`, [padaria_id]
+  );
   const [produtos] = await db.query(
     `SELECT id, categoria_id, codigo_barras, codigo_balanca, nome, unidade, custo_unitario,
             preco_venda, estoque_minimo, validade, ativo, fornecedor_id, embalagem_preco,
@@ -56,5 +62,5 @@ exports.catalogoProdutos = async (req, res) => {
      FROM produtos WHERE padaria_id = ?`,
     [padaria_id]
   );
-  res.json({ produtos });
+  res.json({ categorias, produtos });
 };

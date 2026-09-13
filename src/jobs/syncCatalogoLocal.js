@@ -53,7 +53,7 @@ async function atualizarCatalogo() {
       console.error('[sync-catalogo-local] Falha ao buscar catálogo:', r.status);
       return;
     }
-    const { produtos } = await r.json();
+    const { categorias, produtos } = await r.json();
     if (!Array.isArray(produtos)) return;
 
     // O servidor local atende UMA padaria só (o próprio banco local é dela) — pega o
@@ -64,6 +64,16 @@ async function atualizarCatalogo() {
       return;
     }
     const padariaId = padariaLocal.id;
+
+    // Categorias primeiro — produtos referenciam categoria_id com chave estrangeira,
+    // então a categoria precisa existir localmente antes do produto ser gravado.
+    for (const c of categorias || []) {
+      await db.query(
+        `INSERT INTO categorias (id, padaria_id, nome) VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE nome = VALUES(nome)`,
+        [c.id, padariaId, c.nome]
+      );
+    }
 
     // A API manda "validade" (coluna DATE) já serializada como JSON — vira uma string
     // ISO completa com hora ("2027-06-22T03:00:00.000Z"), que o MySQL rejeita numa
