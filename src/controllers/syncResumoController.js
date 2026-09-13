@@ -62,5 +62,15 @@ exports.catalogoProdutos = async (req, res) => {
      FROM produtos WHERE padaria_id = ?`,
     [padaria_id]
   );
-  res.json({ categorias, produtos });
+  // Funcionários (atendentes) e clientes faturado também são cadastro que precisa existir
+  // localmente pra comanda funcionar igual (escolher atendente, faturar pra cliente/CPF).
+  // pin_hash já vem criptografado (hash), seguro de copiar como está.
+  const [atendentes] = await db.query(
+    `SELECT id, nome, ativo, pin_hash, role FROM atendentes WHERE padaria_id = ?`, [padaria_id]
+  );
+  const [clientesFaturado] = await db.query(
+    `SELECT id, cnpj, nome, endereco, telefone, tipo, limite FROM clientes_faturado WHERE padaria_id = ?`,
+    [padaria_id]
+  );
+  res.json({ categorias, produtos, atendentes, clientesFaturado });
 };

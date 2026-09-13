@@ -53,7 +53,7 @@ async function atualizarCatalogo() {
       console.error('[sync-catalogo-local] Falha ao buscar catálogo:', r.status);
       return;
     }
-    const { categorias, produtos } = await r.json();
+    const { categorias, produtos, atendentes, clientesFaturado } = await r.json();
     if (!Array.isArray(produtos)) return;
 
     // O servidor local atende UMA padaria só (o próprio banco local é dela) — pega o
@@ -108,7 +108,29 @@ async function atualizarCatalogo() {
         ]
       );
     }
-    console.log(`[sync-catalogo-local] Catálogo atualizado: ${produtos.length} produtos.`);
+    // Funcionários (atendentes) — pra escolher quem atendeu/abrir caixa igual na nuvem.
+    for (const a of atendentes || []) {
+      await db.query(
+        `INSERT INTO atendentes (id, padaria_id, nome, ativo, pin_hash, role) VALUES (?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE nome = VALUES(nome), ativo = VALUES(ativo),
+           pin_hash = VALUES(pin_hash), role = VALUES(role)`,
+        [a.id, padariaId, a.nome, a.ativo, a.pin_hash, a.role]
+      );
+    }
+
+    // Clientes faturado — só o cadastro (nome/CNPJ-CPF/limite); o saldo devedor é sempre
+    // calculado a partir dos pagamentos "Faturado" registrados, não precisa sincronizar.
+    for (const c of clientesFaturado || []) {
+      await db.query(
+        `INSERT INTO clientes_faturado (id, padaria_id, cnpj, nome, endereco, telefone, tipo, limite)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE nome = VALUES(nome), endereco = VALUES(endereco),
+           telefone = VALUES(telefone), tipo = VALUES(tipo), limite = VALUES(limite)`,
+        [c.id, padariaId, c.cnpj, c.nome, c.endereco, c.telefone, c.tipo, c.limite]
+      );
+    }
+
+    console.log(`[sync-catalogo-local] Catálogo atualizado: ${produtos.length} produtos, ${(atendentes || []).length} funcionários, ${(clientesFaturado || []).length} clientes faturado.`);
   } catch (e) {
     // Sem internet, ou nuvem fora do ar — normal acontecer, não trava nada local.
     console.error('[sync-catalogo-local] Não deu pra atualizar (sem internet?):', e.message);
