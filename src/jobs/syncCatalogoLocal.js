@@ -65,6 +65,11 @@ async function atualizarCatalogo() {
     }
     const padariaId = padariaLocal.id;
 
+    // A API manda "validade" (coluna DATE) já serializada como JSON — vira uma string
+    // ISO completa com hora ("2027-06-22T03:00:00.000Z"), que o MySQL rejeita numa
+    // coluna DATE (só aceita "AAAA-MM-DD"). Corta pra só a data antes de gravar.
+    const soData = (v) => (v ? String(v).slice(0, 10) : null);
+
     for (const p of produtos) {
       await db.query(
         `INSERT INTO produtos
@@ -87,7 +92,7 @@ async function atualizarCatalogo() {
            -- estoque_atual propositalmente de fora: nunca sobrescrever o estoque local`,
         [
           p.id, padariaId, p.categoria_id, p.codigo_barras, p.codigo_balanca, p.nome, p.unidade,
-          p.custo_unitario, p.preco_venda, p.estoque_minimo, p.validade, p.ativo,
+          p.custo_unitario, p.preco_venda, p.estoque_minimo, soData(p.validade), p.ativo,
           p.fornecedor_id, p.embalagem_preco, p.embalagem_qtd, p.venda_rapida,
           p.controla_estoque, p.ncm, p.origem_producao, p.situacao_icms, p.cest,
         ]
