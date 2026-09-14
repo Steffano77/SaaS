@@ -37,11 +37,23 @@ async function obterToken(cloudUrl, email, senha) {
   return tokenCache;
 }
 
+let emAndamento = false;
+
 async function atualizarCatalogo() {
   const cloudUrl = process.env.SYNC_CLOUD_URL;
   const email = process.env.SYNC_CLOUD_EMAIL;
   const senha = process.env.SYNC_CLOUD_SENHA;
   if (!cloudUrl || !email || !senha) return; // não configurado como servidor local — não faz nada
+
+  // Trava de sobreposição: com intervalo curto (30s-1min), se uma rodada demorar mais que
+  // o intervalo (rede lenta, banco ocupado), a próxima já dispararia em cima da anterior
+  // ainda rodando — duas rodadas mexendo nas mesmas 1400+ linhas ao mesmo tempo, gastando
+  // conexão/processamento à toa. Pula a nova rodada se a de antes ainda não terminou.
+  if (emAndamento) {
+    console.log('[sync-catalogo-local] Rodada anterior ainda em andamento — pulando essa vez.');
+    return;
+  }
+  emAndamento = true;
 
   try {
     const token = await obterToken(cloudUrl, email, senha);
@@ -134,6 +146,8 @@ async function atualizarCatalogo() {
   } catch (e) {
     // Sem internet, ou nuvem fora do ar — normal acontecer, não trava nada local.
     console.error('[sync-catalogo-local] Não deu pra atualizar (sem internet?):', e.message);
+  } finally {
+    emAndamento = false;
   }
 }
 
