@@ -332,7 +332,13 @@ exports.fechar = async (req, res) => {
     for (const p of pagamentos) {
       const forma = String(p.forma_pagamento || 'Dinheiro').trim();
       const valor = parseFloat(p.valor) || 0;
-      const troco = parseFloat(p.troco) || 0;
+      // Trava de sanidade: troco nunca deveria passar de um valor razoável (a coluna no
+      // banco só aceita até 99999999.99) — bug real encontrado: um valor digitado errado
+      // no "valor recebido" gerou um troco astronômico (ex: 20078989324258,42), que o
+      // banco rejeitava e derrubava o pagamento inteiro com erro técnico feio. Agora trava
+      // num teto sensato em vez de deixar passar um número absurdo pro banco.
+      const trocoBruto = parseFloat(p.troco) || 0;
+      const troco = Math.min(Math.max(trocoBruto, 0), 99999.99);
       if (valor <= 0) continue;
       const clienteDoc = forma === 'Faturado' ? (p.cliente_documento || null) : null;
       const clienteNome = forma === 'Faturado' ? (p.cliente_nome || null) : null;
