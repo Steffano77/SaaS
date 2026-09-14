@@ -138,12 +138,16 @@ async function atualizarCatalogo() {
 }
 
 function iniciarJobSyncCatalogoLocal() {
-  const intervaloMin = parseInt(process.env.SYNC_CATALOGO_INTERVALO_MINUTOS, 10) || 15;
+  // SYNC_CATALOGO_INTERVALO_SEGUNDOS tem prioridade (permite intervalos curtos tipo 30s,
+  // pra correção de preço de última hora aparecer quase na hora). Se não tiver, cai pro
+  // antigo _MINUTOS (compatibilidade), com padrão de 15 minutos.
+  const intervaloSeg = parseInt(process.env.SYNC_CATALOGO_INTERVALO_SEGUNDOS, 10)
+    || (parseInt(process.env.SYNC_CATALOGO_INTERVALO_MINUTOS, 10) || 15) * 60;
   if (!process.env.SYNC_CLOUD_URL) return; // servidor normal (produção) — não ativa esse job
 
-  console.log(`[sync-catalogo-local] Ativado — buscando catálogo a cada ${intervaloMin} min de ${process.env.SYNC_CLOUD_URL}`);
+  console.log(`[sync-catalogo-local] Ativado — buscando catálogo a cada ${intervaloSeg}s de ${process.env.SYNC_CLOUD_URL}`);
   atualizarCatalogo(); // já busca assim que liga, sem esperar o primeiro intervalo
-  setInterval(atualizarCatalogo, intervaloMin * 60 * 1000);
+  setInterval(atualizarCatalogo, intervaloSeg * 1000);
 }
 
 module.exports = { iniciarJobSyncCatalogoLocal, atualizarCatalogo };

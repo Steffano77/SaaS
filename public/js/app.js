@@ -1120,8 +1120,12 @@ async function carregarPainelServidorLocal() {
   const atualizadoEm = new Date(r.atualizado_em);
   const minutosAtras = Math.round((Date.now() - atualizadoEm.getTime()) / 60000);
   const haQuanto = minutosAtras < 1 ? 'agora mesmo' : minutosAtras < 60 ? `há ${minutosAtras} min` : `há ${Math.round(minutosAtras / 60)}h`;
-  document.getElementById('painel-servidor-local-texto').textContent =
-    `Hoje: ${fmtMoeda(r.total_vendas)} vendido · ${r.qtd_comandas_fechadas} comandas fechadas · ${r.qtd_comandas_abertas} abertas agora — atualizado ${haQuanto}`;
+  const avisoNotas = r.qtd_notas_problema > 0
+    ? ` · ⚠️ ${r.qtd_notas_problema} nota${r.qtd_notas_problema > 1 ? 's' : ''} fiscal com problema (resolve na padaria)`
+    : '';
+  document.getElementById('painel-servidor-local-texto').innerHTML =
+    `Hoje: ${fmtMoeda(r.total_vendas)} vendido · ${r.qtd_comandas_fechadas} comandas fechadas · ${r.qtd_comandas_abertas} abertas agora — atualizado ${haQuanto}` +
+    (avisoNotas ? `<br/><strong style="color:var(--red-500);">${avisoNotas}</strong>` : '');
   bloco.classList.remove('hidden');
 }
 

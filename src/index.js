@@ -505,6 +505,7 @@ app.use(express.static(path.join(__dirname, '../public'), {
         atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         UNIQUE KEY uq_sync_resumo_padaria_data (padaria_id, data)
       )`,
+      'ALTER TABLE sync_resumo_local ADD COLUMN qtd_notas_problema INT NOT NULL DEFAULT 0',
       // Trava de emissão de NFC-e: PRIMARY KEY (padaria_id, comanda_id) faz o INSERT ser
       // atômico no banco, então dois cliques/requisições quase simultâneas pra emitir nota
       // da MESMA comanda nunca conseguem passar os dois — só um insere, o outro recebe erro

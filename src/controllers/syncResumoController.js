@@ -6,20 +6,21 @@ const db = require('../database/connection');
 // valor mais atual em vez de somar/duplicar.
 exports.salvar = async (req, res) => {
   const padaria_id = req.padaria.id;
-  const { data, total_vendas, qtd_comandas_fechadas, qtd_comandas_abertas } = req.body;
+  const { data, total_vendas, qtd_comandas_fechadas, qtd_comandas_abertas, qtd_notas_problema } = req.body;
 
   const dia = data || new Date().toISOString().slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)) return res.status(400).json({ erro: 'Data inválida.' });
 
   await db.query(
-    `INSERT INTO sync_resumo_local (padaria_id, data, total_vendas, qtd_comandas_fechadas, qtd_comandas_abertas)
-     VALUES (?, ?, ?, ?, ?)
+    `INSERT INTO sync_resumo_local (padaria_id, data, total_vendas, qtd_comandas_fechadas, qtd_comandas_abertas, qtd_notas_problema)
+     VALUES (?, ?, ?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE
        total_vendas = VALUES(total_vendas),
        qtd_comandas_fechadas = VALUES(qtd_comandas_fechadas),
        qtd_comandas_abertas = VALUES(qtd_comandas_abertas),
+       qtd_notas_problema = VALUES(qtd_notas_problema),
        atualizado_em = NOW()`,
-    [padaria_id, dia, parseFloat(total_vendas) || 0, parseInt(qtd_comandas_fechadas) || 0, parseInt(qtd_comandas_abertas) || 0]
+    [padaria_id, dia, parseFloat(total_vendas) || 0, parseInt(qtd_comandas_fechadas) || 0, parseInt(qtd_comandas_abertas) || 0, parseInt(qtd_notas_problema) || 0]
   );
 
   res.json({ ok: true });
@@ -32,7 +33,7 @@ exports.buscar = async (req, res) => {
   const dia = req.query.data || new Date().toISOString().slice(0, 10);
 
   const [[resumo]] = await db.query(
-    `SELECT data, total_vendas, qtd_comandas_fechadas, qtd_comandas_abertas, atualizado_em
+    `SELECT data, total_vendas, qtd_comandas_fechadas, qtd_comandas_abertas, qtd_notas_problema, atualizado_em
      FROM sync_resumo_local WHERE padaria_id = ? AND data = ?`,
     [padaria_id, dia]
   );

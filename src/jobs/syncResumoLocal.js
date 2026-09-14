@@ -41,11 +41,18 @@ async function montarResumoDeHoje() {
   const [[abertas]] = await db.query(
     `SELECT COUNT(*) AS qtd FROM comandas WHERE status = 'aberta'`
   );
+  // Notas fiscais com problema hoje (rejeitada, erro, ou ainda pendente) — dono acompanha
+  // de longe que tem algo pra resolver, mesmo sem poder resolver de longe ainda (só ver).
+  const [[notasProblema]] = await db.query(
+    `SELECT COUNT(*) AS qtd FROM notas_fiscais WHERE DATE(criado_em) = ? AND status IN ('rejeitada','erro','pendente')`,
+    [hoje]
+  );
   return {
     data: hoje,
     total_vendas: parseFloat(vendas.total),
     qtd_comandas_fechadas: vendas.qtd,
     qtd_comandas_abertas: abertas.qtd,
+    qtd_notas_problema: notasProblema.qtd,
   };
 }
 
@@ -76,12 +83,15 @@ async function enviarResumo() {
 }
 
 function iniciarJobSyncResumoLocal() {
-  const intervaloMin = parseInt(process.env.SYNC_INTERVALO_MINUTOS, 10) || 15;
+  // SYNC_INTERVALO_SEGUNDOS tem prioridade (intervalos curtos tipo 30s); cai pro antigo
+  // _MINUTOS se não tiver (compatibilidade), padrão 15 minutos.
+  const intervaloSeg = parseInt(process.env.SYNC_INTERVALO_SEGUNDOS, 10)
+    || (parseInt(process.env.SYNC_INTERVALO_MINUTOS, 10) || 15) * 60;
   if (!process.env.SYNC_CLOUD_URL) return; // servidor normal (produção) — não ativa esse job
 
-  console.log(`[sync-resumo-local] Ativado — mandando resumo a cada ${intervaloMin} min pra ${process.env.SYNC_CLOUD_URL}`);
+  console.log(`[sync-resumo-local] Ativado — mandando resumo a cada ${intervaloSeg}s pra ${process.env.SYNC_CLOUD_URL}`);
   enviarResumo(); // já manda um assim que liga, sem esperar o primeiro intervalo
-  setInterval(enviarResumo, intervaloMin * 60 * 1000);
+  setInterval(enviarResumo, intervaloSeg * 1000);
 }
 
 module.exports = { iniciarJobSyncResumoLocal, montarResumoDeHoje, enviarResumo };
