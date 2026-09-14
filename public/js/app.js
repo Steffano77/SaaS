@@ -5016,6 +5016,24 @@ async function carregarComandas() {
     ? abertas.map(cardComandaHtml).join('')
     : `<div class="cmd-vazio">Nenhuma comanda aberta no momento.</div>`;
 
+  // Resumo rápido: quantas estão abertas e há quanto tempo a mais antiga está esperando —
+  // ajuda a pegar comanda esquecida sem precisar rolar a lista inteira procurando.
+  const elResumo = document.getElementById('cmd-resumo-abertas');
+  if (elResumo) {
+    if (!abertas.length) {
+      elResumo.classList.add('hidden');
+    } else {
+      const maisAntiga = abertas.reduce((a, b) => new Date(a.aberta_em) < new Date(b.aberta_em) ? a : b);
+      const minutos = Math.round((Date.now() - new Date(maisAntiga.aberta_em).getTime()) / 60000);
+      const haQuanto = minutos < 1 ? 'agora mesmo' : minutos < 60 ? `há ${minutos} min` : `há ${Math.floor(minutos / 60)}h${minutos % 60 ? minutos % 60 + 'min' : ''}`;
+      const alerta = minutos >= 120; // mais de 2h aberta — provável esquecida
+      elResumo.innerHTML = `🟢 <strong>${abertas.length}</strong> comanda${abertas.length > 1 ? 's' : ''} aberta${abertas.length > 1 ? 's' : ''}` +
+        ` · mais antiga (<strong>${maisAntiga.identificador}</strong>) aberta ${haQuanto}` +
+        (alerta ? ` <span style="color:var(--red-500);font-weight:600;">⚠️ confere se não foi esquecida</span>` : '');
+      elResumo.classList.remove('hidden');
+    }
+  }
+
   await carregarCaixaFaixa();
 }
 
