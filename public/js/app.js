@@ -6205,10 +6205,8 @@ async function carregarFaixaOutrasAbertas(idAtual) {
   if (!outras.length) { el.classList.add('hidden'); return; }
   el.innerHTML = outras.map(c => {
     const hora = fmtDataHoraBR ? fmtDataHoraBR(c.aberta_em).split(' ').pop() : new Date(c.aberta_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    return `<button type="button" onclick="abrirModalComanda(${c.id})"
-      style="flex-shrink:0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;
-             color:#fff;padding:5px 10px;font-size:12px;white-space:nowrap;cursor:pointer;">
-      🟢 ${c.identificador} · ${hora}
+    return `<button type="button" class="cmd-chip-aberta" onclick="abrirModalComanda(${c.id})">
+      <span class="cmd-chip-dot">●</span> ${c.identificador} <span class="cmd-chip-hora">${hora}</span>
     </button>`;
   }).join('');
   el.classList.remove('hidden');
