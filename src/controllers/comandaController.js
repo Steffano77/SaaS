@@ -31,12 +31,18 @@ exports.listar = async (req, res) => {
      ORDER BY c.aberta_em DESC`,
     [padaria_id]
   );
+  // "Recentes" mostrava só as últimas 30 comandas fechadas no total (sem filtro de dia) —
+  // bug real: numa padaria com bastante movimento (300+ comandas/dia), isso cortava as
+  // vendas mais antigas do próprio dia da lista, dando a impressão de que sumiram (e
+  // impedindo cancelar uma venda de manhã já não aparecendo mais à tarde). Agora mostra
+  // o dia inteiro de hoje (com um teto de segurança bem folgado, 500, só pra nunca travar
+  // com um volume anormal).
   const [recentes] = await db.query(
     `SELECT c.*,
        (SELECT COUNT(*) FROM itens_comanda i WHERE i.comanda_id = c.id) AS qtd_itens
      FROM comandas c
-     WHERE c.padaria_id = ? AND c.status <> 'aberta'
-     ORDER BY c.fechada_em DESC LIMIT 30`,
+     WHERE c.padaria_id = ? AND c.status <> 'aberta' AND DATE(COALESCE(c.fechada_em, c.aberta_em)) = CURDATE()
+     ORDER BY c.fechada_em DESC LIMIT 500`,
     [padaria_id]
   );
   res.json({ abertas, recentes });
