@@ -7869,7 +7869,7 @@ async function finalizarVendaUI() {
   // autorização (limite/saldo devedor/saldo disponível) em 2 vias: uma pra padaria
   // guardar/conferir, uma pro cliente levar se quiser.
   if (pgtoFaturado?.cliente_documento) {
-    imprimirAutorizacaoFaturadoUI(pgtoFaturado.cliente_nome, pgtoFaturado.cliente_documento, pgtoFaturado.valor);
+    imprimirAutorizacaoFaturadoUI(pgtoFaturado.cliente_nome, pgtoFaturado.cliente_documento, pgtoFaturado.valor, snapshot?.itens);
   }
   resetEscolhaNFCe();
   _faturadoClienteSelecionado = null;
@@ -7924,12 +7924,19 @@ function abrirJanelaImpressaoTermica(bodyHtml, janelaPre) {
 // Comprovante de autorização do Faturado (parecido com um comprovante de
 // cartão/fidelidade) — mostra limite, saldo devedor e saldo disponível do funcionário
 // na hora da compra, pra conferência. Sai em 2 vias: uma da padaria, uma do cliente.
-async function imprimirAutorizacaoFaturadoUI(nomeCliente, documento, valor) {
+async function imprimirAutorizacaoFaturadoUI(nomeCliente, documento, valor, itens) {
   const saldoInfo = await api(`/clientes-faturado/documento/${documento}/saldo`);
   if (!saldoInfo) return; // não trava a venda por causa disso — venda já fechou
   const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
   const agora = new Date().toLocaleString('pt-BR');
   const transacaoId = 'FAT-' + Date.now().toString(36).toUpperCase();
+  // Itens da compra (o que foi gasto) — só faz sentido mostrar pra funcionário (ele confere
+  // o que comprou fiado); cliente "empresa" normalmente não precisa desse detalhe no talão.
+  const itensHtml = (saldoInfo.tipo === 'funcionario' && itens?.length) ? `
+    <div class="sub" style="text-align:left;font-weight:800;margin-top:6px;">Itens dessa compra</div>
+    <hr/>
+    ${itens.map(i => `<div class="linha"><span class="nome">${fmtQtd(i.quantidade)}x ${i.nome_produto}</span><span class="valor">${fmtMoeda(i.subtotal)}</span></div>`).join('')}
+  ` : '';
   const via = (titulo) => `
     <h1>PROGRAMA DE FIDELIDADE</h1>
     <h1>AUTORIZAÇÃO</h1>
@@ -7943,6 +7950,7 @@ async function imprimirAutorizacaoFaturadoUI(nomeCliente, documento, valor) {
     <hr/>
     <div class="linha"><span class="nome">Transação:</span><span class="valor">${transacaoId}</span></div>
     <div class="linha"><span class="nome">Valor:</span><span class="valor">${fmtMoeda(valor)}</span></div>
+    ${itensHtml}
     <div class="sub" style="text-align:left;font-weight:800;margin-top:6px;">Informações do cartão</div>
     <hr/>
     <div class="linha"><span class="nome">Cliente:</span><span class="valor">${nomeCliente}</span></div>
