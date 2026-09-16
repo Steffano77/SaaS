@@ -33,7 +33,7 @@ if (!caminhoArquivo || !padariaId) {
       `UPDATE produtos SET validade_dias = ?
        WHERE padaria_id = ? AND codigo_balanca IS NOT NULL
          AND CAST(codigo_balanca AS UNSIGNED) = ?`,
-      [validadeDias, padariaId, parseInt(codigo, 10)]
+      [validadeDias, padariaId, parseInt(codigo, 10) * 100]
     );
     if (result.affectedRows > 0) atualizados += result.affectedRows;
     else semProdutoCorrespondente++;
