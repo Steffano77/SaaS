@@ -312,6 +312,9 @@ app.use(express.static(path.join(__dirname, '../public'), {
       // gravado na etiqueta impressa pela balança (Toledo/Filizola/Urano), pra leitura automática no Comandas.
       'ALTER TABLE produtos ADD COLUMN codigo_balanca VARCHAR(10) NULL',
       'ALTER TABLE produtos ADD INDEX idx_produtos_codigo_balanca (padaria_id, codigo_balanca)',
+      // Validade em dias, usada na exportação pra balança (Toledo/Filizola) — a balança
+      // soma isso na data de embalagem e imprime a data de validade real na etiqueta sozinha.
+      'ALTER TABLE produtos ADD COLUMN validade_dias INT NULL DEFAULT 0',
 
       // NCM (Nomenclatura Comum do Mercosul) — classificação fiscal do produto, usada
       // na nota fiscal (NFC-e). Sem isso, a nota usa um código genérico como reserva.

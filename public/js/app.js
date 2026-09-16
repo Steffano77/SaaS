@@ -2177,7 +2177,7 @@ async function exportarParaBalanca(produtoIdFiltro) {
     const descricao = nomeSemAcento.slice(0, 22).padEnd(22, ' ');
     const precoCentavos = Math.round(parseFloat(p.preco_venda || 0) * 100);
     const preco = String(precoCentavos).padStart(7, '0').slice(-7);
-    const validade = '000';
+    const validade = String(parseInt(p.validade_dias, 10) || 0).padStart(3, '0').slice(-3);
     return `${codigo}${tipo}${descricao}${preco}${validade}`;
   });
 
@@ -2194,6 +2194,84 @@ async function exportarParaBalanca(produtoIdFiltro) {
   const avisoSemPreco = semPreco.length ? ` (${semPreco.length} ficaram de fora por não ter preço — veja o console)` : '';
   const msgQtd = produtoIdFiltro ? '1 produto' : `${elegiveis.length} produtos`;
   mostrarToast(`📤 Arquivo gerado com ${msgQtd}!${avisoSemPreco} Leva o cadtxt.txt até o computador da balança e importa pelo Cadastros → Importar.`, 'ok');
+}
+
+// ── Exportar pra balança com seleção (checkbox por item, validade editável) ──
+// A pedido: em vez de exportar o catálogo inteiro direto, mostra uma lista com
+// checkbox em cada item (todos marcados por padrão) e a validade em dias editável
+// ali mesmo — a edição aqui só vale pra esse arquivo exportado, não salva no
+// cadastro do produto (pra isso, edita o produto normal).
+let _balancaListaSelecao = [];
+async function abrirModalExportarBalancaUI() {
+  let lista = await api('/produtos') || [];
+  const comCodigo = lista.filter(p => p.codigo_balanca && /^\d+$/.test(String(p.codigo_balanca).trim()));
+  const semPreco = comCodigo.filter(p => !(parseFloat(p.preco_venda) > 0));
+  _balancaListaSelecao = comCodigo.filter(p => parseFloat(p.preco_venda) > 0);
+  if (!_balancaListaSelecao.length) {
+    mostrarToast('Nenhum produto com código da balança E preço cadastrado ainda.', 'warn');
+    return;
+  }
+  if (semPreco.length) {
+    mostrarToast(`⚠️ ${semPreco.length} produto(s) com código de balança mas sem preço ficaram de fora (veja o console).`, 'warn');
+    console.log('Sem preço, fora da exportação:', semPreco.map(p => p.nome));
+  }
+  const lista_html = _balancaListaSelecao.map((p, idx) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--slate-100);">
+      <input type="checkbox" id="balanca-sel-${idx}" checked style="width:18px;height:18px;flex-shrink:0;"/>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.nome}</div>
+        <div style="font-size:11.5px;color:var(--slate-400);">Cód. ${p.codigo_balanca} · ${fmtMoeda(p.preco_venda)}</div>
+      </div>
+      <div style="flex-shrink:0;text-align:right;">
+        <label style="font-size:10.5px;color:var(--slate-400);display:block;">Validade (dias)</label>
+        <input type="number" id="balanca-val-${idx}" min="0" value="${p.validade_dias || 0}" class="form-control" style="width:70px;padding:4px 6px;font-size:12.5px;"/>
+      </div>
+    </div>`).join('');
+  document.getElementById('balanca-export-lista').innerHTML = lista_html;
+  document.getElementById('balanca-export-contador').textContent = `${_balancaListaSelecao.length} produtos elegíveis`;
+  document.getElementById('modal-exportar-balanca').classList.remove('hidden');
+}
+
+function balancaExportMarcarTodos(marcar) {
+  _balancaListaSelecao.forEach((_, idx) => {
+    const el = document.getElementById(`balanca-sel-${idx}`);
+    if (el) el.checked = marcar;
+  });
+}
+
+function confirmarExportarBalancaUI() {
+  const pesoUnidades = ['KG', 'LITRO'];
+  const selecionados = [];
+  _balancaListaSelecao.forEach((p, idx) => {
+    if (!document.getElementById(`balanca-sel-${idx}`)?.checked) return;
+    const validadeEditada = parseInt(document.getElementById(`balanca-val-${idx}`)?.value, 10) || 0;
+    selecionados.push({ ...p, validade_dias: validadeEditada });
+  });
+  if (!selecionados.length) { mostrarToast('Marque pelo menos 1 produto.', 'warn'); return; }
+
+  const linhas = selecionados.map(p => {
+    const codigo = String(p.codigo_balanca).trim().padStart(6, '0').slice(-6);
+    const tipo = pesoUnidades.includes((p.unidade || '').toUpperCase()) ? 'P' : 'U';
+    const nomeSemAcento = (p.nome || '').normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const descricao = nomeSemAcento.slice(0, 22).padEnd(22, ' ');
+    const precoCentavos = Math.round(parseFloat(p.preco_venda || 0) * 100);
+    const preco = String(precoCentavos).padStart(7, '0').slice(-7);
+    const validade = String(p.validade_dias || 0).padStart(3, '0').slice(-3);
+    return `${codigo}${tipo}${descricao}${preco}${validade}`;
+  });
+
+  const conteudo = linhas.join('\r\n') + '\r\n';
+  const blob = new Blob([conteudo], { type: 'text/plain;charset=windows-1252' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'cadtxt.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  document.getElementById('modal-exportar-balanca').classList.add('hidden');
+  mostrarToast(`📤 Arquivo gerado com ${selecionados.length} produtos! Leva o cadtxt.txt até o computador da balança e importa pelo Cadastros → Importar.`, 'ok');
 }
 
 // ── Testar exportação pra balança com 1 produto só (antes de exportar o catálogo inteiro) ──
@@ -3632,6 +3710,7 @@ async function editarProduto(id) {
   document.getElementById('prod-nome').value    = p.nome;
   document.getElementById('prod-cod').value     = p.codigo_barras || '';
   document.getElementById('prod-cod-balanca').value = p.codigo_balanca || '';
+  document.getElementById('prod-validade-dias').value = p.validade_dias || '';
   // Produto existente sem código de balança ainda: deixa auto-preencher se a
   // pessoa digitar/mudar o código de barras. Se já tem um valor salvo, não mexe
   // sozinho (pode ser um código manual que não segue a fórmula padrão).
@@ -3762,6 +3841,7 @@ async function salvarProduto(e) {
     custo_unitario:parseFloat(document.getElementById('prod-custo').value) || 0,
     preco_venda:   parseFloat(document.getElementById('prod-venda').value) || 0,
     validade:       document.getElementById('prod-validade').value || null,
+    validade_dias:  parseInt(document.getElementById('prod-validade-dias').value, 10) || 0,
     ultima_compra:  document.getElementById('prod-ultima-compra').value || null,
     venda_rapida:   document.getElementById('prod-venda-rapida').checked ? 1 : 0,
     controla_estoque: document.getElementById('prod-controla-estoque').checked ? 1 : 0,

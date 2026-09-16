@@ -100,7 +100,7 @@ const LIMITES_PLANO = { essencial: 50, pro: Infinity, premium: Infinity };
 
 // Campos numéricos do produto que não podem ser negativos nem inválidos.
 // Validação no navegador pode ser pulada por quem chama a API direto — precisa checar aqui também.
-const CAMPOS_NUMERICOS_NAO_NEGATIVOS = ['custo_unitario', 'preco_venda', 'estoque_atual', 'estoque_minimo', 'embalagem_preco', 'embalagem_qtd'];
+const CAMPOS_NUMERICOS_NAO_NEGATIVOS = ['custo_unitario', 'preco_venda', 'estoque_atual', 'estoque_minimo', 'embalagem_preco', 'embalagem_qtd', 'validade_dias'];
 
 function validarNumerosProduto(body) {
   for (const campo of CAMPOS_NUMERICOS_NAO_NEGATIVOS) {
@@ -116,7 +116,7 @@ function validarNumerosProduto(body) {
 exports.criar = async (req, res) => {
   try {
     const { codigo_barras, codigo_balanca, ncm, nome, unidade, categoria_id, fornecedor_id, custo_unitario,
-            preco_venda, estoque_atual, estoque_minimo, validade,
+            preco_venda, estoque_atual, estoque_minimo, validade, validade_dias,
             embalagem_preco, embalagem_qtd, origem_producao, situacao_icms, cest } = req.body;
     if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório.' });
     const erroNumero = validarNumerosProduto(req.body);
@@ -132,12 +132,12 @@ exports.criar = async (req, res) => {
 
     const [result] = await db.query(
       `INSERT INTO produtos (padaria_id, categoria_id, fornecedor_id, codigo_barras, codigo_balanca, ncm, nome, unidade,
-        custo_unitario, preco_venda, estoque_atual, estoque_minimo, validade,
+        custo_unitario, preco_venda, estoque_atual, estoque_minimo, validade, validade_dias,
         embalagem_preco, embalagem_qtd, origem_producao, situacao_icms, cest)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [req.padaria.id, categoria_id || null, fornecedor_id || null, codigo_barras || null, codigo_balanca || null, ncm || null, nome,
        unidade || 'UNIDADE', custo_unitario || 0, preco_venda || 0,
-       estoque_atual || 0, estoque_minimo || 0, validade || null,
+       estoque_atual || 0, estoque_minimo || 0, validade || null, validade_dias || 0,
        embalagem_preco || null, embalagem_qtd || null,
        origem_producao || 'revenda', situacao_icms || 'normal', cest || null]
     );
@@ -155,7 +155,7 @@ exports.atualizar = async (req, res) => {
     if (erroNumero) return res.status(400).json({ erro: erroNumero });
 
     const campos = ['codigo_barras','codigo_balanca','ncm','nome','unidade','categoria_id','fornecedor_id',
-                    'custo_unitario','preco_venda','estoque_atual','estoque_minimo','validade','ultima_compra',
+                    'custo_unitario','preco_venda','estoque_atual','estoque_minimo','validade','validade_dias','ultima_compra',
                     'embalagem_preco','embalagem_qtd','venda_rapida','controla_estoque',
                     'origem_producao','situacao_icms','cest'];
     const sets = []; const vals = [];
