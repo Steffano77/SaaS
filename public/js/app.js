@@ -6267,29 +6267,9 @@ async function abrirModalComanda(id) {
 
   document.getElementById('modal-comanda').classList.remove('hidden');
   atualizarTopbarPdv();
-  carregarFaixaOutrasAbertas(id);
   // Depois de digitar o número da comanda e dar Enter, o cursor já pula direto pro
   // campo de buscar/digitar produto — a atendente não precisa clicar de novo.
   if (!bloqueada) setTimeout(() => document.getElementById('cmd-item-busca')?.focus(), 100);
-}
-
-// Faixinha no topo da tela de cobrança mostrando as OUTRAS comandas abertas (número +
-// horário que abriu) — pra atendente trocar rápido entre elas sem sair dessa tela e
-// voltar pra lista inteira. Clica no chip, pula direto pra ela.
-async function carregarFaixaOutrasAbertas(idAtual) {
-  const el = document.getElementById('cmd-pdv-faixa-abertas');
-  if (!el) return;
-  const data = await api('/comandas');
-  if (!data) { el.classList.add('hidden'); return; }
-  const outras = (data.abertas || []).filter(c => c.id !== idAtual);
-  if (!outras.length) { el.classList.add('hidden'); return; }
-  el.innerHTML = outras.map(c => {
-    const hora = fmtDataHoraBR ? fmtDataHoraBR(c.aberta_em).split(' ').pop() : new Date(c.aberta_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    return `<button type="button" class="cmd-chip-aberta" onclick="abrirModalComanda(${c.id})">
-      <span class="cmd-chip-dot">●</span> ${c.identificador} <span class="cmd-chip-hora">${hora}</span>
-    </button>`;
-  }).join('');
-  el.classList.remove('hidden');
 }
 
 // Barrinha "Vendedor / Cliente / Relógio" do topo da tela de venda, estilo PDV.
