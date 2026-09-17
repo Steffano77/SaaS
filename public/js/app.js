@@ -7885,9 +7885,18 @@ async function finalizarVendaUI() {
   // embaixo, se a venda for confirmada.
   const temDinheiro = comandaPagamentosPendentes.some(p => p.forma_pagamento === 'Dinheiro');
   const janelaGaveta = temDinheiro ? window.open('', '_blank', 'width=200,height=200') : null;
+  // Pagamento em Faturado com funcionário/cliente identificado — abre as 2 janelas do
+  // comprovante (via loja + via cliente) JÁ, mesmo motivo das de cima. Se abrir só depois
+  // do fechamento (que já tem vários awaits no meio), o navegador bloqueia a 2ª silenciosamente.
+  const pgtoFaturadoPre = comandaPagamentosPendentes.find(p => p.forma_pagamento === 'Faturado' && p.cliente_nome);
+  const janelaFaturadoLoja = pgtoFaturadoPre ? window.open('', '_blank', 'width=380,height=600') : null;
+  const janelaFaturadoCliente = pgtoFaturadoPre ? window.open('', '_blank', 'width=380,height=600') : null;
+  if (pgtoFaturadoPre && !janelaFaturadoCliente) {
+    mostrarToast('O navegador bloqueou uma das janelas de impressão do comprovante — permite pop-up nesse site.', 'warn');
+  }
 
   const resumo = comandaPagamentosPendentes.map(p => `${p.forma_pagamento}: ${fmtMoeda(p.valor)}`).join(' + ');
-  if (!(await confirmarBonito(`Confirmar recebimento — ${resumo}?`))) { janelaImpressao?.close(); janelaGaveta?.close(); return; }
+  if (!(await confirmarBonito(`Confirmar recebimento — ${resumo}?`))) { janelaImpressao?.close(); janelaGaveta?.close(); janelaFaturadoLoja?.close(); janelaFaturadoCliente?.close(); return; }
   const comandaFechadaId = comandaAtualId; // guarda ANTES de fechar o modal, que zera comandaAtualId
   const snapshot = comandaAtualDados; // guarda os itens antes de fechar, pro recibo
   const formaResumo = comandaPagamentosPendentes.map(p => p.forma_pagamento).join(' + ');
@@ -7945,7 +7954,10 @@ async function finalizarVendaUI() {
   // autorização (limite/saldo devedor/saldo disponível) em 2 vias: uma pra padaria
   // guardar/conferir, uma pro cliente levar se quiser.
   if (pgtoFaturado?.cliente_documento) {
-    imprimirAutorizacaoFaturadoUI(pgtoFaturado.cliente_nome, pgtoFaturado.cliente_documento, pgtoFaturado.valor, snapshot?.itens);
+    imprimirAutorizacaoFaturadoUI(pgtoFaturado.cliente_nome, pgtoFaturado.cliente_documento, pgtoFaturado.valor, snapshot?.itens, janelaFaturadoLoja, janelaFaturadoCliente);
+  } else {
+    janelaFaturadoLoja?.close();
+    janelaFaturadoCliente?.close();
   }
   resetEscolhaNFCe();
   _faturadoClienteSelecionado = null;
@@ -8000,7 +8012,7 @@ function abrirJanelaImpressaoTermica(bodyHtml, janelaPre) {
 // Comprovante de autorização do Faturado (parecido com um comprovante de
 // cartão/fidelidade) — mostra limite, saldo devedor e saldo disponível do funcionário
 // na hora da compra, pra conferência. Sai em 2 vias: uma da padaria, uma do cliente.
-async function imprimirAutorizacaoFaturadoUI(nomeCliente, documento, valor, itens) {
+async function imprimirAutorizacaoFaturadoUI(nomeCliente, documento, valor, itens, janelaPreLoja, janelaPreCliente) {
   const saldoInfo = await api(`/clientes-faturado/documento/${documento}/saldo`);
   if (!saldoInfo) return; // não trava a venda por causa disso — venda já fechou
   const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
@@ -8036,8 +8048,8 @@ async function imprimirAutorizacaoFaturadoUI(nomeCliente, documento, valor, iten
     <hr/>
     <div class="rodape">${titulo}</div>
   `;
-  abrirJanelaImpressaoTermica(via('VIA DA LOJA'));
-  abrirJanelaImpressaoTermica(via('VIA DO CLIENTE'));
+  abrirJanelaImpressaoTermica(via('VIA DA LOJA'), janelaPreLoja);
+  abrirJanelaImpressaoTermica(via('VIA DO CLIENTE'), janelaPreCliente);
 }
 
 // Ficha pra cozinha/produção — sem valores, só os itens pra separar/preparar
