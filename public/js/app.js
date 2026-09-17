@@ -6098,25 +6098,43 @@ async function reimprimirComandaUI(id) {
 
 async function abrirModalNovaComanda() {
   document.getElementById('cmd-novo-identificador').value = '';
+  document.getElementById('cmd-novo-identificador').disabled = true;
   await carregarAtendentesSelect('cmd-novo-atendente');
   // Pré-seleciona o último atendente usado, se ele ainda estiver na lista.
   const opcaoAtual = [...document.getElementById('cmd-novo-atendente').options].find(o => o.textContent === _atendentePendente);
   if (opcaoAtual) document.getElementById('cmd-novo-atendente').value = opcaoAtual.value;
+  onMudarAtendenteNovaComanda(document.getElementById('cmd-novo-atendente'));
   document.getElementById('modal-nova-comanda').classList.remove('hidden');
-  setTimeout(() => document.getElementById('cmd-novo-identificador').focus(), 100);
+  const foco = document.getElementById('cmd-novo-atendente').value ? 'cmd-novo-identificador' : 'cmd-novo-atendente';
+  setTimeout(() => document.getElementById(foco)?.focus(), 100);
 }
 
 function fecharModalNovaComanda() {
   document.getElementById('modal-nova-comanda').classList.add('hidden');
 }
 
+// A identificação só desbloqueia depois que o atendente escolhe o próprio nome na lista —
+// garante que toda comanda aberta no balcão já nasce com o atendente identificado.
+function onMudarAtendenteNovaComanda(selectEl) {
+  if (selectEl.value === '__novo__') { adicionarAtendenteInline(selectEl); return; }
+  const identificadorInput = document.getElementById('cmd-novo-identificador');
+  const selecionado = !!selectEl.value;
+  identificadorInput.disabled = !selecionado;
+  if (selecionado) identificadorInput.focus();
+  else identificadorInput.value = '';
+}
+
 async function criarComanda() {
-  const identificador = document.getElementById('cmd-novo-identificador').value.trim() || 'Comanda';
   const atendenteId = document.getElementById('cmd-novo-atendente').value;
   const atendenteNome = atendentesCache.find(a => String(a.id) === atendenteId)?.nome || null;
+  if (!atendenteNome) {
+    mostrarToast('Selecione o atendente antes de abrir a comanda.', 'warn');
+    return;
+  }
+  const identificador = document.getElementById('cmd-novo-identificador').value.trim() || 'Comanda';
   const r = await api('/comandas', { method: 'POST', body: { identificador, atendente: atendenteNome } });
   if (!r) return;
-  if (atendenteNome) _atendentePendente = atendenteNome;
+  _atendentePendente = atendenteNome;
   fecharModalNovaComanda();
   await carregarComandas();
   abrirModalComanda(r.id);

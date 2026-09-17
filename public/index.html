@@ -619,12 +619,12 @@
           <button onclick="fecharModalNovaComanda()" class="btn-icon">✕</button>
         </div>
         <div class="form-group">
-          <label class="form-label">Identificação</label>
-          <input id="cmd-novo-identificador" type="text" inputmode="numeric" class="form-control" placeholder="Ex: Mesa 3, Balcão, João..."/>
+          <label class="form-label">Atendente</label>
+          <select id="cmd-novo-atendente" class="form-control" onchange="onMudarAtendenteNovaComanda(this)"></select>
         </div>
         <div class="form-group">
-          <label class="form-label">Atendente <span style="color:var(--slate-400);font-weight:400;">(quem tá atendendo, opcional)</span></label>
-          <select id="cmd-novo-atendente" class="form-control" onchange="if(this.value==='__novo__') adicionarAtendenteInline(this)"></select>
+          <label class="form-label">Identificação</label>
+          <input id="cmd-novo-identificador" type="text" inputmode="numeric" class="form-control" placeholder="Ex: Mesa 3, Balcão, João..." disabled/>
         </div>
         <button onclick="criarComanda()" class="btn-primary full" style="margin-top:6px;">Abrir comanda</button>
       </div>
