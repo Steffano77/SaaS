@@ -6100,13 +6100,13 @@ async function abrirModalNovaComanda() {
   document.getElementById('cmd-novo-identificador').value = '';
   document.getElementById('cmd-novo-identificador').disabled = true;
   await carregarAtendentesSelect('cmd-novo-atendente');
-  // Pré-seleciona o último atendente usado, se ele ainda estiver na lista.
-  const opcaoAtual = [...document.getElementById('cmd-novo-atendente').options].find(o => o.textContent === _atendentePendente);
-  if (opcaoAtual) document.getElementById('cmd-novo-atendente').value = opcaoAtual.value;
+  // Sempre abre em branco — não pré-seleciona o último atendente usado. Assim, cada
+  // comanda nova exige que a pessoa escolha o próprio nome de novo, mesmo que seja o
+  // mesmo atendente de antes (evita que uma comanda "herde" sem querer o nome de outra).
+  document.getElementById('cmd-novo-atendente').value = '';
   onMudarAtendenteNovaComanda(document.getElementById('cmd-novo-atendente'));
   document.getElementById('modal-nova-comanda').classList.remove('hidden');
-  const foco = document.getElementById('cmd-novo-atendente').value ? 'cmd-novo-identificador' : 'cmd-novo-atendente';
-  setTimeout(() => document.getElementById(foco)?.focus(), 100);
+  setTimeout(() => document.getElementById('cmd-novo-atendente')?.focus(), 100);
 }
 
 function fecharModalNovaComanda() {
