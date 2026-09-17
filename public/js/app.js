@@ -96,6 +96,14 @@ document.addEventListener('click', () => {
   if (sessionStorage.getItem('pp_modo_caixa_restrito')) entrarTelaCheiaSeAtivo();
 }, true);
 
+// Emitir nota fiscal (ou imprimir qualquer via) abre uma janelinha de impressão — isso
+// tira a tela principal da tela cheia. Quando essa janelinha fecha sozinha (depois de
+// imprimir), o foco volta pra tela principal — aproveita esse momento pra tentar
+// voltar pra tela cheia sozinho, sem esperar a pessoa apertar F11 ou clicar em algo.
+window.addEventListener('focus', () => {
+  if (sessionStorage.getItem('pp_modo_caixa_restrito')) entrarTelaCheiaSeAtivo();
+});
+
 // ── Dark Mode ──────────────────────────────────────────────────
 (function() {
   const saved = localStorage.getItem('pp-theme');
