@@ -7406,6 +7406,37 @@ async function imprimirExtratoFaturadoUI() {
 
 // "Dar baixa" — marca tudo que esse faturado deve como pago, zerando o saldo e
 // liberando o limite de novo (só faz sentido pra funcionário, mas funciona pra qualquer um).
+// Fechamento mensal do RH: imprime o comprovante de TODOS os funcionários com saldo em
+// aberto, um atrás do outro, e só depois de imprimir todos, zera o saldo de cada um
+// (mesma ação do botão 💰 individual, só que em lote). Pensado pro dia do desconto em
+// holerite — evita clicar funcionário por funcionário. Só funcionário (CPF), nunca
+// empresa (CNPJ) — que não tem holerite pra descontar.
+async function fecharMensalRhUI() {
+  const funcionarios = (_clientesFaturadoListaCache || []).filter(c => c.tipo === 'funcionario' && parseFloat(c.saldo_devedor || 0) > 0.009);
+  if (!funcionarios.length) { mostrarToast('Nenhum funcionário com saldo em aberto agora.', 'warn'); return; }
+  const totalGeral = funcionarios.reduce((s, c) => s + parseFloat(c.saldo_devedor || 0), 0);
+  const ok = await confirmarBonito(
+    `Fechamento mensal do RH\n\n${funcionarios.length} funcionário(s), total ${fmtMoeda(totalGeral)}.\n\n` +
+    `Isso vai IMPRIMIR o comprovante de cada um e depois ZERAR o saldo de todos (marca como pago).\n\n` +
+    `Confirma que já vai descontar tudo no holerite?`
+  );
+  if (!ok) return;
+  mostrarToast('Imprimindo comprovantes...', 'ok');
+  for (const c of funcionarios) {
+    imprimirComprovanteRhUI(c.nome, parseFloat(c.saldo_devedor || 0), parseFloat(c.limite || 0));
+    // Espera a impressão de um terminar antes de abrir a janela do próximo — imprimir
+    // tudo de uma vez (sem esperar) trava/embaralha a fila de impressão da térmica.
+    await new Promise(resolve => setTimeout(resolve, 1200));
+  }
+  let zerados = 0;
+  for (const c of funcionarios) {
+    const r = await api(`/clientes-faturado/documento/${c.cnpj}/liquidar`, { method: 'POST' });
+    if (r) zerados++;
+  }
+  mostrarToast(`Fechamento mensal concluído — ${zerados} de ${funcionarios.length} funcionário(s) zerado(s).`, 'ok');
+  abrirClientesFaturado();
+}
+
 async function darBaixaFaturadoUI(documento, nome) {
   if (!(await confirmarBonito(`Confirma que ${nome} pagou/quitou a fatura em aberto? Isso zera o saldo devedor dele.`))) return;
   const r = await api(`/clientes-faturado/documento/${documento}/liquidar`, { method: 'POST' });
