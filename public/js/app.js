@@ -8023,7 +8023,11 @@ function abrirJanelaImpressaoTermica(bodyHtml, janelaPre) {
       /* Negrito em tudo — em impressora térmica, fonte fina/normal sai fraca/cinza,
          principalmente comparado a apps que mandam comando ESC/POS direto (que sempre
          imprimem em preto sólido). Negrito compensa isso sem precisar mexer no driver. */
-      body { width: 80mm; margin: 0; padding: 6px 8px; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; color: #000; }
+      /* A área que a impressora realmente imprime é menor que os 80mm do papel (a borda
+         física corta uns milímetros de cada lado) — por isso o texto saía cortado na
+         lateral. Encolhendo o conteúdo pra 72mm, centralizado dentro da folha de 80mm,
+         garante que sobre margem de verdade nas duas bordas e nada seja cortado. */
+      body { width: 72mm; margin: 0 auto; padding: 6px 4px; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; color: #000; }
       h1 { font-size: 15px; text-align: center; margin: 0 0 2px; font-weight: 800; }
       .sub { text-align: center; font-size: 11px; margin-bottom: 8px; }
       hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
