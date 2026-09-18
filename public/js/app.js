@@ -7280,20 +7280,26 @@ function imprimirListaClientesFaturadoUI() {
   const agora = new Date().toLocaleString('pt-BR');
   const empresas = lista.filter(c => c.tipo !== 'funcionario');
   const funcionarios = lista.filter(c => c.tipo === 'funcionario');
-  const linhaEmpresa = (c) => `<div class="linha"><span class="nome">${c.nome}</span></div>
+  const totalGeral = lista.reduce((s, c) => s + parseFloat(c.saldo_devedor || 0), 0);
+  const linhaEmpresa = (c) => {
+    const saldo = parseFloat(c.saldo_devedor || 0);
+    return `<div class="linha"><span class="nome">${c.nome}</span><span class="valor">${fmtMoeda(saldo)}</span></div>
     <div class="sub" style="text-align:left;margin:-2px 0 4px;">${formatarCnpjUI(c.cnpj)}</div>`;
+  };
   const linhaFuncionario = (c) => {
     const saldo = parseFloat(c.saldo_devedor || 0);
     const limite = parseFloat(c.limite || 0);
-    return `<div class="linha"><span class="nome">${c.nome}</span></div>
-    <div class="sub" style="text-align:left;margin:-2px 0 4px;">${formatarCnpjUI(c.cnpj)} · Saldo ${fmtMoeda(saldo)} / ${fmtMoeda(limite)}</div>`;
+    return `<div class="linha"><span class="nome">${c.nome}</span><span class="valor">${fmtMoeda(saldo)}</span></div>
+    <div class="sub" style="text-align:left;margin:-2px 0 4px;">${formatarCnpjUI(c.cnpj)} · Limite ${fmtMoeda(limite)}</div>`;
   };
   abrirJanelaImpressaoTermica(`
     <h1>${nomePadaria}</h1>
-    <div class="sub">Clientes Faturado · ${agora}</div>
+    <div class="sub">Saldos em aberto — Faturado · ${agora}</div>
     <hr/>
     ${empresas.length ? `<div class="sub" style="text-align:left;font-weight:800;">🏢 EMPRESAS — CNPJ (${empresas.length})</div><hr/>${empresas.map(linhaEmpresa).join('')}` : ''}
     ${funcionarios.length ? `<div class="sub" style="text-align:left;font-weight:800;margin-top:8px;">👤 FUNCIONÁRIOS — CPF (${funcionarios.length})</div><hr/>${funcionarios.map(linhaFuncionario).join('')}` : ''}
+    <hr/>
+    <div class="total"><span>Total em aberto</span><span>${fmtMoeda(totalGeral)}</span></div>
     <div class="rodape">${lista.length} cadastrados no total</div>
   `);
 }
