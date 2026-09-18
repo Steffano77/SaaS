@@ -5474,6 +5474,10 @@ async function confirmarFecharCaixa() {
   // Caixa fechado: sai da tela de venda de balcão (não faz sentido continuar vendendo
   // sem caixa aberto) — volta pra lista de comandas, que agora mostra "abrir caixa".
   if (!document.getElementById('modal-comanda').classList.contains('hidden')) fecharModalComanda();
+  // Todo fechamento de caixa (de qualquer atendente) tem que voltar pra tela de login
+  // do aparelho — obriga a próxima pessoa a entrar com o próprio nome/PIN antes de
+  // abrir um novo caixa, evitando que a sessão de quem fechou continue sendo usada.
+  sair();
 }
 
 // Histórico de caixas fechados — pra reimprimir o comprovante se travou/foi
