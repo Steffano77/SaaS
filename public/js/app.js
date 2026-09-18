@@ -7415,19 +7415,60 @@ async function fecharMensalRhUI() {
   const funcionarios = (_clientesFaturadoListaCache || []).filter(c => c.tipo === 'funcionario' && parseFloat(c.saldo_devedor || 0) > 0.009);
   if (!funcionarios.length) { mostrarToast('Nenhum funcionário com saldo em aberto agora.', 'warn'); return; }
   const totalGeral = funcionarios.reduce((s, c) => s + parseFloat(c.saldo_devedor || 0), 0);
+  // Abre a janela de impressão JÁ, ainda dentro do clique — e REAPROVEITA a mesma janela
+  // pra cada funcionário da fila (em vez de abrir uma pop-up nova por funcionário). Abrir
+  // uma janela nova depois de qualquer espera no meio do caminho é bloqueado em silêncio
+  // pelo navegador (foi exatamente isso que aconteceu: só o 1º funcionário imprimia).
+  const janela = window.open('', '_blank', 'width=380,height=600');
+  if (!janela) { mostrarToast('O navegador bloqueou a janela de impressão — permite pop-up nesse site e tenta de novo.', 'warn'); return; }
   const ok = await confirmarBonito(
     `Fechamento mensal do RH\n\n${funcionarios.length} funcionário(s), total ${fmtMoeda(totalGeral)}.\n\n` +
     `Isso vai IMPRIMIR o comprovante de cada um e depois ZERAR o saldo de todos (marca como pago).\n\n` +
     `Confirma que já vai descontar tudo no holerite?`
   );
-  if (!ok) return;
+  if (!ok) { janela.close(); return; }
   mostrarToast('Imprimindo comprovantes...', 'ok');
+  const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
   for (const c of funcionarios) {
-    imprimirComprovanteRhUI(c.nome, parseFloat(c.saldo_devedor || 0), parseFloat(c.limite || 0));
-    // Espera a impressão de um terminar antes de abrir a janela do próximo — imprimir
-    // tudo de uma vez (sem esperar) trava/embaralha a fila de impressão da térmica.
-    await new Promise(resolve => setTimeout(resolve, 1200));
+    if (janela.closed) { mostrarToast('A janela de impressão foi fechada no meio do processo — parei por aqui (ninguém foi zerado ainda).', 'warn'); return; }
+    const saldo = parseFloat(c.saldo_devedor || 0);
+    const disponivel = Math.max(0, parseFloat(c.limite || 0) - saldo);
+    const agora = new Date().toLocaleString('pt-BR');
+    // Escreve o comprovante direto nessa mesma janela reaproveitada — document.write()
+    // numa janela já carregada substitui o conteúdo anterior (comportamento padrão do
+    // navegador), então cada funcionário sai numa "folha" nova sem precisar de outra janela.
+    janela.document.write(`<!doctype html><html><head><meta charset="utf-8">
+      <style>
+        @page { size: 80mm auto; margin: 0; }
+        * { box-sizing: border-box; }
+        body { width: 72mm; margin: 0 auto; padding: 6px 4px; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; color: #000; }
+        h1 { font-size: 15px; text-align: center; margin: 0 0 2px; font-weight: 800; }
+        .sub { text-align: center; font-size: 11px; margin-bottom: 8px; }
+        hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
+        .linha { display: flex; justify-content: space-between; gap: 6px; margin: 3px 0; }
+        .linha .nome { flex: 1; }
+        .linha .valor { flex-shrink: 0; text-align: right; }
+        .rodape { text-align: center; font-size: 10px; margin-top: 10px; }
+      </style></head><body>
+      <h1>${nomePadaria}</h1>
+      <div class="sub">Comprovante Faturado — RH · ${agora}</div>
+      <hr/>
+      <div class="linha"><span class="nome">Funcionário:</span></div>
+      <div class="linha"><span class="nome" style="font-weight:800;">${c.nome}</span></div>
+      <hr/>
+      <div class="linha"><span class="nome">Valor total gasto:</span><span class="valor">${fmtMoeda(saldo)}</span></div>
+      <div class="linha"><span class="nome">Saldo disponível:</span><span class="valor">${fmtMoeda(disponivel)}</span></div>
+      <hr/>
+      <div class="rodape">Descontar no holerite</div>
+      </body></html>`);
+    janela.document.close();
+    // Chama print() direto daqui (não confia no onload do HTML escrito) — numa janela
+    // REAPROVEITADA o onload às vezes não dispara de novo depois do document.write.
+    try { janela.focus(); janela.print(); } catch (e) { /* janela pode ter sido fechada nesse meio-tempo */ }
+    // Espera a impressão de um terminar antes de escrever o próximo nessa mesma janela.
+    await new Promise(resolve => setTimeout(resolve, 1500));
   }
+  try { janela.close(); } catch (e) {}
   let zerados = 0;
   for (const c of funcionarios) {
     const r = await api(`/clientes-faturado/documento/${c.cnpj}/liquidar`, { method: 'POST' });
