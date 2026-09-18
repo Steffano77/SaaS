@@ -7244,6 +7244,7 @@ function cartaoClienteFaturadoHtml(c) {
       </div>
       <div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
         <button class="btn-icon" title="Extrato / imprimir" onclick="abrirExtratoFaturadoUI('${c.cnpj}','${(c.nome||'').replace(/'/g,"\\'")}')">📋</button>
+        ${ehFuncionario ? `<button class="btn-icon" title="Imprimir comprovante pro RH (nome + valor gasto + saldo)" onclick="imprimirComprovanteRhUI('${c.nome.replace(/'/g,"\\'")}',${saldo})">🧾</button>` : ''}
         ${saldo > 0 ? `<button class="btn-icon" title="Dar baixa (marcar como pago)" onclick="darBaixaFaturadoUI('${c.cnpj}','${(c.nome||'').replace(/'/g,"\\'")}')">💰</button>` : ''}
         <button class="btn-icon" title="Editar" onclick="editarClienteFaturadoUI(${c.id},'${(c.nome||'').replace(/'/g,"\\'")}','${(c.endereco||'').replace(/'/g,"\\'")}','${(c.telefone||'').replace(/'/g,"\\'")}','${c.tipo}',${limite})">✏️</button>
         <button class="btn-icon" title="Excluir" onclick="excluirClienteFaturadoUI(${c.id})">🗑️</button>
@@ -7301,6 +7302,25 @@ function imprimirListaClientesFaturadoUI() {
     <hr/>
     <div class="total"><span>Total em aberto</span><span>${fmtMoeda(totalGeral)}</span></div>
     <div class="rodape">${lista.length} cadastrados no total</div>
+  `);
+}
+
+// Comprovante individual pro RH — nome, valor total gasto e saldo (Faturado que ainda não
+// foi quitado), pra grampear no holerite na hora do desconto. Um botão por funcionário.
+function imprimirComprovanteRhUI(nome, saldo) {
+  const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
+  const agora = new Date().toLocaleString('pt-BR');
+  abrirJanelaImpressaoTermica(`
+    <h1>${nomePadaria}</h1>
+    <div class="sub">Comprovante Faturado — RH · ${agora}</div>
+    <hr/>
+    <div class="linha"><span class="nome">Funcionário:</span></div>
+    <div class="linha"><span class="nome" style="font-weight:800;">${nome}</span></div>
+    <hr/>
+    <div class="linha"><span class="nome">Valor total gasto:</span><span class="valor">${fmtMoeda(saldo)}</span></div>
+    <div class="linha"><span class="nome">Saldo:</span><span class="valor">${fmtMoeda(saldo)}</span></div>
+    <hr/>
+    <div class="rodape">Descontar no holerite</div>
   `);
 }
 
