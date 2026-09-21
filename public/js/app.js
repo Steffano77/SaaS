@@ -7877,19 +7877,28 @@ async function imprimirDanfeNFCe(comandaId, janelaPre) {
 // Guarda a última venda de cada caixa (localStorage, sobrevive a reload) — pra
 // reimprimir o recibo comum sob demanda (tecla "I"), já que venda sem nota fiscal
 // não imprime mais nada sozinha.
-function salvarUltimaVendaCaixaUI(snapshot, formaResumo) {
+function salvarUltimaVendaCaixaUI(snapshot, formaResumo, pgtoFaturado) {
   try {
-    localStorage.setItem(`pp_ultima_venda_caixa_${CAIXA_LOCAL_ID}`, JSON.stringify({ snapshot, formaResumo }));
+    // Guarda também o pagamento em Faturado (se teve) — pra reimprimir o comprovante
+    // de autorização junto com o recibo comum, não só o recibo.
+    localStorage.setItem(`pp_ultima_venda_caixa_${CAIXA_LOCAL_ID}`, JSON.stringify({
+      snapshot, formaResumo,
+      faturado: pgtoFaturado?.cliente_documento ? { nome: pgtoFaturado.cliente_nome, documento: pgtoFaturado.cliente_documento, valor: pgtoFaturado.valor } : null,
+    }));
   } catch (e) { /* localStorage cheio ou indisponível — não trava a venda por causa disso */ }
 }
 
 // Tecla "I" — só na tela de comandas (o caixa), reimprime o recibo comum da última
 // venda fechada NESSE caixa (o cliente pediu depois de já ter saído sem levar nada).
+// Se essa venda foi em Faturado, reimprime também o comprovante de autorização (saldo).
 function reimprimirUltimaVendaCaixaUI() {
   let dado;
   try { dado = JSON.parse(localStorage.getItem(`pp_ultima_venda_caixa_${CAIXA_LOCAL_ID}`) || 'null'); } catch (e) { dado = null; }
   if (!dado) { mostrarToast('Nenhuma venda recente pra reimprimir nesse caixa.', 'warn'); return; }
   imprimirReciboComanda(dado.snapshot, dado.formaResumo);
+  if (dado.faturado) {
+    imprimirAutorizacaoFaturadoUI(dado.faturado.nome, dado.faturado.documento, dado.faturado.valor, dado.snapshot?.itens);
+  }
 }
 
 document.addEventListener('keydown', (e) => {
@@ -7972,7 +7981,7 @@ async function finalizarVendaOfflineUI(comNotaCapturada) {
     // Imprime o recibo comum de qualquer jeito — a nota fiscal (se pedida) só sai
     // depois de reconectar, então não tem DANFE pra mostrar agora.
     if (snapshot) await imprimirReciboComanda(snapshot, formaResumo);
-    if (snapshot && CAIXA_LOCAL_ID) salvarUltimaVendaCaixaUI(snapshot, formaResumo);
+    if (snapshot && CAIXA_LOCAL_ID) salvarUltimaVendaCaixaUI(snapshot, formaResumo, pgtoFaturado);
 
     // Comprovante de autorização (saldo/limite) do Faturado — o saldo mostrado é o de
     // ANTES dessa venda entrar (só soma de verdade quando sincronizar), mas já serve
@@ -8095,7 +8104,7 @@ async function finalizarVendaUI() {
     janelaImpressao?.close();
   }
   if (snapshot && CAIXA_LOCAL_ID) {
-    salvarUltimaVendaCaixaUI(snapshot, formaResumo);
+    salvarUltimaVendaCaixaUI(snapshot, formaResumo, pgtoFaturado);
   }
   // Pagou em "Faturado" com funcionário identificado — imprime o comprovante de
   // autorização (limite/saldo devedor/saldo disponível) em 2 vias: uma pra padaria
