@@ -7895,9 +7895,15 @@ function reimprimirUltimaVendaCaixaUI() {
   let dado;
   try { dado = JSON.parse(localStorage.getItem(`pp_ultima_venda_caixa_${CAIXA_LOCAL_ID}`) || 'null'); } catch (e) { dado = null; }
   if (!dado) { mostrarToast('Nenhuma venda recente pra reimprimir nesse caixa.', 'warn'); return; }
-  imprimirReciboComanda(dado.snapshot, dado.formaResumo);
+  // Abre TODAS as janelas de impressão JÁ, ainda dentro do toque da tecla — recibo e/ou
+  // comprovante do Faturado buscam dado extra na rede antes de imprimir (dados fiscais,
+  // saldo), e o navegador bloqueia pop-up aberta só depois dessa espera.
+  const janelaRecibo = window.open('', '_blank', 'width=380,height=600');
+  const janelaFaturadoLoja = dado.faturado ? window.open('', '_blank', 'width=380,height=600') : null;
+  const janelaFaturadoCliente = dado.faturado ? window.open('', '_blank', 'width=380,height=600') : null;
+  imprimirReciboComanda(dado.snapshot, dado.formaResumo, janelaRecibo);
   if (dado.faturado) {
-    imprimirAutorizacaoFaturadoUI(dado.faturado.nome, dado.faturado.documento, dado.faturado.valor, dado.snapshot?.itens);
+    imprimirAutorizacaoFaturadoUI(dado.faturado.nome, dado.faturado.documento, dado.faturado.valor, dado.snapshot?.itens, janelaFaturadoLoja, janelaFaturadoCliente);
   }
 }
 
