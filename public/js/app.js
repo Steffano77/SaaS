@@ -76,6 +76,18 @@ if (APARELHO_FIXADO_ID && !TOKEN) {
 // explicitamente em "Este aparelho" (aí salva '0' no lugar de simplesmente apagar).
 const TELA_CHEIA_AUTO = localStorage.getItem('pp_tela_cheia_auto') !== '0';
 
+// Nome do caixa travado automaticamente por aparelho, sem precisar configurar nada:
+// quem abre pelo próprio PC do servidor (localhost) é sempre "Caixa 2"; qualquer outro
+// aparelho entrando pela rede local (IP) é sempre "Caixa 1". Detecta sozinho pelo
+// endereço que o navegador usou — evita confusão de qual caixa é qual entre os PCs.
+function detectarNomeCaixaFixoUI() {
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return 'Caixa 2';
+  if (/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host)) return 'Caixa 1';
+  return null; // fora da rede local (ex: nuvem) — não trava nada
+}
+const CAIXA_NOME_FIXO = detectarNomeCaixaFixoUI();
+
 // ── Tela cheia automática (por aparelho) ──────────────────────────
 // Entra em tela cheia especificamente ao clicar em "Comandas" no menu — pra se
 // comportar feito um app de verdade, sem sair sozinho por acidente (só com Esc).
@@ -136,7 +148,6 @@ function abrirModalConfigAparelho() {
   document.getElementById('cfg-modo-balcao').checked = MODO_BALCAO;
   document.getElementById('cfg-modo-lancamento').checked = MODO_LANCAMENTO;
   document.getElementById('cfg-tela-cheia').checked = TELA_CHEIA_AUTO;
-  document.getElementById('cfg-caixa-nome-fixo').value = localStorage.getItem('pp_caixa_nome_fixo') || '';
   const fixado = !!APARELHO_FIXADO_ID;
   document.getElementById('bloco-fixar-caixa-off').classList.toggle('hidden', fixado);
   document.getElementById('bloco-fixar-caixa-on').classList.toggle('hidden', !fixado);
@@ -285,11 +296,9 @@ function salvarConfigAparelho() {
   const balcao = document.getElementById('cfg-modo-balcao').checked;
   const lancamento = document.getElementById('cfg-modo-lancamento').checked;
   const telaCheia = document.getElementById('cfg-tela-cheia').checked;
-  const caixaNomeFixo = document.getElementById('cfg-caixa-nome-fixo').value.trim();
   if (balcao) localStorage.setItem('pp_modo_balcao', '1'); else localStorage.removeItem('pp_modo_balcao');
   if (lancamento) localStorage.setItem('pp_modo_lancamento', '1'); else localStorage.removeItem('pp_modo_lancamento');
   if (telaCheia) localStorage.removeItem('pp_tela_cheia_auto'); else localStorage.setItem('pp_tela_cheia_auto', '0');
-  if (caixaNomeFixo) localStorage.setItem('pp_caixa_nome_fixo', caixaNomeFixo); else localStorage.removeItem('pp_caixa_nome_fixo');
   location.reload();
 }
 
@@ -5245,9 +5254,9 @@ async function abrirModalCaixa(modo) {
 
   if (modo === 'abrir') {
     titulo.textContent = '💰 Abrir caixa';
-    // Aparelho com nome fixo configurado (ver "Este aparelho") sempre abre com esse
+    // Aparelho detectado automaticamente (servidor ou rede local) sempre abre com esse
     // nome, travado — evita confusão de qual caixa é qual entre os aparelhos.
-    const nomeFixo = localStorage.getItem('pp_caixa_nome_fixo') || '';
+    const nomeFixo = CAIXA_NOME_FIXO || '';
     const sugestao = nomeFixo || await sugerirNomeCaixa();
     corpo.innerHTML = `
       <div class="form-group">
