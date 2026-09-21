@@ -7891,20 +7891,22 @@ function salvarUltimaVendaCaixaUI(snapshot, formaResumo, pgtoFaturado) {
 // Tecla "I" — só na tela de comandas (o caixa), reimprime o recibo comum da última
 // venda fechada NESSE caixa (o cliente pediu depois de já ter saído sem levar nada).
 // Se essa venda foi em Faturado, reimprime também o comprovante de autorização (saldo).
-function reimprimirUltimaVendaCaixaUI() {
+async function reimprimirUltimaVendaCaixaUI() {
   let dado;
   try { dado = JSON.parse(localStorage.getItem(`pp_ultima_venda_caixa_${CAIXA_LOCAL_ID}`) || 'null'); } catch (e) { dado = null; }
   if (!dado) { mostrarToast('Nenhuma venda recente pra reimprimir nesse caixa.', 'warn'); return; }
-  // Abre TODAS as janelas de impressão JÁ, ainda dentro do toque da tecla — recibo e/ou
-  // comprovante do Faturado buscam dado extra na rede antes de imprimir (dados fiscais,
-  // saldo), e o navegador bloqueia pop-up aberta só depois dessa espera.
-  const janelaRecibo = window.open('', '_blank', 'width=380,height=600');
-  const janelaFaturadoLoja = dado.faturado ? window.open('', '_blank', 'width=380,height=600') : null;
-  const janelaFaturadoCliente = dado.faturado ? window.open('', '_blank', 'width=380,height=600') : null;
-  imprimirReciboComanda(dado.snapshot, dado.formaResumo, janelaRecibo);
+  // Abre UMA ÚNICA janela de impressão JÁ, ainda dentro do toque da tecla, e reaproveita
+  // ela pra imprimir o recibo + (se for o caso) as 2 vias do Faturado em sequência — em
+  // vez de abrir uma pop-up por papel, que alguns navegadores/computadores bloqueiam de
+  // forma inconsistente mesmo dentro do mesmo toque (bug real, visto na prática).
+  const janela = window.open('', '_blank', 'width=380,height=600');
+  const corpoRecibo = await montarCorpoReciboComanda(dado.snapshot, dado.formaResumo);
+  const corpos = [corpoRecibo];
   if (dado.faturado) {
-    imprimirAutorizacaoFaturadoUI(dado.faturado.nome, dado.faturado.documento, dado.faturado.valor, dado.snapshot?.itens, janelaFaturadoLoja, janelaFaturadoCliente);
+    const vias = await montarViasAutorizacaoFaturado(dado.faturado.nome, dado.faturado.documento, dado.faturado.valor, dado.snapshot?.itens);
+    if (vias) corpos.push(...vias);
   }
+  await imprimirSequenciaTermicaUI(janela, corpos);
 }
 
 document.addEventListener('keydown', (e) => {
@@ -8180,12 +8182,43 @@ function abrirJanelaImpressaoTermica(bodyHtml, janelaPre) {
   w.focus();
 }
 
-// Comprovante de autorização do Faturado (parecido com um comprovante de
-// cartão/fidelidade) — mostra limite, saldo devedor e saldo disponível do funcionário
-// na hora da compra, pra conferência. Sai em 2 vias: uma da padaria, uma do cliente.
-async function imprimirAutorizacaoFaturadoUI(nomeCliente, documento, valor, itens, janelaPreLoja, janelaPreCliente) {
+// Imprime vários papéis em sequência (ex: recibo + as 2 vias do Faturado) reaproveitando
+// UMA ÚNICA janela pra tudo, em vez de abrir uma pop-up por papel — várias pop-ups de
+// uma vez, mesmo dentro do mesmo clique/tecla, são bloqueadas de forma inconsistente
+// dependendo do navegador/config de cada computador (visto na prática, bug real). Chama
+// print() direto (não confia no onload, que não dispara de novo em janela reaproveitada).
+async function imprimirSequenciaTermicaUI(janela, corpos) {
+  if (!janela) { mostrarToast('O navegador bloqueou a janela de impressão — permite pop-up nesse site.', 'warn'); return; }
+  for (const bodyHtml of corpos) {
+    if (janela.closed) return;
+    janela.document.write(`<!doctype html><html><head><meta charset="utf-8">
+      <style>
+        @page { size: 80mm auto; margin: 0; }
+        * { box-sizing: border-box; }
+        body { width: 72mm; margin: 0 auto; padding: 6px 4px; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; color: #000; }
+        h1 { font-size: 15px; text-align: center; margin: 0 0 2px; font-weight: 800; }
+        .sub { text-align: center; font-size: 11px; margin-bottom: 8px; }
+        hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
+        .linha { display: flex; justify-content: space-between; gap: 6px; margin: 3px 0; }
+        .linha .qtd { flex-shrink: 0; }
+        .linha .nome { flex: 1; }
+        .linha .valor { flex-shrink: 0; text-align: right; }
+        .total { font-size: 14px; font-weight: bold; display: flex; justify-content: space-between; margin-top: 6px; }
+        .rodape { text-align: center; font-size: 10px; margin-top: 10px; }
+      </style></head><body>${bodyHtml}</body></html>`);
+    janela.document.close();
+    try { janela.focus(); janela.print(); } catch (e) { /* janela pode ter sido fechada nesse meio-tempo */ }
+    await new Promise(resolve => setTimeout(resolve, 1500));
+  }
+  try { janela.close(); } catch (e) {}
+}
+
+// Monta as 2 vias do comprovante de autorização (sem abrir janela nenhuma) — separado
+// do "imprimir" pra poder reaproveitar numa impressão em sequência (ver reimprimirUltimaVendaCaixaUI).
+// Retorna null se não conseguir buscar o saldo (cliente sumiu do cadastro, sem rede etc).
+async function montarViasAutorizacaoFaturado(nomeCliente, documento, valor, itens) {
   const saldoInfo = await api(`/clientes-faturado/documento/${documento}/saldo`);
-  if (!saldoInfo) return; // não trava a venda por causa disso — venda já fechou
+  if (!saldoInfo) return null;
   const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
   const agora = new Date().toLocaleString('pt-BR');
   const transacaoId = 'FAT-' + Date.now().toString(36).toUpperCase();
@@ -8219,8 +8252,17 @@ async function imprimirAutorizacaoFaturadoUI(nomeCliente, documento, valor, iten
     <hr/>
     <div class="rodape">${titulo}</div>
   `;
-  abrirJanelaImpressaoTermica(via('VIA DA LOJA'), janelaPreLoja);
-  abrirJanelaImpressaoTermica(via('VIA DO CLIENTE'), janelaPreCliente);
+  return [via('VIA DA LOJA'), via('VIA DO CLIENTE')];
+}
+
+// Comprovante de autorização do Faturado (parecido com um comprovante de
+// cartão/fidelidade) — mostra limite, saldo devedor e saldo disponível do funcionário
+// na hora da compra, pra conferência. Sai em 2 vias: uma da padaria, uma do cliente.
+async function imprimirAutorizacaoFaturadoUI(nomeCliente, documento, valor, itens, janelaPreLoja, janelaPreCliente) {
+  const vias = await montarViasAutorizacaoFaturado(nomeCliente, documento, valor, itens);
+  if (!vias) return; // não trava a venda por causa disso — venda já fechou
+  abrirJanelaImpressaoTermica(vias[0], janelaPreLoja);
+  abrirJanelaImpressaoTermica(vias[1], janelaPreCliente);
 }
 
 // Ficha pra cozinha/produção — sem valores, só os itens pra separar/preparar
@@ -8256,7 +8298,9 @@ async function buscarDadosFiscaisUI() {
   return _dadosFiscaisCache;
 }
 
-async function imprimirReciboComanda(c, forma_pagamento, janelaPre) {
+// Monta só o HTML do recibo (sem abrir janela nenhuma) — separado do "imprimir" pra
+// poder reaproveitar esse corpo numa impressão em sequência (ver reimprimirUltimaVendaCaixaUI).
+async function montarCorpoReciboComanda(c, forma_pagamento) {
   const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
   const agora = new Date();
   const linhas = c.itens.map(i => `
@@ -8285,7 +8329,7 @@ async function imprimirReciboComanda(c, forma_pagamento, janelaPre) {
         <span class="valor">${fmtMoeda(i.subtotal)}</span>
       </div>
     `).join('');
-    abrirJanelaImpressaoTermica(`
+    return `
       <h1>${(d.nfce_razao_social || nomePadaria).toUpperCase()}</h1>
       ${endereco ? `<div class="sub">${endereco}</div>` : ''}
       ${cidadeUf ? `<div class="sub">${cidadeUf}</div>` : ''}
@@ -8304,15 +8348,14 @@ async function imprimirReciboComanda(c, forma_pagamento, janelaPre) {
       <div class="total"><span>TOTAL</span><span>${fmtMoeda(total)}</span></div>
       <div class="sub" style="margin-top:4px;">Pagamento: Faturado</div>
       <div class="rodape">Obrigado pela preferência!</div>
-    `, janelaPre);
-    return;
+    `;
   }
 
   const linhaCliente = c.cliente_nome
     ? `<div class="sub" style="text-align:left;margin-top:6px;">Cliente: ${c.cliente_nome}</div>
        <div class="sub" style="text-align:left;">Documento: ${formatarCnpjUI(c.cliente_documento)}</div>`
     : '';
-  abrirJanelaImpressaoTermica(`
+  return `
     <h1>${nomePadaria}</h1>
     <div class="sub">Comanda ${c.identificador} · ${agora.toLocaleString('pt-BR')}</div>
     ${linhaCliente}
@@ -8322,7 +8365,12 @@ async function imprimirReciboComanda(c, forma_pagamento, janelaPre) {
     <div class="total"><span>TOTAL</span><span>${fmtMoeda(total)}</span></div>
     <div class="sub" style="margin-top:4px;">Pagamento: ${forma_pagamento}</div>
     <div class="rodape">Obrigado pela preferência!</div>
-  `, janelaPre);
+  `;
+}
+
+async function imprimirReciboComanda(c, forma_pagamento, janelaPre) {
+  const corpo = await montarCorpoReciboComanda(c, forma_pagamento);
+  abrirJanelaImpressaoTermica(corpo, janelaPre);
 }
 
 // Busca rápida por número/identificação da comanda (estilo "Digite ou passe a comanda" do PDV)
