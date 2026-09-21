@@ -232,6 +232,7 @@ router.post('/caixa/:id/sangria',   auth, authPremium, wrap(caixaCtrl.sangria));
 router.post('/caixa/:id/pausar',    auth, authPremium, wrap(caixaCtrl.pausar));
 router.post('/caixa/:id/retomar',   auth, authPremium, exigirFuncionario(['caixa','gerente']), wrap(caixaCtrl.retomar));
 router.post('/caixa/:id/suprimento',auth, authPremium, wrap(caixaCtrl.suprimento));
+router.post('/caixa/:id/despesa',   auth, authPremium, wrap(caixaCtrl.despesa));
 
 // Atendentes — Premium apenas
 router.get('/atendentes',                auth, authPremium, wrap(atendenteCtrl.listar));

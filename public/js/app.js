@@ -136,6 +136,7 @@ function abrirModalConfigAparelho() {
   document.getElementById('cfg-modo-balcao').checked = MODO_BALCAO;
   document.getElementById('cfg-modo-lancamento').checked = MODO_LANCAMENTO;
   document.getElementById('cfg-tela-cheia').checked = TELA_CHEIA_AUTO;
+  document.getElementById('cfg-caixa-nome-fixo').value = localStorage.getItem('pp_caixa_nome_fixo') || '';
   const fixado = !!APARELHO_FIXADO_ID;
   document.getElementById('bloco-fixar-caixa-off').classList.toggle('hidden', fixado);
   document.getElementById('bloco-fixar-caixa-on').classList.toggle('hidden', !fixado);
@@ -284,9 +285,11 @@ function salvarConfigAparelho() {
   const balcao = document.getElementById('cfg-modo-balcao').checked;
   const lancamento = document.getElementById('cfg-modo-lancamento').checked;
   const telaCheia = document.getElementById('cfg-tela-cheia').checked;
+  const caixaNomeFixo = document.getElementById('cfg-caixa-nome-fixo').value.trim();
   if (balcao) localStorage.setItem('pp_modo_balcao', '1'); else localStorage.removeItem('pp_modo_balcao');
   if (lancamento) localStorage.setItem('pp_modo_lancamento', '1'); else localStorage.removeItem('pp_modo_lancamento');
   if (telaCheia) localStorage.removeItem('pp_tela_cheia_auto'); else localStorage.setItem('pp_tela_cheia_auto', '0');
+  if (caixaNomeFixo) localStorage.setItem('pp_caixa_nome_fixo', caixaNomeFixo); else localStorage.removeItem('pp_caixa_nome_fixo');
   location.reload();
 }
 
@@ -5227,6 +5230,7 @@ async function abrirPainelCaixaUI() {
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
         <button class="btn-ghost full" onclick="abrirModalCaixa('sangria')">💸 Sangria</button>
         <button class="btn-ghost full" onclick="abrirModalCaixa('suprimento')">💰 Suprimento</button>
+        <button class="btn-ghost full" onclick="abrirModalCaixa('despesa')">📝 Lançar despesa</button>
         <button class="btn-ghost full" onclick="pausarCaixaUI()">⏸️ Pausar caixa</button>
         <button class="btn-primary full" style="background:#dc2626;" onclick="abrirModalCaixa('fechar')">Fechar caixa</button>
       </div>
@@ -5241,11 +5245,15 @@ async function abrirModalCaixa(modo) {
 
   if (modo === 'abrir') {
     titulo.textContent = '💰 Abrir caixa';
-    const sugestao = await sugerirNomeCaixa();
+    // Aparelho com nome fixo configurado (ver "Este aparelho") sempre abre com esse
+    // nome, travado — evita confusão de qual caixa é qual entre os aparelhos.
+    const nomeFixo = localStorage.getItem('pp_caixa_nome_fixo') || '';
+    const sugestao = nomeFixo || await sugerirNomeCaixa();
     corpo.innerHTML = `
       <div class="form-group">
         <label class="form-label">Nome deste caixa</label>
-        <input id="caixa-nome" type="text" class="form-control" value="${sugestao}" placeholder="Ex: Caixa 1"/>
+        <input id="caixa-nome" type="text" class="form-control" value="${sugestao}" placeholder="Ex: Caixa 1" ${nomeFixo ? 'readonly style="background:var(--slate-100);cursor:not-allowed;"' : ''}/>
+        ${nomeFixo ? '<p style="font-size:11.5px;color:var(--slate-500);margin-top:4px;">Nome travado pra esse aparelho (mexe em "Este aparelho" se precisar trocar).</p>' : ''}
       </div>
       <div class="form-group">
         <label class="form-label">Valor inicial (troco em caixa)</label>
@@ -5262,17 +5270,23 @@ async function abrirModalCaixa(modo) {
       <button class="btn-primary full" style="margin-top:6px;" onclick="confirmarAbrirCaixa()">Abrir caixa</button>
     `;
     await carregarAtendentesSelect('caixa-atendente');
-  } else if (modo === 'sangria' || modo === 'suprimento') {
-    const label = modo === 'sangria' ? 'Sangria (retirar dinheiro do caixa)' : 'Suprimento (colocar dinheiro no caixa)';
-    titulo.textContent = modo === 'sangria' ? '💸 Sangria' : '💰 Suprimento';
+  } else if (modo === 'sangria' || modo === 'suprimento' || modo === 'despesa') {
+    const label = modo === 'sangria' ? 'Sangria (retirar dinheiro do caixa)'
+      : modo === 'suprimento' ? 'Suprimento (colocar dinheiro no caixa)'
+      : 'Despesa (dinheiro que saiu da gaveta agora)';
+    titulo.textContent = modo === 'sangria' ? '💸 Sangria' : modo === 'suprimento' ? '💰 Suprimento' : '📝 Lançar despesa';
+    // Despesa exige descrição (pra saber depois o que foi, sem precisar do papelzinho
+    // do fornecedor) — sangria/suprimento continuam com motivo opcional.
+    const obsLabel = modo === 'despesa' ? 'O que foi (obrigatório)' : 'Motivo (opcional)';
+    const obsPlaceholder = modo === 'despesa' ? 'Ex: gás, embalagem, entregador...' : 'Ex: pagamento fornecedor, troco...';
     corpo.innerHTML = `
       <div class="form-group">
         <label class="form-label">${label}</label>
         <input id="caixa-mov-valor" type="number" class="form-control" min="0.01" step="0.01" placeholder="0,00"/>
       </div>
       <div class="form-group">
-        <label class="form-label">Motivo (opcional)</label>
-        <input id="caixa-mov-obs" type="text" class="form-control" placeholder="Ex: pagamento fornecedor, troco..."/>
+        <label class="form-label">${obsLabel}</label>
+        <input id="caixa-mov-obs" type="text" class="form-control" placeholder="${obsPlaceholder}"/>
       </div>
       <button class="btn-primary full" style="margin-top:6px;" onclick="confirmarMovimentoCaixa('${modo}')">Confirmar</button>
     `;
@@ -5411,11 +5425,13 @@ async function confirmarAbrirCaixa() {
 
 async function confirmarMovimentoCaixa(tipo) {
   const valor = document.getElementById('caixa-mov-valor').value;
-  const observacao = document.getElementById('caixa-mov-obs').value;
+  const observacao = document.getElementById('caixa-mov-obs').value.trim();
   if (!valor || parseFloat(valor) <= 0) { mostrarToast('Informe um valor válido.', 'warn'); return; }
+  if (tipo === 'despesa' && !observacao) { mostrarToast('Descreve o que foi essa despesa.', 'warn'); return; }
   const r = await api(`/caixa/${CAIXA_LOCAL_ID}/${tipo}`, { method: 'POST', body: { valor, observacao } });
   if (!r) return;
-  mostrarToast(tipo === 'sangria' ? 'Sangria registrada.' : 'Suprimento registrado.', 'ok');
+  const msg = tipo === 'sangria' ? 'Sangria registrada.' : tipo === 'suprimento' ? 'Suprimento registrado.' : 'Despesa lançada — já entra na conta do fechamento.';
+  mostrarToast(msg, 'ok');
   document.getElementById('modal-caixa').classList.add('hidden');
   await carregarCaixaFaixa();
 }

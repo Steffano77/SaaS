@@ -305,3 +305,25 @@ exports.suprimento = async (req, res) => {
   );
   res.status(201).json({ ok: true });
 };
+
+// Despesa lançada na hora que acontece (não só na hora de fechar) — pensado pra
+// atendente não precisar guardar papelzinho de fornecedor até o fim do turno, já
+// que isso se perde fácil. Mesma tabela/efeito da despesa lançada no fechamento.
+exports.despesa = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const { valor, observacao } = req.body;
+  const descricao = String(observacao || '').trim();
+  if (!valor || valor <= 0) return res.status(400).json({ erro: 'Valor inválido.' });
+  if (!descricao) return res.status(400).json({ erro: 'Descreve o que foi essa despesa.' });
+
+  const [[caixa]] = await db.query(
+    `SELECT id FROM caixas WHERE id = ? AND padaria_id = ? AND status = 'aberto'`, [req.params.id, padaria_id]
+  );
+  if (!caixa) return res.status(404).json({ erro: 'Caixa não encontrado ou já fechado.' });
+
+  await db.query(
+    `INSERT INTO caixa_movimentos (caixa_id, tipo, valor, observacao) VALUES (?, 'despesa', ?, ?)`,
+    [caixa.id, valor, descricao]
+  );
+  res.status(201).json({ ok: true });
+};
