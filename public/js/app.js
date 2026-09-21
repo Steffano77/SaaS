@@ -7903,8 +7903,13 @@ function reimprimirUltimaVendaCaixaUI() {
 
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'i' && e.key !== 'I') return;
+  // Funciona tanto na lista de comandas quanto na tela de venda de balcão — em modo
+  // caixa, depois de fechar uma venda o sistema já pula direto pra próxima venda em
+  // branco (nunca passa pela lista), então travar isso só na lista deixava a tecla
+  // morta bem na tela que a atendente mais usa no dia a dia.
   const telaComandas = !document.getElementById('pg-comandas')?.classList.contains('hidden');
-  if (!telaComandas) return;
+  const modalVenda = !document.getElementById('modal-comanda')?.classList.contains('hidden');
+  if (!telaComandas && !modalVenda) return;
   const el = document.activeElement;
   const digitando = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
   if (digitando) return;
