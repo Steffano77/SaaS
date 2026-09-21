@@ -7930,19 +7930,30 @@ async function finalizarVendaOfflineUI(comNotaCapturada) {
     // confirmarBonito ela pode ser bloqueada em silêncio pelo navegador.
     const temDinheiro = comandaPagamentosPendentes.some(p => p.forma_pagamento === 'Dinheiro');
     const janelaGaveta = temDinheiro ? window.open('', '_blank', 'width=200,height=200') : null;
+    // Pagamento em Faturado com funcionário/cliente identificado — mesmo offline, precisa
+    // vincular certinho (senão o saldo dele nunca sobe) e imprimir o comprovante de
+    // autorização. Abre as 2 janelas JÁ, mesmo motivo da gaveta acima.
+    const pgtoFaturadoPre = comandaPagamentosPendentes.find(p => p.forma_pagamento === 'Faturado' && p.cliente_nome);
+    const janelaFaturadoLoja = pgtoFaturadoPre ? window.open('', '_blank', 'width=380,height=600') : null;
+    const janelaFaturadoCliente = pgtoFaturadoPre ? window.open('', '_blank', 'width=380,height=600') : null;
     const resumo = comandaPagamentosPendentes.map(p => `${p.forma_pagamento}: ${fmtMoeda(p.valor)}`).join(' + ');
-    if (!(await confirmarBonito(`Confirmar recebimento — ${resumo}? (sem internet — nota fiscal, se houver, sai depois de reconectar)`))) { janelaGaveta?.close(); return; }
+    if (!(await confirmarBonito(`Confirmar recebimento — ${resumo}? (sem internet — nota fiscal, se houver, sai depois de reconectar)`))) {
+      janelaGaveta?.close(); janelaFaturadoLoja?.close(); janelaFaturadoCliente?.close(); return;
+    }
 
     const comandaFechadaId = comandaAtualId;
     const snapshot = comandaAtualDados;
     const formaResumo = comandaPagamentosPendentes.map(p => p.forma_pagamento).join(' + ');
+    const pgtoFaturado = comandaPagamentosPendentes.find(p => p.forma_pagamento === 'Faturado' && p.cliente_nome);
 
     _filaOfflineFechamentos.push({
       comandaId: comandaFechadaId,
       comNota: comNotaCapturada,
       body: {
         pagamentos: comandaPagamentosPendentes, caixa_id: CAIXA_LOCAL_ID,
-        cliente_nome: null, cliente_documento: null, cpf_nota: _cpfNotaSelecionado || null,
+        cliente_nome: pgtoFaturado?.cliente_nome || null,
+        cliente_documento: pgtoFaturado?.cliente_documento || null,
+        cpf_nota: _cpfNotaSelecionado || null,
       },
     });
     _salvarFilaFechamentosOffline();
@@ -7962,6 +7973,16 @@ async function finalizarVendaOfflineUI(comNotaCapturada) {
     // depois de reconectar, então não tem DANFE pra mostrar agora.
     if (snapshot) await imprimirReciboComanda(snapshot, formaResumo);
     if (snapshot && CAIXA_LOCAL_ID) salvarUltimaVendaCaixaUI(snapshot, formaResumo);
+
+    // Comprovante de autorização (saldo/limite) do Faturado — o saldo mostrado é o de
+    // ANTES dessa venda entrar (só soma de verdade quando sincronizar), mas já serve
+    // de comprovante pra loja e pro funcionário levarem consigo.
+    if (pgtoFaturado?.cliente_documento) {
+      imprimirAutorizacaoFaturadoUI(pgtoFaturado.cliente_nome, pgtoFaturado.cliente_documento, pgtoFaturado.valor, snapshot?.itens, janelaFaturadoLoja, janelaFaturadoCliente);
+    } else {
+      janelaFaturadoLoja?.close();
+      janelaFaturadoCliente?.close();
+    }
 
     resetEscolhaNFCe();
     _cpfNotaSelecionado = null;
