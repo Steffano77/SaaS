@@ -132,13 +132,17 @@ async function atualizarCatalogo() {
 
     // Clientes faturado — só o cadastro (nome/CNPJ-CPF/limite); o saldo devedor é sempre
     // calculado a partir dos pagamentos "Faturado" registrados, não precisa sincronizar.
+    // NÃO usa o "id" da nuvem aqui — local e nuvem têm contadores de id independentes, e
+    // um id da nuvem pode coincidir por acaso com o id de OUTRO cliente já cadastrado local
+    // (bug real: sobrescreveu o nome de um cliente local com o de outro sem relação nenhuma,
+    // só por coincidência de número). Casa pelo CNPJ/CPF (único de verdade) em vez do id.
     for (const c of clientesFaturado || []) {
       await db.query(
-        `INSERT INTO clientes_faturado (id, padaria_id, cnpj, nome, endereco, telefone, tipo, limite)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO clientes_faturado (padaria_id, cnpj, nome, endereco, telefone, tipo, limite)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE nome = VALUES(nome), endereco = VALUES(endereco),
            telefone = VALUES(telefone), tipo = VALUES(tipo), limite = VALUES(limite)`,
-        [c.id, padariaId, c.cnpj, c.nome, c.endereco, c.telefone, c.tipo, c.limite]
+        [padariaId, c.cnpj, c.nome, c.endereco, c.telefone, c.tipo, c.limite]
       );
     }
 
