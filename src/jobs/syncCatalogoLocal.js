@@ -162,6 +162,14 @@ function iniciarJobSyncCatalogoLocal() {
   const intervaloSeg = parseInt(process.env.SYNC_CATALOGO_INTERVALO_SEGUNDOS, 10)
     || (parseInt(process.env.SYNC_CATALOGO_INTERVALO_MINUTOS, 10) || 15) * 60;
   if (!process.env.SYNC_CLOUD_URL) return; // servidor normal (produção) — não ativa esse job
+  // Desligado por decisão do dono: agora tudo (produto, estoque, atendente, cliente
+  // Faturado) é cadastrado só no servidor local (inclusive de longe, via Tailscale) — essa
+  // sincronização vinda da nuvem só estava "corrigindo" exclusões/edições feitas aqui de
+  // volta pros dados antigos da nuvem. Pra reativar, é só tirar essa variável do .env.
+  if (process.env.SYNC_CATALOGO_DESATIVADO === '1') {
+    console.log('[sync-catalogo-local] Desativado por configuração (SYNC_CATALOGO_DESATIVADO=1) — servidor local é a fonte única de verdade agora.');
+    return;
+  }
 
   console.log(`[sync-catalogo-local] Ativado — buscando catálogo a cada ${intervaloSeg}s de ${process.env.SYNC_CLOUD_URL}`);
   atualizarCatalogo(); // já busca assim que liga, sem esperar o primeiro intervalo
