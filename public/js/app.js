@@ -7258,21 +7258,30 @@ function cartaoClienteFaturadoHtml(c) {
   const saldo = parseFloat(c.saldo_devedor || 0);
   const limite = parseFloat(c.limite || 0);
   const estourado = ehFuncionario && saldo >= limite && limite > 0;
+  const nomeEsc = (c.nome || '').replace(/'/g, "\\'");
   return `
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border:1px solid var(--slate-200,#e2e8f0);border-radius:10px;">
-      <div>
-        <div style="font-weight:700;font-size:13.5px;">${ehFuncionario ? '👤' : '🏢'} ${c.nome}</div>
-        <div style="font-size:12px;color:var(--slate-500);">${formatarCnpjUI(c.cnpj)}${c.telefone ? ' · ' + c.telefone : ''}</div>
-        ${c.endereco ? `<div style="font-size:12px;color:var(--slate-500);">${c.endereco}</div>` : ''}
-        ${ehFuncionario ? `<div style="font-size:12px;font-weight:600;color:${estourado ? '#dc2626' : 'var(--orange)'};margin-top:2px;">Saldo: ${fmtMoeda(saldo)} / ${fmtMoeda(limite)}${estourado ? ' — limite estourado' : ''}</div>` : ''}
+    <div style="display:flex;flex-direction:column;gap:8px;padding:12px 14px;border:1px solid var(--slate-200,#e2e8f0);border-radius:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div>
+          <div style="font-weight:700;font-size:13.5px;">${ehFuncionario ? '👤' : '🏢'} ${c.nome}</div>
+          <div style="font-size:12px;color:var(--slate-500);">${formatarCnpjUI(c.cnpj)}${c.telefone ? ' · ' + c.telefone : ''}</div>
+          ${c.endereco ? `<div style="font-size:12px;color:var(--slate-500);">${c.endereco}</div>` : ''}
+          ${ehFuncionario ? `<div style="font-size:12px;font-weight:600;color:${estourado ? '#dc2626' : 'var(--orange)'};margin-top:2px;">Saldo: ${fmtMoeda(saldo)} / ${fmtMoeda(limite)}${estourado ? ' — limite estourado' : ''}</div>` : ''}
+          ${!ehFuncionario && saldo > 0 ? `<div style="font-size:12px;font-weight:600;color:var(--orange);margin-top:2px;">Saldo: ${fmtMoeda(saldo)}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
+          <button class="btn-icon" title="Extrato / imprimir" onclick="abrirExtratoFaturadoUI('${c.cnpj}','${nomeEsc}')">📋</button>
+          ${ehFuncionario ? `<button class="btn-icon" title="Imprimir comprovante pro RH (nome + valor gasto + saldo)" onclick="imprimirComprovanteRhUI('${nomeEsc}',${saldo},${limite})">🧾</button>` : ''}
+          ${saldo > 0 ? `<button class="btn-icon" title="Dar baixa (marcar como pago)" onclick="darBaixaFaturadoUI('${c.cnpj}','${nomeEsc}')">💰</button>` : ''}
+          <button class="btn-icon" title="Editar" onclick="editarClienteFaturadoUI(${c.id},'${nomeEsc}','${(c.endereco||'').replace(/'/g,"\\'")}','${(c.telefone||'').replace(/'/g,"\\'")}','${c.tipo}',${limite})">✏️</button>
+          <button class="btn-icon" title="Excluir" onclick="excluirClienteFaturadoUI(${c.id})">🗑️</button>
+        </div>
       </div>
-      <div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
-        <button class="btn-icon" title="Extrato / imprimir" onclick="abrirExtratoFaturadoUI('${c.cnpj}','${(c.nome||'').replace(/'/g,"\\'")}')">📋</button>
-        ${ehFuncionario ? `<button class="btn-icon" title="Imprimir comprovante pro RH (nome + valor gasto + saldo)" onclick="imprimirComprovanteRhUI('${c.nome.replace(/'/g,"\\'")}',${saldo},${limite})">🧾</button>` : ''}
-        ${saldo > 0 ? `<button class="btn-icon" title="Dar baixa (marcar como pago)" onclick="darBaixaFaturadoUI('${c.cnpj}','${(c.nome||'').replace(/'/g,"\\'")}')">💰</button>` : ''}
-        <button class="btn-icon" title="Editar" onclick="editarClienteFaturadoUI(${c.id},'${(c.nome||'').replace(/'/g,"\\'")}','${(c.endereco||'').replace(/'/g,"\\'")}','${(c.telefone||'').replace(/'/g,"\\'")}','${c.tipo}',${limite})">✏️</button>
-        <button class="btn-icon" title="Excluir" onclick="excluirClienteFaturadoUI(${c.id})">🗑️</button>
-      </div>
+      ${!ehFuncionario && saldo > 0 ? (
+        c.lancado
+          ? `<span style="display:inline-flex;align-items:center;gap:5px;background:#eff6ff;color:#2563eb;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;align-self:flex-start;">📨 Lançado — aguardando pagamento</span>`
+          : `<button class="btn-secondary" style="font-size:11.5px;padding:7px 10px;" onclick="fecharECobrarEmpresaUI('${c.cnpj}','${nomeEsc}',${saldo})">🧾 Fechar e cobrar</button>`
+      ) : ''}
     </div>
   `;
 }
@@ -7507,6 +7516,53 @@ async function darBaixaFaturadoUI(documento, nome) {
   const r = await api(`/clientes-faturado/documento/${documento}/liquidar`, { method: 'POST' });
   if (!r) return;
   mostrarToast(`Fatura de ${nome} quitada!`, 'ok');
+  abrirClientesFaturado();
+}
+
+// "Fechar e cobrar" — só pra empresa (CNPJ). Marca os consumos em aberto como "lançados"
+// (SEM zerar o saldo — isso só acontece de verdade quando a empresa pagar e você confirmar
+// em "Dar baixa") e imprime o extrato detalhado pra levar/mandar cobrar.
+async function fecharECobrarEmpresaUI(documento, nome, saldo) {
+  const linhas = await api(`/clientes-faturado/documento/${documento}/extrato`);
+  if (!linhas) return;
+  const abertas = linhas.filter(l => !l.quitado_em);
+  if (!abertas.length) { mostrarToast('Nada em aberto pra cobrar.', 'warn'); return; }
+  const ok = await confirmarBonito(
+    `Fechar e cobrar — ${nome}\n\n${abertas.length} consumo(s) em aberto, total ${fmtMoeda(saldo)}.\n\n` +
+    `Isso imprime o extrato pra você levar/mandar cobrar, e marca como "Lançado — aguardando pagamento".\n\n` +
+    `O saldo NÃO zera agora — só quando confirmar o pagamento depois em "Dar baixa".`
+  );
+  if (!ok) return;
+  // Abre a janela de impressão JÁ, ainda dentro do clique — antes de qualquer espera de
+  // rede, senão o navegador pode bloquear a pop-up (mesmo bug já visto no Faturado).
+  const janela = window.open('', '_blank', 'width=380,height=600');
+  const r = await api(`/clientes-faturado/documento/${documento}/lancar`, { method: 'POST' });
+  if (!r) { janela?.close(); return; }
+  const fd = await buscarDadosFiscaisUI();
+  const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
+  const razaoSocial = (fd.nfce_razao_social || nomePadaria).toUpperCase();
+  const endereco = [fd.nfce_logradouro, fd.nfce_numero].filter(Boolean).join(', ');
+  const cidadeUf = [fd.nfce_bairro, [fd.nfce_municipio, fd.nfce_uf].filter(Boolean).join('/')].filter(Boolean).join(' — ');
+  const cnpjIe = `${fd.cnpj ? 'CNPJ ' + formatarCnpjUI(fd.cnpj) : ''}${fd.nfce_inscricao_estadual ? ' · IE ' + fd.nfce_inscricao_estadual : ''}`;
+  const linhasHtml = abertas.map(l =>
+    `<div class="linha"><span class="nome">${fmtDataHoraBR(l.fechada_em)} Comanda ${l.identificador}</span><span class="valor">${fmtMoeda(l.valor)}</span></div>`
+  ).join('');
+  abrirJanelaImpressaoTermica(`
+    <h1>${razaoSocial}</h1>
+    ${endereco ? `<div class="sub">${endereco}</div>` : ''}
+    ${cidadeUf ? `<div class="sub">${cidadeUf}</div>` : ''}
+    ${cnpjIe ? `<div class="sub">${cnpjIe}</div>` : ''}
+    <div class="sub">Extrato de Faturado · ${new Date().toLocaleDateString('pt-BR')}</div>
+    <hr/>
+    <div class="sub" style="text-align:left;font-weight:800;">${nome}</div>
+    <div class="sub" style="text-align:left;">${formatarCnpjUI(documento)}</div>
+    <hr/>
+    ${linhasHtml}
+    <hr/>
+    <div class="total"><span>TOTAL A COBRAR</span><span>${fmtMoeda(saldo)}</span></div>
+    <div class="rodape">LANÇADO — aguardando pagamento<br/>Referente ao período fechado hoje</div>
+  `, janela);
+  mostrarToast(`${nome} marcado como lançado — extrato impresso.`, 'ok');
   abrirClientesFaturado();
 }
 

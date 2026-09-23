@@ -519,6 +519,10 @@ app.use(express.static(path.join(__dirname, '../public'), {
         iniciado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (padaria_id, comanda_id)
       )`,
+      // "Fechar e cobrar" (empresas CNPJ do Faturado): marca os consumos em aberto como
+      // "lançados" (cobrança já enviada/impressa) sem quitar o saldo — só a confirmação
+      // de pagamento (baixa) que zera de verdade. Só informativo, não trava nada.
+      'ALTER TABLE comanda_pagamentos ADD COLUMN lancado_em DATETIME NULL',
     ];
     // Uma de cada vez, não todas juntas: num banco novinho (primeira vez rodando,
     // ex: servidor local de teste), várias dessas ALTER TABLE mexem na MESMA tabela

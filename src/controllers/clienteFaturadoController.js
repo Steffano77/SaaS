@@ -27,7 +27,15 @@ exports.listar = async (req, res) => {
      GROUP BY cliente_documento`
   );
   const saldoPorDoc = Object.fromEntries(saldos.map(s => [s.cliente_documento, parseFloat(s.saldo)]));
-  res.json(clientes.map(c => ({ ...c, saldo_devedor: saldoPorDoc[c.cnpj] || 0 })));
+  // Quem já foi "lançado" (cobrança enviada, aguardando pagamento) mas ainda não foi
+  // quitado — pra tela mostrar o selo "Lançado" em vez do botão de novo.
+  const [lancados] = await db.query(
+    `SELECT DISTINCT cliente_documento FROM comanda_pagamentos
+     WHERE forma_pagamento = 'Faturado' AND quitado_em IS NULL AND lancado_em IS NOT NULL
+       AND cliente_documento IS NOT NULL`
+  );
+  const lancadoPorDoc = new Set(lancados.map(l => l.cliente_documento));
+  res.json(clientes.map(c => ({ ...c, saldo_devedor: saldoPorDoc[c.cnpj] || 0, lancado: lancadoPorDoc.has(c.cnpj) })));
 };
 
 // Busca por documento (CNPJ ou CPF) — usado na hora de cobrar em "Faturado".
@@ -162,6 +170,22 @@ exports.extrato = async (req, res) => {
     for (const l of linhas) l.itens = itensPorComanda[l.comanda_id] || [];
   }
   res.json(linhas);
+};
+
+// "Fechar e cobrar" (só empresas/CNPJ) — marca os consumos em aberto como "lançados"
+// (cobrança já enviada/impressa pro cliente cobrar), SEM zerar o saldo devedor — o
+// saldo só zera de verdade quando a empresa pagar e você confirmar em "Dar baixa".
+exports.lancar = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const docLimpo = limparDoc(req.params.documento);
+  const [r] = await db.query(
+    `UPDATE comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
+     SET cp.lancado_em = NOW()
+     WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND cp.cliente_documento = ?
+       AND cp.quitado_em IS NULL AND cp.lancado_em IS NULL`,
+    [padaria_id, docLimpo]
+  );
+  res.json({ ok: true, lancados: r.affectedRows });
 };
 
 // "Dar baixa" — marca tudo que esse documento deve como quitado (pagou a fatura),
