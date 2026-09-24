@@ -7907,14 +7907,15 @@ async function imprimirDanfeNFCe(comandaId, janelaPre) {
   // da nota (onload do body) e dependia do onload disparar de novo numa janela
   // REAPROVEITADA, o que nem sempre acontecia (ficava esperando a atendente
   // clicar no X). Chamando explicitamente aqui, funciona sempre, janela nova ou
-  // reaproveitada. Mesmo tempo de segurança de antes (8s) só como rede de proteção
-  // — na prática fecha quase na hora, assim que o "afterprint" dispara.
+  // reaproveitada. O "afterprint" fecha na hora certa; o tempo abaixo é só uma
+  // rede de segurança caso ele não dispare (reduzido de 5s pra 2s — a atendente
+  // reclamou que ficava demorando demais na tela quando isso acontecia).
   const dispararImpressao = () => {
     try {
       janela.print();
       janela.onafterprint = () => janela.close();
     } catch (e) { /* janela pode já ter sido fechada nesse meio-tempo — ignora */ }
-    setTimeout(() => { try { janela.close(); } catch (e) {} }, 5000);
+    setTimeout(() => { try { janela.close(); } catch (e) {} }, 2000);
   };
   // O QR Code é uma imagem — mesmo embutida (não busca na rede), o navegador ainda
   // leva um instante pra decodificar/desenhar. Chamar print() antes disso terminar
