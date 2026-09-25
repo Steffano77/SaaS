@@ -8001,11 +8001,14 @@ async function reimprimirUltimaVendaCaixaUI() {
   await imprimirSequenciaTermicaUI(janela, corpos);
 }
 
-// "K" — abre a lista de comandas abertas por cima da venda atual, pra atendente
-// conferir rapidinho se tem alguma esperando cobrança. Em modo caixa restrito a lista
-// nunca aparecia sozinha (fechar a venda sempre pulava direto pra próxima venda em
-// branco) — esse atalho só esconde a tela de venda (os itens já estão salvos no
+// "K" segurado 2s — abre a lista de comandas abertas por cima da venda atual, pra
+// atendente conferir rapidinho se tem alguma esperando cobrança. Em modo caixa restrito
+// a lista nunca aparecia sozinha (fechar a venda sempre pulava direto pra próxima venda
+// em branco) — esse atalho só esconde a tela de venda (os itens já estão salvos no
 // servidor, não perde nada) e mostra a lista por baixo, sem disparar esse pulo automático.
+// "L" segurado 2s — faz o caminho de volta, pra tela de venda vazia esperando cliente.
+// Precisa segurar (em vez de só apertar) pra não abrir/fechar sem querer no meio da
+// digitação de alguma senha ou valor que por acaso caia nessas letras.
 function abrirComandasAbertasUI() {
   document.getElementById('modal-comanda')?.classList.add('hidden');
   comandaAtualId = null;
@@ -8013,16 +8016,25 @@ function abrirComandasAbertasUI() {
   carregarComandas();
 }
 
+let _kHoldTimer = null;
+let _lHoldTimer = null;
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'k' || e.key === 'K') {
+  if ((e.key === 'k' || e.key === 'K') && !e.repeat) {
     const telaComandas = !document.getElementById('pg-comandas')?.classList.contains('hidden');
     const modalVenda = !document.getElementById('modal-comanda')?.classList.contains('hidden');
-    if (!telaComandas && !modalVenda) return;
     const el = document.activeElement;
     const digitando = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
-    if (digitando) return;
-    e.preventDefault();
-    abrirComandasAbertasUI();
+    if ((!telaComandas && !modalVenda) || digitando) return;
+    _kHoldTimer = setTimeout(() => { abrirComandasAbertasUI(); _kHoldTimer = null; }, 2000);
+    return;
+  }
+  if ((e.key === 'l' || e.key === 'L') && !e.repeat) {
+    const telaComandas = !document.getElementById('pg-comandas')?.classList.contains('hidden');
+    const modalVenda = !document.getElementById('modal-comanda')?.classList.contains('hidden');
+    const el = document.activeElement;
+    const digitando = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+    if ((!telaComandas && !modalVenda) || digitando) return;
+    _lHoldTimer = setTimeout(() => { abrirTelaVendaBalcao(); _lHoldTimer = null; }, 2000);
     return;
   }
   if (e.key !== 'i' && e.key !== 'I') return;
@@ -8038,6 +8050,11 @@ document.addEventListener('keydown', (e) => {
   if (digitando) return;
   e.preventDefault();
   reimprimirUltimaVendaCaixaUI();
+});
+
+document.addEventListener('keyup', (e) => {
+  if ((e.key === 'k' || e.key === 'K') && _kHoldTimer) { clearTimeout(_kHoldTimer); _kHoldTimer = null; }
+  if ((e.key === 'l' || e.key === 'L') && _lHoldTimer) { clearTimeout(_lHoldTimer); _lHoldTimer = null; }
 });
 
 // Depois de finalizar uma venda, o cursor fica em stand-by (sem foco em nada) — a
