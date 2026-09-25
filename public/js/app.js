@@ -7294,7 +7294,7 @@ function cartaoClienteFaturadoHtml(c) {
       </div>
       ${!ehFuncionario && saldo > 0 ? (
         c.lancado
-          ? `<span style="display:inline-flex;align-items:center;gap:5px;background:#eff6ff;color:#2563eb;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;align-self:flex-start;">📨 Lançado — aguardando pagamento</span>`
+          ? `<button title="Clica quando o pagamento do valor lançado cair — dá baixa só nesse valor, sem mexer em consumo novo feito depois" style="display:inline-flex;align-items:center;gap:5px;background:#eff6ff;color:#2563eb;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;align-self:flex-start;border:none;cursor:pointer;" onclick="darBaixaLancadoUI('${c.cnpj}','${nomeEsc}',${c.saldo_lancado})">📨 Lançado — aguardando pagamento (clique p/ dar baixa)</button>`
           : `<button class="btn-secondary" style="font-size:11.5px;padding:7px 10px;" onclick="fecharECobrarEmpresaUI('${c.cnpj}','${nomeEsc}',${saldo})">🧾 Fechar e cobrar</button>`
       ) : ''}
     </div>
@@ -7531,6 +7531,17 @@ async function darBaixaFaturadoUI(documento, nome) {
   const r = await api(`/clientes-faturado/documento/${documento}/liquidar`, { method: 'POST' });
   if (!r) return;
   mostrarToast(`Fatura de ${nome} quitada!`, 'ok');
+  abrirClientesFaturado();
+}
+
+// Dá baixa só no valor que já foi "lançado" (fechado em "Fechar e cobrar") — se o
+// cliente consumiu mais depois do lançamento, esse consumo novo continua em aberto,
+// diferente do 💰 "Dar baixa" normal que zera tudo de uma vez.
+async function darBaixaLancadoUI(documento, nome, valorLancado) {
+  if (!(await confirmarBonito(`Confirma que ${nome} pagou o valor lançado de ${fmtMoeda(valorLancado)}?\n\nSó esse valor será quitado — qualquer consumo feito depois do lançamento continua em aberto.`))) return;
+  const r = await api(`/clientes-faturado/documento/${documento}/liquidar-lancados`, { method: 'POST' });
+  if (!r) return;
+  mostrarToast(`Baixa do valor lançado de ${nome} confirmada!`, 'ok');
   abrirClientesFaturado();
 }
 

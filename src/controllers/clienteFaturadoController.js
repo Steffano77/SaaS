@@ -35,7 +35,22 @@ exports.listar = async (req, res) => {
        AND cliente_documento IS NOT NULL`
   );
   const lancadoPorDoc = new Set(lancados.map(l => l.cliente_documento));
-  res.json(clientes.map(c => ({ ...c, saldo_devedor: saldoPorDoc[c.cnpj] || 0, lancado: lancadoPorDoc.has(c.cnpj) })));
+  // Valor específico do que foi lançado (pode ser menor que o saldo total, se o
+  // cliente consumiu mais depois do "Fechar e cobrar") — pra confirmar a baixa certa.
+  const [lancadosValor] = await db.query(
+    `SELECT cliente_documento, COALESCE(SUM(valor), 0) AS valor
+     FROM comanda_pagamentos
+     WHERE forma_pagamento = 'Faturado' AND quitado_em IS NULL AND lancado_em IS NOT NULL
+       AND cliente_documento IS NOT NULL
+     GROUP BY cliente_documento`
+  );
+  const lancadoValorPorDoc = Object.fromEntries(lancadosValor.map(l => [l.cliente_documento, parseFloat(l.valor)]));
+  res.json(clientes.map(c => ({
+    ...c,
+    saldo_devedor: saldoPorDoc[c.cnpj] || 0,
+    lancado: lancadoPorDoc.has(c.cnpj),
+    saldo_lancado: lancadoValorPorDoc[c.cnpj] || 0,
+  })));
 };
 
 // Busca por documento (CNPJ ou CPF) — usado na hora de cobrar em "Faturado".
@@ -197,6 +212,22 @@ exports.liquidar = async (req, res) => {
     `UPDATE comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
      SET cp.quitado_em = NOW()
      WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND cp.cliente_documento = ? AND cp.quitado_em IS NULL`,
+    [padaria_id, docLimpo]
+  );
+  res.json({ ok: true, quitados: r.affectedRows });
+};
+
+// Dá baixa SÓ no que já foi "lançado" (fechado em "Fechar e cobrar") — deixa de fora
+// qualquer consumo novo que o cliente tenha feito depois do lançamento e ainda não
+// pagou, ao contrário do "Dar baixa" normal que zera tudo que estiver em aberto.
+exports.liquidarLancados = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const docLimpo = limparDoc(req.params.documento);
+  const [r] = await db.query(
+    `UPDATE comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
+     SET cp.quitado_em = NOW()
+     WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND cp.cliente_documento = ?
+       AND cp.quitado_em IS NULL AND cp.lancado_em IS NOT NULL`,
     [padaria_id, docLimpo]
   );
   res.json({ ok: true, quitados: r.affectedRows });
