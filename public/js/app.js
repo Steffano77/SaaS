@@ -8001,7 +8001,30 @@ async function reimprimirUltimaVendaCaixaUI() {
   await imprimirSequenciaTermicaUI(janela, corpos);
 }
 
+// "K" — abre a lista de comandas abertas por cima da venda atual, pra atendente
+// conferir rapidinho se tem alguma esperando cobrança. Em modo caixa restrito a lista
+// nunca aparecia sozinha (fechar a venda sempre pulava direto pra próxima venda em
+// branco) — esse atalho só esconde a tela de venda (os itens já estão salvos no
+// servidor, não perde nada) e mostra a lista por baixo, sem disparar esse pulo automático.
+function abrirComandasAbertasUI() {
+  document.getElementById('modal-comanda')?.classList.add('hidden');
+  comandaAtualId = null;
+  if (_cmdRelogioTimer) { clearInterval(_cmdRelogioTimer); _cmdRelogioTimer = null; }
+  carregarComandas();
+}
+
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'k' || e.key === 'K') {
+    const telaComandas = !document.getElementById('pg-comandas')?.classList.contains('hidden');
+    const modalVenda = !document.getElementById('modal-comanda')?.classList.contains('hidden');
+    if (!telaComandas && !modalVenda) return;
+    const el = document.activeElement;
+    const digitando = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+    if (digitando) return;
+    e.preventDefault();
+    abrirComandasAbertasUI();
+    return;
+  }
   if (e.key !== 'i' && e.key !== 'I') return;
   // Funciona tanto na lista de comandas quanto na tela de venda de balcão — em modo
   // caixa, depois de fechar uma venda o sistema já pula direto pra próxima venda em
