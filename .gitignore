@@ -8,3 +8,7 @@ public/app/
 certificados/
 *.pfx
 *.p12
+
+# Backups do banco — ficam só no servidor, nunca versionados (arquivo grande, e tem
+# dados sensíveis de cliente).
+backups/
