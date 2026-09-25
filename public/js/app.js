@@ -7643,7 +7643,12 @@ let _clientesFaturadoCache = null;
 let _clienteFaturadoSelecionadoTemp = null;
 
 async function identificarClienteFaturadoUI() {
-  if (!_clientesFaturadoCache) _clientesFaturadoCache = await api('/clientes-faturado') || [];
+  // Sempre busca fresco (não reaproveita cache) — esse modal só abre na hora de
+  // cobrar, não é chamado toda hora, então não compensa o risco de um cliente
+  // cadastrado em outro aparelho (ex: pelo Tailscale) ficar invisível pra esse PC
+  // até a página ser recarregada (bug real: atendente com o PC ligado o dia todo
+  // nunca via cliente cadastrado depois que a página tinha sido aberta).
+  _clientesFaturadoCache = await api('/clientes-faturado') || [];
   return new Promise((resolve) => {
     _resolverIdentificarCliente = resolve;
     document.getElementById('idcli-nome').value = '';
