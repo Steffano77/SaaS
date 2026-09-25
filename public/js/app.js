@@ -432,7 +432,8 @@ async function fazerLogin(e) {
     if (_planoEl) _planoEl.textContent = _planoLabels[d.padaria.plano] || d.padaria.plano || '—';
     atualizarAvisoExpiracao(d.padaria.plano, d.padaria.plano_expira_em);
     PLANO_ATUAL = d.padaria.plano || 'trial';
-    if (d.padaria.role === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
+    ROLE_ATUAL = d.padaria.role || 'user';
+    document.getElementById('nav-admin')?.classList.toggle('hidden', d.padaria.role !== 'admin');
     entrar();
   } catch { el.textContent = 'Erro de conexão.'; el.classList.remove('hidden'); }
 }
@@ -483,7 +484,7 @@ async function fazerRegistro(e) {
     atualizarAvisoExpiracao(d.padaria.plano, d.padaria.plano_expira_em);
     PLANO_ATUAL = d.padaria.plano || 'trial';
     ROLE_ATUAL = d.padaria.role || 'user';
-    if (d.padaria.role === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
+    document.getElementById('nav-admin')?.classList.toggle('hidden', d.padaria.role !== 'admin');
     entrar();
   } catch { el.textContent = 'Erro de conexão.'; el.classList.remove('hidden'); }
 }
@@ -603,6 +604,11 @@ function sair() {
   sessionStorage.removeItem('pp_manutencao_ativa');
   document.getElementById('btn-equipe-modo-caixa')?.classList.add('hidden');
   document.getElementById('btn-manutencao-modo-caixa')?.classList.add('hidden');
+  // Esconde o menu Admin ao sair — evita que ele fique visível "grudado" se a próxima
+  // conta que logar nesse mesmo navegador não for admin (só existia código pra mostrar,
+  // nunca pra esconder de novo).
+  document.getElementById('nav-admin')?.classList.add('hidden');
+  ROLE_ATUAL = '';
   document.documentElement.classList.remove('modo-caixa-ativo');
   document.getElementById('app').classList.add('hidden');
   // Aparelho fixado pro caixa: volta pro login simples (nome+PIN), não pro
@@ -4328,7 +4334,7 @@ if (TOKEN) {
         atualizarAvisoExpiracao(d.plano, d.plano_expira_em);
         PLANO_ATUAL = d.plano || 'trial';
         ROLE_ATUAL = d.role || 'user';
-        if (d.role === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
+        document.getElementById('nav-admin')?.classList.toggle('hidden', d.role !== 'admin');
         entrar();
       }
     });
