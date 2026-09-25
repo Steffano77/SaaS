@@ -2236,7 +2236,7 @@ async function abrirModalExportarBalancaUI() {
     console.log('Sem preço, fora da exportação:', semPreco.map(p => p.nome));
   }
   const lista_html = _balancaListaSelecao.map((p, idx) => `
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--slate-100);">
+    <div class="balanca-export-item" data-nome="${normalizarBusca(p.nome)}" style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--slate-100);">
       <input type="checkbox" id="balanca-sel-${idx}" checked style="width:18px;height:18px;flex-shrink:0;"/>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.nome}</div>
@@ -2249,7 +2249,16 @@ async function abrirModalExportarBalancaUI() {
     </div>`).join('');
   document.getElementById('balanca-export-lista').innerHTML = lista_html;
   document.getElementById('balanca-export-contador').textContent = `${_balancaListaSelecao.length} produtos elegíveis`;
+  const buscaEl = document.getElementById('balanca-export-busca');
+  if (buscaEl) buscaEl.value = '';
   document.getElementById('modal-exportar-balanca').classList.remove('hidden');
+}
+
+function filtrarListaExportarBalancaUI(input) {
+  const termo = normalizarBusca(input.value.trim());
+  document.querySelectorAll('#balanca-export-lista .balanca-export-item').forEach(el => {
+    el.style.display = !termo || el.dataset.nome.includes(termo) ? '' : 'none';
+  });
 }
 
 function balancaExportMarcarTodos(marcar) {
