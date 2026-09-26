@@ -130,6 +130,7 @@ router.get('/fiscal/nfce', auth, nfceCtrl.listar);
 router.get('/fiscal/nfce/pendentes', auth, nfceCtrl.listarPendentes);
 router.post('/fiscal/nfce/arquivar-homologacao', auth, nfceCtrl.arquivarHomologacao);
 router.post('/fiscal/nfce/:id/reenviar', auth, nfceCtrl.reenviar);
+router.post('/fiscal/nfce/:id/arquivar', auth, nfceCtrl.arquivarNota);
 
 // Movimentações
 router.get('/movimentacoes',  auth, movCtrl.listar);

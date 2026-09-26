@@ -372,6 +372,21 @@ exports.arquivarHomologacao = async (req, res) => {
   res.json({ ok: true, arquivadas: result.affectedRows });
 };
 
+// Arquiva UMA nota pendente específica (some da lista, mas sem apagar histórico) —
+// usado quando a comanda dela foi excluída (venda refeita em outra comanda), caso em
+// que "Reenviar" e "Reemitir corrigida" nunca mais vão funcionar (não tem mais comanda
+// pra buscar os dados).
+exports.arquivarNota = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const { id } = req.params;
+  const [r] = await db.query(
+    `UPDATE notas_fiscais SET status = 'arquivada' WHERE id = ? AND padaria_id = ?`,
+    [id, padaria_id]
+  );
+  if (!r.affectedRows) return res.status(404).json({ erro: 'Nota não encontrada.' });
+  res.json({ ok: true });
+};
+
 exports.reenviar = async (req, res) => {
   const padaria_id = req.padaria.id;
   const { id } = req.params;

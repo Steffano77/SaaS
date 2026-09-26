@@ -6046,19 +6046,41 @@ async function renderNotasPendentes() {
     atualizarBadgeNotasPendentes();
     return;
   }
-  lista.innerHTML = r.map(n => `
+  lista.innerHTML = r.map(n => {
+    // Se a comanda foi excluída (venda geralmente já refeita em outra comanda), não tem
+    // mais dados pra buscar — "Reenviar"/"Reemitir" nunca vão funcionar de novo. Mostra
+    // só a opção de arquivar, pra sumir da lista sem apagar o histórico dessa nota.
+    const comandaExcluida = !n.comanda_identificador;
+    return `
     <div style="background:var(--white);border-left:4px solid #dc2626;border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
       <div style="min-width:0;">
-        <div style="font-weight:700;font-size:14px;">Comanda ${n.comanda_identificador || n.comanda_id} · ${fmtMoeda(n.valor_total)}</div>
+        <div style="font-weight:700;font-size:14px;">Comanda ${n.comanda_identificador || n.comanda_id}${comandaExcluida ? ' (excluída)' : ''} · ${fmtMoeda(n.valor_total)}</div>
         <div style="font-size:12px;color:var(--slate-500);">${fmtDataHoraBR(n.criado_em)} · ${n.ambiente === 1 ? 'Produção' : 'Homologação'}</div>
         ${n.motivo_rejeicao ? `<div style="font-size:12px;color:#dc2626;margin-top:2px;">${n.motivo_rejeicao}</div>` : ''}
+        ${comandaExcluida ? `<div style="font-size:12px;color:var(--slate-500);margin-top:2px;">Essa comanda foi excluída — se a venda foi refeita em outra comanda, pode arquivar essa nota.</div>` : ''}
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
-        <button onclick="reenviarNotaPendente(${n.id}, this)" class="btn-ghost" style="padding:8px 12px;font-size:12.5px;" title="Reenvia o MESMO xml já assinado — só serve se o problema foi rede/Sefaz fora do ar">🔄 Reenviar</button>
-        <button onclick="reemitirNotaCorrigida(${n.comanda_id}, this)" class="btn-primary" style="padding:8px 12px;font-size:12.5px;" title="Gera uma nota NOVA do zero, usando a versão mais atual do sistema — use se a nota foi rejeitada por erro de cálculo/dado">🆕 Reemitir corrigida</button>
+        ${comandaExcluida ? `
+          <button onclick="arquivarNotaPendenteUI(${n.id}, this)" class="btn-ghost" style="padding:8px 12px;font-size:12.5px;" title="Some da lista, sem apagar o histórico dessa nota">🗄️ Arquivar</button>
+        ` : `
+          <button onclick="reenviarNotaPendente(${n.id}, this)" class="btn-ghost" style="padding:8px 12px;font-size:12.5px;" title="Reenvia o MESMO xml já assinado — só serve se o problema foi rede/Sefaz fora do ar">🔄 Reenviar</button>
+          <button onclick="reemitirNotaCorrigida(${n.comanda_id}, this)" class="btn-primary" style="padding:8px 12px;font-size:12.5px;" title="Gera uma nota NOVA do zero, usando a versão mais atual do sistema — use se a nota foi rejeitada por erro de cálculo/dado">🆕 Reemitir corrigida</button>
+        `}
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
+}
+
+async function arquivarNotaPendenteUI(id, botao) {
+  if (!(await confirmarBonito('Arquivar essa nota? Ela some da lista de pendentes, mas o histórico continua salvo.'))) return;
+  botao.disabled = true;
+  botao.textContent = 'Arquivando...';
+  const r = await api(`/fiscal/nfce/${id}/arquivar`, { method: 'POST' });
+  if (!r) { botao.disabled = false; botao.textContent = '🗄️ Arquivar'; return; }
+  mostrarToast('Nota arquivada.', 'ok');
+  atualizarBadgeNotasPendentes();
+  await renderNotasPendentes();
 }
 
 async function reenviarNotaPendente(id, botao) {
