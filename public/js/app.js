@@ -6114,6 +6114,8 @@ async function reemitirNotaCorrigida(comandaId, botao) {
   await renderNotasPendentes();
 }
 
+let _historicoComandasCache = [];
+
 async function abrirHistoricoComandas() {
   // limparDepois=false: pede o PIN só aqui na entrada — excluir/reimprimir
   // dentro do histórico não pedem de novo, até fechar a tela.
@@ -6121,9 +6123,26 @@ async function abrirHistoricoComandas() {
     const r = await api('/comandas/historico');
     if (!r || r.precisa_login_funcionario) return r;
     document.getElementById('modal-historico-comandas').classList.remove('hidden');
-    renderHistoricoComandas(r.recentes || []);
+    const busca = document.getElementById('historico-comandas-busca');
+    if (busca) busca.value = '';
+    _historicoComandasCache = r.recentes || [];
+    renderHistoricoComandas(_historicoComandasCache);
     return r;
   }, false);
+}
+
+// Filtra a lista já carregada (sem nova busca no servidor) por número da comanda ou
+// valor — com bastante movimento no dia, a lista fica longa e rolar tudo pra achar
+// a comanda certa demora. Aceita tanto "51" (número) quanto "306,92"/"306.92" (valor).
+function filtrarHistoricoComandasUI(input) {
+  const termo = normalizarBusca(input.value.trim());
+  if (!termo) { renderHistoricoComandas(_historicoComandasCache); return; }
+  const termoValor = termo.replace(',', '.');
+  const filtrados = _historicoComandasCache.filter(c =>
+    normalizarBusca(c.identificador || '').includes(termo) ||
+    String(c.total).includes(termoValor)
+  );
+  renderHistoricoComandas(filtrados);
 }
 
 function fecharHistoricoComandas() {
@@ -6134,7 +6153,10 @@ function fecharHistoricoComandas() {
 async function carregarHistoricoComandas() {
   const r = await api('/comandas/historico');
   if (!r) return;
-  renderHistoricoComandas(r.recentes || []);
+  _historicoComandasCache = r.recentes || [];
+  const busca = document.getElementById('historico-comandas-busca');
+  if (busca && busca.value.trim()) { filtrarHistoricoComandasUI(busca); return; }
+  renderHistoricoComandas(_historicoComandasCache);
 }
 
 function renderHistoricoComandas(recentes) {
