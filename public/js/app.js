@@ -8645,8 +8645,10 @@ function nomeBalcaoUnico() {
 
 // Painel de "comandas abertas" acessível de dentro do modo caixa — abre POR CIMA da
 // venda em andamento (a venda continua exatamente como estava por baixo, nunca escondida)
-// e fecha clicando de novo no mesmo botão, no X, ou escolhendo uma comanda da lista pra
-// abrir ela. Sem senha — é só uma conferência visual, não mexe em nada sozinho.
+// e fecha clicando de novo no mesmo botão, ou no X. Sem senha — é só uma conferência
+// visual (lista, não clicável), não troca a venda em andamento sozinho — pra abrir uma
+// comanda dessa lista de verdade, fecha o painel e usa o campo "Abrir comanda Nº" de
+// sempre, de propósito (evita trocar a venda atual sem querer e "perder o fio" dela).
 async function toggleComandasAbertasCaixaUI() {
   const modal = document.getElementById('modal-comandas-abertas-caixa');
   const aberto = !modal.classList.contains('hidden');
@@ -8658,7 +8660,7 @@ async function toggleComandasAbertasCaixaUI() {
   const abertas = data.abertas || [];
   lista.innerHTML = abertas.length
     ? abertas.map(c => `
-        <div class="cmd-card" onclick="toggleComandasAbertasCaixaUI(); abrirModalComanda(${c.id});">
+        <div class="cmd-card" style="cursor:default;">
           <div class="cmd-card-topo">
             <strong>${c.identificador}</strong>
             <span class="cmd-card-status">🟢 Aberta</span>
