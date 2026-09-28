@@ -769,6 +769,7 @@
               title="Toque pra dizer quem atendeu essa comanda"></div>
           </div>
           <div style="display:flex;align-items:center;gap:6px;">
+            <button id="btn-comandas-abertas-modo-caixa" class="btn-icon" onclick="toggleComandasAbertasCaixaUI()" title="Ver comandas abertas — clica de novo pra voltar">📜</button>
             <button id="btn-manutencao-modo-caixa" class="btn-icon hidden" onclick="toggleManutencaoModoCaixa()" title="Manutenção — libera o menu completo com a senha financeira, sem deslogar"><span id="icone-manutencao-modo-caixa">🔓</span></button>
             <button id="btn-equipe-modo-caixa" class="btn-icon hidden" onclick="mostrarPagina('equipe')" title="Equipe">👥</button>
             <button id="btn-sair-modo-caixa" class="btn-icon hidden" onclick="sair()" title="Sair">🚪</button>
@@ -1247,6 +1248,19 @@
     </div>
 
     <!-- Modal: histórico de comandas finalizadas (restrito a gerente) -->
+    <!-- Painel de "comandas abertas" acessível de dentro do modo caixa — fica POR CIMA da
+         venda em andamento (nunca esconde ela), pra nunca correr o risco de uma venda ficar
+         escondida em segundo plano sem a atendente perceber (bug real que já aconteceu). -->
+    <div id="modal-comandas-abertas-caixa" class="modal-overlay hidden">
+      <div class="modal-box" style="max-width:480px;max-height:80vh;display:flex;flex-direction:column;">
+        <div class="modal-header" style="background:#fef3c7;">
+          <span class="modal-title">📜 Comandas abertas — aguardando cobrança</span>
+          <button onclick="toggleComandasAbertasCaixaUI()" class="btn-icon">✕</button>
+        </div>
+        <div id="comandas-abertas-caixa-lista" style="overflow-y:auto;flex:1;padding:14px 20px;display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+    </div>
+
     <div id="modal-historico-comandas" class="modal-overlay hidden">
       <div class="modal-box" style="max-width:560px;max-height:80vh;display:flex;flex-direction:column;">
         <div class="modal-header">
@@ -2219,7 +2233,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260928a"></script>
+<script src="/js/app.js?v=20260928b"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

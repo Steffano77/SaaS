@@ -8643,6 +8643,32 @@ function nomeBalcaoUnico() {
   return CAIXA_LOCAL_ID ? `Balcão C${CAIXA_LOCAL_ID} ${hora}` : `Balcão ${hora}`;
 }
 
+// Painel de "comandas abertas" acessível de dentro do modo caixa — abre POR CIMA da
+// venda em andamento (a venda continua exatamente como estava por baixo, nunca escondida)
+// e fecha clicando de novo no mesmo botão, no X, ou escolhendo uma comanda da lista pra
+// abrir ela. Sem senha — é só uma conferência visual, não mexe em nada sozinho.
+async function toggleComandasAbertasCaixaUI() {
+  const modal = document.getElementById('modal-comandas-abertas-caixa');
+  const aberto = !modal.classList.contains('hidden');
+  if (aberto) { modal.classList.add('hidden'); return; }
+
+  const data = await api('/comandas');
+  if (!data) return;
+  const lista = document.getElementById('comandas-abertas-caixa-lista');
+  const abertas = data.abertas || [];
+  lista.innerHTML = abertas.length
+    ? abertas.map(c => `
+        <div class="cmd-card" onclick="toggleComandasAbertasCaixaUI(); abrirModalComanda(${c.id});">
+          <div class="cmd-card-topo">
+            <strong>${c.identificador}</strong>
+            <span class="cmd-card-status">🟢 Aberta</span>
+          </div>
+          <div class="cmd-card-info">${fmtDataHoraBR(c.aberta_em)} · ${fmtMoeda(c.total)} · ${c.qtd_itens || 0} ite${(c.qtd_itens === 1) ? 'm' : 'ns'}</div>
+        </div>`).join('')
+    : `<div class="cmd-vazio">Nenhuma comanda aberta no momento — tudo cobrado! ✅</div>`;
+  modal.classList.remove('hidden');
+}
+
 // Busca comanda por número direto da tela de venda (topbar), sem precisar fechar
 // pra voltar à lista — é assim que o caixa acha a comanda que o salão/balcão lançou.
 async function abrirComandaPorNumeroPdv(termoRaw) {
