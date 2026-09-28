@@ -8082,6 +8082,21 @@ document.addEventListener('keydown', (e) => {
   else document.getElementById('cmd-pdv-busca-numero')?.focus();
 });
 
+// Trava alguns atalhos "de mexer no navegador" (botão direito, F12, Ctrl+Shift+I/J/C,
+// Ctrl+U) só em modo caixa restrito — não é uma trava de segurança de verdade (dá pra
+// contornar com mais conhecimento técnico), é só um obstáculo a mais no aparelho do
+// caixa. Nunca ativa no acesso normal (dono/gestor), só nesse modo específico.
+document.addEventListener('contextmenu', (e) => {
+  if (sessionStorage.getItem('pp_modo_caixa_restrito')) e.preventDefault();
+});
+document.addEventListener('keydown', (e) => {
+  if (!sessionStorage.getItem('pp_modo_caixa_restrito')) return;
+  const tecla = (e.key || '').toUpperCase();
+  const comboDevtools = (e.ctrlKey || e.metaKey) && e.shiftKey && ['I', 'J', 'C'].includes(tecla);
+  const verFonte = (e.ctrlKey || e.metaKey) && tecla === 'U';
+  if (tecla === 'F12' || comboDevtools || verFonte) e.preventDefault();
+});
+
 // Fecha a venda sem falar com o servidor — guarda tudo localmente e sincroniza sozinho
 // quando a internet voltar (ver tentarReconectar). Só chamada quando é 100% Dinheiro/
 // Padaria (checado em finalizarVendaUI antes de chegar aqui).
