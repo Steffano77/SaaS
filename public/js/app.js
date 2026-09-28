@@ -5486,9 +5486,16 @@ async function confirmarFecharCaixa() {
     return;
   }
   if (!confirm('Fechar o caixa agora? Confira os valores contados antes de confirmar.')) return;
+  // Abre a janela de impressão JÁ aqui, ainda dentro do clique (confirm() não quebra
+  // o gesto do usuário, mas o "await api(...)" logo abaixo quebra) — mesmo bug já visto
+  // no Faturado e no DANFE: abrir window.open() só depois de esperar o servidor faz o
+  // Chrome bloquear o popup silenciosamente às vezes, sem aviso nenhum na tela. Se no
+  // final não for pra imprimir (ex: recusou o fechamento, ou a segunda confirmação de
+  // impressão foi "não"), essa janela em branco é fechada mais abaixo.
+  const janelaPre = window.open('', '_blank', 'width=380,height=600');
   const caixaSnapshot = caixaAtualCache; // guarda os dados fixos do caixa (nome, aberto_em...) pro comprovante
   const r = await api(`/caixa/${CAIXA_LOCAL_ID}/fechar`, { method: 'POST', body: { fechamento_formas, observacao, despesas } });
-  if (!r) return;
+  if (!r) { janelaPre?.close(); return; }
   // O resumo que volta do fechamento já inclui as despesas recém-lançadas — o snapshot
   // de antes de fechar não tem isso ainda, por isso troca o resumo aqui.
   if (caixaSnapshot) caixaSnapshot.resumo = r.resumo;
@@ -5508,7 +5515,9 @@ async function confirmarFecharCaixa() {
   // Em modo caixa o comprovante é obrigatório (não pergunta) — é o único registro
   // da conferência que a gerência vai ver, já que a tela não mostra os valores.
   if (cego || confirm('Imprimir o comprovante de fechamento de caixa?')) {
-    imprimirFechamentoCaixa(caixaSnapshot, r.conferencia, dif);
+    imprimirFechamentoCaixa(caixaSnapshot, r.conferencia, dif, janelaPre);
+  } else {
+    janelaPre?.close();
   }
   // Caixa fechado: sai da tela de venda de balcão (não faz sentido continuar vendendo
   // sem caixa aberto) — volta pra lista de comandas, que agora mostra "abrir caixa".
@@ -5539,14 +5548,17 @@ async function abrirHistoricoCaixas() {
 }
 
 async function reimprimirFechamentoUI(caixaId) {
+  // Mesmo cuidado do fechamento original: abre a janela antes do "await", senão o
+  // navegador pode bloquear o popup depois da espera de rede.
+  const janelaPre = window.open('', '_blank', 'width=380,height=600');
   const r = await api(`/caixa/${caixaId}/reimprimir-fechamento`);
-  if (!r) return;
-  imprimirFechamentoCaixa(r.caixa, r.conferencia, r.diferenca);
+  if (!r) { janelaPre?.close(); return; }
+  imprimirFechamentoCaixa(r.caixa, r.conferencia, r.diferenca, janelaPre);
 }
 
 // Comprovante impresso do fechamento de caixa — formato "relatório completo de
 // sessão" (mesmo padrão que a gerente pediu, igual ao relatório do Saurus).
-function imprimirFechamentoCaixa(caixa, conferencia, diferenca) {
+function imprimirFechamentoCaixa(caixa, conferencia, diferenca, janelaPre) {
   const r = caixa?.resumo;
   const informado = (conferencia || []).find(c => c.forma_pagamento === 'Dinheiro')?.fechado || 0;
   const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
@@ -5623,7 +5635,7 @@ function imprimirFechamentoCaixa(caixa, conferencia, diferenca) {
     <hr/>
     <div class="rodape">${nomePadaria} · PanificaPro</div>
     <div class="rodape">Fim do Relatório · ${agora}</div>
-  `);
+  `, janelaPre);
 }
 
 /* ===================== EQUIPE (tela própria de gerenciar atendentes) ===================== */
