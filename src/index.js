@@ -169,7 +169,11 @@ app.use(express.static(path.join(__dirname, '../public'), {
 }));
 
 // Auto-migrate: adiciona colunas novas sem quebrar instâncias existentes
-(async () => {
+// Guarda a Promise (migracoesProntas) pra quem importar esse módulo (só os testes,
+// hoje) poder esperar as migrations terminarem antes de rodar qualquer query —
+// em uso normal (node src/index.js) ninguém espera isso, roda em paralelo com o
+// próprio app.listen, do jeito que sempre funcionou.
+const migracoesProntas = (async () => {
   try {
     const db = require('./database/connection');
     const migrations = [
@@ -596,4 +600,12 @@ app.use((err, req, res, _next) => {
   res.status(500).json({ erro: 'Erro interno do servidor.' });
 });
 
-app.listen(PORT, () => console.log(`🥖 PanificaPro rodando em http://localhost:${PORT}`));
+// require.main === module: só sobe o servidor de verdade quando roda "node src/index.js"
+// direto (produção/local, como sempre). Quando esse arquivo é importado por outro código
+// (só os testes automatizados, hoje) não escuta porta nenhuma — evita porta ocupada ao
+// rodar vários testes, e deixa o teste controlar quando/como fazer as requisições.
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`🥖 PanificaPro rodando em http://localhost:${PORT}`));
+}
+
+module.exports = { app, migracoesProntas };
