@@ -15,6 +15,23 @@ function souDonoOuGestor(req) {
   return !!req.padaria.atendente_gestor;
 }
 
+// PIN não era obrigado a ser único entre os atendentes — bug real: se dois atendentes
+// tivessem por coincidência o mesmo PIN de 4 dígitos, o login (que testa o PIN contra
+// cada atendente até achar um que bate) podia autenticar como a pessoa ERRADA, mesmo
+// alguém digitando o próprio PIN certinho — causou uma gerente ser recusada numa ação
+// que exige papel "gerente" porque o PIN dela coincidiu com o de outro atendente sem
+// esse papel. Usado ao cadastrar/resetar PIN, pra nunca deixar isso acontecer de novo.
+async function pinJaEmUso(padaria_id, pin, ignorarId = null) {
+  const params = [padaria_id];
+  let sql = `SELECT pin_hash FROM atendentes WHERE padaria_id = ? AND ativo = 1 AND pin_hash IS NOT NULL`;
+  if (ignorarId) { sql += ' AND id != ?'; params.push(ignorarId); }
+  const [atendentes] = await db.query(sql, params);
+  for (const a of atendentes) {
+    if (await bcrypt.compare(pin, a.pin_hash)) return true;
+  }
+  return false;
+}
+
 exports.listar = async (req, res) => {
   const [rows] = await db.query(
     `SELECT id, nome, role, gestor, ativo, criado_em, (pin_hash IS NOT NULL) AS tem_pin
@@ -30,6 +47,9 @@ exports.criar = async (req, res) => {
   const role = PAPEIS_VALIDOS.includes(req.body.role) ? req.body.role : 'atendente';
   if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório.' });
   if (!/^\d{4}$/.test(pin)) return res.status(400).json({ erro: 'O PIN precisa ter exatamente 4 números.' });
+  if (await pinJaEmUso(req.padaria.id, pin)) {
+    return res.status(400).json({ erro: 'Esse PIN já está em uso por outro atendente — escolhe outro (PINs repetidos fazem o sistema confundir quem está logando).' });
+  }
 
   const pin_hash = await bcrypt.hash(pin, 10);
   const [r] = await db.query(
@@ -160,6 +180,9 @@ exports.resetarPin = async (req, res) => {
   if (!souDonoOuGestor(req)) return res.status(403).json({ erro: 'Só o dono ou um gestor podem resetar o PIN.' });
   const pin = String(req.body.pin || '').trim();
   if (!/^\d{4}$/.test(pin)) return res.status(400).json({ erro: 'O PIN precisa ter exatamente 4 números.' });
+  if (await pinJaEmUso(req.padaria.id, pin, req.params.id)) {
+    return res.status(400).json({ erro: 'Esse PIN já está em uso por outro atendente — escolhe outro (PINs repetidos fazem o sistema confundir quem está logando).' });
+  }
   const pin_hash = await bcrypt.hash(pin, 10);
   await db.query(`UPDATE atendentes SET pin_hash = ? WHERE id = ? AND padaria_id = ?`, [pin_hash, req.params.id, req.padaria.id]);
   res.json({ ok: true });

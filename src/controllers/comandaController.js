@@ -496,6 +496,20 @@ exports.excluir = async (req, res) => {
   if (comanda.status === 'aberta') {
     return res.status(400).json({ erro: 'Cancele ou feche a comanda antes de excluí-la.' });
   }
+  // Nunca deixa excluir uma comanda que já tem nota fiscal AUTORIZADA pela Sefaz —
+  // esse documento continua valendo perante o governo mesmo que a comanda suma daqui,
+  // e excluir criaria uma venda "fantasma" (a Sefaz sabe que aconteceu, o sistema não
+  // sabe mais), o que pode virar problema fiscal de verdade numa fiscalização. Nota
+  // rejeitada/nunca emitida não trava — só a autorizada de verdade.
+  const [[notaAutorizada]] = await db.query(
+    `SELECT id FROM notas_fiscais WHERE comanda_id = ? AND status = 'autorizada' LIMIT 1`,
+    [comanda.id]
+  );
+  if (notaAutorizada) {
+    return res.status(400).json({
+      erro: 'Essa comanda já tem nota fiscal autorizada pela Sefaz — não pode ser excluída (o documento fiscal continua valendo mesmo sem o registro aqui). Se a venda foi um engano de verdade, é preciso cancelar a nota fiscal formalmente, não só apagar a comanda.'
+    });
+  }
 
   await db.query(`DELETE FROM comandas WHERE id = ? AND padaria_id = ?`, [comanda.id, padaria_id]);
   res.json({ ok: true });
