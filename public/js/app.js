@@ -5857,6 +5857,15 @@ async function confirmarLoginAtendente() {
 // na entrada de telas como o Histórico, onde o PIN é pedido 1x e vale pra tudo
 // que a pessoa fizer ali dentro — excluir/reimprimir não pedem PIN de novo).
 async function comLoginAtendente(fn, limparDepois = true) {
+  // Ações sensíveis (limparDepois=true) nunca reaproveitam um PIN de sessão anterior
+  // que possa ter ficado "pendurado" (ex: alguém abriu o Histórico/Relatório de
+  // vendas como gerente e não fechou a tela direito) — sempre pede o PIN do zero,
+  // de quem está de fato clicando agora, em vez de confiar num token antigo.
+  if (limparDepois) {
+    sessionStorage.removeItem('func_token');
+    sessionStorage.removeItem('func_nome');
+    sessionStorage.removeItem('func_role');
+  }
   let r = await fn();
   if (r && r.precisa_login_funcionario) {
     const ok = await pedirLoginAtendente();
