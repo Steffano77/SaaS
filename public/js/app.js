@@ -4355,10 +4355,34 @@ function abrirScanner(ctx) {
   document.getElementById('scan-resultado').classList.add('hidden');
   document.getElementById('scan-resultado').textContent = '';
 
-  html5Qr = new Html5Qrcode('scanner-view');
+  // Sem "formatsToSupport", a lib tenta reconhecer TODOS os formatos que existem
+  // (QR code, Aztec, PDF417...) a cada frame — mais lento e menos preciso bem na
+  // hora de focar um código de barras real de produto. Restringir só aos formatos
+  // de código de barras de produto (o que EAN-13/EAN-8/UPC cobre praticamente tudo
+  // que chega de fornecedor, + Code128 usado nalguma etiqueta interna) deixa cada
+  // tentativa de leitura mais rápida — ajuda bastante no iPhone, onde a câmera via
+  // navegador (Safari) já é mais lenta pra focar de perto que um leitor dedicado.
+  html5Qr = new Html5Qrcode('scanner-view', {
+    formatsToSupport: [
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.CODE_39,
+    ],
+    verbose: false,
+  });
   html5Qr.start(
     { facingMode: 'environment' },
-    { fps: 10, qrbox: { width: 260, height: 120 } },
+    {
+      fps: 15,
+      qrbox: { width: 280, height: 140 },
+      // Pede foco contínuo (macro) à câmera quando o navegador permitir — sem isso,
+      // no iPhone a câmera às vezes trava o foco no fundo da cena em vez do código
+      // de barras bem de perto na mão da atendente.
+      videoConstraints: { facingMode: 'environment', advanced: [{ focusMode: 'continuous' }] },
+    },
     async (codigo) => {
       await fecharScanner();
       await processarCodigoBarras(codigo, scannerCtx);
