@@ -162,13 +162,20 @@ exports.emitirParaComanda = async (req, res) => {
     const interpretado = interpretarResposta(respostaSefaz.corpo);
     // cStat 100 = Autorizado o uso da NF-e (o único "sucesso" de verdade)
     const autorizada = interpretado.cStat === '100';
+    // Se a Sefaz devolveu algo que o parser simples não reconheceu (resposta fora do
+    // formato esperado, ex: erro de gateway/instabilidade), cStat/xMotivo ficam null —
+    // sem isso a mensagem salva ficava literalmente "null: null", sem dizer nada útil
+    // (bug real, visto na prática). Cai num texto que pelo menos orienta a reenviar.
+    const motivoTexto = (interpretado.cStat && interpretado.xMotivo)
+      ? `${interpretado.cStat}: ${interpretado.xMotivo}`
+      : `Resposta da Sefaz não reconhecida (HTTP ${respostaSefaz.statusCode || '?'}) — provável instabilidade momentânea, tenta "Reenviar" daqui a pouco.`;
 
     await db.query(
       `UPDATE notas_fiscais SET status = ?, protocolo_autorizacao = ?, motivo_rejeicao = ?, autorizada_em = ? WHERE id = ?`,
       [
         autorizada ? 'autorizada' : 'rejeitada',
         interpretado.nProt || null,
-        autorizada ? null : `${interpretado.cStat}: ${interpretado.xMotivo}`,
+        autorizada ? null : motivoTexto,
         autorizada ? new Date() : null,
         notaResult.insertId,
       ]
@@ -415,13 +422,18 @@ exports.reenviar = async (req, res) => {
 
     const interpretado = interpretarResposta(respostaSefaz.corpo);
     const autorizada = interpretado.cStat === '100';
+    // Mesmo cuidado do emitirParaComanda: evita salvar "null: null" quando a resposta
+    // não é reconhecida pelo parser.
+    const motivoTexto = (interpretado.cStat && interpretado.xMotivo)
+      ? `${interpretado.cStat}: ${interpretado.xMotivo}`
+      : `Resposta da Sefaz não reconhecida (HTTP ${respostaSefaz.statusCode || '?'}) — provável instabilidade momentânea, tenta "Reenviar" daqui a pouco.`;
 
     await db.query(
       `UPDATE notas_fiscais SET status = ?, protocolo_autorizacao = ?, motivo_rejeicao = ?, autorizada_em = ? WHERE id = ?`,
       [
         autorizada ? 'autorizada' : 'rejeitada',
         interpretado.nProt || null,
-        autorizada ? null : `${interpretado.cStat}: ${interpretado.xMotivo}`,
+        autorizada ? null : motivoTexto,
         autorizada ? new Date() : null,
         nota.id,
       ]
