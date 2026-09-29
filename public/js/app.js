@@ -6142,6 +6142,12 @@ async function reemitirNotaCorrigida(comandaId, botao) {
 let _historicoComandasCache = [];
 
 async function abrirHistoricoComandas() {
+  // Mesmo com limparDepois=false (pra não pedir PIN de novo pra cada ação DENTRO do
+  // histórico), a ENTRADA sempre começa do zero — esquece qualquer token de sessão
+  // antigo antes de tentar. Sem isso, um token pendurado de uma tentativa anterior
+  // (de qualquer pessoa) era reaproveitado direto, pulando a caixinha de PIN e dando
+  // erro de papel errado sem a pessoa nem ter chance de digitar o PIN dela de verdade.
+  esquecerLoginAtendente();
   // limparDepois=false: pede o PIN só aqui na entrada — excluir/reimprimir
   // dentro do histórico não pedem de novo, até fechar a tela.
   await comLoginAtendente(async () => {
@@ -8882,6 +8888,10 @@ let _relVendasDados = null;
 // O PIN fica válido enquanto a tela estiver aberta (pra poder trocar o período
 // várias vezes sem pedir de novo), e é esquecido ao fechar a tela.
 async function abrirRelatorioVendas() {
+  // Mesma correção do Histórico: a ENTRADA sempre esquece qualquer token de sessão
+  // pendurado antes de tentar, pra nunca pular a caixinha de PIN reaproveitando uma
+  // sessão de outra pessoa/tentativa anterior.
+  esquecerLoginAtendente();
   await comLoginAtendente(async () => {
     const r = await api(`/comandas/relatorio?periodo=hoje`);
     if (!r || r.precisa_login_funcionario) return r;
