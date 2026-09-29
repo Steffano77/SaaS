@@ -1539,10 +1539,14 @@ async function imprimirEstoquePorCategoria() {
   const categoriaId = sel.value;
   const categoriaNome = categoriaId ? sel.options[sel.selectedIndex].textContent : 'Todas as categorias';
 
+  // Abre a janela JÁ aqui, ainda dentro do clique — antes do "await" da busca dos
+  // produtos, senão o navegador pode bloquear o popup em silêncio (mesmo bug já visto
+  // no Faturado/DANFE/fechamento de caixa).
+  const janelaPre = window.open('', '_blank');
   const url = categoriaId ? `/produtos?categoria_id=${categoriaId}` : '/produtos';
   const prods = await api(url) || [];
 
-  if (!prods.length) return alert('Nenhum produto encontrado nessa categoria.');
+  if (!prods.length) { janelaPre?.close(); return alert('Nenhum produto encontrado nessa categoria.'); }
 
   fecharModalImprimirEstoque();
 
@@ -1600,7 +1604,7 @@ async function imprimirEstoquePorCategoria() {
     <\/script>
     </body></html>`;
 
-  const w = window.open('', '_blank');
+  const w = janelaPre || window.open('', '_blank');
   w.document.write(html);
   w.document.close();
 }
@@ -7432,17 +7436,25 @@ function imprimirComprovanteRhUI(nome, saldo, limite) {
 // Extrato de consumo de um faturado (empresa ou funcionário) — lista tudo que ele
 // lançou em "Faturado", com opção de imprimir (mesmo formato térmico do resto do sistema).
 async function abrirExtratoFaturadoUI(documento, nome) {
+  // Abre a janela de impressão JÁ aqui, ainda dentro do clique — antes de qualquer
+  // "await" (busca do extrato, o diálogo de confirmação, os dados fiscais lá na
+  // frente). Mesmo bug já visto no Faturado/DANFE/fechamento de caixa: abrir
+  // window.open() só depois de esperar rede faz o Chrome bloquear o popup às vezes,
+  // sem aviso nenhum. Se no final não for pra imprimir, essa janela em branco fecha.
+  const janelaPre = window.open('', '_blank', 'width=380,height=600');
   const linhas = await api(`/clientes-faturado/documento/${documento}/extrato`);
-  if (!linhas) return;
+  if (!linhas) { janelaPre?.close(); return; }
   _extratoFaturadoCache = { documento, nome, linhas };
-  if (!linhas.length) { mostrarToast(`${nome} ainda não consumiu nada em Faturado.`, 'warn'); return; }
+  if (!linhas.length) { janelaPre?.close(); mostrarToast(`${nome} ainda não consumiu nada em Faturado.`, 'warn'); return; }
   const total = linhas.reduce((s, l) => s + parseFloat(l.valor), 0);
   const totalAberto = linhas.filter(l => !l.quitado_em).reduce((s, l) => s + parseFloat(l.valor), 0);
   const corpo = linhas.map(l =>
     `${l.quitado_em ? '✅' : '🟠'} Comanda ${l.identificador} — ${fmtDataHoraBR(l.fechada_em)} — ${fmtMoeda(l.valor)}${l.quitado_em ? ' (quitado)' : ''}`
   ).join('\n');
   if (await confirmarBonito(`Extrato de ${nome}\n\nTotal geral: ${fmtMoeda(total)}\nEm aberto: ${fmtMoeda(totalAberto)}\n\n${corpo}\n\nImprimir esse extrato?`)) {
-    imprimirExtratoFaturadoUI();
+    imprimirExtratoFaturadoUI(janelaPre);
+  } else {
+    janelaPre?.close();
   }
 }
 
@@ -7450,9 +7462,9 @@ let _extratoFaturadoCache = null;
 // Imprime o extrato completo: um resumo (total geral/em aberto) seguido de CADA
 // comanda reimpressa no layout completo (mesmo cabeçalho/itens/código do recibo de
 // venda) — não só a linha resumida de valor, dá pra conferir item por item do histórico.
-async function imprimirExtratoFaturadoUI() {
+async function imprimirExtratoFaturadoUI(janelaPre) {
   const d = _extratoFaturadoCache;
-  if (!d) return;
+  if (!d) { janelaPre?.close(); return; }
   const fd = await buscarDadosFiscaisUI();
   const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
   const razaoSocial = (fd.nfce_razao_social || nomePadaria).toUpperCase();
@@ -7505,7 +7517,7 @@ async function imprimirExtratoFaturadoUI() {
     `;
   }).join('');
 
-  abrirJanelaImpressaoTermica(`${resumoHtml}${comandasHtml}<div class="rodape" style="margin-top:10px;">Fim do extrato</div>`);
+  abrirJanelaImpressaoTermica(`${resumoHtml}${comandasHtml}<div class="rodape" style="margin-top:10px;">Fim do extrato</div>`, janelaPre);
 }
 
 // "Dar baixa" — marca tudo que esse faturado deve como pago, zerando o saldo e
