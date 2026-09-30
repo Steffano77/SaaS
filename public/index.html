@@ -2234,7 +2234,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20260930b"></script>
+<script src="/js/app.js?v=20260930c"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
@@ -2564,8 +2564,13 @@
   </div>
 </div>
 
-<!-- ── MODAL SCANNER ─────────────────────────────────────── -->
-<div id="modal-scanner" class="modal-overlay hidden">
+<!-- ── MODAL SCANNER (Estoque — cadastro de produto, via html5-qrcode) ──────
+     Tinha o mesmo id do modal de scanner da venda (linha ~2165, esse aqui é o
+     "modal-scanner-estoque") — como HTML não permite dois ids iguais, o
+     navegador sempre pegava o primeiro (o da venda), fazendo esse aqui (o de
+     verdade usado pra cadastrar produto) ficar escondido mesmo com a câmera
+     ligada por trás — bug real, corrigido separando os dois ids. -->
+<div id="modal-scanner-estoque" class="modal-overlay hidden">
   <div class="modal-box" style="max-width:400px;">
     <div class="modal-header">
       <span class="modal-title" style="display:flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Escanear código de barras</span>

@@ -4351,7 +4351,7 @@ let _scanProduto = null;
 
 async function abrirScanner(ctx) {
   scannerCtx = ctx;
-  document.getElementById('modal-scanner').classList.remove('hidden');
+  document.getElementById('modal-scanner-estoque').classList.remove('hidden');
   document.getElementById('scan-resultado').classList.add('hidden');
   document.getElementById('scan-resultado').textContent = '';
 
@@ -4411,7 +4411,7 @@ async function fecharScanner() {
     try { await html5Qr.stop(); } catch(e) {}
     html5Qr = null;
   }
-  document.getElementById('modal-scanner').classList.add('hidden');
+  document.getElementById('modal-scanner-estoque').classList.add('hidden');
 }
 
 function scanAcaoEntrada() {
@@ -4494,7 +4494,7 @@ async function processarCodigoBarras(codigo, ctx) {
   }
 
   document.getElementById('scan-status').textContent = '🌐 Buscando na base pública...';
-  document.getElementById('modal-scanner').classList.remove('hidden');
+  document.getElementById('modal-scanner-estoque').classList.remove('hidden');
   document.getElementById('scanner-view').innerHTML = `<div style="padding:24px;text-align:center;color:#fff;font-size:14px;">🔍 Buscando produto na base global...</div>`;
 
   let nomeSugerido = '', catSugerida = '';
