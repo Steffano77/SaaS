@@ -4374,31 +4374,13 @@ async function abrirScanner(ctx) {
     verbose: false,
   });
 
-  // Pedir a câmera só com { facingMode: 'environment' } é o jeito que mais dá
-  // problema no Safari do iPhone — às vezes liga a câmera (indicador verde aceso)
-  // mas não entrega imagem nenhuma (tela preta), provavelmente por negociar uma
-  // câmera errada/virtual nos iPhones com várias lentes traseiras (normal, ultra-
-  // wide, telefoto). O jeito mais confiável é listar as câmeras de verdade e
-  // escolher a traseira pelo nome, em vez de deixar o navegador "adivinhar".
-  let cameraId = { facingMode: 'environment' };
-  try {
-    const cameras = await Html5Qrcode.getCameras();
-    if (cameras && cameras.length) {
-      const traseira = cameras.find(c => /back|traseir|rear|environment/i.test(c.label));
-      cameraId = (traseira || cameras[cameras.length - 1]).id;
-    }
-  } catch (e) { /* getCameras falhou — cai no fallback facingMode mesmo */ }
-
-  // "videoConstraints" substitui o pedido de câmera inteiro (não só adiciona a
-  // resolução) — sem repetir aqui qual câmera usar, a lib esquece a traseira
-  // escolhida acima e o navegador cai na frontal por padrão (bug real, visto na
-  // prática: abriu a câmera de selfie). Repete a câmera certa dentro desse objeto.
-  const videoConstraints = { width: { ideal: 1920 }, height: { ideal: 1080 } };
-  if (typeof cameraId === 'string') videoConstraints.deviceId = { exact: cameraId };
-  else videoConstraints.facingMode = 'environment';
-
+  // A tela preta de antes era o bug do modal duplicado (já corrigido), não o jeito
+  // de pedir a câmera — então volta pro caminho simples e direto: pede a traseira
+  // por "facingMode", sem depender de listar câmeras e adivinhar pelo nome (no
+  // iPhone o Safari às vezes não entrega o nome da câmera, e a escolha por nome
+  // caía errado na frontal — bug visto na prática).
   html5Qr.start(
-    cameraId,
+    { facingMode: { exact: 'environment' } },
     {
       fps: 15,
       qrbox: { width: 280, height: 140 },
@@ -4406,7 +4388,7 @@ async function abrirScanner(ctx) {
       // um vídeo de resolução baixa por padrão, suficiente pra "aparecer imagem" mas
       // insuficiente pra decodificar um código de barras pequeno/de longe. É só um
       // "ideal" (pedido, não obrigatório) — se a câmera não suportar, usa o que der.
-      videoConstraints,
+      videoConstraints: { facingMode: { exact: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
     },
     async (codigo) => {
       await fecharScanner();
