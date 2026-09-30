@@ -606,6 +606,23 @@ app.use((err, req, res, _next) => {
 // rodar vários testes, e deixa o teste controlar quando/como fazer as requisições.
 if (require.main === module) {
   app.listen(PORT, () => console.log(`🥖 PanificaPro rodando em http://localhost:${PORT}`));
+
+  // HTTPS opcional via certificado do Tailscale — só liga se os dois arquivos existirem
+  // (gerados com "tailscale cert", ver certificados-tailscale/). Sem eles, essa parte
+  // simplesmente não faz nada — não quebra o VPS nem nenhum outro ambiente que não
+  // tenha esses arquivos. Motivo: câmera/microfone só funcionam no navegador em conexão
+  // segura (HTTPS) — sem isso, o scanner de código de barras não abria a câmera pra
+  // quem acessa de longe pelo Tailscale (http simples), só direto na padaria.
+  const certPath = process.env.TAILSCALE_CERT_FILE || path.join(__dirname, '../certificados-tailscale/tailscale.crt');
+  const keyPath  = process.env.TAILSCALE_KEY_FILE  || path.join(__dirname, '../certificados-tailscale/tailscale.key');
+  if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+    const https = require('https');
+    const HTTPS_PORT = process.env.TAILSCALE_HTTPS_PORT || 3443;
+    https.createServer(
+      { cert: fs.readFileSync(certPath), key: fs.readFileSync(keyPath) },
+      app
+    ).listen(HTTPS_PORT, () => console.log(`🔒 PanificaPro (HTTPS/Tailscale) rodando na porta ${HTTPS_PORT}`));
+  }
 }
 
 module.exports = { app, migracoesProntas };

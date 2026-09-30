@@ -7,6 +7,7 @@ public/app/
 
 # Certificados digitais (NFC-e) — NUNCA versionar. Ficam só no servidor, fora do git.
 certificados/
+certificados-tailscale/
 *.pfx
 *.p12
 
