@@ -4389,6 +4389,14 @@ async function abrirScanner(ctx) {
     }
   } catch (e) { /* getCameras falhou — cai no fallback facingMode mesmo */ }
 
+  // "videoConstraints" substitui o pedido de câmera inteiro (não só adiciona a
+  // resolução) — sem repetir aqui qual câmera usar, a lib esquece a traseira
+  // escolhida acima e o navegador cai na frontal por padrão (bug real, visto na
+  // prática: abriu a câmera de selfie). Repete a câmera certa dentro desse objeto.
+  const videoConstraints = { width: { ideal: 1920 }, height: { ideal: 1080 } };
+  if (typeof cameraId === 'string') videoConstraints.deviceId = { exact: cameraId };
+  else videoConstraints.facingMode = 'environment';
+
   html5Qr.start(
     cameraId,
     {
@@ -4398,7 +4406,7 @@ async function abrirScanner(ctx) {
       // um vídeo de resolução baixa por padrão, suficiente pra "aparecer imagem" mas
       // insuficiente pra decodificar um código de barras pequeno/de longe. É só um
       // "ideal" (pedido, não obrigatório) — se a câmera não suportar, usa o que der.
-      videoConstraints: { width: { ideal: 1920 }, height: { ideal: 1080 } },
+      videoConstraints,
     },
     async (codigo) => {
       await fecharScanner();
