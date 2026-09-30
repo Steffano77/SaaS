@@ -4394,6 +4394,11 @@ async function abrirScanner(ctx) {
     {
       fps: 15,
       qrbox: { width: 280, height: 140 },
+      // Pede resolução alta (Full HD) — sem isso o Safari do iPhone costuma entregar
+      // um vídeo de resolução baixa por padrão, suficiente pra "aparecer imagem" mas
+      // insuficiente pra decodificar um código de barras pequeno/de longe. É só um
+      // "ideal" (pedido, não obrigatório) — se a câmera não suportar, usa o que der.
+      videoConstraints: { width: { ideal: 1920 }, height: { ideal: 1080 } },
     },
     async (codigo) => {
       await fecharScanner();
