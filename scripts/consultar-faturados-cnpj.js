@@ -6,8 +6,9 @@ const db = require('../src/database/connection');
   const [rows] = await db.query(
     `SELECT cf.nome, cf.cnpj, cp.valor, cp.criado_em, cp.quitado_em, cp.lancado_em
      FROM comanda_pagamentos cp
-     JOIN clientes_faturado cf ON cf.cnpj = cp.cliente_documento AND cf.padaria_id = cp.padaria_id
-     WHERE cp.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND cf.tipo = 'empresa'
+     JOIN comandas c ON c.id = cp.comanda_id
+     JOIN clientes_faturado cf ON cf.cnpj = cp.cliente_documento AND cf.padaria_id = c.padaria_id
+     WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND cf.tipo = 'empresa'
      ORDER BY cp.criado_em DESC`,
     [padaria_id]
   );
