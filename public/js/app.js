@@ -4378,10 +4378,10 @@ function abrirScanner(ctx) {
     {
       fps: 15,
       qrbox: { width: 280, height: 140 },
-      // Pede foco contínuo (macro) à câmera quando o navegador permitir — sem isso,
-      // no iPhone a câmera às vezes trava o foco no fundo da cena em vez do código
-      // de barras bem de perto na mão da atendente.
-      videoConstraints: { facingMode: 'environment', advanced: [{ focusMode: 'continuous' }] },
+      // O pedido de foco contínuo (focusMode: 'continuous') foi removido — o Safari
+      // do iPhone não aceita esse tipo de restrição de câmera, e isso fazia a câmera
+      // ligar (o iOS mostra o indicador verde) mas travar numa tela preta, sem
+      // imagem nenhuma (bug real, visto na prática logo depois de adicionar isso).
     },
     async (codigo) => {
       await fecharScanner();
