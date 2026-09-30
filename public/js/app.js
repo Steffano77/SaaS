@@ -4349,7 +4349,7 @@ let scannerCtx = 'estoque';
 let html5Qr = null;
 let _scanProduto = null;
 
-function abrirScanner(ctx) {
+async function abrirScanner(ctx) {
   scannerCtx = ctx;
   document.getElementById('modal-scanner').classList.remove('hidden');
   document.getElementById('scan-resultado').classList.add('hidden');
@@ -4373,15 +4373,27 @@ function abrirScanner(ctx) {
     ],
     verbose: false,
   });
+
+  // Pedir a câmera só com { facingMode: 'environment' } é o jeito que mais dá
+  // problema no Safari do iPhone — às vezes liga a câmera (indicador verde aceso)
+  // mas não entrega imagem nenhuma (tela preta), provavelmente por negociar uma
+  // câmera errada/virtual nos iPhones com várias lentes traseiras (normal, ultra-
+  // wide, telefoto). O jeito mais confiável é listar as câmeras de verdade e
+  // escolher a traseira pelo nome, em vez de deixar o navegador "adivinhar".
+  let cameraId = { facingMode: 'environment' };
+  try {
+    const cameras = await Html5Qrcode.getCameras();
+    if (cameras && cameras.length) {
+      const traseira = cameras.find(c => /back|traseir|rear|environment/i.test(c.label));
+      cameraId = (traseira || cameras[cameras.length - 1]).id;
+    }
+  } catch (e) { /* getCameras falhou — cai no fallback facingMode mesmo */ }
+
   html5Qr.start(
-    { facingMode: 'environment' },
+    cameraId,
     {
       fps: 15,
       qrbox: { width: 280, height: 140 },
-      // O pedido de foco contínuo (focusMode: 'continuous') foi removido — o Safari
-      // do iPhone não aceita esse tipo de restrição de câmera, e isso fazia a câmera
-      // ligar (o iOS mostra o indicador verde) mas travar numa tela preta, sem
-      // imagem nenhuma (bug real, visto na prática logo depois de adicionar isso).
     },
     async (codigo) => {
       await fecharScanner();
