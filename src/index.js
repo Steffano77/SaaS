@@ -615,13 +615,22 @@ if (require.main === module) {
   // quem acessa de longe pelo Tailscale (http simples), só direto na padaria.
   const certPath = process.env.TAILSCALE_CERT_FILE || path.join(__dirname, '../certificados-tailscale/tailscale.crt');
   const keyPath  = process.env.TAILSCALE_KEY_FILE  || path.join(__dirname, '../certificados-tailscale/tailscale.key');
+  console.log(`[https-tailscale] Procurando certificado em: ${certPath}`);
   if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
-    const https = require('https');
-    const HTTPS_PORT = process.env.TAILSCALE_HTTPS_PORT || 3443;
-    https.createServer(
-      { cert: fs.readFileSync(certPath), key: fs.readFileSync(keyPath) },
-      app
-    ).listen(HTTPS_PORT, () => console.log(`🔒 PanificaPro (HTTPS/Tailscale) rodando na porta ${HTTPS_PORT}`));
+    try {
+      const https = require('https');
+      const HTTPS_PORT = process.env.TAILSCALE_HTTPS_PORT || 3443;
+      const servidorHttps = https.createServer(
+        { cert: fs.readFileSync(certPath), key: fs.readFileSync(keyPath) },
+        app
+      );
+      servidorHttps.on('error', (e) => console.error('[https-tailscale] Erro ao subir o servidor HTTPS:', e.message));
+      servidorHttps.listen(HTTPS_PORT, () => console.log(`🔒 PanificaPro (HTTPS/Tailscale) rodando na porta ${HTTPS_PORT}`));
+    } catch (e) {
+      console.error('[https-tailscale] Falha ao carregar certificado/subir HTTPS:', e.message);
+    }
+  } else {
+    console.log('[https-tailscale] Certificado não encontrado — HTTPS não ligado (normal se ainda não gerou o certificado).');
   }
 }
 
