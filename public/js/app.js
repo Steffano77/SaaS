@@ -2405,6 +2405,18 @@ async function carregarFinanceiro() {
   renderAlertas(contas ? contas.contas : []);
 }
 
+let _finBuscaTimer = null;
+function finBuscarMovimentacoes(termo) {
+  clearTimeout(_finBuscaTimer);
+  _finBuscaTimer = setTimeout(async () => {
+    if (!termo || !termo.trim()) { carregarFinanceiro(); return; }
+    const data = await api(`/financeiro?busca=${encodeURIComponent(termo.trim())}`);
+    if (!data) return;
+    renderMovimentacoes(data.movimentacoes);
+    document.getElementById('fin-periodo-label').textContent = `Resultado da busca: ${data.movimentacoes.length} encontrada(s)`;
+  }, 350);
+}
+
 function renderMovimentacoes(movs) {
   const fmt = v => parseFloat(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const lista = document.getElementById('fin-lista');

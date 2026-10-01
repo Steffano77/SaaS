@@ -87,7 +87,44 @@ exports.alterarPin = async (req, res) => {
 // Listar movimentações
 exports.listar = async (req, res) => {
   const padaria_id = req.padaria.id;
-  const { periodo = 'mes', data_inicio, data_fim } = req.query;
+  const { periodo = 'mes', data_inicio, data_fim, busca } = req.query;
+
+  // Busca livre — procura em qualquer data (não respeita o período selecionado),
+  // pra achar uma venda específica sem precisar saber o dia exato. Cobre nº da
+  // comanda/descrição, categoria (onde entra "Fiado: Nome do cliente"), forma de
+  // pagamento e valor — e também o CNPJ/nome de cliente faturado, resolvendo pro
+  // nome gravado na categoria (a tabela financeiro não guarda CNPJ direto).
+  if (busca && busca.trim()) {
+    const termoBruto = busca.trim();
+    const termo = `%${termoBruto}%`;
+
+    const [clientesAchados] = await db.query(
+      `SELECT DISTINCT nome FROM clientes_faturado WHERE padaria_id = ? AND (cnpj LIKE ? OR nome LIKE ?)`,
+      [padaria_id, termo, termo]
+    );
+
+    const condicoes = ['descricao LIKE ?', 'categoria LIKE ?', 'forma_pagamento LIKE ?', 'CAST(valor AS CHAR) LIKE ?'];
+    const params = [padaria_id, termo, termo, termo, termo];
+    for (const c of clientesAchados) {
+      condicoes.push('categoria LIKE ?');
+      params.push(`%Fiado: ${c.nome}%`);
+    }
+
+    const [movs] = await db.query(
+      `SELECT * FROM financeiro
+       WHERE padaria_id = ? AND (${condicoes.join(' OR ')})
+       ORDER BY data DESC, criado_em DESC
+       LIMIT 200`,
+      params
+    );
+    return res.json({
+      movimentacoes: movs,
+      total_entradas: null,
+      total_saidas: null,
+      saldo: null,
+      busca: true,
+    });
+  }
 
   let inicio, fim;
   const hoje = new Date();
