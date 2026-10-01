@@ -10,7 +10,7 @@ const db = require('../src/database/connection');
      JOIN comandas c ON c.id = cp.comanda_id
      JOIN clientes_faturado cf ON cf.cnpj = cp.cliente_documento AND cf.padaria_id = c.padaria_id
      WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND cf.tipo = 'empresa'
-     ORDER BY cp.criado_em DESC`,
+     ORDER BY data DESC`,
     [padaria_id]
   );
 
