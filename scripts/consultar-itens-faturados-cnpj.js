@@ -1,6 +1,11 @@
 require('dotenv').config();
 const db = require('../src/database/connection');
 
+// Alguns itens de balança são gravados com quantidade=1 (fixa) e o "preco_unitario"
+// na verdade é o VALOR TOTAL da etiqueta (código de barras com preço embutido, não
+// peso embutido) — nesses casos o peso real é: valor_total / preço-do-quilo-atual-do-
+// produto. Outros já vêm com a quantidade certa (peso real em kg). Esse script separa
+// os dois casos e mostra o peso real calculado.
 (async () => {
   const padaria_id = parseInt(process.env.PADARIA_ID_CONSULTA || '1', 10);
 
@@ -18,13 +23,25 @@ const db = require('../src/database/connection');
 
   for (const p of pagamentos) {
     const [itens] = await db.query(
-      `SELECT nome_produto, quantidade, unidade, preco_unitario FROM itens_comanda WHERE comanda_id = ? ORDER BY id`,
+      `SELECT i.nome_produto, i.quantidade, i.unidade, i.preco_unitario, i.produto_id,
+              pr.preco_venda AS preco_kg_atual, pr.unidade AS unidade_produto
+       FROM itens_comanda i
+       LEFT JOIN produtos pr ON pr.id = i.produto_id
+       WHERE i.comanda_id = ? ORDER BY i.id`,
       [p.comanda_id]
     );
     const dataFmt = new Date(p.data).toLocaleDateString('pt-BR');
     console.log(`--- ${p.nome} — Comanda ${p.identificador} — ${dataFmt} ---`);
     for (const i of itens) {
-      console.log(`  ${i.quantidade} ${i.unidade || ''} x ${i.nome_produto} (R$ ${parseFloat(i.preco_unitario).toFixed(2)} cada)`);
+      const qtd = parseFloat(i.quantidade);
+      const precoItem = parseFloat(i.preco_unitario);
+      const ehPlaceholder = Math.abs(qtd - 1) < 0.0001 && i.preco_kg_atual;
+      if (ehPlaceholder) {
+        const pesoKgReal = precoItem / parseFloat(i.preco_kg_atual);
+        console.log(`  ${i.nome_produto}: valor etiqueta R$ ${precoItem.toFixed(2)} ÷ R$/kg atual ${parseFloat(i.preco_kg_atual).toFixed(2)} = PESO REAL ${(pesoKgReal*1000).toFixed(0)}g (${pesoKgReal.toFixed(3)}kg) [calculado pelo preço/kg de hoje]`);
+      } else {
+        console.log(`  ${i.nome_produto}: ${qtd} ${i.unidade || ''} (peso já gravado certo) x R$ ${precoItem.toFixed(2)}`);
+      }
     }
     console.log('');
   }
