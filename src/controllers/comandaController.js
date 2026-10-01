@@ -20,6 +20,21 @@ function cpfValido(cpf) {
   return true;
 }
 
+// Valida CNPJ de verdade (dígitos verificadores) — mesma lógica do CPF acima, pro
+// documento do cliente na nota aceitar empresa (Faturado CNPJ) também, não só pessoa física.
+function cnpjValido(cnpj) {
+  const c = limparDoc(cnpj);
+  if (c.length !== 14 || /^(\d)\1{13}$/.test(c)) return false;
+  const calcDv = (base, pesos) => {
+    const soma = base.split('').reduce((s, d, i) => s + Number(d) * pesos[i], 0);
+    const resto = soma % 11;
+    return resto < 2 ? 0 : 11 - resto;
+  };
+  const dv1 = calcDv(c.slice(0, 12), [5,4,3,2,9,8,7,6,5,4,3,2]);
+  const dv2 = calcDv(c.slice(0, 12) + dv1, [6,5,4,3,2,9,8,7,6,5,4,3,2]);
+  return c === c.slice(0, 12) + String(dv1) + String(dv2);
+}
+
 // Lista comandas abertas + um histórico recente das fechadas/canceladas
 exports.listar = async (req, res) => {
   const padaria_id = req.padaria.id;
@@ -415,10 +430,11 @@ exports.fechar = async (req, res) => {
     // na comanda pra imprimir "Cliente:" e "Documento:" no recibo.
     const cliente_nome = String(req.body.cliente_nome || '').trim() || null;
     const cliente_documento = String(req.body.cliente_documento || '').trim() || null;
-    // CPF na nota — opcional, digitado na hora pelo cliente comum (nada a ver com
-    // Faturado). Só aceita se for um CPF matematicamente válido (senão a Sefaz rejeita).
-    const cpfDigitado = limparDoc(req.body.cpf_nota);
-    const cpf_nota = cpfValido(cpfDigitado) ? cpfDigitado : null;
+    // Documento na nota — opcional, digitado na hora (CPF do cliente comum, ou CNPJ
+    // quando é empresa do Faturado). Só aceita se for matematicamente válido (senão a
+    // Sefaz rejeita) — bug real: antes só aceitava CPF, então CNPJ nunca ia pra nota.
+    const docDigitado = limparDoc(req.body.cpf_nota);
+    const cpf_nota = (cpfValido(docDigitado) || cnpjValido(docDigitado)) ? docDigitado : null;
 
     try {
       await conn.query(

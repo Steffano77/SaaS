@@ -192,12 +192,15 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
     </det>`;
   }).join('');
 
-  // CPF do cliente na nota — opcional, digitado na hora (já validado antes de chegar
-  // aqui, no fechamento da comanda). Sem CPF, sai sem <dest> (consumidor não identificado,
-  // permitido em NFC-e).
-  const cpfLimpoNota = String(comanda.cpf_nota || '').replace(/\D/g, '');
-  const destXml = cpfLimpoNota.length === 11
-    ? `<dest>\n      <CPF>${cpfLimpoNota}</CPF>\n      <indIEDest>9</indIEDest>\n    </dest>`
+  // CPF ou CNPJ do cliente na nota — opcional, digitado na hora (já validado antes de
+  // chegar aqui, no fechamento da comanda). Sem documento, sai sem <dest> (consumidor
+  // não identificado, permitido em NFC-e). CNPJ cobre o cliente empresa do Faturado —
+  // bug real corrigido: antes só aceitava CPF, nunca saía CNPJ na nota.
+  const docLimpoNota = String(comanda.cpf_nota || '').replace(/\D/g, '');
+  const destXml = docLimpoNota.length === 11
+    ? `<dest>\n      <CPF>${docLimpoNota}</CPF>\n      <indIEDest>9</indIEDest>\n    </dest>`
+    : docLimpoNota.length === 14
+    ? `<dest>\n      <CNPJ>${docLimpoNota}</CNPJ>\n      <indIEDest>9</indIEDest>\n    </dest>`
     : '';
 
   const vProdTotal = itens.reduce((s, i) => s + parseFloat(i.subtotal), 0);

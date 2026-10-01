@@ -7279,24 +7279,48 @@ function cpfValidoUI(cpf) {
   return true;
 }
 
+function cnpjValidoUI(cnpj) {
+  const c = String(cnpj || '').replace(/\D/g, '');
+  if (c.length !== 14 || /^(\d)\1{13}$/.test(c)) return false;
+  const calcDv = (base, pesos) => {
+    const soma = base.split('').reduce((s, d, i) => s + Number(d) * pesos[i], 0);
+    const resto = soma % 11;
+    return resto < 2 ? 0 : 11 - resto;
+  };
+  const dv1 = calcDv(c.slice(0, 12), [5,4,3,2,9,8,7,6,5,4,3,2]);
+  const dv2 = calcDv(c.slice(0, 12) + dv1, [6,5,4,3,2,9,8,7,6,5,4,3,2]);
+  return c === c.slice(0, 12) + String(dv1) + String(dv2);
+}
+
+function fmtDocNota(doc) {
+  const d = String(doc || '').replace(/\D/g, '');
+  return d.length === 14
+    ? d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+    : d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+}
+
 function pedirCpfNotaUI() {
-  const cpfAtual = _cpfNotaSelecionado ? _cpfNotaSelecionado.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '';
-  const digitado = prompt('CPF do cliente pra colocar na nota (só números):', cpfAtual);
+  const docAtual = _cpfNotaSelecionado ? fmtDocNota(_cpfNotaSelecionado) : '';
+  const digitado = prompt('CPF ou CNPJ do cliente pra colocar na nota (só números):', docAtual);
   if (digitado === null) return; // cancelou
   const limpo = digitado.replace(/\D/g, '');
-  if (!limpo) { _cpfNotaSelecionado = null; atualizarLinkCpfNotaUI(); mostrarToast('CPF removido da nota.', 'ok'); return; }
-  if (!cpfValidoUI(limpo)) { mostrarToast('CPF inválido — confere os números e tenta de novo.', 'warn'); return; }
+  if (!limpo) { _cpfNotaSelecionado = null; atualizarLinkCpfNotaUI(); mostrarToast('Documento removido da nota.', 'ok'); return; }
+  if (limpo.length === 14) {
+    if (!cnpjValidoUI(limpo)) { mostrarToast('CNPJ inválido — confere os números e tenta de novo.', 'warn'); return; }
+  } else if (!cpfValidoUI(limpo)) {
+    mostrarToast('CPF/CNPJ inválido — confere os números e tenta de novo.', 'warn'); return;
+  }
   _cpfNotaSelecionado = limpo;
   atualizarLinkCpfNotaUI();
-  mostrarToast('CPF adicionado na nota!', 'ok');
+  mostrarToast((limpo.length === 14 ? 'CNPJ' : 'CPF') + ' adicionado na nota!', 'ok');
 }
 
 function atualizarLinkCpfNotaUI() {
   const el = document.getElementById('cmd-cpf-nota-link');
   if (!el) return;
   el.textContent = _cpfNotaSelecionado
-    ? `📄 CPF na nota: ${_cpfNotaSelecionado.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')} (toque pra mudar)`
-    : '📄 Adicionar CPF na nota (opcional)';
+    ? `📄 ${_cpfNotaSelecionado.length === 14 ? 'CNPJ' : 'CPF'} na nota: ${fmtDocNota(_cpfNotaSelecionado)} (toque pra mudar)`
+    : '📄 Adicionar CPF/CNPJ na nota (opcional)';
 }
 
 // A escolha "com/sem nota" também é salva no sessionStorage (não só na variável em
@@ -7948,6 +7972,13 @@ function confirmarValorPagamento() {
   if (_pgtoForma === 'Faturado' && _faturadoClienteSelecionado) {
     pagamento.cliente_nome = _faturadoClienteSelecionado.nome;
     pagamento.cliente_documento = _faturadoClienteSelecionado.cnpj;
+    // CNPJ (empresa faturada) também entra automático na nota fiscal, sem precisar
+    // digitar de novo em "Adicionar CPF/CNPJ na nota" — bug real: esse campo só
+    // aceitava CPF, então o CNPJ do Faturado nunca aparecia na nota.
+    if (_faturadoClienteSelecionado.tipo === 'empresa' && !_cpfNotaSelecionado) {
+      _cpfNotaSelecionado = _faturadoClienteSelecionado.cnpj;
+      atualizarLinkCpfNotaUI();
+    }
   }
   comandaPagamentosPendentes.push(pagamento);
   document.getElementById('modal-valor-pagamento').classList.add('hidden');
