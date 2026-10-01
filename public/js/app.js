@@ -5379,7 +5379,11 @@ async function abrirModalCaixa(modo) {
     // aparece depois, no comprovante impresso, pra conferir.
     const cego = true;
 
-    const formasConferir = [...(r?.porForma || [])];
+    // "Padaria" (consumo interno) não entra na conferência — não é dinheiro nem cartão
+    // de verdade pra conferir contando notinha, já é um lançamento interno que o próprio
+    // sistema registrou na hora da venda. Pedir pra atendente contar e digitar de novo
+    // era trabalho à toa: o valor já "bate" sozinho (fica igual ao que o sistema lançou).
+    const formasConferir = [...(r?.porForma || [])].filter(f => f.forma_pagamento !== 'Padaria');
     if (!formasConferir.some(f => f.forma_pagamento === 'Dinheiro')) formasConferir.unshift({ forma_pagamento: 'Dinheiro', total: 0 });
     const camposConferencia = formasConferir.map(f => {
       const ehDinheiro = f.forma_pagamento === 'Dinheiro';
