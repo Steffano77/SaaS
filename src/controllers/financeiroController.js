@@ -235,6 +235,24 @@ exports.resumoDia = async (req, res) => {
 exports.excluir = async (req, res) => {
   const padaria_id = req.padaria.id;
   const { id } = req.params;
+
+  const [[mov]] = await db.query(`SELECT comanda_id FROM financeiro WHERE id = ? AND padaria_id = ?`, [id, padaria_id]);
+  // Mesma trava que já existe pra excluir comanda: nunca deixa apagar o registro
+  // financeiro de uma venda que já tem nota fiscal AUTORIZADA pela Sefaz — o
+  // documento fiscal continua valendo mesmo que o lançamento suma daqui, então
+  // isso só escondia o problema sem resolver nada.
+  if (mov && mov.comanda_id) {
+    const [[notaAutorizada]] = await db.query(
+      `SELECT id FROM notas_fiscais WHERE comanda_id = ? AND status = 'autorizada' LIMIT 1`,
+      [mov.comanda_id]
+    );
+    if (notaAutorizada) {
+      return res.status(400).json({
+        erro: 'Essa venda já tem nota fiscal autorizada pela Sefaz — não pode ser excluída do Financeiro (o documento fiscal continua valendo mesmo sem o registro aqui). Se foi um engano de verdade, é preciso cancelar a nota fiscal formalmente, não só apagar o lançamento.'
+      });
+    }
+  }
+
   await db.query(`DELETE FROM financeiro WHERE id = ? AND padaria_id = ?`, [id, padaria_id]);
   res.json({ ok: true });
 };

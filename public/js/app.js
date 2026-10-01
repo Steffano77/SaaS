@@ -2626,7 +2626,9 @@ async function finSalvar() {
 
 async function finExcluir(id) {
   if (!confirm('Excluir esta movimentação?')) return;
-  await fetch(`${API}/financeiro/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${TOKEN}` } });
+  const r = await fetch(`${API}/financeiro/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${TOKEN}` } });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) { mostrarToast(d.erro || 'Não foi possível excluir.', 'warn'); return; }
   mostrarToast('Movimentação excluída.');
   carregarFinanceiro();
 }
