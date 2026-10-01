@@ -374,10 +374,21 @@ exports.fechar = async (req, res) => {
         const categoria = forma === 'Faturado'
           ? (clienteNome ? `Fiado: ${clienteNome}` : 'Fiado (a receber)')
           : 'Vendas';
-        await conn.query(
-          `INSERT INTO financeiro (padaria_id, tipo, valor, descricao, categoria, forma_pagamento, data) VALUES (?,?,?,?,?,?,CURDATE())`,
-          [padaria_id, 'entrada', valor, `Comanda ${comanda.identificador}`, categoria, forma]
-        );
+        // Tenta gravar já com o comanda_id (coluna nova, pra poder reimprimir o recibo
+        // direto da tela Financeiro); se o banco ainda não tem a coluna, grava sem ela
+        // em vez de travar a cobrança — igual ao fallback do cliente_documento acima.
+        try {
+          await conn.query(
+            `INSERT INTO financeiro (padaria_id, tipo, valor, descricao, categoria, forma_pagamento, data, comanda_id) VALUES (?,?,?,?,?,?,CURDATE(),?)`,
+            [padaria_id, 'entrada', valor, `Comanda ${comanda.identificador}`, categoria, forma, comanda.id]
+          );
+        } catch (e) {
+          if (e.code !== 'ER_BAD_FIELD_ERROR') throw e;
+          await conn.query(
+            `INSERT INTO financeiro (padaria_id, tipo, valor, descricao, categoria, forma_pagamento, data) VALUES (?,?,?,?,?,?,CURDATE())`,
+            [padaria_id, 'entrada', valor, `Comanda ${comanda.identificador}`, categoria, forma]
+          );
+        }
       }
       formasResumo.push(`${forma} ${valor.toFixed(2)}`);
     }

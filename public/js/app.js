@@ -2439,7 +2439,10 @@ function renderMovimentacoes(movs) {
       <td class="fin-mov-td-cat">${m.categoria}</td>
       <td class="fin-mov-td-forma"><span style="color:${corForma};font-weight:700;">${forma}</span></td>
       <td class="fin-mov-td-valor ${m.tipo}">${sinal}${fmt(m.valor)}</td>
-      <td class="fin-mov-td-acao"><button onclick="finExcluir(${m.id})" class="btn-icon" style="color:#dc2626;font-size:13px;" title="Excluir">🗑</button></td>
+      <td class="fin-mov-td-acao">
+        ${m.comanda_id ? `<button onclick="reimprimirComandaUI(${m.comanda_id})" class="btn-icon" style="font-size:13px;" title="Imprimir essa venda">🖨️</button>` : ''}
+        <button onclick="finExcluir(${m.id})" class="btn-icon" style="color:#dc2626;font-size:13px;" title="Excluir">🗑</button>
+      </td>
     </tr>`;
   }).join('');
   lista.innerHTML = `

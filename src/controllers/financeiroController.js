@@ -20,6 +20,11 @@ async function criarTabela() {
   `);
   // Adiciona forma_pagamento se não existir
   await db.query(`ALTER TABLE financeiro ADD COLUMN forma_pagamento VARCHAR(50) DEFAULT 'Dinheiro'`).catch(() => {});
+  // comanda_id — liga a movimentação à comanda de origem, pra poder reimprimir o
+  // recibo da venda direto da tela Financeiro. Fica NULL em lançamentos antigos
+  // (de antes dessa coluna existir) e em movimentações que não vêm de comanda
+  // (fechamento de maquininha, despesa manual, etc).
+  await db.query(`ALTER TABLE financeiro ADD COLUMN comanda_id INT NULL`).catch(() => {});
 
   await db.query(`
     CREATE TABLE IF NOT EXISTS contas_pagar (
