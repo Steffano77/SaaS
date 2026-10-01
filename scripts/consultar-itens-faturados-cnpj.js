@@ -35,7 +35,9 @@ const db = require('../src/database/connection');
     for (const i of itens) {
       const qtd = parseFloat(i.quantidade);
       const precoItem = parseFloat(i.preco_unitario);
-      const ehPlaceholder = Math.abs(qtd - 1) < 0.0001 && i.preco_kg_atual;
+      const unidadeProdutoNorm = String(i.unidade_produto || '').trim().toUpperCase();
+      const vendidoPorPeso = ['KG', 'QUILOGRAMA', 'QUILOGRAMAS', 'G', 'GRAMA', 'GRAMAS'].includes(unidadeProdutoNorm);
+      const ehPlaceholder = vendidoPorPeso && Math.abs(qtd - 1) < 0.0001 && i.preco_kg_atual;
       if (ehPlaceholder) {
         const pesoKgReal = precoItem / parseFloat(i.preco_kg_atual);
         console.log(`  ${i.nome_produto}: valor etiqueta R$ ${precoItem.toFixed(2)} ÷ R$/kg atual ${parseFloat(i.preco_kg_atual).toFixed(2)} = PESO REAL ${(pesoKgReal*1000).toFixed(0)}g (${pesoKgReal.toFixed(3)}kg) [calculado pelo preço/kg de hoje]`);
