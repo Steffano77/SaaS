@@ -436,6 +436,46 @@ router.get('/relatorios/mes', auth, authPro, wrap(async (req, res) => {
   });
 }));
 
+// Busca um produto pelo nome e devolve tudo num lugar só: estoque, preço, e o que foi
+// vendido dele no mês escolhido — pra responder "quanto vendi de X" sem ter que cruzar
+// Estoque + Relatórios + Financeiro na mão.
+router.get('/relatorios/produto', auth, authPro, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const termo = String(req.query.busca || '').trim();
+  const mes = req.query.mes || new Date().toISOString().slice(0, 7);
+  if (!termo) return res.json([]);
+
+  const [produtos] = await db.query(
+    `SELECT id, nome, unidade, estoque_atual, estoque_minimo, custo_unitario, preco_venda
+     FROM produtos WHERE padaria_id = ? AND ativo = 1 AND nome LIKE ?
+     ORDER BY nome LIMIT 15`,
+    [req.padaria.id, `%${termo}%`]
+  );
+
+  const resultado = [];
+  for (const p of produtos) {
+    const [[vendas]] = await db.query(
+      `SELECT COALESCE(SUM(i.quantidade), 0) AS qtd_vendida, COALESCE(SUM(i.subtotal), 0) AS valor_vendido
+       FROM itens_comanda i
+       JOIN comandas c ON c.id = i.comanda_id
+       WHERE c.padaria_id = ? AND c.status = 'fechada' AND i.produto_id = ?
+         AND DATE_FORMAT(c.fechada_em, '%Y-%m') = ?`,
+      [req.padaria.id, p.id, mes]
+    );
+    resultado.push({
+      ...p,
+      estoque_atual: parseFloat(p.estoque_atual || 0),
+      estoque_minimo: parseFloat(p.estoque_minimo || 0),
+      custo_unitario: parseFloat(p.custo_unitario || 0),
+      preco_venda: parseFloat(p.preco_venda || 0),
+      qtd_vendida_mes: parseFloat(vendas.qtd_vendida || 0),
+      valor_vendido_mes: parseFloat(vendas.valor_vendido || 0),
+    });
+  }
+
+  res.json(resultado);
+}));
+
 // Saídas de um mês calendário (padrão: mês atual). O histórico de meses
 // anteriores fica sempre acessível — os registros nunca são apagados,
 // só filtrados por mês na consulta.
