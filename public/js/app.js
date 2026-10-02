@@ -2376,18 +2376,26 @@ async function carregarFinanceiro() {
 
   const fmt = v => parseFloat(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const saldo = data.saldo;
+  const finOculto = localStorage.getItem('fin-kpi-oculto') === '1';
+  const finMask = v => finOculto ? '••••••' : v;
 
-  document.getElementById('fin-saldo').textContent = fmt(saldo);
+  document.getElementById('fin-saldo').textContent = finMask(fmt(saldo));
   document.getElementById('fin-saldo').style.color = saldo >= 0 ? '#2563eb' : '#dc2626';
-  document.getElementById('fin-entradas').textContent = fmt(data.total_entradas);
-  document.getElementById('fin-saidas').textContent   = fmt(data.total_saidas);
+  document.getElementById('fin-entradas').textContent = finMask(fmt(data.total_entradas));
+  document.getElementById('fin-saidas').textContent   = finMask(fmt(data.total_saidas));
+
+  const olhoIconFin = finOculto
+    ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
+    : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  const btnFinOcultar = document.getElementById('btn-fin-ocultar');
+  if (btnFinOcultar) btnFinOcultar.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${olhoIconFin}</svg>`;
 
   const labels = { hoje: 'Hoje', semana: 'Últimos 7 dias', mes: 'Este mês', ano: 'Este ano' };
   document.getElementById('fin-periodo-label').textContent = labels[_finPeriodo] || '';
 
   // KPI contas a pagar
   if (contas) {
-    document.getElementById('fin-total-pagar').textContent = fmt(contas.total);
+    document.getElementById('fin-total-pagar').textContent = finMask(fmt(contas.total));
     document.getElementById('fin-qtd-pagar').textContent = contas.qtd + ' conta' + (contas.qtd !== 1 ? 's' : '') + ' em aberto';
     renderContasPagar(contas.contas);
   }
@@ -2403,6 +2411,12 @@ async function carregarFinanceiro() {
 
   // Alertas
   renderAlertas(contas ? contas.contas : []);
+}
+
+function toggleFinKpis() {
+  const oculto = localStorage.getItem('fin-kpi-oculto') === '1';
+  localStorage.setItem('fin-kpi-oculto', oculto ? '0' : '1');
+  carregarFinanceiro();
 }
 
 let _finBuscaTimer = null;
@@ -2427,6 +2441,7 @@ function renderMovimentacoes(movs) {
   // Faturado (fiado) e Padaria (consumo interno) não são receita normal — cor própria
   // na coluna "Forma", pra diferenciar de cara do dinheiro/cartão de verdade.
   const coresForma = { Pix:'#2563eb', Dinheiro:'#16a34a', Crédito:'#9333ea', Débito:'#9333ea', Transferência:'#2563eb', Boleto:'#ca8a04', Faturado:'#c2410c', Padaria:'#334155' };
+  const finOcultoLista = localStorage.getItem('fin-kpi-oculto') === '1';
   const linhas = movs.map(m => {
     const d = new Date(String(m.data).slice(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' });
     const icone = FIN_ICONES[m.categoria] || '💵';
@@ -2438,7 +2453,7 @@ function renderMovimentacoes(movs) {
       <td class="fin-mov-td-desc"><span style="margin-right:6px;">${icone}</span>${m.descricao}</td>
       <td class="fin-mov-td-cat">${m.categoria}</td>
       <td class="fin-mov-td-forma"><span style="color:${corForma};font-weight:700;">${forma}</span></td>
-      <td class="fin-mov-td-valor ${m.tipo}">${sinal}${fmt(m.valor)}</td>
+      <td class="fin-mov-td-valor ${m.tipo}">${finOcultoLista ? '••••' : sinal + fmt(m.valor)}</td>
       <td class="fin-mov-td-acao">
         ${m.comanda_id ? `<button onclick="reimprimirComandaUI(${m.comanda_id})" class="btn-icon" style="font-size:13px;" title="Imprimir essa venda">🖨️</button>` : ''}
         <button onclick="finExcluir(${m.id})" class="btn-icon" style="color:#dc2626;font-size:13px;" title="Excluir">🗑</button>
