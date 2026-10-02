@@ -3571,14 +3571,14 @@ function relBuscarProduto(termo) {
     if (!r.length) { container.innerHTML = '<p style="font-size:13px;color:var(--slate-400);">Nenhum produto encontrado.</p>'; return; }
     const fmtR$ = v => 'R$ ' + parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
     container.innerHTML = r.map(p => `
-      <div style="background:var(--slate-800,#1e293b);border-radius:10px;padding:12px 14px;margin-bottom:8px;">
-        <div style="font-weight:700;font-size:14px;margin-bottom:8px;">${p.nome}</div>
+      <div style="background:var(--slate-100);border:1px solid var(--slate-700);border-radius:10px;padding:12px 14px;margin-bottom:8px;color:var(--slate-800);">
+        <div style="font-weight:700;font-size:14px;margin-bottom:8px;color:var(--slate-800);">${p.nome}</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;font-size:12.5px;">
-          <div><span style="color:var(--slate-400);">Estoque atual</span><br>${fmtQtd(p.estoque_atual)} ${p.unidade}${p.estoque_atual <= 0 ? ' 🔴' : (p.estoque_minimo > 0 && p.estoque_atual <= p.estoque_minimo ? ' 🟡' : '')}</div>
-          <div><span style="color:var(--slate-400);">Estoque mínimo</span><br>${fmtQtd(p.estoque_minimo)} ${p.unidade}</div>
-          <div><span style="color:var(--slate-400);">Preço de venda</span><br>${fmtR$(p.preco_venda)}</div>
-          <div><span style="color:var(--slate-400);">Custo</span><br>${fmtR$(p.custo_unitario)}</div>
-          <div><span style="color:var(--slate-400);">Vendido no mês</span><br>${fmtQtd(p.qtd_vendida_mes)} ${p.unidade}</div>
+          <div><span style="color:var(--slate-400);">Estoque atual</span><br><span style="color:var(--slate-800);">${fmtQtd(p.estoque_atual)} ${p.unidade}${p.estoque_atual <= 0 ? ' 🔴' : (p.estoque_minimo > 0 && p.estoque_atual <= p.estoque_minimo ? ' 🟡' : '')}</span></div>
+          <div><span style="color:var(--slate-400);">Estoque mínimo</span><br><span style="color:var(--slate-800);">${fmtQtd(p.estoque_minimo)} ${p.unidade}</span></div>
+          <div><span style="color:var(--slate-400);">Preço de venda</span><br><span style="color:var(--slate-800);">${fmtR$(p.preco_venda)}</span></div>
+          <div><span style="color:var(--slate-400);">Custo</span><br><span style="color:var(--slate-800);">${fmtR$(p.custo_unitario)}</span></div>
+          <div><span style="color:var(--slate-400);">Vendido no mês</span><br><span style="color:var(--slate-800);">${fmtQtd(p.qtd_vendida_mes)} ${p.unidade}</span></div>
           <div><span style="color:var(--slate-400);">Valor vendido no mês</span><br><strong style="color:#16a34a;">${fmtR$(p.valor_vendido_mes)}</strong></div>
         </div>
       </div>`).join('');
