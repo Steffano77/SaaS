@@ -221,6 +221,32 @@ const migracoesProntas = (async () => {
       // inicial do banco), nunca foi adicionada nos bancos já existentes. Bug real: tela
       // de Fichas Técnicas quebrava com "Unknown column 'i.unidade'" nesses bancos.
       "ALTER TABLE itens_ficha ADD COLUMN unidade VARCHAR(20) NULL DEFAULT 'un'",
+      // Mesmo problema: fichas_tecnicas também ficou parada na versão do schema.sql
+      // original em bancos já existentes, sem essas 3 colunas que o resto do código já
+      // usa há tempos (criar/editar ficha, controle de produção).
+      'ALTER TABLE fichas_tecnicas ADD COLUMN descricao TEXT NULL',
+      "ALTER TABLE fichas_tecnicas ADD COLUMN unidade_rendimento VARCHAR(20) NOT NULL DEFAULT 'unidades'",
+      'ALTER TABLE fichas_tecnicas ADD COLUMN preco_venda DECIMAL(10,2) NULL',
+      // Controle de Produção — essas duas tabelas nunca tiveram migração nenhuma
+      // (nem CREATE TABLE IF NOT EXISTS), só existiam em bancos criados manualmente.
+      // Bug real: tela de Produção quebrava com "Table producao_diaria doesn't exist".
+      `CREATE TABLE IF NOT EXISTS producao_diaria (
+        id          INT AUTO_INCREMENT PRIMARY KEY,
+        padaria_id  INT NOT NULL,
+        data        DATE NOT NULL,
+        observacao  VARCHAR(255) NULL,
+        criado_em   DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (padaria_id) REFERENCES padarias(id) ON DELETE CASCADE
+      )`,
+      `CREATE TABLE IF NOT EXISTS itens_producao (
+        id                 INT AUTO_INCREMENT PRIMARY KEY,
+        producao_id        INT NOT NULL,
+        ficha_id           INT NOT NULL,
+        quantidade         DECIMAL(10,3) NOT NULL,
+        descontou_estoque  TINYINT(1) NOT NULL DEFAULT 0,
+        FOREIGN KEY (producao_id) REFERENCES producao_diaria(id) ON DELETE CASCADE,
+        FOREIGN KEY (ficha_id) REFERENCES fichas_tecnicas(id)
+      )`,
       'ALTER TABLE padarias ADD COLUMN email_relatorio VARCHAR(120) NULL',
       `CREATE TABLE IF NOT EXISTS comandas (
         id           INT AUTO_INCREMENT PRIMARY KEY,
