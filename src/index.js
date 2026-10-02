@@ -217,6 +217,10 @@ const migracoesProntas = (async () => {
       'ALTER TABLE produtos ADD COLUMN embalagem_qtd DECIMAL(10,3) NULL',
       'ALTER TABLE itens_ficha MODIFY COLUMN produto_id INT NULL',
       'ALTER TABLE itens_ficha ADD COLUMN nome_livre VARCHAR(120) NULL',
+      // Faltava essa migração — a coluna só existia no schema.sql (usado só na criação
+      // inicial do banco), nunca foi adicionada nos bancos já existentes. Bug real: tela
+      // de Fichas Técnicas quebrava com "Unknown column 'i.unidade'" nesses bancos.
+      "ALTER TABLE itens_ficha ADD COLUMN unidade VARCHAR(20) NULL DEFAULT 'un'",
       'ALTER TABLE padarias ADD COLUMN email_relatorio VARCHAR(120) NULL',
       `CREATE TABLE IF NOT EXISTS comandas (
         id           INT AUTO_INCREMENT PRIMARY KEY,
