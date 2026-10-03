@@ -696,106 +696,6 @@
       margin-top: 0.35rem;
     }
 
-    /* ── OFERTA ── */
-    #leadmagnet { background: var(--paper); }
-
-    .lm-intro {
-      text-align: center;
-      max-width: 600px;
-      margin: 0 auto 3rem;
-    }
-    .lm-intro h2 { font-size: 1.9rem; margin-bottom: 0.75rem; }
-    .lm-intro p { font-size: 0.95rem; color: rgba(13,27,42,0.6); font-weight: 400; }
-
-    .lm-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.5rem;
-      max-width: 860px;
-      margin: 0 auto;
-    }
-
-    .lm-card {
-      background: var(--flour);
-      color: var(--char);
-      border-radius: var(--radius);
-      padding: 2.25rem;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      box-shadow: var(--shadow-sm);
-      transition: transform .4s cubic-bezier(.2,.8,.2,1), box-shadow .4s ease;
-    }
-    .lm-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-md); }
-
-    .lm-card.destaque {
-      border-radius: 24px 24px 24px 4px;
-      box-shadow: 0 0 0 2px var(--ember), var(--shadow-md);
-    }
-    .lm-card.destaque:hover { box-shadow: 0 0 0 2px var(--ember), var(--shadow-lg); }
-
-    .lm-tag-destaque {
-      position: absolute;
-      top: -14px; left: 50%;
-      transform: translateX(-50%);
-      background: var(--ember);
-      color: var(--char);
-      font-family: var(--font-display);
-      font-size: 0.72rem;
-      font-weight: 700;
-      padding: 0.45rem 1.2rem;
-      border-radius: var(--radius-pill);
-      letter-spacing: 0.03em;
-      white-space: nowrap;
-      box-shadow: 0 6px 16px rgba(242,140,40,0.4);
-    }
-
-    .lm-badge {
-      display: inline-block;
-      font-family: var(--font-display);
-      background: rgba(27,38,59,0.06);
-      color: var(--crust);
-      font-size: 0.75rem;
-      font-weight: 700;
-      padding: 0.4rem 1rem;
-      border-radius: var(--radius-pill);
-      margin-bottom: 1rem;
-    }
-
-    .lm-card h3 { font-family: var(--font-display); font-size: 1.25rem; margin-bottom: 0.7rem; color: var(--char); line-height: 1.3; }
-    .lm-card > p { font-size: 0.88rem; color: rgba(13,27,42,0.6); margin-bottom: 1.3rem; font-weight: 400; line-height: 1.6; }
-
-    .lm-list { list-style: none; margin-bottom: 1.5rem; flex: 1; }
-    .lm-list li {
-      font-size: 0.87rem;
-      color: rgba(13,27,42,0.75);
-      padding: 0.5rem 0;
-      display: flex;
-      align-items: flex-start;
-      gap: 0.6rem;
-      border-bottom: 1px solid rgba(13,27,42,0.06);
-    }
-    .lm-list li:last-child { border-bottom: none; }
-    .lm-list li::before { content: '✓'; color: var(--wheat); font-weight: 700; flex-shrink: 0; }
-
-    .lm-preco {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin: 1.2rem 0;
-      padding-top: 1.2rem;
-      border-top: 1px solid rgba(13,27,42,0.08);
-    }
-    .lm-preco .de { font-size: 0.85rem; color: rgba(13,27,42,0.35); text-decoration: line-through; }
-    .lm-preco .por { font-size: 0.78rem; color: rgba(13,27,42,0.5); }
-    .lm-preco .valor { font-family: var(--font-display); font-size: 2.7rem; font-weight: 800; color: var(--wheat); line-height: 1.2; }
-    .lm-preco .parcel { font-size: 0.78rem; color: rgba(13,27,42,0.45); }
-
-    .lm-checkout { display: flex; flex-direction: column; align-items: center; gap: 0.7rem; text-align: center; }
-    .lm-checkout .btn-primary { width: 100%; font-size: 0.92rem; padding: 1rem 1.5rem; }
-
-    .lm-garantia { font-size: 0.78rem; color: rgba(13,27,42,0.45); display: flex; align-items: center; gap: 0.4rem; }
-
     /* ── RESULTADOS ── */
     #resultados { background: var(--flour); }
 
@@ -960,8 +860,6 @@
       .hero-visual { display: none; }
       .hero-stats { flex-wrap: wrap; gap: 1.5rem; }
 
-      .lm-grid { grid-template-columns: 1fr; gap: 1.5rem; }
-      .lm-tag-destaque { font-size: 0.62rem; }
       .planos-grid { grid-template-columns: 1fr; }
 
       footer { flex-direction: column; text-align: center; }
@@ -995,17 +893,17 @@
 <section id="hero">
   <div class="hero-grid">
     <div class="hero-content">
-      <div class="hero-badge">Especialistas em padarias</div>
-      <h1>Controle de estoque <span class="highlight">simples e eficiente</span> para <em>padarias</em></h1>
-      <p class="hero-sub">Saiba o que tem, o que falta e o que está vencendo. Controle entradas, saídas e fornecedores em um sistema feito para padarias.</p>
+      <div class="hero-badge">O sistema completo pra sua padaria</div>
+      <h1>Venda, emita nota e controle <span class="highlight">tudo em um só lugar</span>, sem <em>complicação</em></h1>
+      <p class="hero-sub">PDV com comandas, caixa multi-terminal, nota fiscal (NFC-e) emitida automático, estoque, fichas técnicas com CMV real e financeiro completo — tudo pensado pro dia a dia de uma padaria de verdade.</p>
       <div class="hero-ctas">
         <a href="#planos" class="btn-primary">Ver planos e preços</a>
         <button class="btn-secondary" onclick="document.getElementById('solucao').scrollIntoView({behavior:'smooth'})">Como funciona</button>
       </div>
       <div class="hero-stats">
-        <div class="stat"><strong>100%</strong><span>feito para padarias</span></div>
-        <div class="stat"><strong>Multi</strong><span>lojas e usuários</span></div>
-        <div class="stat"><strong>Fácil</strong><span>de usar no dia a dia</span></div>
+        <div class="stat"><strong>PDV</strong><span>+ nota fiscal automática</span></div>
+        <div class="stat"><strong>Multi</strong><span>caixas, lojas e usuários</span></div>
+        <div class="stat"><strong>CMV</strong><span>real por ficha técnica</span></div>
       </div>
     </div>
     <div class="hero-visual">
@@ -1132,6 +1030,18 @@
       <h3>Dependência total do dono</h3>
       <p>Se você sair, tudo para. A padaria funciona por você, não com você.</p>
     </div>
+    <div class="dor-card reveal">
+      <div class="dor-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 2h6a1 1 0 0 1 1 1v3h3a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h3V3a1 1 0 0 1 1-1z"/>
+          <line x1="8" y1="11" x2="16" y2="11"/>
+          <line x1="8" y1="15" x2="16" y2="15"/>
+          <line x1="8" y1="19" x2="12" y2="19"/>
+        </svg>
+      </div>
+      <h3>Nota fiscal manual e atrasada</h3>
+      <p>Perde tempo emitindo nota uma a uma, ou nem emite — e fica exposto fiscalmente.</p>
+    </div>
   </div>
 </section>
 
@@ -1143,12 +1053,12 @@
     <p class="lead">Métodos práticos e ferramentas simples que qualquer dono de padaria consegue aplicar.</p>
   </div>
   <div class="solucao-grid">
-    <div class="feature-card reveal"><div class="feature-num">01</div><h3>Controle de Estoque</h3><p>Saiba o que tem, o que falta e o que está vencendo. Alertas automáticos de estoque mínimo e zerado.</p></div>
-    <div class="feature-card reveal"><div class="feature-num">02</div><h3>Entradas e Saídas</h3><p>Registre compras de fornecedores e saídas por loja. Histórico completo de movimentações com relatórios.</p></div>
-    <div class="feature-card reveal"><div class="feature-num">03</div><h3>Gestão de Fornecedores</h3><p>Cadastre seus fornecedores, vincule produtos e acompanhe pedidos de compra em um só lugar.</p></div>
-    <div class="feature-card reveal"><div class="feature-num">04</div><h3>Múltiplas Lojas</h3><p>Controle o estoque de cada loja separadamente. Veja as saídas por unidade e tome decisões por filial.</p></div>
-    <div class="feature-card reveal"><div class="feature-num">05</div><h3>Relatórios e Impressão</h3><p>Relatórios de movimentação, saídas agrupadas por loja e impressão profissional para o dia a dia.</p></div>
-    <div class="feature-card reveal"><div class="feature-num">06</div><h3>Dashboard em Tempo Real</h3><p>Painel com os principais indicadores de estoque: valor imobilizado, produtos críticos e saídas dos últimos 30 dias.</p></div>
+    <div class="feature-card reveal"><div class="feature-num">01</div><h3>PDV com Comandas e Multi-Caixa</h3><p>Abra quantos caixas precisar, controle comandas por mesa/balcão e feche o turno com conferência automática por forma de pagamento.</p></div>
+    <div class="feature-card reveal"><div class="feature-num">02</div><h3>Nota Fiscal Automática (NFC-e)</h3><p>Emite a nota fiscal do consumidor direto na venda, com CPF ou CNPJ do cliente — sem passo manual, sem esquecer.</p></div>
+    <div class="feature-card reveal"><div class="feature-num">03</div><h3>Fichas Técnicas e CMV Real</h3><p>Custo real de cada receita calculado automaticamente a partir dos ingredientes — sem mais "preço no feeling".</p></div>
+    <div class="feature-card reveal"><div class="feature-num">04</div><h3>Controle de Produção</h3><p>Registre o que foi produzido e o estoque de ingredientes é baixado sozinho, na hora, pela ficha técnica.</p></div>
+    <div class="feature-card reveal"><div class="feature-num">05</div><h3>Estoque com Scanner no Celular</h3><p>Bipa o código de barras (até de balança) direto pela câmera do celular pra cadastrar e repor produtos.</p></div>
+    <div class="feature-card reveal"><div class="feature-num">06</div><h3>Financeiro Completo</h3><p>Fluxo de caixa, contas a pagar, fechamento de caixa conferido e relatório contábil mensal enviado automático por e-mail.</p></div>
   </div>
 </section>
 
@@ -1256,66 +1166,6 @@
   <p class="planos-nota" style="margin-top:1.2rem;">🔒 Pagamento seguro &nbsp;·&nbsp; Sem taxa de adesão &nbsp;·&nbsp; Apenas 50 vagas fundadoras</p>
 </section>
 
-<!-- OFERTA -->
-<section id="leadmagnet">
-  <div class="lm-intro">
-    <span class="tag">Produtos PanificaPro</span>
-    <h2>Comece por <span class="highlight">R$ 47</span> e leve tudo</h2>
-    <p>Mini-guia completo + planilha de bônus. Ou adquira só a planilha se já tiver o guia.</p>
-  </div>
-  <div class="lm-grid">
-    <div class="lm-card destaque reveal">
-      <div class="lm-tag-destaque">Melhor escolha</div>
-      <div class="lm-badge">Mini-Guia + Planilha de bônus</div>
-      <h3>Como calcular o <span class="highlight">custo real do pão francês</span></h3>
-      <p>15 páginas de conteúdo prático + planilha calculadora de CMV inclusa como bônus.</p>
-      <ul class="lm-list">
-        <li>Mini-guia completo em PDF — 15 páginas</li>
-        <li>Ficha técnica de ingredientes com preços BR</li>
-        <li>Fórmulas de mão de obra, energia e fixos</li>
-        <li>Cálculo do ponto de equilíbrio</li>
-        <li>Folha de exercício prático</li>
-        <li style="color:var(--wheat);font-weight:600;">🎁 Bônus: Planilha de CMV (valor R$ 67)</li>
-      </ul>
-      <div class="lm-checkout">
-        <div class="lm-preco">
-          <span class="de">R$ 114,00</span>
-          <span class="por">tudo por apenas</span>
-          <span class="valor">R$ 47</span>
-          <span class="parcel">ou 2x de R$ 24,50 no cartão</span>
-        </div>
-        <a href="https://go.hotmart.com/V106183729P" target="_blank" rel="noopener" class="btn-primary">Quero o mini-guia + bônus agora</a>
-        <p class="lm-garantia">🔒 Pagamento 100% seguro via Hotmart</p>
-        <p class="lm-garantia">↩️ Garantia de 7 dias ou seu dinheiro de volta</p>
-      </div>
-    </div>
-    <div class="lm-card reveal">
-      <div class="lm-badge">Só a planilha</div>
-      <h3>Calculadora de <span class="highlight">custo e CMV</span> para padarias</h3>
-      <p>Para quem já tem o mini-guia e quer a planilha interativa separada.</p>
-      <ul class="lm-list">
-        <li>Custo de matéria-prima por unidade</li>
-        <li>Rateio de mão de obra e energia</li>
-        <li>Custos fixos distribuídos por produto</li>
-        <li>Cálculo automático de CMV (%)</li>
-        <li>Semáforo de diagnóstico de margem</li>
-        <li>Ponto de equilíbrio automático</li>
-      </ul>
-      <div class="lm-checkout">
-        <div class="lm-preco">
-          <span class="de">R$ 97,00</span>
-          <span class="por">por apenas</span>
-          <span class="valor">R$ 67</span>
-          <span class="parcel">pagamento único</span>
-        </div>
-        <a href="https://pay.hotmart.com/U106182324V" target="_blank" rel="noopener" class="btn-primary" style="background:transparent;border:1.5px solid var(--crust);color:var(--crust);box-shadow:none;">Quero só a planilha</a>
-        <p class="lm-garantia">🔒 Pagamento 100% seguro via Hotmart</p>
-        <p class="lm-garantia">↩️ Garantia de 7 dias</p>
-      </div>
-    </div>
-  </div>
-</section>
-
 <!-- RESULTADOS -->
 <section id="resultados">
   <div class="section-center">
@@ -1359,8 +1209,8 @@
 <!-- CTA FINAL -->
 <section id="cta-final">
   <h2>Pronto para sua padaria lucrar mais?</h2>
-  <p>Mini-guia completo + planilha de CMV de bônus. Tudo por R$ 47 com garantia de 7 dias.</p>
-  <a href="https://go.hotmart.com/V106183729P" target="_blank" rel="noopener" class="btn-dark">Quero o mini-guia + bônus agora</a>
+  <p>Vendas, nota fiscal automática, estoque e financeiro num só sistema. Garanta sua vaga fundadora com preço congelado por 2 anos.</p>
+  <a href="#planos" class="btn-dark">Ver planos e preços</a>
 </section>
 
 <!-- FOOTER -->
@@ -1373,7 +1223,7 @@
     <a href="privacidade.html">Política de Privacidade</a>
     <a href="termos.html">Termos de Uso</a>
     <a href="#planos">Planos</a>
-    <a href="#leadmagnet">Mini-Guia</a>
+    <a href="https://app.panificapro.com.br">Acessar sistema</a>
   </div>
   <div class="footer-social">
     <a href="https://www.instagram.com/panificapro/" target="_blank" rel="noopener" title="Instagram">
