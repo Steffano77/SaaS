@@ -611,6 +611,7 @@ const migracoesProntas = (async () => {
 
 require('./jobs/relatorioDiario').iniciarJobRelatorioDiario();
 require('./jobs/relatorioContabilMensal').iniciarJobRelatorioContabilMensal();
+require('./jobs/backupLocal').iniciarJobBackupLocal();
 require('./jobs/syncResumoLocal').iniciarJobSyncResumoLocal();
 require('./jobs/syncCatalogoLocal').iniciarJobSyncCatalogoLocal();
 
