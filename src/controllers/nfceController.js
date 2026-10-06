@@ -273,7 +273,15 @@ exports.imprimirDanfe = async (req, res) => {
     };
     const pagamentosHtml = pagamentos.map(linhaPagamento).join('');
 
-    const linhaCpfNota = cpfNotaCliente ? `<div class="danfe-linha"><span>CONSUMIDOR</span><span>CPF ${fmtCpf(cpfNotaCliente)}</span></div>` : '';
+    // Documento do cliente pode ser CPF (11 dígitos) ou CNPJ (14 dígitos, cliente empresa) —
+    // bug real corrigido: antes imprimia sempre como "CPF", e pra CNPJ cortava os dígitos
+    // errado (fmtCpf truncava), saindo um número incompleto no cupom.
+    const docNotaLimpo = String(cpfNotaCliente || '').replace(/\D/g, '');
+    const linhaCpfNota = docNotaLimpo.length === 14
+      ? `<div class="danfe-linha"><span>CONSUMIDOR</span><span>CNPJ ${fmtCnpj(docNotaLimpo)}</span></div>`
+      : docNotaLimpo.length === 11
+      ? `<div class="danfe-linha"><span>CONSUMIDOR</span><span>CPF ${fmtCpf(docNotaLimpo)}</span></div>`
+      : '';
     const homolog = Number(nota.ambiente) === 2
       ? `<div class="danfe-homolog">EMITIDA EM AMBIENTE DE HOMOLOGAÇÃO<br/>SEM VALOR FISCAL</div>` : '';
 
