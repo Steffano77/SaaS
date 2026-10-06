@@ -2176,55 +2176,6 @@ async function preencherCodigosBalanca() {
 //   decimais implícitas, zero à esquerda) + validade em dias(3, zero à
 //   esquerda — usamos 000 por padrão, já que o PanificaPro não guarda prazo
 //   de validade em dias por produto).
-// produtoIdFiltro: quando informado, gera o arquivo só com esse produto (pra testar
-// 1 de cada vez com a balança, sem mandar o catálogo inteiro de uma vez).
-async function exportarParaBalanca(produtoIdFiltro) {
-  // Busca direto do servidor em vez de depender de algum cache local — o sistema
-  // tem várias variáveis de cache de produto diferentes por tela (produtosCache,
-  // _produtosCache, todosProds) e nem sempre a certa está carregada nesse momento.
-  let lista = await api('/produtos') || [];
-  if (produtoIdFiltro) lista = lista.filter(p => p.id === produtoIdFiltro);
-  const comCodigo = lista.filter(p => p.codigo_balanca && /^\d+$/.test(String(p.codigo_balanca).trim()));
-  // Produto sem preço não pode ir pra balança como "R$ 0,00" — melhor deixar de fora
-  // e avisar, do que exportar errado.
-  const semPreco = comCodigo.filter(p => !(parseFloat(p.preco_venda) > 0));
-  const elegiveis = comCodigo.filter(p => parseFloat(p.preco_venda) > 0);
-  if (!elegiveis.length) {
-    mostrarToast('Nenhum produto com código da balança E preço cadastrado ainda.', 'warn');
-    return;
-  }
-  if (semPreco.length) {
-    console.log(`⚠️ ${semPreco.length} produtos com código de balança mas SEM preço (ficaram de fora da exportação):`, semPreco.map(p => p.nome));
-  }
-  const pesoUnidades = ['KG', 'LITRO']; // vendido por peso/volume → tipo P; o resto → tipo U
-
-  const linhas = elegiveis.map(p => {
-    const codigo = String(p.codigo_balanca).trim().padStart(6, '0').slice(-6);
-    const tipo = pesoUnidades.includes((p.unidade || '').toUpperCase()) ? 'P' : 'U';
-    // Sem acento — no arquivo real exportado pela balança, "Pão" virou "Pao",
-    // sugerindo que esse formato não lida bem com acentuação.
-    const nomeSemAcento = (p.nome || '').normalize('NFD').replace(/[̀-ͯ]/g, '');
-    const descricao = nomeSemAcento.slice(0, 22).padEnd(22, ' ');
-    const precoCentavos = Math.round(parseFloat(p.preco_venda || 0) * 100);
-    const preco = String(precoCentavos).padStart(7, '0').slice(-7);
-    const validade = String(parseInt(p.validade_dias, 10) || 0).padStart(3, '0').slice(-3);
-    return `${codigo}${tipo}${descricao}${preco}${validade}`;
-  });
-
-  const conteudo = linhas.join('\r\n') + '\r\n';
-  const blob = new Blob([conteudo], { type: 'text/plain;charset=windows-1252' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'cadtxt.txt';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  const avisoSemPreco = semPreco.length ? ` (${semPreco.length} ficaram de fora por não ter preço — veja o console)` : '';
-  const msgQtd = produtoIdFiltro ? '1 produto' : `${elegiveis.length} produtos`;
-  mostrarToast(`📤 Arquivo gerado com ${msgQtd}!${avisoSemPreco} Leva o cadtxt.txt até o computador da balança e importa pelo Cadastros → Importar.`, 'ok');
-}
 
 // ── Exportar pra balança com seleção (checkbox por item, validade editável) ──
 // A pedido: em vez de exportar o catálogo inteiro direto, mostra uma lista com
@@ -2311,45 +2262,6 @@ function confirmarExportarBalancaUI() {
   URL.revokeObjectURL(url);
   document.getElementById('modal-exportar-balanca').classList.add('hidden');
   mostrarToast(`📤 Arquivo gerado com ${selecionados.length} produtos! Leva o cadtxt.txt até o computador da balança e importa pelo Cadastros → Importar.`, 'ok');
-}
-
-// ── Testar exportação pra balança com 1 produto só (antes de exportar o catálogo inteiro) ──
-async function abrirTesteExportarBalanca() {
-  // produtosCache só é carregado quando abre certas telas (Comandas, etc.) — no
-  // Estoque ele pode estar vazio, então busca aqui se ainda não tiver nada.
-  if (!produtosCache.length) {
-    const prods = await api('/produtos');
-    produtosCache = prods || [];
-  }
-  document.getElementById('teste-balanca-busca').value = '';
-  document.getElementById('teste-balanca-lista').classList.add('hidden');
-  document.getElementById('modal-teste-balanca').classList.remove('hidden');
-  setTimeout(() => document.getElementById('teste-balanca-busca')?.focus(), 100);
-}
-
-function filtrarTesteBalanca(input) {
-  const termo = normalizarBusca(input.value.trim());
-  const lista = document.getElementById('teste-balanca-lista');
-  if (!termo) { lista.classList.add('hidden'); lista.innerHTML = ''; return; }
-  const filtrados = produtosCache.filter(p => normalizarBusca(p.nome).includes(termo)).slice(0, 8);
-  if (!filtrados.length) {
-    lista.innerHTML = `<div class="autocomplete-item" style="color:var(--slate-400);cursor:default;">Nenhum produto encontrado.</div>`;
-    lista.classList.remove('hidden');
-    return;
-  }
-  lista.innerHTML = filtrados.map(p => {
-    const semCodigo = !p.codigo_balanca;
-    return `
-    <div class="autocomplete-item" onclick="${semCodigo ? '' : `exportarUmProdutoBalancaUI(${p.id})`}" style="${semCodigo ? 'color:var(--slate-400);cursor:default;' : ''}">
-      ${p.nome}${p.codigo_balanca ? ` <span style="color:var(--slate-400);font-size:12px;">· cód ${p.codigo_balanca}</span>` : ' <span style="color:#dc2626;font-size:12px;">· sem código de balança, não dá pra exportar</span>'}
-    </div>`;
-  }).join('');
-  lista.classList.remove('hidden');
-}
-
-async function exportarUmProdutoBalancaUI(produtoId) {
-  document.getElementById('modal-teste-balanca').classList.add('hidden');
-  await exportarParaBalanca(produtoId);
 }
 
 // ── Financeiro ──────────────────────────────────────────────────────────────
