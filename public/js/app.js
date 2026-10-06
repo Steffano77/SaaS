@@ -6462,11 +6462,17 @@ async function garantirComandaBalcaoAtiva() {
 async function abrirModalComanda(id) {
   const c = await api(`/comandas/${id}`);
   if (!c) return;
+  // Reabrir a MESMA comanda (ex: depois de adicionar um item, a tela recarrega e chama
+  // essa função de novo) não pode apagar o CPF/CNPJ que a atendente já tinha digitado —
+  // bug real: isso zerava o documento sem avisar ninguém, e a nota saía sem ele.
+  const mesmaComanda = comandaAtualId === c.id;
   comandaAtualId = c.id;
   comandaPagamentosPendentes = [];
   resetEscolhaNFCe();
-  _faturadoClienteSelecionado = null;
-  _cpfNotaSelecionado = null;
+  if (!mesmaComanda) {
+    _faturadoClienteSelecionado = null;
+    _cpfNotaSelecionado = null;
+  }
   atualizarLinkCpfNotaUI();
   document.getElementById('cmd-detalhe-titulo').textContent = `🧾 ${c.identificador}${c.atendente ? ' · ' + c.atendente : ''}`;
   document.getElementById('cmd-item-busca').value = '';
