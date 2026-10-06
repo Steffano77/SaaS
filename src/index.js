@@ -557,6 +557,30 @@ const migracoesProntas = (async () => {
       // "lançados" (cobrança já enviada/impressa) sem quitar o saldo — só a confirmação
       // de pagamento (baixa) que zera de verdade. Só informativo, não trava nada.
       'ALTER TABLE comanda_pagamentos ADD COLUMN lancado_em DATETIME NULL',
+      // Configuração de precificação (Fichas Técnicas → "Configurar Preços") — essas 3
+      // tabelas nunca tinham sido criadas pela migração, então a tela quebrava com erro
+      // 500 assim que alguém clicava no botão (bug real, reportado pelo usuário).
+      `CREATE TABLE IF NOT EXISTS config_precificacao (
+        padaria_id INT NOT NULL PRIMARY KEY,
+        faturamento_medio DECIMAL(10,2) NOT NULL DEFAULT 0,
+        imposto_pct DECIMAL(5,2) NOT NULL DEFAULT 5,
+        perda_pct DECIMAL(5,2) NOT NULL DEFAULT 2,
+        lucro_desejado_pct DECIMAL(5,2) NOT NULL DEFAULT 10
+      )`,
+      `CREATE TABLE IF NOT EXISTS despesas_fixas_config (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        padaria_id INT NOT NULL,
+        nome VARCHAR(100) NOT NULL,
+        valor DECIMAL(10,2) NOT NULL DEFAULT 0,
+        ordem INT NOT NULL DEFAULT 0
+      )`,
+      `CREATE TABLE IF NOT EXISTS modalidades_pagamento (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        padaria_id INT NOT NULL,
+        nome VARCHAR(60) NOT NULL,
+        taxa_pct DECIMAL(5,2) NOT NULL DEFAULT 0,
+        participacao_pct DECIMAL(5,2) NOT NULL DEFAULT 0
+      )`,
     ];
     // Uma de cada vez, não todas juntas: num banco novinho (primeira vez rodando,
     // ex: servidor local de teste), várias dessas ALTER TABLE mexem na MESMA tabela
