@@ -7484,37 +7484,71 @@ function imprimirComprovanteRhUI(nome, saldo, limite) {
 }
 
 // Extrato de consumo de um faturado (empresa ou funcionário) — lista tudo que ele
-// lançou em "Faturado", com opção de imprimir (mesmo formato térmico do resto do sistema).
+// lançou em "Faturado", com checkbox pra escolher quais dias/comandas entram na
+// impressão (a pedido: antes imprimia tudo ou nada, numa caixa de texto corrida).
 async function abrirExtratoFaturadoUI(documento, nome) {
-  // Abre a janela de impressão JÁ aqui, ainda dentro do clique — antes de qualquer
-  // "await" (busca do extrato, o diálogo de confirmação, os dados fiscais lá na
-  // frente). Mesmo bug já visto no Faturado/DANFE/fechamento de caixa: abrir
-  // window.open() só depois de esperar rede faz o Chrome bloquear o popup às vezes,
-  // sem aviso nenhum. Se no final não for pra imprimir, essa janela em branco fecha.
-  const janelaPre = window.open('', '_blank', 'width=380,height=600');
   const linhas = await api(`/clientes-faturado/documento/${documento}/extrato`);
-  if (!linhas) { janelaPre?.close(); return; }
+  if (!linhas) return;
+  if (!linhas.length) { mostrarToast(`${nome} ainda não consumiu nada em Faturado.`, 'warn'); return; }
+  // Mais recente primeiro — é o que a atendente quer ver de cara.
+  linhas.sort((a, b) => new Date(b.fechada_em) - new Date(a.fechada_em));
   _extratoFaturadoCache = { documento, nome, linhas };
-  if (!linhas.length) { janelaPre?.close(); mostrarToast(`${nome} ainda não consumiu nada em Faturado.`, 'warn'); return; }
-  const total = linhas.reduce((s, l) => s + parseFloat(l.valor), 0);
-  const totalAberto = linhas.filter(l => !l.quitado_em).reduce((s, l) => s + parseFloat(l.valor), 0);
-  const corpo = linhas.map(l =>
-    `${l.quitado_em ? '✅' : '🟠'} Comanda ${l.identificador} — ${fmtDataHoraBR(l.fechada_em)} — ${fmtMoeda(l.valor)}${l.quitado_em ? ' (quitado)' : ''}`
-  ).join('\n');
-  if (await confirmarBonito(`Extrato de ${nome}\n\nTotal geral: ${fmtMoeda(total)}\nEm aberto: ${fmtMoeda(totalAberto)}\n\n${corpo}\n\nImprimir esse extrato?`)) {
-    imprimirExtratoFaturadoUI(janelaPre);
-  } else {
-    janelaPre?.close();
-  }
+  document.getElementById('extrato-faturado-nome').textContent = nome;
+  renderizarExtratoFaturadoLista();
+  document.getElementById('modal-extrato-faturado').classList.remove('hidden');
+}
+
+function renderizarExtratoFaturadoLista() {
+  const d = _extratoFaturadoCache;
+  if (!d) return;
+  const total = d.linhas.reduce((s, l) => s + parseFloat(l.valor), 0);
+  const totalAberto = d.linhas.filter(l => !l.quitado_em).reduce((s, l) => s + parseFloat(l.valor), 0);
+  document.getElementById('extrato-faturado-total').textContent = fmtMoeda(total);
+  document.getElementById('extrato-faturado-aberto').textContent = fmtMoeda(totalAberto);
+  document.getElementById('extrato-faturado-contador').textContent = `${d.linhas.length} comanda(s)`;
+  document.getElementById('extrato-faturado-lista').innerHTML = d.linhas.map((l, idx) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--slate-100);">
+      <input type="checkbox" id="extrato-sel-${idx}" checked style="width:18px;height:18px;flex-shrink:0;"/>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;">Comanda ${l.identificador}</div>
+        <div style="font-size:11.5px;color:var(--slate-400);">${fmtDataHoraBR(l.fechada_em)}</div>
+      </div>
+      <div style="flex-shrink:0;text-align:right;">
+        <div style="font-size:13.5px;font-weight:700;">${fmtMoeda(l.valor)}</div>
+        <div style="font-size:11px;${l.quitado_em ? 'color:#16a34a;' : 'color:#c2410c;'}">${l.quitado_em ? '✅ Quitado' : '🟠 Em aberto'}</div>
+      </div>
+    </div>`).join('');
+}
+
+function extratoFaturadoMarcarTodos(marcar) {
+  const d = _extratoFaturadoCache;
+  if (!d) return;
+  d.linhas.forEach((_, idx) => {
+    const el = document.getElementById(`extrato-sel-${idx}`);
+    if (el) el.checked = marcar;
+  });
+}
+
+async function confirmarImprimirExtratoFaturadoUI() {
+  const d = _extratoFaturadoCache;
+  if (!d) return;
+  const selecionadas = d.linhas.filter((_, idx) => document.getElementById(`extrato-sel-${idx}`)?.checked);
+  if (!selecionadas.length) { mostrarToast('Marque pelo menos 1 comanda.', 'warn'); return; }
+  // window.open() direto no clique do botão — gesto do usuário fresquinho, não é
+  // bloqueado pelo navegador (diferente de abrir depois de um await de rede).
+  const janela = window.open('', '_blank', 'width=380,height=600');
+  document.getElementById('modal-extrato-faturado').classList.add('hidden');
+  await imprimirExtratoFaturadoUI(janela, selecionadas);
 }
 
 let _extratoFaturadoCache = null;
 // Imprime o extrato completo: um resumo (total geral/em aberto) seguido de CADA
 // comanda reimpressa no layout completo (mesmo cabeçalho/itens/código do recibo de
 // venda) — não só a linha resumida de valor, dá pra conferir item por item do histórico.
-async function imprimirExtratoFaturadoUI(janelaPre) {
+async function imprimirExtratoFaturadoUI(janelaPre, linhasSelecionadas) {
   const d = _extratoFaturadoCache;
   if (!d) { janelaPre?.close(); return; }
+  const linhas = linhasSelecionadas || d.linhas;
   const fd = await buscarDadosFiscaisUI();
   const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
   const razaoSocial = (fd.nfce_razao_social || nomePadaria).toUpperCase();
@@ -7522,8 +7556,8 @@ async function imprimirExtratoFaturadoUI(janelaPre) {
   const cidadeUf = [fd.nfce_bairro, [fd.nfce_municipio, fd.nfce_uf].filter(Boolean).join('/')].filter(Boolean).join(' — ');
   const cnpjIe = `${fd.cnpj ? 'CNPJ ' + formatarCnpjUI(fd.cnpj) : ''}${fd.nfce_inscricao_estadual ? ' · IE ' + fd.nfce_inscricao_estadual : ''}`;
 
-  const total = d.linhas.reduce((s, l) => s + parseFloat(l.valor), 0);
-  const totalAberto = d.linhas.filter(l => !l.quitado_em).reduce((s, l) => s + parseFloat(l.valor), 0);
+  const total = linhas.reduce((s, l) => s + parseFloat(l.valor), 0);
+  const totalAberto = linhas.filter(l => !l.quitado_em).reduce((s, l) => s + parseFloat(l.valor), 0);
 
   const cabecalho = `
     <h1>${razaoSocial}</h1>
@@ -7539,14 +7573,14 @@ async function imprimirExtratoFaturadoUI(janelaPre) {
     <div class="sub" style="text-align:left;">Cliente: ${d.nome}</div>
     <div class="sub" style="text-align:left;">Documento: ${formatarCnpjUI(d.documento)}</div>
     <hr/>
-    <div class="linha"><span class="nome">Total geral</span><span class="valor">${fmtMoeda(total)}</span></div>
+    <div class="linha"><span class="nome">Total selecionado</span><span class="valor">${fmtMoeda(total)}</span></div>
     <div class="total"><span>Em aberto</span><span>${fmtMoeda(totalAberto)}</span></div>
     <div class="rodape">Impresso em ${new Date().toLocaleString('pt-BR')}</div>
   `;
 
   // Cada comanda reimpressa igual sairia numa venda de verdade — com os itens e
   // código de cada produto, não só o valor total daquela compra.
-  const comandasHtml = d.linhas.map(l => {
+  const comandasHtml = linhas.map(l => {
     const linhasItens = (l.itens || []).map((i, idx) => `
       <div class="linha">
         <span class="qtd">${String(idx + 1).padStart(3, '0')} ${String(i.produto_id || '').padStart(3, '0')}</span>

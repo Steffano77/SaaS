@@ -711,6 +711,37 @@
       </div>
     </div>
 
+    <!-- Modal: extrato de consumo Faturado, com checkbox pra escolher quais comandas imprimir -->
+    <div id="modal-extrato-faturado" class="modal-overlay hidden">
+      <div class="modal-box" style="max-width:520px;max-height:85vh;display:flex;flex-direction:column;">
+        <div class="modal-header">
+          <span class="modal-title">🧾 Extrato — <span id="extrato-faturado-nome"></span></span>
+          <button onclick="fecharModal('modal-extrato-faturado')" class="btn-icon">✕</button>
+        </div>
+        <div style="padding:14px 20px 0;display:flex;gap:10px;">
+          <div style="flex:1;background:var(--slate-50);border-radius:10px;padding:10px 14px;">
+            <div style="font-size:11px;color:var(--slate-400);">Total geral</div>
+            <div id="extrato-faturado-total" style="font-size:16px;font-weight:700;"></div>
+          </div>
+          <div style="flex:1;background:#fff7ed;border-radius:10px;padding:10px 14px;">
+            <div style="font-size:11px;color:var(--slate-400);">Em aberto</div>
+            <div id="extrato-faturado-aberto" style="font-size:16px;font-weight:700;color:#c2410c;"></div>
+          </div>
+        </div>
+        <div style="padding:12px 20px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;">
+          <span id="extrato-faturado-contador" style="font-size:12.5px;color:var(--slate-500);"></span>
+          <span style="display:flex;gap:10px;">
+            <button type="button" onclick="extratoFaturadoMarcarTodos(true)" class="btn-link" style="font-size:12px;">Marcar todos</button>
+            <button type="button" onclick="extratoFaturadoMarcarTodos(false)" class="btn-link" style="font-size:12px;">Desmarcar todos</button>
+          </span>
+        </div>
+        <div id="extrato-faturado-lista" style="overflow-y:auto;flex:1;padding:10px 20px;"></div>
+        <div style="padding:14px 20px;border-top:1px solid var(--slate-100);">
+          <button onclick="confirmarImprimirExtratoFaturadoUI()" class="btn-primary full">🖨️ Imprimir selecionados</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal: categorias/produtos em grade colorida, estilo Saurus -->
     <div id="modal-categorias-comanda" class="modal-overlay hidden">
       <div class="modal-box cat-comanda-box">
@@ -2227,7 +2258,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20261006b"></script>
+<script src="/js/app.js?v=20261008a"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
