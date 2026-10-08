@@ -7541,6 +7541,34 @@ async function confirmarImprimirExtratoFaturadoUI() {
   await imprimirExtratoFaturadoUI(janela, selecionadas);
 }
 
+// Dá baixa só nas comandas marcadas no checkbox — diferente do 💰 "Dar baixa" da
+// lista principal, que quita tudo de uma vez. As que já estavam quitadas são
+// ignoradas (não tem o que fazer de novo nelas).
+async function confirmarQuitarSelecionadosExtratoUI() {
+  const d = _extratoFaturadoCache;
+  if (!d) return;
+  const selecionadas = d.linhas.filter((l, idx) => document.getElementById(`extrato-sel-${idx}`)?.checked && !l.quitado_em);
+  if (!selecionadas.length) { mostrarToast('Marque pelo menos 1 comanda em aberto (as quitadas já estão pagas).', 'warn'); return; }
+  const total = selecionadas.reduce((s, l) => s + parseFloat(l.valor), 0);
+  const ok = await confirmarBonito(`Dar baixa em ${selecionadas.length} comanda(s) de ${d.nome}, totalizando ${fmtMoeda(total)}?\n\nAs outras comandas (não marcadas) continuam em aberto.`);
+  if (!ok) return;
+  const r = await api(`/clientes-faturado/documento/${d.documento}/liquidar-selecionados`, {
+    method: 'POST',
+    body: { comanda_ids: selecionadas.map(l => l.comanda_id) },
+  });
+  if (!r) return;
+  mostrarToast(`${r.quitados} comanda(s) de ${d.nome} quitada(s)!`, 'ok');
+  // Atualiza o extrato na hora (sem fechar o modal) pra já mostrar quitado ✅, e
+  // atualiza a lista de trás também, pra o saldo devedor geral ficar certo.
+  const linhasAtualizadas = await api(`/clientes-faturado/documento/${d.documento}/extrato`);
+  if (linhasAtualizadas) {
+    linhasAtualizadas.sort((a, b) => new Date(b.fechada_em) - new Date(a.fechada_em));
+    _extratoFaturadoCache.linhas = linhasAtualizadas;
+    renderizarExtratoFaturadoLista();
+  }
+  abrirClientesFaturado();
+}
+
 let _extratoFaturadoCache = null;
 // Imprime o extrato completo: um resumo (total geral/em aberto) seguido de CADA
 // comanda reimpressa no layout completo (mesmo cabeçalho/itens/código do recibo de

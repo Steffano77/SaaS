@@ -217,6 +217,23 @@ exports.liquidar = async (req, res) => {
   res.json({ ok: true, quitados: r.affectedRows });
 };
 
+// Dá baixa só nas comandas escolhidas (extrato com checkbox) — diferente do "Dar
+// baixa" normal, que quita tudo de uma vez, isso deixa o resto em aberto.
+exports.liquidarSelecionados = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const docLimpo = limparDoc(req.params.documento);
+  const comandaIds = (req.body.comanda_ids || []).map(Number).filter(n => Number.isInteger(n) && n > 0);
+  if (!comandaIds.length) return res.status(400).json({ erro: 'Nenhuma comanda selecionada.' });
+  const [r] = await db.query(
+    `UPDATE comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
+     SET cp.quitado_em = NOW()
+     WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND cp.cliente_documento = ?
+       AND cp.quitado_em IS NULL AND cp.comanda_id IN (?)`,
+    [padaria_id, docLimpo, comandaIds]
+  );
+  res.json({ ok: true, quitados: r.affectedRows });
+};
+
 // Dá baixa SÓ no que já foi "lançado" (fechado em "Fechar e cobrar") — deixa de fora
 // qualquer consumo novo que o cliente tenha feito depois do lançamento e ainda não
 // pagou, ao contrário do "Dar baixa" normal que zera tudo que estiver em aberto.
