@@ -313,7 +313,9 @@ exports.imprimirDanfe = async (req, res) => {
         @page { margin: 0; }
         /* Negrito em tudo — em impressora térmica, fonte fina/normal sai fraca/cinza
            (mesmo ajuste já usado no recibo de fechamento de caixa, que sai forte). */
-        body { font-family: 'Courier New', monospace; font-size: 11px; font-weight: 700; width: 80mm; margin: 0 auto; padding: 8px; color:#000; }
+        /* text-shadow engrossa o traço (soma 4 cópias levemente deslocadas) — compensa
+           impressora térmica que sai clara/fraca, sem precisar mexer na densidade do driver. */
+        body { font-family: 'Courier New', monospace; font-size: 11px; font-weight: 700; width: 80mm; margin: 0 auto; padding: 8px; color:#000; text-shadow: 0.3px 0 0 #000, -0.3px 0 0 #000, 0 0.3px 0 #000, 0 -0.3px 0 #000; }
         .danfe-center { text-align: center; }
         .danfe-linha { display:flex; justify-content:space-between; }
         .danfe-hr { border-top: 1px dashed #000; margin: 6px 0; }
