@@ -2,21 +2,12 @@
 
 Itens discutidos e aprovados pelo Estefano pra fazer depois, sem pressa.
 
-## Modo de contingência fiscal (NFC-e)
+## ✅ Modo de contingência fiscal (NFC-e) — feito em 2026-10-09
 
-Hoje, se a Sefaz-SP cair, a venda continua normal (comanda fecha, pagamento
-registrado), mas a nota fica marcada como "erro" e só pode ser reemitida
-manualmente depois — não existe o modo de contingência oficial (emitir um
-documento provisório na hora, pro cliente, e transmitir pra Sefaz depois
-que ela voltar).
+Implementado: se a Sefaz não responder na emissão, sai um XML em
+contingência (tpEmis=9), o DANFe já imprime pro cliente na hora, e um job
+(a cada 5min) retransmite sozinho assim que a Sefaz voltar.
 
-Implementar isso envolve:
-- Gerar um documento provisório (com aviso de contingência) quando a Sefaz
-  não responder, pra entregar pro cliente na hora.
-- Guardar o XML com `tpEmi=9` (contingência offline) ou similar.
-- Job/rotina que detecta quando a Sefaz volta e reenvia automaticamente as
-  notas pendentes de contingência.
-- Atualizar a tela de pendentes/reenvio pra deixar claro quais notas estão
-  em contingência vs erro de verdade.
-
-Combinado em 2026-10-07: baixa prioridade, fazer num dia com mais tempo.
+Ainda não testado num caso real de queda da Sefaz em produção — só
+validado via código/sanidade. Se acontecer uma queda de verdade, vale
+conferir se o fluxo todo funcionou como esperado.
