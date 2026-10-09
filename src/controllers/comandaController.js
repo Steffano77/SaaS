@@ -299,8 +299,17 @@ exports.fechar = async (req, res) => {
   }
 
   const somaPagamentos = pagamentos.reduce((s, p) => s + (parseFloat(p.valor) || 0), 0);
-  if (Math.abs(somaPagamentos - totalGeral) > 0.01) {
+  const diffPagamentos = somaPagamentos - totalGeral;
+  if (Math.abs(diffPagamentos) > 0.01) {
     return res.status(400).json({ erro: `A soma dos pagamentos (${somaPagamentos.toFixed(2)}) não bate com o total da comanda (${totalGeral.toFixed(2)}).` });
+  }
+  // Mesmo 1 centavo de folga (tolerado acima pra não travar por arredondamento de
+  // centavos na hora de digitar) ficava gravado torto no pagamento — daí a nota fiscal
+  // saía com vPag diferente de vNF e a Sefaz rejeitava (869: "Valor do troco incorreto").
+  // Ajusta aqui o último pagamento pra soma bater EXATAMENTE com o total, sempre.
+  if (diffPagamentos !== 0 && pagamentos.length) {
+    const ultimo = pagamentos[pagamentos.length - 1];
+    ultimo.valor = Math.max(0, parseFloat((parseFloat(ultimo.valor || 0) - diffPagamentos).toFixed(2)));
   }
 
   // Se já tinha um atendente de balcão registrado na abertura da comanda, mantém ele —
