@@ -7644,9 +7644,7 @@ async function fecharMensalRhUI() {
       <style>
         @page { size: 80mm auto; margin: 0; }
         * { box-sizing: border-box; }
-        /* text-shadow engrossa o traço (soma 4 cópias levemente deslocadas) — reforça o
-         negrito acima quando a impressora ainda sai clara/fraca. */
-      body { width: 72mm; margin: 0 auto; padding: 6px 4px; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; color: #000; text-shadow: 0.3px 0 0 #000, -0.3px 0 0 #000, 0 0.3px 0 #000, 0 -0.3px 0 #000; }
+      body { width: 72mm; margin: 0 auto; padding: 6px 4px; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; color: #000; }
         h1 { font-size: 15px; text-align: center; margin: 0 0 2px; font-weight: 800; }
         .sub { text-align: center; font-size: 11px; margin-bottom: 8px; }
         hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
@@ -8435,9 +8433,7 @@ function abrirJanelaImpressaoTermica(bodyHtml, janelaPre) {
          física corta uns milímetros de cada lado) — por isso o texto saía cortado na
          lateral. Encolhendo o conteúdo pra 72mm, centralizado dentro da folha de 80mm,
          garante que sobre margem de verdade nas duas bordas e nada seja cortado. */
-      /* text-shadow engrossa o traço (soma 4 cópias levemente deslocadas) — reforça o
-         negrito acima quando a impressora ainda sai clara/fraca. */
-      body { width: 72mm; margin: 0 auto; padding: 6px 4px; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; color: #000; text-shadow: 0.3px 0 0 #000, -0.3px 0 0 #000, 0 0.3px 0 #000, 0 -0.3px 0 #000; }
+      body { width: 72mm; margin: 0 auto; padding: 6px 4px; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; color: #000; }
       h1 { font-size: 15px; text-align: center; margin: 0 0 2px; font-weight: 800; }
       .sub { text-align: center; font-size: 11px; margin-bottom: 8px; }
       hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
@@ -8475,9 +8471,7 @@ async function imprimirSequenciaTermicaUI(janela, corpos) {
       <style>
         @page { size: 80mm auto; margin: 0; }
         * { box-sizing: border-box; }
-        /* text-shadow engrossa o traço (soma 4 cópias levemente deslocadas) — reforça o
-         negrito acima quando a impressora ainda sai clara/fraca. */
-      body { width: 72mm; margin: 0 auto; padding: 6px 4px; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; color: #000; text-shadow: 0.3px 0 0 #000, -0.3px 0 0 #000, 0 0.3px 0 #000, 0 -0.3px 0 #000; }
+      body { width: 72mm; margin: 0 auto; padding: 6px 4px; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; color: #000; }
         h1 { font-size: 15px; text-align: center; margin: 0 0 2px; font-weight: 800; }
         .sub { text-align: center; font-size: 11px; margin-bottom: 8px; }
         hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
