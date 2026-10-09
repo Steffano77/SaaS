@@ -121,23 +121,28 @@ exports.emitirParaComanda = async (req, res) => {
       conexaoNumero.release();
     }
 
-    const { xml, chave, dhEmi } = montarXmlNFCe({
-      padaria: { ...padaria, cnpj: cert.cnpj },
-      comanda, itens, pagamentos, numero, ambiente: ambienteNum,
-    });
-
-    const { xmlAssinado: xmlComAssinatura, digestValue } = assinarXmlNFCe(xml, { certPem: cert.certPem, keyPem: cert.keyPem });
-
     // Ambiente 1 = produção usa o CSC de produção (separado); 2 = homologação usa o de teste.
     const cscBruto = ambienteNum === 1 ? padaria.nfce_csc_producao : padaria.nfce_csc;
     const idCscUsado = ambienteNum === 1 ? padaria.nfce_id_csc_producao : padaria.nfce_id_csc;
     const cscTexto = cscBruto ? descriptografar(cscBruto) : null;
-    const infNFeSupl = montarInfNFeSupl({
-      chave, ambiente: ambienteNum, csc: cscTexto, idCsc: idCscUsado,
-    });
-    // Ordem exigida pelo schema oficial: infNFe, infNFeSupl, Signature (nessa ordem) —
-    // por isso insere logo depois de </infNFe>, empurrando a assinatura pra depois.
-    const xmlAssinado = xmlComAssinatura.replace('</infNFe>', `</infNFe>${infNFeSupl}`);
+
+    // Monta e assina o XML — função à parte porque, se a Sefaz não responder, monta
+    // de novo em contingência (tpEmis=9) com chave de acesso diferente, pra poder
+    // entregar a nota pro cliente na hora mesmo assim (ver bloco catch abaixo).
+    function montarEAssinar(contingencia) {
+      const { xml, chave } = montarXmlNFCe({
+        padaria: { ...padaria, cnpj: cert.cnpj },
+        comanda, itens, pagamentos, numero, ambiente: ambienteNum, contingencia,
+      });
+      const { xmlAssinado: xmlComAssinatura } = assinarXmlNFCe(xml, { certPem: cert.certPem, keyPem: cert.keyPem });
+      const infNFeSupl = montarInfNFeSupl({ chave, ambiente: ambienteNum, csc: cscTexto, idCsc: idCscUsado });
+      // Ordem exigida pelo schema oficial: infNFe, infNFeSupl, Signature — insere logo
+      // depois de </infNFe>, empurrando a assinatura pra depois.
+      const xmlAssinado = xmlComAssinatura.replace('</infNFe>', `</infNFe>${infNFeSupl}`);
+      return { xmlAssinado, chave };
+    }
+
+    const { xmlAssinado, chave } = montarEAssinar(false);
 
     const [notaResult] = await db.query(
       `INSERT INTO notas_fiscais (padaria_id, comanda_id, numero, serie, chave_acesso, status, ambiente, valor_total, xml_assinado)
@@ -154,9 +159,20 @@ exports.emitirParaComanda = async (req, res) => {
         keyPem: cert.keyPem,
       });
     } catch (erroRede) {
-      await db.query(`UPDATE notas_fiscais SET status = 'erro', motivo_rejeicao = ? WHERE id = ?`,
-        [`Erro de rede: ${erroRede.message}`, notaResult.insertId]);
-      return res.status(502).json({ erro: `Não consegui falar com a Sefaz: ${erroRede.message}`, xmlGerado: xmlAssinado });
+      // Sefaz indisponível — em vez de travar a venda, emite em CONTINGÊNCIA
+      // (tpEmis=9): gera e assina um XML novo (chave diferente, com dhCont/xJust),
+      // entrega o DANFe pro cliente na hora, e deixa marcado pra transmitir de
+      // verdade depois (iniciarJobReenviarContingencia reenvia sozinho quando a
+      // Sefaz voltar). Nunca mais "sem nota pro cliente" só porque a Sefaz caiu.
+      const { xmlAssinado: xmlContingencia, chave: chaveContingencia } = montarEAssinar(true);
+      await db.query(
+        `UPDATE notas_fiscais SET status = 'contingencia', chave_acesso = ?, xml_assinado = ?, motivo_rejeicao = ? WHERE id = ?`,
+        [chaveContingencia, xmlContingencia, `Emitida em contingência — Sefaz indisponível: ${erroRede.message}`, notaResult.insertId]
+      );
+      return res.json({
+        ok: true, contingencia: true,
+        aviso: 'Sefaz indisponível — nota emitida em CONTINGÊNCIA. Vai ser transmitida sozinha assim que a Sefaz voltar.',
+      });
     }
 
     const interpretado = interpretarResposta(respostaSefaz.corpo);
@@ -213,8 +229,10 @@ exports.imprimirDanfe = async (req, res) => {
   const { comanda_id } = req.params;
   try {
     const [[padaria]] = await db.query(`SELECT * FROM padarias WHERE id = ?`, [padaria_id]);
+    // Contingência entra aqui também — o DANFe precisa sair pro cliente na hora mesmo
+    // sem confirmação da Sefaz ainda (é transmitida de verdade depois, sozinha).
     const [[nota]] = await db.query(
-      `SELECT * FROM notas_fiscais WHERE comanda_id = ? AND padaria_id = ? AND status = 'autorizada' ORDER BY id DESC LIMIT 1`,
+      `SELECT * FROM notas_fiscais WHERE comanda_id = ? AND padaria_id = ? AND status IN ('autorizada','contingencia') ORDER BY id DESC LIMIT 1`,
       [comanda_id, padaria_id]
     );
     if (!nota) return res.status(404).json({ erro: 'Nenhuma nota fiscal autorizada encontrada pra essa comanda.' });
@@ -284,6 +302,11 @@ exports.imprimirDanfe = async (req, res) => {
       : '';
     const homolog = Number(nota.ambiente) === 2
       ? `<div class="danfe-homolog">EMITIDA EM AMBIENTE DE HOMOLOGAÇÃO<br/>SEM VALOR FISCAL</div>` : '';
+    // Aviso obrigatório pela Sefaz: nota emitida em contingência precisa deixar claro
+    // no DANFe que ainda não foi transmitida/autorizada — some sozinho assim que o
+    // job reenviar e a nota virar "autorizada" de verdade.
+    const contingenciaAviso = nota.status === 'contingencia'
+      ? `<div class="danfe-homolog">EMITIDA EM CONTINGÊNCIA<br/>PENDENTE DE TRANSMISSÃO À SEFAZ</div>` : '';
 
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>DANFE NFC-e</title>
       <style>
@@ -314,6 +337,7 @@ exports.imprimirDanfe = async (req, res) => {
         <div class="danfe-titulo">DANFE NFC-e Documento Auxiliar de Nota Fiscal Eletronica<br/>para Consumidor Final</div>
         <div class="danfe-aviso">NFC-e não permite aproveitamento de crédito de ICMS</div>
         ${homolog}
+        ${contingenciaAviso}
         <div class="danfe-hr"></div>
         ${itensHtml}
         <div class="danfe-hr"></div>

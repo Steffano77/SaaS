@@ -60,15 +60,20 @@ function montarBlocoIcms(item) {
 
 // padaria: linha da tabela padarias (com os campos nfce_*) · comanda: { itens, total, ... }
 // pagamentos: [{forma_pagamento, valor}] · numero: nNF sequencial · ambiente: 1 ou 2
-function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }) {
+function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente, contingencia }) {
   const agora = new Date();
   const cUF = 35; // São Paulo
   const cnpjLimpo = String(padaria.cnpj || '').replace(/\D/g, '');
   const cNF = gerarCodigoNumerico();
   const serie = padaria.nfce_serie || 1;
+  // tpEmis=9 (contingência offline): usado quando a Sefaz não responde na hora da venda —
+  // a nota sai pro cliente na hora mesmo assim, e é transmitida de verdade depois que a
+  // Sefaz voltar (job iniciarJobReenviarContingencia). A chave de acesso PRECISA levar
+  // esse tpEmi embutido (dígito 35 da chave) — senão a Sefaz rejeita na hora de transmitir.
+  const tpEmi = contingencia ? 9 : 1;
 
   const chave = gerarChaveAcesso({
-    cUF, dhEmi: agora, cnpj: cnpjLimpo, mod: 65, serie, numero, tpEmi: 1, cNF,
+    cUF, dhEmi: agora, cnpj: cnpjLimpo, mod: 65, serie, numero, tpEmi, cNF,
   });
 
   // Bug corrigido: toISOString() já devolve o horário em UTC — só grudar "-03:00" no
@@ -249,7 +254,7 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
       <idDest>1</idDest>
       <cMunFG>${padaria.nfce_codigo_municipio_ibge}</cMunFG>
       <tpImp>4</tpImp>
-      <tpEmis>1</tpEmis>
+      <tpEmis>${tpEmi}</tpEmis>
       <cDV>${chave.slice(-1)}</cDV>
       <tpAmb>${ambiente}</tpAmb>
       <finNFe>1</finNFe>
@@ -257,6 +262,7 @@ function montarXmlNFCe({ padaria, comanda, itens, pagamentos, numero, ambiente }
       <indPres>1</indPres>
       <procEmi>0</procEmi>
       <verProc>PanificaPro 1.0</verProc>
+      ${contingencia ? `<dhCont>${dhEmiIso}</dhCont><xJust>Sefaz indisponivel no momento da venda</xJust>` : ''}
     </ide>
     <emit>
       <CNPJ>${cnpjLimpo}</CNPJ>

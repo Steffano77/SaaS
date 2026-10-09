@@ -8070,7 +8070,9 @@ async function emitirNotaFiscalComanda(comandaId, opts = {}) {
   mostrarToast('Emitindo nota fiscal...');
   const nf = await api(`/fiscal/nfce/comanda/${comandaId}`, { method: 'POST' });
   if (nf && nf.ok) {
-    mostrarToast(`Nota fiscal autorizada! Protocolo ${nf.protocolo}`);
+    mostrarToast(nf.contingencia
+      ? '⏳ Sefaz indisponível — nota emitida em CONTINGÊNCIA, vai transmitir sozinha depois.'
+      : `Nota fiscal autorizada! Protocolo ${nf.protocolo}`, nf.contingencia ? 'warn' : 'ok');
     await imprimirDanfeNFCe(comandaId, opts.janelaPre);
   } else if (nf) {
     mostrarToast(`Nota fiscal rejeitada: ${nf.motivo || 'erro desconhecido'} — confira em "Notas pendentes"`, 'warn');
