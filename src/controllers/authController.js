@@ -53,7 +53,10 @@ exports.registrar = async (req, res) => {
       [result.insertId, codigoObj.id]
     );
 
-    const token = jwt.sign({ jti: crypto.randomUUID(), id: result.insertId, nome, email }, SECRET, { expiresIn: '7d' });
+    // 365d em vez de 7d — tablet/PC de loja fica logado meses sem interrupção; era
+    // deslogado sozinho toda semana sem ninguém mexer (reclamação real, "desloga com
+    // frequência"), por causa do token vencendo no meio do uso normal.
+    const token = jwt.sign({ jti: crypto.randomUUID(), id: result.insertId, nome, email }, SECRET, { expiresIn: '365d' });
     res.status(201).json({ token, padaria: { id: result.insertId, nome, email, plano: codigoObj.plano, plano_expira_em: expiraStr } });
   } catch (e) {
     console.error('Erro ao registrar:', e);
@@ -74,10 +77,11 @@ exports.login = async (req, res) => {
     const ok = await bcrypt.compare(senha, padaria.senha_hash);
     if (!ok) return res.status(401).json({ erro: 'Credenciais inválidas.' });
 
+    // 365d em vez de 7d — mesmo motivo do registro acima (ver comentário lá).
     const token = jwt.sign(
       { jti: crypto.randomUUID(), id: padaria.id, nome: padaria.nome, email: padaria.email, role: padaria.role || 'user' },
       SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '365d' }
     );
     res.json({ token, padaria: { id: padaria.id, nome: padaria.nome, email: padaria.email, plano: padaria.plano, role: padaria.role || 'user', plano_expira_em: padaria.plano_expira_em } });
   } catch (e) {
