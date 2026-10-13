@@ -3830,7 +3830,11 @@ async function salvarProduto(e) {
   if (custo < 0) { mostrarErrocampo('prod-custo', 'Custo não pode ser negativo.'); ok = false; }
   if (preco < 0) { mostrarErrocampo('prod-venda', 'Preço não pode ser negativo.'); ok = false; }
   if (estMin < 0) { mostrarErrocampo('prod-minimo', 'Estoque mínimo não pode ser negativo.'); ok = false; }
-  if (saldo < 0) { mostrarErrocampo('prod-saldo', 'Saldo não pode ser negativo.'); ok = false; }
+  // Estoque negativo acontece de verdade (vendeu antes de dar entrada da mercadoria) — num
+  // produto JÁ cadastrado não pode travar o Salvar, senão não dá nem pra lançar a reposição
+  // nem mudar o preço dele. Só produto novo é que não pode nascer negativo.
+  const idEditando = document.getElementById('prod-id').value;
+  if (saldo < 0 && !idEditando) { mostrarErrocampo('prod-saldo', 'Saldo não pode ser negativo.'); ok = false; }
   if (!ok) return;
   const submitBtn = e.submitter || document.querySelector('#modal-produto button[type=submit]');
   setBtnLoading(submitBtn, true);
@@ -3856,6 +3860,16 @@ async function salvarProduto(e) {
     controla_estoque: document.getElementById('prod-controla-estoque').checked ? 1 : 0,
   };
   body.estoque_atual = parseFloat(document.getElementById('prod-saldo').value) || 0;
+  // Produto com estoque negativo + reposição: zera antes de somar o que chegou. Estoque físico
+  // nunca é negativo — o negativo só quer dizer que venderam antes de registrar a entrada, então
+  // a prateleira estava vazia e passa a ter exatamente o que chegou (ex: -12 e chegaram 24 = 24).
+  // Sem reposição, não mexe no estoque (deixa salvar preço/nome etc. sem o servidor recusar).
+  const reposicaoDigitada = parseFloat(document.getElementById('prod-reposicao')?.value || 0);
+  const estoqueNegativoAntes = id && body.estoque_atual < 0 ? body.estoque_atual : null;
+  if (estoqueNegativoAntes !== null) {
+    if (reposicaoDigitada > 0) body.estoque_atual = 0;
+    else delete body.estoque_atual;
+  }
   if (!document.getElementById('bloco-embalagem').classList.contains('hidden')) {
     const embPreco = parseFloat(document.getElementById('prod-embalagem-preco').value || 0);
     const embQtd   = parseFloat(document.getElementById('prod-embalagem-qtd').value || 0);
@@ -3885,7 +3899,12 @@ async function salvarProduto(e) {
   if (id && res && reposicao > 0) {
     await api('/movimentacoes', {
       method: 'POST',
-      body: { produto_id: parseInt(id), tipo: 'entrada', quantidade: reposicao, custo_unit: custo || 0, observacao: 'Reposição' }
+      body: {
+        produto_id: parseInt(id), tipo: 'entrada', quantidade: reposicao, custo_unit: custo || 0,
+        observacao: estoqueNegativoAntes !== null
+          ? `Reposição (estoque estava em ${fmtQtd(estoqueNegativoAntes)}, zerado antes de somar)`
+          : 'Reposição',
+      }
     });
   }
   setBtnLoading(submitBtn, false);
