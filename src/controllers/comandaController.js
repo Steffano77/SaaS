@@ -251,6 +251,29 @@ exports.removerItem = async (req, res) => {
   res.json({ ok: true });
 };
 
+// Soma ou tira unidades de um item (botões − e + da comanda). Recebe a diferença
+// (delta), não a quantidade final, pra dois toques seguidos não se atropelarem.
+// Nunca deixa abaixo de 1 — pra tirar o item de vez, é pelo ✕.
+exports.alterarQuantidadeItem = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const delta = parseInt(req.body.delta, 10);
+  if (delta !== 1 && delta !== -1) return res.status(400).json({ erro: 'Quantidade inválida.' });
+  const [[comanda]] = await db.query(
+    `SELECT id, status FROM comandas WHERE id = ? AND padaria_id = ?`, [req.params.id, padaria_id]
+  );
+  if (!comanda) return res.status(404).json({ erro: 'Comanda não encontrada.' });
+  if (comanda.status !== 'aberta') return res.status(400).json({ erro: 'Essa comanda já foi fechada.' });
+
+  const [r] = await db.query(
+    `UPDATE itens_comanda SET quantidade = quantidade + ?
+     WHERE id = ? AND comanda_id = ? AND quantidade + ? >= 1 AND quantidade + ? <= 9999`,
+    [delta, req.params.itemId, comanda.id, delta, delta]
+  );
+  if (!r.affectedRows) return res.status(400).json({ erro: 'Não dá pra mudar a quantidade desse item.' });
+  await recalcularTotal(comanda.id);
+  res.json({ ok: true });
+};
+
 async function recalcularTotal(comanda_id) {
   const [[{ subtotal }]] = await db.query(
     `SELECT COALESCE(SUM(subtotal), 0) AS subtotal FROM itens_comanda WHERE comanda_id = ?`, [comanda_id]

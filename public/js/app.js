@@ -6547,7 +6547,13 @@ function renderItensComanda(c) {
           <span class="cmd-item-numero">Item Nº: ${idx + 1}${i.produto_id ? ' · Cód: ' + i.produto_id : ''}${i._pendente ? ' · ⏳ sem conexão' : ''}</span>
           <strong>${i.nome_produto}</strong>
         </div>
-        <div class="cmd-item-qtdpreco">${fmtQtd(i.quantidade)} ${i.unidade} × ${fmtMoeda(i.preco_unitario)}</div>
+        <div class="cmd-item-qtdpreco">${podeMudarQtdItem(c, i) ? `
+          <div class="cmd-item-stepper">
+            <button type="button" onclick="mudarQtdItemComandaUI('${i.id}', -1)" ${parseFloat(i.quantidade) <= 1 ? 'disabled' : ''} aria-label="Menos um">−</button>
+            <span>${fmtQtd(i.quantidade)}</span>
+            <button type="button" onclick="mudarQtdItemComandaUI('${i.id}', 1)" aria-label="Mais um">+</button>
+          </div>
+          <div>${i.unidade} × ${fmtMoeda(i.preco_unitario)}</div>` : `${fmtQtd(i.quantidade)} ${i.unidade} × ${fmtMoeda(i.preco_unitario)}`}</div>
         <div class="cmd-item-direita">
           <span class="cmd-item-subtotal">${fmtMoeda(i.subtotal)}</span>
           ${c.status === 'aberta' ? `<button class="btn-icon" onclick="removerItemComandaPedirPin('${i.id}')" title="Excluir item">✕</button>` : ''}
@@ -7104,6 +7110,28 @@ async function adicionarItemComandaUI() {
 }
 
 // Excluir item é uma ação sensível — exige login de atendente com papel "gerente".
+// Botões − e + só pra item contado em unidade (não em peso) e já salvo no servidor.
+function podeMudarQtdItem(c, i) {
+  if (c.status !== 'aberta' || i._pendente || String(i.id).startsWith('offline-')) return false;
+  const unid = String(i.unidade || '').toLowerCase();
+  if (unid === 'kg' || unid === 'g') return false;
+  return Number.isInteger(parseFloat(i.quantidade));
+}
+
+let _mudandoQtdItem = false;
+async function mudarQtdItemComandaUI(itemId, delta) {
+  if (!comandaAtualId || _mudandoQtdItem) return;
+  _mudandoQtdItem = true;
+  try {
+    const r = await api(`/comandas/${comandaAtualId}/itens/${itemId}`, { method: 'PATCH', body: { delta } });
+    if (!r) return;
+    const c = await api(`/comandas/${comandaAtualId}`);
+    if (c) renderItensComanda(c);
+  } finally {
+    _mudandoQtdItem = false;
+  }
+}
+
 function removerItemComandaPedirPin(itemId) {
   removerItemComandaUI(itemId);
 }
