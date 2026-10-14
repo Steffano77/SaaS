@@ -6659,8 +6659,9 @@ async function processarScanGlobalComandas(codigo) {
 // Formato "peso * código" (ex: "0,300*224") — usado quando a atendente pesa numa
 // balança separada (sem etiqueta impressa) e digita o peso direto na hora da venda,
 // igual o Saurus já faz. Aceita vírgula ou ponto decimal, com ou sem espaço no "*".
+// Também serve pra quantidade inteira: "4*102" lança 4 unidades do produto 102.
 function decodificarPesoVezesCodigo(texto) {
-  const m = String(texto || '').trim().match(/^(\d+[.,]\d+)\s*\*\s*(\d+)$/);
+  const m = String(texto || '').trim().match(/^(\d+(?:[.,]\d+)?)\s*\*\s*(\d+)$/);
   if (!m) return null;
   const peso = parseFloat(m[1].replace(',', '.'));
   const codigoProduto = m[2];
@@ -6676,10 +6677,12 @@ async function onKeydownBuscaComanda(e, input) {
     e.preventDefault();
     input.parentElement.querySelector('.cmd-item-lista')?.classList.add('hidden');
     // Busca por código de balança primeiro (o mais comum pra item pesado), depois
-    // pelo ID do produto e pelo código de barras, pra cobrir o que já tiver cadastrado.
+    // pelo código de barras e só por último pelo ID do produto — o código curto que a
+    // atendente digita (ex: "3014") é o código do produto, e pode coincidir com o ID de
+    // outro produto qualquer.
     const produto = produtosCache.find(p => p.codigo_balanca && codigosBalancaIguais(p.codigo_balanca, pesoVezes.codigoProduto))
-      || produtosCache.find(p => String(p.id) === pesoVezes.codigoProduto)
-      || produtosCache.find(p => p.codigo_barras && p.codigo_barras.trim() === pesoVezes.codigoProduto);
+      || produtosCache.find(p => p.codigo_barras && p.codigo_barras.trim() === pesoVezes.codigoProduto)
+      || produtosCache.find(p => String(p.id) === pesoVezes.codigoProduto);
     if (!produto) {
       mostrarToast(`Nenhum produto encontrado com o código ${pesoVezes.codigoProduto}.`, 'warn');
       return;
