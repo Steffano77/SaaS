@@ -72,6 +72,17 @@ router.put('/auth/padaria', auth, wrap(async (req, res) => {
   res.json({ ok: true, nome: nome.trim() });
 }));
 
+// Outras lojas do mesmo dono (cada uma no seu servidor local), pro seletor de loja da
+// barra lateral. Vem do .env: OUTRAS_LOJAS="Nome 1|http://ip1:3000;Nome 2|http://ip2:3000".
+// Sem a variável, a lista vem vazia e o seletor não aparece.
+router.get('/lojas', auth, (req, res) => {
+  const lojas = String(process.env.OUTRAS_LOJAS || '').split(';').map(item => {
+    const [nome, url] = item.split('|').map(x => (x || '').trim());
+    return { nome, url: url.replace(/\/+$/, '') };
+  }).filter(l => l.nome && /^https?:\/\//i.test(l.url));
+  res.json(lojas);
+});
+
 // Middleware: apenas planos Pro/Premium (e admin)
 const authPro = wrap(async (req, res, next) => {
   const db = require('../database/connection');

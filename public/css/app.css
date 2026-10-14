@@ -384,6 +384,24 @@
       padding: 10px 12px;
     }
 
+    .sidebar-user.trocavel { cursor: pointer; }
+    .sidebar-user.trocavel:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-lojas {
+      margin-top: 6px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .sidebar-lojas a {
+      display: block;
+      padding: 9px 12px;
+      font-size: 13px;
+      color: #ffffff;
+      text-decoration: none;
+    }
+    .sidebar-lojas a:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-lojas a.atual { color: var(--slate-400); pointer-events: none; }
+
     .sidebar-user-label {
       font-size: 11px;
       color: var(--slate-400);

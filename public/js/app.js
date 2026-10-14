@@ -513,9 +513,40 @@ function entrar() {
     return;
   }
 
+  carregarSeletorLojas();
+
   history.replaceState({ pg: 'dashboard' }, '', '#dashboard');
   mostrarPagina('dashboard', false);
   setTimeout(verificarOnboarding, 800);
+}
+
+// Seletor de loja: clicar no "Logado como" abre a lista das outras lojas (OUTRAS_LOJAS no
+// .env do servidor). Cada loja é outro servidor, então trocar é só abrir o endereço dela —
+// o login fica guardado por endereço, então só pede senha na primeira vez.
+async function carregarSeletorLojas() {
+  const box = document.getElementById('sidebar-user');
+  const lista = document.getElementById('sidebar-lojas');
+  if (!box || !lista) return;
+  let lojas = [];
+  try {
+    const r = await fetch('/api/lojas', { headers: { Authorization: 'Bearer ' + TOKEN } });
+    if (r.ok) lojas = await r.json();
+  } catch {}
+  if (!Array.isArray(lojas) || lojas.length < 2) return;
+  const nomeAtual = (document.getElementById('sidebar-nome')?.textContent || '').trim().toLowerCase();
+  lista.innerHTML = '';
+  for (const l of lojas) {
+    const a = document.createElement('a');
+    const atual = l.url === location.origin || l.nome.trim().toLowerCase() === nomeAtual;
+    a.textContent = (atual ? '✓ ' : '') + l.nome;
+    a.href = l.url + '/#dashboard';
+    if (atual) a.className = 'atual';
+    lista.appendChild(a);
+  }
+  box.classList.add('trocavel');
+  box.title = 'Trocar de loja';
+  document.getElementById('sidebar-trocar-loja-seta')?.classList.remove('hidden');
+  box.onclick = () => lista.classList.toggle('hidden');
 }
 
 // Modo Balcão: esconde tudo da barra lateral, exceto Comandas e Sair.
