@@ -8939,6 +8939,27 @@ async function abrirComandaPorNumeroPdv(termoRaw) {
   let alvo = data.abertas.find(c => c.identificador === termo) || todas.find(c => c.identificador === termo);
 
   document.getElementById('cmd-pdv-busca-numero').value = '';
+  if (alvo && alvo.status && alvo.status !== 'aberta') { mostrarToast('Essa comanda já foi fechada.', 'warn'); return; }
+
+  // Venda de balcão em andamento (itens já bipados) + abriu a comanda do cliente: junta
+  // tudo numa cobrança só, em vez de deixar o balcão pendurado atrás pra cobrar depois.
+  const atual = comandaAtualDados;
+  const balcaoComItens = atual && comandaAtualId && Number(atual.id) === Number(comandaAtualId)
+    && atual.status === 'aberta' && atual.id !== alvo?.id
+    && String(atual.identificador || '').startsWith('Balcão') && (atual.itens || []).length > 0;
+  if (balcaoComItens) {
+    if ((atual.itens || []).some(i => i._pendente)) {
+      mostrarToast('Tem item do balcão ainda sem conexão — espere sincronizar antes de juntar.', 'warn');
+      return;
+    }
+    if (!alvo && !confirm(`Nenhuma comanda "${termo}" aberta. Abrir uma nova com esse número, já com os itens do balcão?`)) return;
+    const r = await api(`/comandas/${atual.id}/juntar`, { method: 'POST', body: { identificador: termo } });
+    if (!r) return;
+    _balcaoComandaAtiva = null;
+    mostrarToast(`Itens do balcão juntados na comanda ${termo}!`, 'ok');
+    abrirModalComanda(r.destino_id);
+    return;
+  }
 
   if (!alvo) {
     if (!confirm(`Nenhuma comanda "${termo}" aberta. Abrir uma nova com esse número?`)) return;
@@ -8947,7 +8968,6 @@ async function abrirComandaPorNumeroPdv(termoRaw) {
     abrirModalComanda(r.id);
     return;
   }
-  if (alvo.status && alvo.status !== 'aberta') { mostrarToast('Essa comanda já foi fechada.', 'warn'); return; }
   abrirModalComanda(alvo.id);
 }
 
