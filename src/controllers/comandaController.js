@@ -52,13 +52,16 @@ exports.listar = async (req, res) => {
   // impedindo cancelar uma venda de manhã já não aparecendo mais à tarde). Agora mostra
   // o dia inteiro de hoje (com um teto de segurança bem folgado, 500, só pra nunca travar
   // com um volume anormal).
+  // ?data=AAAA-MM-DD mostra outro dia (Histórico, pra reimprimir venda antiga);
+  // sem ela, continua sendo o dia de hoje.
+  const dataPedida = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.data || '')) ? req.query.data : null;
   const [recentes] = await db.query(
     `SELECT c.*,
        (SELECT COUNT(*) FROM itens_comanda i WHERE i.comanda_id = c.id) AS qtd_itens
      FROM comandas c
-     WHERE c.padaria_id = ? AND c.status <> 'aberta' AND DATE(COALESCE(c.fechada_em, c.aberta_em)) = CURDATE()
+     WHERE c.padaria_id = ? AND c.status <> 'aberta' AND DATE(COALESCE(c.fechada_em, c.aberta_em)) = COALESCE(?, CURDATE())
      ORDER BY c.fechada_em DESC LIMIT 500`,
-    [padaria_id]
+    [padaria_id, dataPedida]
   );
   res.json({ abertas, recentes });
 };

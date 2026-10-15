@@ -1285,7 +1285,8 @@
           <span class="modal-title">📜 Histórico de comandas</span>
           <button onclick="fecharHistoricoComandas()" class="btn-icon">✕</button>
         </div>
-        <div style="padding:0 20px 10px;">
+        <div style="padding:0 20px 10px;display:flex;gap:8px;">
+          <input id="historico-comandas-data" type="date" class="form-control" style="width:auto;flex-shrink:0;" onchange="carregarHistoricoComandas()" title="Dia das vendas"/>
           <input id="historico-comandas-busca" type="text" placeholder="🔍 Buscar por número ou valor..." autocomplete="off" class="form-control" oninput="filtrarHistoricoComandasUI(this)"/>
         </div>
         <div id="historico-comandas-lista" style="overflow-y:auto;overflow-x:hidden;flex:1;display:flex;flex-direction:column;gap:8px;padding:0 20px 16px;"></div>
@@ -2260,7 +2261,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20261014c"></script>
+<script src="/js/app.js?v=20261015a"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">

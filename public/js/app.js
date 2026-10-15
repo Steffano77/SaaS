@@ -6206,6 +6206,8 @@ async function abrirHistoricoComandas() {
   // limparDepois=false: pede o PIN só aqui na entrada — excluir/reimprimir
   // dentro do histórico não pedem de novo, até fechar a tela.
   await comLoginAtendente(async () => {
+    const campoData = document.getElementById('historico-comandas-data');
+    if (campoData) { campoData.value = dataLocalHoje(); campoData.max = campoData.value; }
     const r = await api('/comandas/historico');
     if (!r || r.precisa_login_funcionario) return r;
     document.getElementById('modal-historico-comandas').classList.remove('hidden');
@@ -6236,8 +6238,18 @@ function fecharHistoricoComandas() {
   esquecerLoginAtendente();
 }
 
+// Data de hoje no fuso do aparelho (toISOString() daria o dia seguinte depois das 21h).
+function dataLocalHoje() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function dataHistoricoComandas() {
+  return document.getElementById('historico-comandas-data')?.value || dataLocalHoje();
+}
+
 async function carregarHistoricoComandas() {
-  const r = await api('/comandas/historico');
+  const r = await api(`/comandas/historico?data=${dataHistoricoComandas()}`);
   if (!r) return;
   _historicoComandasCache = r.recentes || [];
   const busca = document.getElementById('historico-comandas-busca');
@@ -6248,8 +6260,11 @@ async function carregarHistoricoComandas() {
 function renderHistoricoComandas(recentes) {
   const el = document.getElementById('historico-comandas-lista');
   const statusLabel = { fechada: 'Fechada', cancelada: 'Cancelada' };
+  // Excluir só vale pras vendas de hoje — venda de dia anterior já entrou no fechamento
+  // de caixa daquele dia; aqui ela fica só pra consultar/reimprimir.
+  const ehHoje = dataHistoricoComandas() === dataLocalHoje();
   if (!recentes.length) {
-    el.innerHTML = `<div class="cmd-vazio">Nenhuma comanda finalizada ainda.</div>`;
+    el.innerHTML = `<div class="cmd-vazio">${ehHoje ? 'Nenhuma comanda finalizada ainda.' : 'Nenhuma comanda finalizada nesse dia.'}</div>`;
     return;
   }
   el.innerHTML = recentes.map(c => `
@@ -6264,7 +6279,7 @@ function renderHistoricoComandas(recentes) {
       <div class="historico-item-acoes">
         <button class="btn-icon" title="Reimprimir notinha (recibo comum)" onclick="reimprimirComandaUI(${c.id})">🖨️</button>
         <button class="btn-icon" title="Reimprimir nota fiscal (NFC-e), se essa comanda teve uma emitida" onclick="imprimirDanfeNFCe(${c.id})">🧾</button>
-        <button class="btn-icon" title="Excluir" onclick="excluirComandaHistoricoUI(${c.id})">🗑️</button>
+        ${ehHoje ? `<button class="btn-icon" title="Excluir" onclick="excluirComandaHistoricoUI(${c.id})">🗑️</button>` : ''}
       </div>
     </div>
   `).join('');
