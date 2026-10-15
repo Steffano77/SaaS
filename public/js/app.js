@@ -6314,7 +6314,7 @@ function renderHistoricoComandas(recentes) {
 async function reimprimirComandaUI(id) {
   const c = await api(`/comandas/${id}`);
   if (!c) return;
-  const formaResumo = c.forma_pagamento || '';
+  const formaResumo = c.forma_pagamento || (c.pagamentos || []).map(p => p.forma_pagamento).join(' + ');
   imprimirReciboComanda(c, formaResumo);
 }
 
@@ -8363,6 +8363,7 @@ async function finalizarVendaOfflineUI(comNotaCapturada) {
 
     const comandaFechadaId = comandaAtualId;
     const snapshot = comandaAtualDados;
+    if (snapshot) snapshot.pagamentos = comandaPagamentosPendentes.map(p => ({ ...p })); // pro recibo mostrar o troco
     const formaResumo = comandaPagamentosPendentes.map(p => p.forma_pagamento).join(' + ');
     const pgtoFaturado = comandaPagamentosPendentes.find(p => p.forma_pagamento === 'Faturado' && p.cliente_nome);
 
@@ -8466,6 +8467,7 @@ async function finalizarVendaUI() {
   if (!(await confirmarBonito(`Confirmar recebimento — ${resumo}?`))) { janelaImpressao?.close(); janelaGaveta?.close(); janelaFaturadoLoja?.close(); janelaFaturadoCliente?.close(); return; }
   const comandaFechadaId = comandaAtualId; // guarda ANTES de fechar o modal, que zera comandaAtualId
   const snapshot = comandaAtualDados; // guarda os itens antes de fechar, pro recibo
+  if (snapshot) snapshot.pagamentos = comandaPagamentosPendentes.map(p => ({ ...p })); // pro recibo mostrar o troco
   const formaResumo = comandaPagamentosPendentes.map(p => p.forma_pagamento).join(' + ');
   // Cliente identificado no pagamento "Faturado" — vai junto pro fechamento (grava na
   // comanda) e pro recibo impresso (Cliente:/Documento:).
@@ -8753,6 +8755,12 @@ async function montarCorpoReciboComanda(c, forma_pagamento) {
     ? `<div class="sub" style="text-align:left;margin-top:6px;">Cliente: ${c.cliente_nome}</div>
        <div class="sub" style="text-align:left;">Documento: ${formatarCnpjUI(c.cliente_documento)}</div>`
     : '';
+  // Pagou em dinheiro com troco — mostra quanto o cliente deu e quanto voltou (igual a DANFE).
+  const linhasTroco = (c.pagamentos || []).filter(p => (parseFloat(p.troco) || 0) > 0).map(p => {
+    const troco = parseFloat(p.troco);
+    return `<div class="linha"><span class="nome">Valor recebido</span><span class="valor">${fmtMoeda(parseFloat(p.valor) + troco)}</span></div>
+      <div class="total"><span>TROCO</span><span>${fmtMoeda(troco)}</span></div>`;
+  }).join('');
   return `
     <h1>${nomePadaria}</h1>
     <div class="sub">Comanda ${c.identificador} · ${agora.toLocaleString('pt-BR')}</div>
@@ -8762,6 +8770,7 @@ async function montarCorpoReciboComanda(c, forma_pagamento) {
     <hr/>
     <div class="total"><span>TOTAL</span><span>${fmtMoeda(total)}</span></div>
     <div class="sub" style="margin-top:4px;">Pagamento: ${forma_pagamento}</div>
+    ${linhasTroco}
     <div class="rodape">Obrigado pela preferência!</div>
   `;
 }

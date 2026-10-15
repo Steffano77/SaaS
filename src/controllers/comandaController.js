@@ -199,7 +199,11 @@ exports.buscar = async (req, res) => {
   const [itens] = await db.query(
     `SELECT * FROM itens_comanda WHERE comanda_id = ? ORDER BY id`, [comanda.id]
   );
-  res.json({ ...comanda, itens });
+  // Pagamentos (com o troco) — pra reimpressão do recibo mostrar o valor recebido e o troco.
+  const [pagamentos] = await db.query(
+    `SELECT forma_pagamento, valor, troco FROM comanda_pagamentos WHERE comanda_id = ? ORDER BY id`, [comanda.id]
+  );
+  res.json({ ...comanda, itens, pagamentos });
 };
 
 // Adiciona um item (produto cadastrado ou avulso) à comanda
