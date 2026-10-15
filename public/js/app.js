@@ -1049,9 +1049,22 @@ window.addEventListener('offline', entrarModoOffline);
 
 // ── API helpers ──────────────────────────────────────────────
 // B) 401 -> remove token + reload; C) network error -> toast
+// Identidade deste aparelho (PC/tablet), guardada no navegador — o servidor usa pra
+// não deixar dois aparelhos usarem o mesmo caixa ao mesmo tempo. (crypto.randomUUID
+// não existe em http fora de localhost, por isso o sorteio manual.)
+const APARELHO_ID = (() => {
+  let id = null;
+  try { id = localStorage.getItem('pp_aparelho_uuid'); } catch {}
+  if (!id || !/^[a-z0-9-]{8,40}$/i.test(id)) {
+    id = 'ap-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+    try { localStorage.setItem('pp_aparelho_uuid', id); } catch {}
+  }
+  return id;
+})();
+
 async function api(path, opts = {}) {
   const funcToken = sessionStorage.getItem('func_token');
-  opts.headers = { ...opts.headers, 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' };
+  opts.headers = { ...opts.headers, 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json', 'X-Aparelho': APARELHO_ID };
   if (funcToken) opts.headers['X-Func-Token'] = funcToken;
   if (opts.body && typeof opts.body === 'object' && !(opts.body instanceof FormData)) {
     opts.body = JSON.stringify(opts.body);
@@ -5225,8 +5238,16 @@ async function carregarCaixaFaixa() {
   }
 
   if (CAIXA_LOCAL_ID) {
-    const caixa = await api(`/caixa/${CAIXA_LOCAL_ID}`);
-    if (caixa && caixa.status === 'aberto') {
+    let caixa = await api(`/caixa/${CAIXA_LOCAL_ID}`);
+    // Caixa aberto antes da trava por aparelho: o primeiro aparelho que carregar vira o dono.
+    if (caixa && caixa.status === 'aberto' && !caixa.aparelho_id) {
+      const v = await api(`/caixa/${CAIXA_LOCAL_ID}/vincular`, { method: 'POST' });
+      if (v) caixa = await api(`/caixa/${CAIXA_LOCAL_ID}`);
+    }
+    if (caixa && caixa.status === 'aberto' && caixa.aparelho_id && caixa.aparelho_id !== APARELHO_ID) {
+      // Outro aparelho assumiu esse caixa — este aqui deixa de vender nele.
+      mostrarToast(`${caixa.nome} agora está em outro aparelho. Abra um caixa próprio aqui.`, 'warn');
+    } else if (caixa && caixa.status === 'aberto') {
       caixaAtualCache = caixa;
       if (caixa.pausado) {
         el.innerHTML = `
@@ -5263,7 +5284,7 @@ async function carregarCaixaFaixa() {
       <div class="cmd-caixa-card fechado">
         <span>🔒 Nenhum caixa aberto neste aparelho</span>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          ${abertos.map(c => `<button class="btn-ghost" style="padding:8px 14px;" onclick="usarCaixaLocal(${c.id})">Usar ${c.nome}</button>`).join('')}
+          ${abertos.map(c => `<button class="btn-ghost" style="padding:8px 14px;" onclick="usarCaixaLocal(${c.id}, '${String(c.nome).replace(/'/g, '')}')">Usar ${c.nome}</button>`).join('')}
           <button class="btn-primary" style="padding:8px 16px;" onclick="abrirModalCaixa('abrir')">+ Abrir novo caixa</button>
         </div>
       </div>`;
@@ -5277,7 +5298,12 @@ async function carregarCaixaFaixa() {
     </div>`;
 }
 
-function usarCaixaLocal(id) {
+// Trazer um caixa já aberto pra este aparelho (ex: o PC reiniciou). Pede PIN e
+// confirmação, porque o aparelho onde ele estava deixa de conseguir vender nele.
+async function usarCaixaLocal(id, nome) {
+  if (!(await confirmarBonito(`Usar o ${nome || 'caixa'} neste aparelho?\n\nSe ele estiver aberto em outro PC, aquele PC deixa de vender nele. Pra trabalhar com dois PCs ao mesmo tempo, abra um caixa novo aqui (ex: "Caixa 2").`))) return;
+  const r = await comLoginAtendente(() => api(`/caixa/${id}/assumir`, { method: 'POST' }));
+  if (!r || r.precisa_login_funcionario) return;
   localStorage.setItem('pp_caixa_id', id);
   CAIXA_LOCAL_ID = id;
   carregarCaixaFaixa();

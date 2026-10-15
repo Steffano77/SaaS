@@ -520,6 +520,9 @@ const migracoesProntas = (async () => {
       // é qual e misturava venda de um cliente com a de outro.
       "ALTER TABLE caixas ADD COLUMN nome_ativo VARCHAR(60) GENERATED ALWAYS AS (IF(status = 'aberto', nome, NULL)) STORED",
       'ALTER TABLE caixas ADD UNIQUE KEY uq_caixas_nome_ativo (padaria_id, nome_ativo)',
+      // Aparelho (PC) dono do caixa — dois PCs usando o mesmo caixa misturavam as vendas
+      // dos dois num fechamento só. Quem abre vira o dono; outro aparelho só usa com PIN.
+      'ALTER TABLE caixas ADD COLUMN aparelho_id VARCHAR(40) NULL',
       // Otimizações de performance (só índices — não mudam nenhum resultado, só
       // aceleram consultas que já existiam em telas de bastante uso):
       // Tela do caixa (resumo, fechamento) filtra "comandas" por caixa_id sem índice.

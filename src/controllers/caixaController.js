@@ -1,6 +1,21 @@
 const bcrypt = require('bcryptjs');
 const db = require('../database/connection');
 
+// O app manda o id do aparelho (PC/tablet) em todo pedido, no cabeçalho X-Aparelho.
+// Caixa com dono e pedido vindo de outro aparelho = não pode mexer nele.
+function aparelhoDoPedido(req) {
+  const id = String(req.get('X-Aparelho') || '').trim();
+  return /^[a-z0-9-]{8,40}$/i.test(id) ? id : null;
+}
+function caixaDeOutroAparelho(caixa, req) {
+  const meu = aparelhoDoPedido(req);
+  return !!(caixa && caixa.aparelho_id && meu && caixa.aparelho_id !== meu);
+}
+exports.aparelhoDoPedido = aparelhoDoPedido;
+exports.caixaDeOutroAparelho = caixaDeOutroAparelho;
+const ERRO_OUTRO_APARELHO = 'Esse caixa está aberto em outro aparelho. Abra um caixa próprio aqui (ex: "Caixa 2") ou use "Usar caixa" com o PIN pra trazer ele pra cá.';
+exports.ERRO_OUTRO_APARELHO = ERRO_OUTRO_APARELHO;
+
 // Lista todos os caixas abertos da padaria (pode haver mais de um — um por tablet/aparelho)
 exports.abertos = async (req, res) => {
   const padaria_id = req.padaria.id;
@@ -87,8 +102,8 @@ exports.abrir = async (req, res) => {
 
   try {
     const [r] = await db.query(
-      `INSERT INTO caixas (padaria_id, nome, atendente, valor_abertura, observacao) VALUES (?,?,?,?,?)`,
-      [padaria_id, nome, atendenteNome, parseFloat(valor_abertura) || 0, observacao || null]
+      `INSERT INTO caixas (padaria_id, nome, atendente, valor_abertura, observacao, aparelho_id) VALUES (?,?,?,?,?,?)`,
+      [padaria_id, nome, atendenteNome, parseFloat(valor_abertura) || 0, observacao || null, aparelhoDoPedido(req)]
     );
     res.status(201).json({ id: r.insertId, nome, atendente: atendenteNome });
   } catch (e) {
@@ -100,6 +115,33 @@ exports.abrir = async (req, res) => {
     console.error('Erro ao abrir caixa:', e);
     res.status(500).json({ erro: 'Erro ao abrir caixa.' });
   }
+};
+
+// "Usar caixa" — traz um caixa aberto pra este aparelho (ex: o PC reiniciou e perdeu
+// o vínculo). Exige PIN de caixa/gerente (na rota). O aparelho antigo perde o caixa.
+exports.assumir = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const aparelho = aparelhoDoPedido(req);
+  if (!aparelho) return res.status(400).json({ erro: 'Aparelho não identificado. Recarregue a página.' });
+  const [r] = await db.query(
+    `UPDATE caixas SET aparelho_id = ? WHERE id = ? AND padaria_id = ? AND status = 'aberto'`,
+    [aparelho, req.params.id, padaria_id]
+  );
+  if (!r.affectedRows) return res.status(404).json({ erro: 'Caixa não encontrado ou já fechado.' });
+  res.json({ ok: true });
+};
+
+// Caixa sem dono (aberto antes dessa trava existir) — o primeiro aparelho que estiver
+// com ele aberto vira o dono, sem PIN. Se já tem dono, não mexe.
+exports.vincular = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const aparelho = aparelhoDoPedido(req);
+  if (!aparelho) return res.status(400).json({ erro: 'Aparelho não identificado. Recarregue a página.' });
+  const [r] = await db.query(
+    `UPDATE caixas SET aparelho_id = ? WHERE id = ? AND padaria_id = ? AND status = 'aberto' AND aparelho_id IS NULL`,
+    [aparelho, req.params.id, padaria_id]
+  );
+  res.json({ ok: true, vinculado: r.affectedRows > 0 });
 };
 
 async function montarResumoCaixa(caixa) {
@@ -207,6 +249,7 @@ exports.fechar = async (req, res) => {
     [req.params.id, padaria_id]
   );
   if (!caixa) return res.status(404).json({ erro: 'Caixa não encontrado ou já fechado.' });
+  if (caixaDeOutroAparelho(caixa, req)) return res.status(409).json({ erro: ERRO_OUTRO_APARELHO });
 
   // Despesas lançadas pela atendente na hora de fechar — grava ANTES de montar o
   // resumo, pra já entrarem na conta do "esperado em dinheiro" e na conferência.

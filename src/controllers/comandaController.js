@@ -295,10 +295,12 @@ exports.fechar = async (req, res) => {
   const caixa_id = req.body.caixa_id || null;
   if (!caixa_id) return res.status(400).json({ erro: 'Abra o caixa antes de cobrar.' });
   const [[caixa]] = await db.query(
-    `SELECT id, atendente FROM caixas WHERE id = ? AND padaria_id = ? AND status = 'aberto'`,
+    `SELECT id, atendente, aparelho_id FROM caixas WHERE id = ? AND padaria_id = ? AND status = 'aberto'`,
     [caixa_id, padaria_id]
   );
   if (!caixa) return res.status(400).json({ erro: 'Esse caixa não está mais aberto.' });
+  const caixaCtrl = require('./caixaController');
+  if (caixaCtrl.caixaDeOutroAparelho(caixa, req)) return res.status(409).json({ erro: caixaCtrl.ERRO_OUTRO_APARELHO });
 
   // Aceita { pagamentos: [{forma_pagamento, valor}, ...] } ou, por compatibilidade, { forma_pagamento } sozinho.
   let pagamentos = Array.isArray(req.body.pagamentos) ? req.body.pagamentos : null;
