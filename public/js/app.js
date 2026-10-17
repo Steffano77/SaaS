@@ -7666,19 +7666,53 @@ async function abrirExtratoFaturadoUI(documento, nome) {
   linhas.sort((a, b) => new Date(b.fechada_em) - new Date(a.fechada_em));
   _extratoFaturadoCache = { documento, nome, linhas };
   document.getElementById('extrato-faturado-nome').textContent = nome;
+  document.getElementById('extrato-faturado-de').value = '';
+  document.getElementById('extrato-faturado-ate').value = '';
   renderizarExtratoFaturadoLista();
   document.getElementById('modal-extrato-faturado').classList.remove('hidden');
+}
+
+// Dia (AAAA-MM-DD) no fuso do aparelho — o servidor manda a data em UTC.
+function diaLocalDe(data) {
+  const d = new Date(data);
+  if (isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Período escolhido no extrato (vazio = sem limite daquele lado).
+function periodoExtratoFaturado() {
+  return {
+    de: document.getElementById('extrato-faturado-de')?.value || '',
+    ate: document.getElementById('extrato-faturado-ate')?.value || '',
+  };
+}
+
+function limparPeriodoExtratoFaturado() {
+  document.getElementById('extrato-faturado-de').value = '';
+  document.getElementById('extrato-faturado-ate').value = '';
+  renderizarExtratoFaturadoLista();
 }
 
 function renderizarExtratoFaturadoLista() {
   const d = _extratoFaturadoCache;
   if (!d) return;
-  const total = d.linhas.reduce((s, l) => s + parseFloat(l.valor), 0);
-  const totalAberto = d.linhas.filter(l => !l.quitado_em).reduce((s, l) => s + parseFloat(l.valor), 0);
+  // Só mostra (e só deixa imprimir/dar baixa) as comandas dentro do período escolhido.
+  // As de fora não ganham checkbox na tela, então ficam de fora das ações.
+  const { de, ate } = periodoExtratoFaturado();
+  const noPeriodo = l => { const dia = diaLocalDe(l.fechada_em); return (!de || dia >= de) && (!ate || dia <= ate); };
+  const visiveis = d.linhas.map((l, idx) => ({ l, idx })).filter(({ l }) => noPeriodo(l));
+  const total = visiveis.reduce((s, { l }) => s + parseFloat(l.valor), 0);
+  const totalAberto = visiveis.filter(({ l }) => !l.quitado_em).reduce((s, { l }) => s + parseFloat(l.valor), 0);
   document.getElementById('extrato-faturado-total').textContent = fmtMoeda(total);
   document.getElementById('extrato-faturado-aberto').textContent = fmtMoeda(totalAberto);
-  document.getElementById('extrato-faturado-contador').textContent = `${d.linhas.length} comanda(s)`;
-  document.getElementById('extrato-faturado-lista').innerHTML = d.linhas.map((l, idx) => `
+  document.getElementById('extrato-faturado-contador').textContent = (de || ate)
+    ? `${visiveis.length} de ${d.linhas.length} comanda(s) no período`
+    : `${d.linhas.length} comanda(s)`;
+  if (!visiveis.length) {
+    document.getElementById('extrato-faturado-lista').innerHTML = `<div class="cmd-vazio">Nenhuma comanda nesse período.</div>`;
+    return;
+  }
+  document.getElementById('extrato-faturado-lista').innerHTML = visiveis.map(({ l, idx }) => `
     <div style="display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--slate-100);">
       <input type="checkbox" id="extrato-sel-${idx}" checked style="width:18px;height:18px;flex-shrink:0;"/>
       <div style="flex:1;min-width:0;">
@@ -7768,6 +7802,12 @@ async function imprimirExtratoFaturadoUI(janelaPre, linhasSelecionadas) {
     ${cidadeUf ? `<div class="sub">${cidadeUf}</div>` : ''}
     ${cnpjIe ? `<div class="sub">${cnpjIe}</div>` : ''}
     <div class="sub">Extrato de Faturado · ${new Date().toLocaleDateString('pt-BR')}</div>
+    ${(() => {
+      const { de, ate } = periodoExtratoFaturado();
+      if (!de && !ate) return '';
+      const br = v => v ? v.split('-').reverse().join('/') : '…';
+      return `<div class="sub" style="font-weight:800;">Período: ${br(de)} a ${br(ate)}</div>`;
+    })()}
     <hr/>
     <div class="sub" style="text-align:left;font-weight:800;">${d.nome}</div>
     <div class="sub" style="text-align:left;">${formatarCnpjUI(d.documento)}</div>

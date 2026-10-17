@@ -729,6 +729,13 @@
             <div id="extrato-faturado-aberto" style="font-size:16px;font-weight:700;color:#c2410c;"></div>
           </div>
         </div>
+        <div style="padding:12px 20px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:12px;color:var(--slate-500);">Período:</span>
+          <input id="extrato-faturado-de" type="date" class="form-control" style="width:auto;padding:6px 8px;" onchange="renderizarExtratoFaturadoLista()" title="De"/>
+          <span style="font-size:12px;color:var(--slate-500);">até</span>
+          <input id="extrato-faturado-ate" type="date" class="form-control" style="width:auto;padding:6px 8px;" onchange="renderizarExtratoFaturadoLista()" title="Até"/>
+          <button type="button" onclick="limparPeriodoExtratoFaturado()" class="btn-link" style="font-size:12px;">Limpar</button>
+        </div>
         <div style="padding:12px 20px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;">
           <span id="extrato-faturado-contador" style="font-size:12.5px;color:var(--slate-500);"></span>
           <span style="display:flex;gap:10px;">
@@ -2261,7 +2268,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20261017a"></script>
+<script src="/js/app.js?v=20261017b"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
