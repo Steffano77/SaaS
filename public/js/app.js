@@ -5393,6 +5393,16 @@ async function abrirModalCaixa(modo) {
         <label class="form-label">${obsLabel}</label>
         <input id="caixa-mov-obs" type="text" class="form-control" placeholder="${obsPlaceholder}"/>
       </div>
+      ${modo === 'despesa' ? `
+      <div class="form-group">
+        <label class="form-label">Quem recebeu (nome) — opcional</label>
+        <input id="caixa-mov-fav-nome" type="text" class="form-control" placeholder="Ex: João entregador, Gás Litoral..."/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">CPF ou CNPJ de quem recebeu — opcional</label>
+        <input id="caixa-mov-fav-doc" type="text" inputmode="numeric" class="form-control" placeholder="Só números"/>
+      </div>
+      <p style="font-size:12px;color:var(--slate-500);margin:-4px 0 8px;">Sai um comprovante impresso pra quem recebeu assinar.</p>` : ''}
       <button class="btn-primary full" style="margin-top:6px;" onclick="confirmarMovimentoCaixa('${modo}')">Confirmar</button>
     `;
   } else if (modo === 'fechar') {
@@ -5535,14 +5545,54 @@ async function confirmarAbrirCaixa() {
 async function confirmarMovimentoCaixa(tipo) {
   const valor = document.getElementById('caixa-mov-valor').value;
   const observacao = document.getElementById('caixa-mov-obs').value.trim();
+  const favorecido_nome = document.getElementById('caixa-mov-fav-nome')?.value.trim() || '';
+  const favorecido_documento = (document.getElementById('caixa-mov-fav-doc')?.value || '').replace(/\D/g, '');
   if (!valor || parseFloat(valor) <= 0) { mostrarToast('Informe um valor válido.', 'warn'); return; }
   if (tipo === 'despesa' && !observacao) { mostrarToast('Descreve o que foi essa despesa.', 'warn'); return; }
-  const r = await api(`/caixa/${CAIXA_LOCAL_ID}/${tipo}`, { method: 'POST', body: { valor, observacao } });
-  if (!r) return;
+  if (favorecido_documento && favorecido_documento.length !== 11 && favorecido_documento.length !== 14) {
+    mostrarToast('CPF precisa ter 11 números e CNPJ 14.', 'warn'); return;
+  }
+  // Abre a janela do comprovante já, dentro do clique — depois do await o Chrome bloqueia o pop-up.
+  const janelaComprovante = tipo === 'despesa' ? window.open('', '_blank', 'width=380,height=600') : null;
+  const r = await api(`/caixa/${CAIXA_LOCAL_ID}/${tipo}`, { method: 'POST', body: { valor, observacao, favorecido_nome, favorecido_documento } });
+  if (!r) { janelaComprovante?.close(); return; }
+  if (tipo === 'despesa') {
+    await imprimirComprovanteDespesaUI({ valor, observacao, favorecido_nome, favorecido_documento }, janelaComprovante);
+  }
   const msg = tipo === 'sangria' ? 'Sangria registrada.' : tipo === 'suprimento' ? 'Suprimento registrado.' : 'Despesa lançada — já entra na conta do fechamento.';
   mostrarToast(msg, 'ok');
   document.getElementById('modal-caixa').classList.add('hidden');
   await carregarCaixaFaixa();
+}
+
+// Comprovante de despesa do caixa (não fiscal) — pra quem recebeu o dinheiro assinar
+// e a loja guardar junto com o fechamento.
+async function imprimirComprovanteDespesaUI(d, janelaPre) {
+  const dados = await buscarDadosFiscaisUI();
+  const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
+  const caixa = caixaAtualCache || {};
+  const agora = new Date();
+  const recebedor = d.favorecido_nome || '';
+  const documento = d.favorecido_documento ? formatarCnpjUI(d.favorecido_documento) : '';
+  const tipoDoc = d.favorecido_documento?.length === 14 ? 'CNPJ' : 'CPF';
+  const corpo = `
+    <h1>${(dados.nfce_razao_social || nomePadaria).toUpperCase()}</h1>
+    ${dados.cnpj ? `<div class="sub">CNPJ ${formatarCnpjUI(dados.cnpj)}</div>` : ''}
+    <hr/>
+    <div class="sub" style="font-weight:800;">COMPROVANTE DE DESPESA</div>
+    <div class="sub">${agora.toLocaleDateString('pt-BR')} ${agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}${caixa.nome ? ' · ' + caixa.nome : ''}</div>
+    <div class="sub" style="font-weight:800;">NÃO É DOCUMENTO FISCAL</div>
+    <hr/>
+    <div class="sub" style="text-align:left;">Descrição: ${d.observacao}</div>
+    <div class="total"><span>VALOR</span><span>${fmtMoeda(d.valor)}</span></div>
+    <hr/>
+    <div class="sub" style="text-align:left;">Recebido por: ${recebedor || '______________________'}</div>
+    <div class="sub" style="text-align:left;">${documento ? tipoDoc + ': ' + documento : 'CPF/CNPJ: ______________________'}</div>
+    ${caixa.atendente ? `<div class="sub" style="text-align:left;">Pago por: ${caixa.atendente}</div>` : ''}
+    <div style="margin-top:28px;border-top:1px solid #000;"></div>
+    <div class="sub">Assinatura de quem recebeu</div>
+  `;
+  abrirJanelaImpressaoTermica(corpo, janelaPre);
 }
 
 async function confirmarFecharCaixa() {

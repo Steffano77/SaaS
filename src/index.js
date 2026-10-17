@@ -523,6 +523,9 @@ const migracoesProntas = (async () => {
       // Aparelho (PC) dono do caixa — dois PCs usando o mesmo caixa misturavam as vendas
       // dos dois num fechamento só. Quem abre vira o dono; outro aparelho só usa com PIN.
       'ALTER TABLE caixas ADD COLUMN aparelho_id VARCHAR(40) NULL',
+      // Despesa do caixa: quem recebeu o dinheiro (nome e/ou CPF/CNPJ) — vai no comprovante.
+      'ALTER TABLE caixa_movimentos ADD COLUMN favorecido_nome VARCHAR(120) NULL',
+      'ALTER TABLE caixa_movimentos ADD COLUMN favorecido_documento VARCHAR(20) NULL',
       // Otimizações de performance (só índices — não mudam nenhum resultado, só
       // aceleram consultas que já existiam em telas de bastante uso):
       // Tela do caixa (resumo, fechamento) filtra "comandas" por caixa_id sem índice.

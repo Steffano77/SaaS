@@ -358,15 +358,30 @@ exports.despesa = async (req, res) => {
   const descricao = String(observacao || '').trim();
   if (!valor || valor <= 0) return res.status(400).json({ erro: 'Valor inválido.' });
   if (!descricao) return res.status(400).json({ erro: 'Descreve o que foi essa despesa.' });
+  // Quem recebeu o dinheiro — opcional (nome, CPF ou CNPJ), vai no comprovante impresso.
+  const favNome = String(req.body.favorecido_nome || '').trim().slice(0, 120) || null;
+  const favDoc = String(req.body.favorecido_documento || '').replace(/\D/g, '') || null;
+  if (favDoc && favDoc.length !== 11 && favDoc.length !== 14) {
+    return res.status(400).json({ erro: 'CPF precisa ter 11 números e CNPJ 14.' });
+  }
 
   const [[caixa]] = await db.query(
     `SELECT id FROM caixas WHERE id = ? AND padaria_id = ? AND status = 'aberto'`, [req.params.id, padaria_id]
   );
   if (!caixa) return res.status(404).json({ erro: 'Caixa não encontrado ou já fechado.' });
 
-  await db.query(
-    `INSERT INTO caixa_movimentos (caixa_id, tipo, valor, observacao) VALUES (?, 'despesa', ?, ?)`,
-    [caixa.id, valor, descricao]
-  );
+  try {
+    await db.query(
+      `INSERT INTO caixa_movimentos (caixa_id, tipo, valor, observacao, favorecido_nome, favorecido_documento) VALUES (?, 'despesa', ?, ?, ?, ?)`,
+      [caixa.id, valor, descricao, favNome, favDoc]
+    );
+  } catch (e) {
+    // Banco ainda sem as colunas novas — grava a despesa mesmo assim (o comprovante sai igual).
+    if (e.code !== 'ER_BAD_FIELD_ERROR') throw e;
+    await db.query(
+      `INSERT INTO caixa_movimentos (caixa_id, tipo, valor, observacao) VALUES (?, 'despesa', ?, ?)`,
+      [caixa.id, valor, descricao]
+    );
+  }
   res.status(201).json({ ok: true });
 };
