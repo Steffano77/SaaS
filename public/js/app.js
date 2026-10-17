@@ -563,11 +563,14 @@ function aplicarModoBalcao() {
   document.getElementById('nav-admin')?.classList.add('hidden');
   // Esconde o botão de relatório de vendas na tela de Comandas (só o PC do caixa deve ver isso)
   document.querySelectorAll('[onclick="abrirRelatorioVendas()"]').forEach(el => el.style.display = 'none');
-  // Tablet de Modo Lançamento só lança comanda — nunca deve abrir o painel de Caixa
-  // (fechar caixa, sangria, suprimento). Bug real: esse botão ficava visível e clicável
-  // mesmo nesse modo, bastava o aparelho ter algum CAIXA_LOCAL_ID salvo de um uso anterior.
+  // Tablet de Modo Lançamento só lança comanda — nunca deve abrir Caixa, Comandas
+  // abertas ou Histórico (telas do PC do caixa). Bug real: esses botões ficavam
+  // visíveis e clicáveis mesmo nesse modo, igual confirmado com print antigo do
+  // tablet, que não tinha nenhum dos três.
   if (MODO_LANCAMENTO) {
     document.getElementById('btn-caixa-modo-lancamento')?.classList.add('hidden');
+    document.getElementById('btn-historico-modo-lancamento')?.classList.add('hidden');
+    document.getElementById('btn-comandas-abertas-modo-caixa')?.classList.add('hidden');
   }
   // Evita duplicar o aviso se essa função rodar mais de uma vez na mesma sessão (ex: login de novo sem recarregar a página).
   document.querySelectorAll('.cmd-aviso-modo-balcao').forEach(el => el.remove());
