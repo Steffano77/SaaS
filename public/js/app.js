@@ -5416,6 +5416,13 @@ async function abrirModalCaixa(modo) {
     `;
   } else if (modo === 'fechar') {
     titulo.textContent = '💰 Fechar caixa';
+    // Busca o resumo de novo na hora de fechar — o guardado na tela podia ser de horas
+    // atrás (de quando o caixa foi carregado), sem as vendas do turno, e aí os campos
+    // de crédito/débito/pix/voucher nem apareciam pra preencher.
+    if (CAIXA_LOCAL_ID) {
+      const atualizado = await api(`/caixa/${CAIXA_LOCAL_ID}`);
+      if (atualizado) caixaAtualCache = atualizado;
+    }
     const caixa = caixaAtualCache;
     const r = caixa?.resumo;
     // A tela é sempre "cega": nenhum valor do sistema aparece — só campos em branco
