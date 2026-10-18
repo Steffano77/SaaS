@@ -3068,8 +3068,9 @@ tr.tr-saida td { color: var(--red-600); }
   .cmd-pgto-grid-grande .cmd-pgto-btn span:last-child { font-size: 13px; }
   .cmd-pdv-coluna-dir { padding-bottom: 10px; }
 }
-/* Maior e mais claro: as atendentes não enxergavam o "Restante" no fundo escuro do caixa. */
-.cmd-pgto-label { font-size: 16px; font-weight: 700; color: #f1f5f9; text-align: center; margin-bottom: 8px; }
+/* Mais claro e em negrito (as atendentes não enxergavam o "Restante" no fundo escuro do
+   caixa), quase sem crescer — com margem menor, a tela continua cabendo sem rolagem. */
+.cmd-pgto-label { font-size: 13.5px; line-height: 1.2; font-weight: 700; color: #f1f5f9; text-align: center; margin-bottom: 6px; }
 .cmd-pgto-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
