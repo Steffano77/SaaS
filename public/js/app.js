@@ -5445,6 +5445,16 @@ async function abrirModalCaixa(modo) {
       const emCaixa = ehDinheiro
         ? parseFloat(caixa?.valor_abertura || 0) + parseFloat(f.total) + (r?.totalSuprimentos || 0) - (r?.totalSangrias || 0)
         : parseFloat(f.total);
+      // Faturado (fiado) não é dinheiro nem cartão pra contar — já vem com o valor lançado
+      // no sistema e travado, sem dar pra editar no fechamento.
+      if (f.forma_pagamento === 'Faturado') {
+        return `
+        <div class="form-group cmd-fechamento-campo">
+          <label class="form-label">Faturado (lançado no sistema)</label>
+          <input type="text" class="form-control cmd-fechamento-input" data-forma="Faturado" readonly tabindex="-1"
+            value="${parseFloat(f.total || 0).toFixed(2).replace('.', ',')}" style="opacity:0.75;cursor:not-allowed;"/>
+        </div>`;
+      }
       return `
         <div class="form-group cmd-fechamento-campo">
           <label class="form-label">${f.forma_pagamento}${ehDinheiro ? ' (gaveta)' : ''}</label>
@@ -5488,7 +5498,7 @@ async function abrirModalCaixa(modo) {
       <div class="cmd-resumo-secao" style="margin-top:10px;">Conferência por forma de pagamento</div>
       <div class="cmd-fechamento-grid">${camposConferencia}</div>
       <div class="cmd-resumo-secao" style="margin-top:14px;">Despesas do caixa</div>
-      <p style="font-size:12px;color:var(--slate-500);margin:-4px 0 8px;">Dinheiro que saiu da gaveta hoje — gás, embalagem, troco pro entregador, etc.</p>
+      <p style="font-size:12px;color:var(--slate-500);margin:-4px 0 8px;">Se esqueceu de lançar despesas, lance aqui. <b>Somente se esqueceu!</b></p>
       <div id="cmd-despesas-lista"></div>
       <button type="button" class="btn-ghost full" style="margin-top:4px;" onclick="adicionarDespesaFechamentoUI()">+ Adicionar despesa</button>
       <div class="form-group" style="margin-top:10px;">
