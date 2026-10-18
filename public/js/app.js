@@ -8270,7 +8270,7 @@ function atualizarPagamentoUI() {
     label.textContent = '✅ Pagamento completo';
     btnFinalizar.classList.remove('hidden');
   } else {
-    label.textContent = `Restante: ${fmtMoeda(restante)} — toque na forma de pagamento`;
+    label.innerHTML = `Restante: <span class="cmd-restante-valor">${fmtMoeda(restante)}</span> — toque na forma de pagamento`;
     btnFinalizar.classList.add('hidden');
   }
 }
