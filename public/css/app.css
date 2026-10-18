@@ -3070,7 +3070,11 @@ tr.tr-saida td { color: var(--red-600); }
 }
 /* Mais claro e em negrito (as atendentes não enxergavam o "Restante" no fundo escuro do
    caixa), quase sem crescer — com margem menor, a tela continua cabendo sem rolagem. */
-.cmd-pgto-label { font-size: 13.5px; line-height: 1.2; font-weight: 700; color: #f1f5f9; text-align: center; margin-bottom: 6px; }
+.cmd-pgto-label { font-size: 13.5px; line-height: 1.2; font-weight: 700; color: #f1f5f9; text-align: center; margin-bottom: 4px; }
+/* Valor que falta pagar: maior, amarelo e pulsando devagar, pra atendente não deixar passar. */
+.cmd-restante-valor { font-size: 15px; color: #fbbf24; animation: cmd-restante-pulsa 1.6s ease-in-out infinite; }
+@keyframes cmd-restante-pulsa { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .cmd-restante-valor { animation: none; } }
 .cmd-pgto-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
