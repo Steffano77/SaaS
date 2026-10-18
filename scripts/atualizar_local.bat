@@ -1,7 +1,7 @@
 @echo off
 cd /d "%~dp0.."
 echo Atualizando sistema...
-git pull origin claude/affectionate-galileo-fot0op
+git pull origin jota2-producao
 echo Reiniciando servidor...
 pm2 restart panificapro-local --update-env
 echo.
