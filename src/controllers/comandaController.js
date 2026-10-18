@@ -386,118 +386,139 @@ exports.fechar = async (req, res) => {
     console.error('Checagem de limite de Faturado pulada (coluna ainda não existe nesse banco?):', e.code || e.message);
   }
 
-  const conn = await db.getConnection();
-  try {
-    await conn.beginTransaction();
-
-    const formasResumo = [];
-    for (const p of pagamentos) {
-      const forma = String(p.forma_pagamento || 'Dinheiro').trim();
-      const valor = parseFloat(p.valor) || 0;
-      // Trava de sanidade: troco nunca deveria passar de um valor razoável (a coluna no
-      // banco só aceita até 99999999.99) — bug real encontrado: um valor digitado errado
-      // no "valor recebido" gerou um troco astronômico (ex: 20078989324258,42), que o
-      // banco rejeitava e derrubava o pagamento inteiro com erro técnico feio. Agora trava
-      // num teto sensato em vez de deixar passar um número absurdo pro banco.
-      const trocoBruto = parseFloat(p.troco) || 0;
-      const troco = Math.min(Math.max(trocoBruto, 0), 99999.99);
-      if (valor <= 0) continue;
-      const clienteDoc = forma === 'Faturado' ? (p.cliente_documento || null) : null;
-      const clienteNome = forma === 'Faturado' ? (p.cliente_nome || null) : null;
-      // Tenta gravar já com o cliente do Faturado (colunas novas); se esse banco ainda não
-      // tem essas colunas (ER_BAD_FIELD_ERROR — falta permissão de ALTER TABLE no servidor),
-      // grava sem elas em vez de travar a cobrança inteira. Isso NUNCA pode quebrar uma venda.
-      try {
-        await conn.query(
-          `INSERT INTO comanda_pagamentos (comanda_id, forma_pagamento, valor, troco, cliente_documento, cliente_nome) VALUES (?,?,?,?,?,?)`,
-          [comanda.id, forma, valor, troco, clienteDoc, clienteNome]
-        );
-      } catch (e) {
-        if (e.code !== 'ER_BAD_FIELD_ERROR') throw e;
-        await conn.query(
-          `INSERT INTO comanda_pagamentos (comanda_id, forma_pagamento, valor, troco) VALUES (?,?,?,?)`,
-          [comanda.id, forma, valor, troco]
-        );
+  // Tudo da cobrança numa transação só. Se o MySQL acusar deadlock (dois caixas
+  // mexendo nos mesmos produtos no mesmo instante), ele já desfez tudo — então dá pra
+  // repetir a transação inteira com segurança, sem duplicar nada. Até 3 tentativas.
+  const MAX_TENTATIVAS = 3;
+  for (let tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
+    const conn = await db.getConnection();
+    try {
+      await conn.beginTransaction();
+      if (tentativa > 1) {
+        const [[atual]] = await conn.query(`SELECT status FROM comandas WHERE id = ?`, [comanda.id]);
+        if (!atual || atual.status !== 'aberta') {
+          await conn.rollback();
+          return res.status(400).json({ erro: 'Essa comanda já foi fechada.' });
+        }
       }
-      // "Padaria" é consumo interno (ex: produção usando o próprio estoque) e "Cortesia" é
-      // brinde/cortesia pro cliente — em ambos o estoque sai normal, mas não é dinheiro
-      // entrando de verdade, então não viram receita no financeiro.
-      // "Faturado" é fiado (cliente paga depois) — ainda é uma venda, mas fica marcado
-      // separado do dinheiro que já entrou, pra não inflar o caixa do dia.
-      if (forma !== 'Padaria' && forma !== 'Cortesia') {
-        // No Faturado, o nome do cliente/empresa entra no lugar do genérico "(a
-        // receber)" — só usa esse texto genérico quando não tem cliente identificado.
-        const categoria = forma === 'Faturado'
-          ? (clienteNome ? `Fiado: ${clienteNome}` : 'Fiado (a receber)')
-          : 'Vendas';
-        // Tenta gravar já com o comanda_id (coluna nova, pra poder reimprimir o recibo
-        // direto da tela Financeiro); se o banco ainda não tem a coluna, grava sem ela
-        // em vez de travar a cobrança — igual ao fallback do cliente_documento acima.
+
+      const formasResumo = [];
+      for (const p of pagamentos) {
+        const forma = String(p.forma_pagamento || 'Dinheiro').trim();
+        const valor = parseFloat(p.valor) || 0;
+        // Trava de sanidade: troco nunca deveria passar de um valor razoável (a coluna no
+        // banco só aceita até 99999999.99) — bug real encontrado: um valor digitado errado
+        // no "valor recebido" gerou um troco astronômico (ex: 20078989324258,42), que o
+        // banco rejeitava e derrubava o pagamento inteiro com erro técnico feio. Agora trava
+        // num teto sensato em vez de deixar passar um número absurdo pro banco.
+        const trocoBruto = parseFloat(p.troco) || 0;
+        const troco = Math.min(Math.max(trocoBruto, 0), 99999.99);
+        if (valor <= 0) continue;
+        const clienteDoc = forma === 'Faturado' ? (p.cliente_documento || null) : null;
+        const clienteNome = forma === 'Faturado' ? (p.cliente_nome || null) : null;
+        // Tenta gravar já com o cliente do Faturado (colunas novas); se esse banco ainda não
+        // tem essas colunas (ER_BAD_FIELD_ERROR — falta permissão de ALTER TABLE no servidor),
+        // grava sem elas em vez de travar a cobrança inteira. Isso NUNCA pode quebrar uma venda.
         try {
           await conn.query(
-            `INSERT INTO financeiro (padaria_id, tipo, valor, descricao, categoria, forma_pagamento, data, comanda_id) VALUES (?,?,?,?,?,?,CURDATE(),?)`,
-            [padaria_id, 'entrada', valor, `Comanda ${comanda.identificador}`, categoria, forma, comanda.id]
+            `INSERT INTO comanda_pagamentos (comanda_id, forma_pagamento, valor, troco, cliente_documento, cliente_nome) VALUES (?,?,?,?,?,?)`,
+            [comanda.id, forma, valor, troco, clienteDoc, clienteNome]
           );
         } catch (e) {
           if (e.code !== 'ER_BAD_FIELD_ERROR') throw e;
           await conn.query(
-            `INSERT INTO financeiro (padaria_id, tipo, valor, descricao, categoria, forma_pagamento, data) VALUES (?,?,?,?,?,?,CURDATE())`,
-            [padaria_id, 'entrada', valor, `Comanda ${comanda.identificador}`, categoria, forma]
+            `INSERT INTO comanda_pagamentos (comanda_id, forma_pagamento, valor, troco) VALUES (?,?,?,?)`,
+            [comanda.id, forma, valor, troco]
           );
         }
+        // "Padaria" é consumo interno (ex: produção usando o próprio estoque) e "Cortesia" é
+        // brinde/cortesia pro cliente — em ambos o estoque sai normal, mas não é dinheiro
+        // entrando de verdade, então não viram receita no financeiro.
+        // "Faturado" é fiado (cliente paga depois) — ainda é uma venda, mas fica marcado
+        // separado do dinheiro que já entrou, pra não inflar o caixa do dia.
+        if (forma !== 'Padaria' && forma !== 'Cortesia') {
+          // No Faturado, o nome do cliente/empresa entra no lugar do genérico "(a
+          // receber)" — só usa esse texto genérico quando não tem cliente identificado.
+          const categoria = forma === 'Faturado'
+            ? (clienteNome ? `Fiado: ${clienteNome}` : 'Fiado (a receber)')
+            : 'Vendas';
+          // Tenta gravar já com o comanda_id (coluna nova, pra poder reimprimir o recibo
+          // direto da tela Financeiro); se o banco ainda não tem a coluna, grava sem ela
+          // em vez de travar a cobrança — igual ao fallback do cliente_documento acima.
+          try {
+            await conn.query(
+              `INSERT INTO financeiro (padaria_id, tipo, valor, descricao, categoria, forma_pagamento, data, comanda_id) VALUES (?,?,?,?,?,?,CURDATE(),?)`,
+              [padaria_id, 'entrada', valor, `Comanda ${comanda.identificador}`, categoria, forma, comanda.id]
+            );
+          } catch (e) {
+            if (e.code !== 'ER_BAD_FIELD_ERROR') throw e;
+            await conn.query(
+              `INSERT INTO financeiro (padaria_id, tipo, valor, descricao, categoria, forma_pagamento, data) VALUES (?,?,?,?,?,?,CURDATE())`,
+              [padaria_id, 'entrada', valor, `Comanda ${comanda.identificador}`, categoria, forma]
+            );
+          }
+        }
+        formasResumo.push(`${forma} ${valor.toFixed(2)}`);
       }
-      formasResumo.push(`${forma} ${valor.toFixed(2)}`);
-    }
 
-    // Desconta estoque de cada item vinculado a um produto cadastrado
-    for (const item of itens) {
-      if (!item.produto_id) continue;
-      const [[prod]] = await conn.query(
-        `SELECT custo_unitario FROM produtos WHERE id = ? AND padaria_id = ?`, [item.produto_id, padaria_id]
-      );
-      if (!prod) continue;
-      await conn.query(
-        `INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, custo_unit, observacao, data) VALUES (?,?,?,?,?,?,NOW())`,
-        [padaria_id, item.produto_id, 'saida', item.quantidade, prod.custo_unitario || 0, `Comanda ${comanda.identificador}`]
-      );
-      await conn.query(
-        `UPDATE produtos SET estoque_atual = estoque_atual - ? WHERE id = ? AND padaria_id = ?`,
-        [item.quantidade, item.produto_id, padaria_id]
-      );
-    }
+      // Desconta estoque de cada item vinculado a um produto cadastrado
+      // Em ordem de produto: dois caixas fechando vendas com os mesmos produtos travam as
+      // linhas na mesma ordem, o que evita o "Deadlock found" do MySQL.
+      const itensEmOrdem = [...itens].sort((a, b) => (a.produto_id || 0) - (b.produto_id || 0));
+      for (const item of itensEmOrdem) {
+        if (!item.produto_id) continue;
+        const [[prod]] = await conn.query(
+          `SELECT custo_unitario FROM produtos WHERE id = ? AND padaria_id = ?`, [item.produto_id, padaria_id]
+        );
+        if (!prod) continue;
+        await conn.query(
+          `INSERT INTO movimentacoes (padaria_id, produto_id, tipo, quantidade, custo_unit, observacao, data) VALUES (?,?,?,?,?,?,NOW())`,
+          [padaria_id, item.produto_id, 'saida', item.quantidade, prod.custo_unitario || 0, `Comanda ${comanda.identificador}`]
+        );
+        await conn.query(
+          `UPDATE produtos SET estoque_atual = estoque_atual - ? WHERE id = ? AND padaria_id = ?`,
+          [item.quantidade, item.produto_id, padaria_id]
+        );
+      }
 
-    const forma_pagamento_resumo = formasResumo.join(' + ');
-    // Cliente identificado na hora de cobrar em "Faturado" (CNPJ/nome) — fica gravado
-    // na comanda pra imprimir "Cliente:" e "Documento:" no recibo.
-    const cliente_nome = String(req.body.cliente_nome || '').trim() || null;
-    const cliente_documento = String(req.body.cliente_documento || '').trim() || null;
-    // Documento na nota — opcional, digitado na hora (CPF do cliente comum, ou CNPJ
-    // quando é empresa do Faturado). Só aceita se for matematicamente válido (senão a
-    // Sefaz rejeita) — bug real: antes só aceitava CPF, então CNPJ nunca ia pra nota.
-    const docDigitado = limparDoc(req.body.cpf_nota);
-    const cpf_nota = (cpfValido(docDigitado) || cnpjValido(docDigitado)) ? docDigitado : null;
+      const forma_pagamento_resumo = formasResumo.join(' + ');
+      // Cliente identificado na hora de cobrar em "Faturado" (CNPJ/nome) — fica gravado
+      // na comanda pra imprimir "Cliente:" e "Documento:" no recibo.
+      const cliente_nome = String(req.body.cliente_nome || '').trim() || null;
+      const cliente_documento = String(req.body.cliente_documento || '').trim() || null;
+      // Documento na nota — opcional, digitado na hora (CPF do cliente comum, ou CNPJ
+      // quando é empresa do Faturado). Só aceita se for matematicamente válido (senão a
+      // Sefaz rejeita) — bug real: antes só aceitava CPF, então CNPJ nunca ia pra nota.
+      const docDigitado = limparDoc(req.body.cpf_nota);
+      const cpf_nota = (cpfValido(docDigitado) || cnpjValido(docDigitado)) ? docDigitado : null;
 
-    try {
-      await conn.query(
-        `UPDATE comandas SET status = 'fechada', total = ?, forma_pagamento = ?, caixa_id = ?, atendente = ?, cliente_nome = ?, cliente_documento = ?, cpf_nota = ?, fechada_em = NOW() WHERE id = ?`,
-        [totalGeral, forma_pagamento_resumo, caixa_id, atendente, cliente_nome, cliente_documento, cpf_nota, comanda.id]
-      );
+      try {
+        await conn.query(
+          `UPDATE comandas SET status = 'fechada', total = ?, forma_pagamento = ?, caixa_id = ?, atendente = ?, cliente_nome = ?, cliente_documento = ?, cpf_nota = ?, fechada_em = NOW() WHERE id = ?`,
+          [totalGeral, forma_pagamento_resumo, caixa_id, atendente, cliente_nome, cliente_documento, cpf_nota, comanda.id]
+        );
+      } catch (e) {
+        if (e.code !== 'ER_BAD_FIELD_ERROR') throw e;
+        await conn.query(
+          `UPDATE comandas SET status = 'fechada', total = ?, forma_pagamento = ?, caixa_id = ?, atendente = ?, cliente_nome = ?, cliente_documento = ?, fechada_em = NOW() WHERE id = ?`,
+          [totalGeral, forma_pagamento_resumo, caixa_id, atendente, cliente_nome, cliente_documento, comanda.id]
+        );
+      }
+
+      await conn.commit();
+      return res.json({ ok: true, total: totalGeral });
     } catch (e) {
-      if (e.code !== 'ER_BAD_FIELD_ERROR') throw e;
-      await conn.query(
-        `UPDATE comandas SET status = 'fechada', total = ?, forma_pagamento = ?, caixa_id = ?, atendente = ?, cliente_nome = ?, cliente_documento = ?, fechada_em = NOW() WHERE id = ?`,
-        [totalGeral, forma_pagamento_resumo, caixa_id, atendente, cliente_nome, cliente_documento, comanda.id]
-      );
+      await conn.rollback().catch(() => {});
+      if ((e.code === 'ER_LOCK_DEADLOCK' || e.code === 'ER_LOCK_WAIT_TIMEOUT') && tentativa < MAX_TENTATIVAS) {
+        console.warn(`Fechar comanda ${comanda.id}: ${e.code}, tentando de novo (${tentativa + 1}/${MAX_TENTATIVAS})`);
+        await new Promise(r => setTimeout(r, 150 * tentativa));
+        continue;
+      }
+      console.error('Erro ao fechar comanda (revertido):', e);
+      return res.status(500).json({ erro: 'Erro ao fechar a comanda — nada foi gravado, pode tentar de novo.' });
+    } finally {
+      conn.release();
     }
-
-    await conn.commit();
-    res.json({ ok: true, total: totalGeral });
-  } catch (e) {
-    await conn.rollback();
-    console.error('Erro ao fechar comanda (revertido):', e);
-    res.status(500).json({ erro: 'Erro ao fechar a comanda — nada foi gravado, pode tentar de novo.' });
-  } finally {
-    conn.release();
   }
 };
 
