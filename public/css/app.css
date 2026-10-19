@@ -2708,23 +2708,25 @@ tr.tr-saida td { color: var(--red-600); }
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 14px;
 }
-/* Quadradinhos das comandas abertas: preto = tem item, branco = vazia */
+/* Quadradinhos das comandas abertas: azul-marinho = tem item, branco tracejado = vazia */
 .cmd-grid-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; align-content: start; }
 .cmd-tile {
-  background: #111827; color: #f9fafb; border-radius: 10px; padding: 8px 6px;
+  background: var(--navy); color: #fff; border-radius: 10px; padding: 8px 6px;
   display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1px;
-  cursor: pointer; border: 1px solid #111827; min-height: 96px; justify-content: center;
+  cursor: pointer; border: 1px solid var(--navy); border-bottom: 3px solid var(--orange); min-height: 96px; justify-content: center;
   transition: transform .12s ease;
 }
 .cmd-tile:active { transform: scale(.97); }
-.cmd-tile-vazia { background: #fff; color: #9ca3af; border-color: #e5e7eb; }
+.cmd-tile-vazia { background: var(--white); color: var(--slate-400); border: 1px dashed var(--slate-300); }
 .cmd-tile-nome { font-size: 14.5px; font-weight: 800; line-height: 1.15; word-break: break-word; }
 .cmd-tile-atendente { font-size: 10.5px; text-transform: uppercase; opacity: .8; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cmd-tile-itens { font-size: 10.5px; font-weight: 700; }
 .cmd-tile-tempo { font-size: 10px; opacity: .7; }
-.cmd-tile-valor { font-size: 11px; font-weight: 700; margin-top: 2px; }
-.cmd-tile-pronta { font-size: 10px; font-weight: 700; background: #f59e0b; color: #111827; border-radius: 6px; padding: 1px 6px; margin-top: 2px; }
-[data-theme="dark"] .cmd-tile-vazia { background: #f1f5f9; color: #64748b; border-color: #cbd5e1; }
+.cmd-tile-valor { font-size: 11.5px; font-weight: 800; margin-top: 2px; color: #fdba74; }
+.cmd-tile-vazia .cmd-tile-valor { color: var(--slate-400); }
+.cmd-tile-pronta { font-size: 10px; font-weight: 700; background: var(--orange); color: #fff; border-radius: 6px; padding: 1px 6px; margin-top: 2px; }
+[data-theme="dark"] .cmd-tile { background: var(--navy-light); border-color: var(--navy-light); border-bottom-color: var(--orange); }
+[data-theme="dark"] .cmd-tile-vazia { background: transparent; color: #94a3b8; border: 1px dashed #475569; }
 .cmd-info-sub { font-size: 13px; color: var(--slate-500); margin-bottom: 10px; }
 .cmd-info-linha { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,0.06); }
 .cmd-info-total { font-weight: 800; border-bottom: none; padding-top: 10px; }
