@@ -5677,7 +5677,10 @@ async function confirmarFecharCaixa() {
   await carregarCaixaFaixa();
   // Em modo caixa o comprovante é obrigatório (não pergunta) — é o único registro
   // da conferência que a gerência vai ver, já que a tela não mostra os valores.
-  if (cego || confirm('Imprimir o comprovante de fechamento de caixa?')) {
+  // Usa confirmarBonito (não o confirm() nativo) — bug real: o confirm() nativo
+  // falhava em silêncio em alguns tablets/navegadores em modo app, fechando a
+  // janela de impressão sem nunca imprimir o comprovante de fechamento.
+  if (cego || await confirmarBonito('Imprimir o comprovante de fechamento de caixa?')) {
     imprimirFechamentoCaixa(caixaSnapshot, r.conferencia, dif, janelaPre);
   } else {
     janelaPre?.close();
