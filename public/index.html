@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20261019b"/>
+  <link rel="stylesheet" href="/css/app.css?v=20261019c"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -1390,20 +1390,20 @@
 
     <!-- Modal: valor recebido (troco / divisão de pagamento) -->
     <div id="modal-valor-pagamento" class="modal-overlay hidden">
-      <div class="modal-box" style="max-width:340px;">
+      <div class="modal-box pgto-valor-box">
         <div class="modal-header">
           <span class="modal-title" id="pgto-valor-titulo">Valor recebido</span>
           <button onclick="fecharModal('modal-valor-pagamento')" class="btn-icon">✕</button>
         </div>
-        <p id="pgto-valor-sub" style="color:var(--slate-500);font-size:13px;margin:-6px 0 12px;">Falta receber: R$ 0,00</p>
+        <p id="pgto-valor-sub" class="pgto-valor-sub">Falta receber: R$ 0,00</p>
         <div class="form-group">
           <label class="form-label">Valor recebido (R$)</label>
           <input type="text" inputmode="numeric" id="pgto-valor-input" class="form-control" autocomplete="off"
-            style="font-size:20px;font-weight:700;text-align:center;" oninput="formatarCentavos(this);atualizarTrocoUI()"
+            oninput="formatarCentavos(this);atualizarTrocoUI()"
             onkeydown="if(event.key==='Enter'){event.preventDefault();confirmarValorPagamento();}"/>
         </div>
         <div id="pgto-valor-troco-linha" class="pgto-valor-troco hidden"></div>
-        <button onclick="confirmarValorPagamento()" class="btn-primary full" style="margin-top:8px;">Confirmar</button>
+        <button onclick="confirmarValorPagamento()" class="btn-primary full pgto-valor-confirmar">Confirmar</button>
       </div>
     </div>
 
