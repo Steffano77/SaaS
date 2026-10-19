@@ -8690,9 +8690,6 @@ function abrirJanelaImpressaoTermica(bodyHtml, janelaPre) {
       .rodape { text-align: center; font-size: 10px; margin-top: 10px; }
     </style></head><body>
     ${bodyHtml}
-    <script>
-      window.onload = () => { window.print(); window.onafterprint = () => window.close(); setTimeout(() => window.close(), 2000); };
-    <\/script>
     </body></html>`;
   const w = (janelaPre && !janelaPre.closed) ? janelaPre : window.open('', '_blank', 'width=380,height=600');
   if (!w) { mostrarToast('O navegador bloqueou a janela de impressão — permite pop-up nesse site.', 'warn'); return; }
@@ -8701,6 +8698,18 @@ function abrirJanelaImpressaoTermica(bodyHtml, janelaPre) {
   // Sem isso, o diálogo de impressão às vezes abre ATRÁS da janela principal e
   // trava a tela (a pessoa acha que travou, mas é só o diálogo escondido).
   w.focus();
+  // Bug real (igual já corrigido no DANFE e na gaveta): dispara o print() direto
+  // daqui, sem depender do window.onload embutido no HTML — numa janela
+  // REAPROVEITADA (janelaPre, aberta minutos antes), o onload já disparou faz
+  // tempo pro "about:blank" e não dispara de novo depois do document.write(),
+  // então o print() nunca era chamado e o papel simplesmente não saía, sem erro
+  // nenhum na tela. Isso explica fechamento de caixa (e outros recibos que usam
+  // essa mesma função) "não imprimindo" de vez em quando.
+  try {
+    w.print();
+    w.onafterprint = () => w.close();
+  } catch (e) { /* janela pode já ter sido fechada nesse meio-tempo — ignora */ }
+  setTimeout(() => { try { w.close(); } catch (e) {} }, 2000);
 }
 
 // Imprime vários papéis em sequência (ex: recibo + as 2 vias do Faturado) reaproveitando
