@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20261018c"/>
+  <link rel="stylesheet" href="/css/app.css?v=20261019a"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -608,7 +608,7 @@
       </div>
 
       <h3 class="cmd-secao-titulo">Abertas</h3>
-      <div id="cmd-lista-abertas" class="cmd-grid"></div>
+      <div id="cmd-lista-abertas" class="cmd-grid-tiles"></div>
     </section>
 
     <!-- Modal: nova comanda -->
@@ -1282,7 +1282,24 @@
           <span class="modal-title">📜 Comandas abertas — aguardando cobrança</span>
           <button onclick="toggleComandasAbertasCaixaUI()" class="btn-icon">✕</button>
         </div>
-        <div id="comandas-abertas-caixa-lista" style="overflow-y:auto;flex:1;padding:14px 20px;display:flex;flex-direction:column;gap:8px;"></div>
+        <div id="comandas-abertas-caixa-lista" class="cmd-grid-tiles" style="overflow-y:auto;flex:1;padding:14px 20px;"></div>
+      </div>
+    </div>
+
+    <!-- Janelinha de consulta de uma comanda aberta (só leitura — não vai pra cobrança). -->
+    <div id="modal-comanda-info" class="modal-overlay hidden" onclick="if(event.target===this)fecharComandaInfoUI()">
+      <div class="modal-box" style="max-width:420px;max-height:80vh;display:flex;flex-direction:column;">
+        <div class="modal-header">
+          <span class="modal-title" id="cmd-info-titulo"></span>
+          <button onclick="fecharComandaInfoUI()" class="btn-icon">✕</button>
+        </div>
+        <div style="overflow-y:auto;flex:1;padding:12px 20px;">
+          <div id="cmd-info-sub" class="cmd-info-sub"></div>
+          <div id="cmd-info-itens"></div>
+        </div>
+        <div id="cmd-info-btn-abrir" style="padding:0 20px 16px;">
+          <button class="btn btn-primary" style="width:100%;" onclick="abrirComandaDaInfoUI()">✏️ Abrir para lançar</button>
+        </div>
       </div>
     </div>
 
@@ -2268,7 +2285,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20261018b"></script>
+<script src="/js/app.js?v=20261019a"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
