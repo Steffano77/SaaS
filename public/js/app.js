@@ -5672,6 +5672,13 @@ async function confirmarFecharCaixa() {
   // janela de impressão sem nunca imprimir o comprovante de fechamento.
   if (cego || await confirmarBonito('Imprimir o comprovante de fechamento de caixa?')) {
     imprimirFechamentoCaixa(caixaSnapshot, r.conferencia, dif, janelaPre);
+    // Rede de segurança: impressão às vezes falha sem erro nenhum na tela (bug real,
+    // ainda investigando a causa de fundo). Em vez de obrigar a entrar no Financeiro
+    // depois (que exige senha de gerente, nem sempre tem alguém autorizado na loja),
+    // oferece reimprimir na hora, pra qualquer atendente — sem precisar do Financeiro.
+    if ((await confirmarBonito('O comprovante saiu certinho da impressora?')) === false) {
+      await reimprimirFechamentoUI(caixaSnapshot?.id);
+    }
   } else {
     janelaPre?.close();
   }
