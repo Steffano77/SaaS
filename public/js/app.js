@@ -5204,8 +5204,10 @@ async function carregarComandas() {
     abertas = abertas.filter(c => !_comandasFechadasOfflinePendentes.has(c.id));
   }
 
+  // Abertas mais antigas primeiro — a esquecida há horas fica no topo, à vista.
+  abertas = [...abertas].sort((a, b) => new Date(a.aberta_em) - new Date(b.aberta_em));
   elAbertas.innerHTML = abertas.length
-    ? abertas.map(cardComandaHtml).join('')
+    ? abertas.map(c => tileComandaAbertaHtml(c, true)).join('')
     : `<div class="cmd-vazio">Nenhuma comanda aberta no momento.</div>`;
 
   await carregarCaixaFaixa();
@@ -9029,18 +9031,78 @@ async function toggleComandasAbertasCaixaUI() {
   const data = await api('/comandas');
   if (!data) return;
   const lista = document.getElementById('comandas-abertas-caixa-lista');
-  const abertas = data.abertas || [];
+  const abertas = [...(data.abertas || [])].sort((a, b) => new Date(a.aberta_em) - new Date(b.aberta_em));
   lista.innerHTML = abertas.length
-    ? abertas.map(c => `
-        <div class="cmd-card" style="cursor:default;">
-          <div class="cmd-card-topo">
-            <strong>${c.identificador}</strong>
-            <span class="cmd-card-status">🟢 Aberta</span>
-          </div>
-          <div class="cmd-card-info">${fmtDataHoraBR(c.aberta_em)} · ${fmtMoeda(c.total)} · ${c.qtd_itens || 0} ite${(c.qtd_itens === 1) ? 'm' : 'ns'}</div>
-        </div>`).join('')
+    ? abertas.map(c => tileComandaAbertaHtml(c, false)).join('')
     : `<div class="cmd-vazio">Nenhuma comanda aberta no momento — tudo cobrado! ✅</div>`;
   modal.classList.remove('hidden');
+}
+
+// "há 1h20" / "há 15min" — mais rápido de bater o olho que o horário exato.
+function tempoDesdeBR(valor) {
+  const d = new Date(valor);
+  if (isNaN(d.getTime())) return '';
+  const min = Math.max(0, Math.floor((Date.now() - d.getTime()) / 60000));
+  if (min < 1) return 'agora';
+  if (min < 60) return `há ${min}min`;
+  const h = Math.floor(min / 60), m = min % 60;
+  if (h < 24) return `há ${h}h${m ? String(m).padStart(2, '0') : ''}`;
+  return `há ${Math.floor(h / 24)}d`;
+}
+
+function escHtmlCmd(t) {
+  return String(t ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
+// Quadradinho de comanda aberta (lista do tablet/Comandas e o 📜 do caixa): preto com
+// itens, branco quando vazia. Tocar só mostra os itens — nunca vai direto pra cobrança.
+function tileComandaAbertaHtml(c, podeAbrir) {
+  const qtd = Number(c.qtd_itens) || 0;
+  const vazia = qtd === 0;
+  const pronta = c.pronta_pagamento ? '<span class="cmd-tile-pronta">💰 Pronta</span>' : '';
+  return `
+    <div class="cmd-tile${vazia ? ' cmd-tile-vazia' : ''}" onclick="verComandaInfoUI(${c.id}, ${podeAbrir ? 'true' : 'false'})" title="Ver itens">
+      <strong class="cmd-tile-nome">${escHtmlCmd(c.identificador)}</strong>
+      <span class="cmd-tile-atendente">${escHtmlCmd(c.atendente || 'sem nome')}</span>
+      <span class="cmd-tile-itens">${vazia ? 'VAZIA' : `${qtd} ${qtd === 1 ? 'item' : 'itens'}`}</span>
+      <span class="cmd-tile-tempo">${tempoDesdeBR(c.aberta_em)}</span>
+      <span class="cmd-tile-valor">${fmtMoeda(c.total)}</span>
+      ${pronta}
+    </div>`;
+}
+
+let _comandaInfoId = null;
+// Janelinha só de consulta: itens, horário e quem abriu. No tablet/Comandas tem o botão
+// "Abrir para lançar" (o caminho de sempre); no 📜 do caixa é só conferência.
+async function verComandaInfoUI(id, podeAbrir) {
+  const c = await api(`/comandas/${id}`);
+  if (!c) return;
+  _comandaInfoId = c.id;
+  document.getElementById('cmd-info-titulo').textContent = c.identificador;
+  const hora = new Date(c.aberta_em);
+  const horaTxt = isNaN(hora.getTime()) ? '' : hora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('cmd-info-sub').textContent =
+    `Aberta às ${horaTxt} (${tempoDesdeBR(c.aberta_em)}) · por ${c.atendente || 'sem nome'}`;
+  const itens = c.itens || [];
+  document.getElementById('cmd-info-itens').innerHTML = itens.length
+    ? itens.map(i => `
+        <div class="cmd-info-linha">
+          <span>${fmtQtd(i.quantidade)} ${escHtmlCmd(i.unidade)} × ${escHtmlCmd(i.nome_produto)}</span>
+          <span>${fmtMoeda(i.subtotal)}</span>
+        </div>`).join('')
+      + `<div class="cmd-info-linha cmd-info-total"><span>Total</span><span>${fmtMoeda(c.total)}</span></div>`
+    : `<div class="cmd-vazio">Vazia — nenhum item lançado.</div>`;
+  document.getElementById('cmd-info-btn-abrir').classList.toggle('hidden', !podeAbrir);
+  document.getElementById('modal-comanda-info').classList.remove('hidden');
+}
+
+function fecharComandaInfoUI() {
+  document.getElementById('modal-comanda-info').classList.add('hidden');
+}
+
+function abrirComandaDaInfoUI() {
+  fecharComandaInfoUI();
+  if (_comandaInfoId) abrirModalComanda(_comandaInfoId);
 }
 
 // Busca comanda por número direto da tela de venda (topbar), sem precisar fechar
