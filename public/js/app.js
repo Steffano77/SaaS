@@ -9054,8 +9054,8 @@ function escHtmlCmd(t) {
   return String(t ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 }
 
-// Quadradinho de comanda aberta (lista do tablet/Comandas e o 📜 do caixa): preto com
-// itens, branco quando vazia. Tocar só mostra os itens — nunca vai direto pra cobrança.
+// Quadradinho de comanda aberta (lista do tablet/Comandas e o 📜 do caixa): azul com
+// itens, branco tracejado quando vazia. Tocar só mostra os itens — nunca vai direto pra cobrança.
 function tileComandaAbertaHtml(c, podeAbrir) {
   const qtd = Number(c.qtd_itens) || 0;
   const vazia = qtd === 0;
