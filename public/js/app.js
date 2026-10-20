@@ -1,5 +1,4 @@
 const API = '/api';
-console.log('PanificaPro app.js carregado — versão 20261020a (fix impressão fechamento de caixa)');
 
 // Normaliza texto pra busca sem acento/maiúscula — "acai" acha "Açaí", "cafe" acha
 // "Café". Usado em todo campo de buscar produto/cliente, pra atendente não precisar
@@ -5704,15 +5703,10 @@ async function abrirHistoricoCaixas() {
   `).join('');
 }
 
-async function reimprimirFechamentoUI(caixaId, janelaExistente) {
-  // Bug real: quando chamado depois de vários await em sequência (ex: respondeu "Não"
-  // na pergunta "saiu certinho?", que já veio depois de outros awaits), o navegador
-  // não considera mais isso uma ação direta do usuário e BLOQUEIA esse window.open()
-  // em silêncio — nada aparece na tela, sem erro nenhum. Por isso, sempre que já existir
-  // uma janela aberta de uma tentativa anterior (janelaExistente), reaproveita ela em vez
-  // de abrir uma nova — só o histórico de caixas fechados (sem janela prévia) ainda abre
-  // uma nova, porque ali o clique no botão "Reimprimir" é uma ação direta e recente.
-  const janelaPre = (janelaExistente && !janelaExistente.closed) ? janelaExistente : window.open('', '_blank', 'width=380,height=600');
+async function reimprimirFechamentoUI(caixaId) {
+  // Mesmo cuidado do fechamento original: abre a janela antes do "await", senão o
+  // navegador pode bloquear o popup depois da espera de rede.
+  const janelaPre = window.open('', '_blank', 'width=380,height=600');
   const r = await api(`/caixa/${caixaId}/reimprimir-fechamento`);
   if (!r) { janelaPre?.close(); return; }
   imprimirFechamentoCaixa(r.caixa, r.conferencia, r.diferenca, janelaPre);
@@ -5720,7 +5714,7 @@ async function reimprimirFechamentoUI(caixaId, janelaExistente) {
 
 // Comprovante impresso do fechamento de caixa — formato "relatório completo de
 // sessão" (mesmo padrão que a gerente pediu, igual ao relatório do Saurus).
-function imprimirFechamentoCaixa(caixa, conferencia, diferenca, janelaPre, manterAberta) {
+function imprimirFechamentoCaixa(caixa, conferencia, diferenca, janelaPre) {
   const r = caixa?.resumo;
   const informado = (conferencia || []).find(c => c.forma_pagamento === 'Dinheiro')?.fechado || 0;
   const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
@@ -5797,7 +5791,7 @@ function imprimirFechamentoCaixa(caixa, conferencia, diferenca, janelaPre, mante
     <hr/>
     <div class="rodape">${nomePadaria} · PanificaPro</div>
     <div class="rodape">Fim do Relatório · ${agora}</div>
-  `, janelaPre, manterAberta);
+  `, janelaPre);
 }
 
 /* ===================== EQUIPE (tela própria de gerenciar atendentes) ===================== */
@@ -8661,7 +8655,7 @@ async function finalizarVendaUI() {
 // ── Impressão térmica (80mm) ─────────────────────────────────────
 // janelaPre: reaproveita uma janela já aberta (ver finalizarVendaUI) em vez de chamar
 // window.open() de novo — evita bloqueio de pop-up depois de uma espera de rede.
-function abrirJanelaImpressaoTermica(bodyHtml, janelaPre, manterAberta) {
+function abrirJanelaImpressaoTermica(bodyHtml, janelaPre) {
   const html = `<!doctype html><html><head><meta charset="utf-8">
     <title>Imprimir</title>
     <style>
@@ -8684,19 +8678,7 @@ function abrirJanelaImpressaoTermica(bodyHtml, janelaPre, manterAberta) {
       .linha .valor { flex-shrink: 0; text-align: right; }
       .total { font-size: 14px; font-weight: bold; display: flex; justify-content: space-between; margin-top: 6px; }
       .rodape { text-align: center; font-size: 10px; margin-top: 10px; }
-      /* Botão manual: se a impressão automática não disparar (bug ainda em
-         investigação nesse tablet), a janela não fica mais travada sem saída —
-         dá pra fechar na mão e seguir o trabalho. Some ao imprimir de verdade. */
-      .pp-barra-manual { position: sticky; top: 0; display: flex; gap: 8px; padding: 8px; background: #f1f5f9; border-bottom: 1px solid #cbd5e1; margin: -6px -4px 8px; }
-      .pp-barra-manual button { flex: 1; padding: 10px; font-size: 13px; font-weight: 700; border-radius: 8px; border: none; cursor: pointer; }
-      .pp-barra-manual .pp-btn-imprimir { background: #2563eb; color: #fff; }
-      .pp-barra-manual .pp-btn-fechar { background: #e2e8f0; color: #0f172a; }
-      @media print { .pp-barra-manual { display: none; } }
     </style></head><body>
-    <div class="pp-barra-manual">
-      <button class="pp-btn-imprimir" onclick="window.print()">🖨️ Imprimir</button>
-      <button class="pp-btn-fechar" onclick="window.close()">✕ Fechar</button>
-    </div>
     ${bodyHtml}
     </body></html>`;
   const w = (janelaPre && !janelaPre.closed) ? janelaPre : window.open('', '_blank', 'width=380,height=600');
@@ -8715,16 +8697,9 @@ function abrirJanelaImpressaoTermica(bodyHtml, janelaPre, manterAberta) {
   // essa mesma função) "não imprimindo" de vez em quando.
   try {
     w.print();
-    if (!manterAberta) w.onafterprint = () => w.close();
+    w.onafterprint = () => w.close();
   } catch (e) { /* janela pode já ter sido fechada nesse meio-tempo — ignora */ }
-  // manterAberta: usado no fechamento de caixa, que pergunta "saiu certinho?" depois —
-  // se fechasse sozinha aqui, a pergunta não teria mais janela pra reaproveitar caso a
-  // resposta seja "não", e abrir uma window.open() nova àquela altura (vários awaits
-  // depois) é bloqueada em silêncio pelo navegador por não ser mais considerado uma
-  // ação direta do usuário. Quem chamou com manterAberta=true é responsável por fechar
-  // a janela na hora certa.
-  if (!manterAberta) setTimeout(() => { try { w.close(); } catch (e) {} }, 2000);
-  return w;
+  setTimeout(() => { try { w.close(); } catch (e) {} }, 2000);
 }
 
 // Imprime vários papéis em sequência (ex: recibo + as 2 vias do Faturado) reaproveitando
