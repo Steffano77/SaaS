@@ -1,5 +1,39 @@
 const API = '/api';
 
+// Pop-up aparecendo atrás de outro (bug real relatado): vários modais do sistema
+// compartilham o mesmo z-index no CSS, então quem fica na frente depende só da ordem
+// deles no HTML, não de qual foi aberto por último. Antes só alguns (caixa, categorias,
+// extrato Faturado) tinham correção manual pra isso — essa correção geral vale pra
+// TODOS os modais do sistema, atuais e futuros: sempre que um fica visível (perde a
+// classe "hidden"), ele é trazido automaticamente pra cima de qualquer outro aberto.
+(function () {
+  let zTopo = 300;
+  const observer = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      const el = m.target;
+      if (el.classList.contains('modal-overlay') && !el.classList.contains('hidden')) {
+        zTopo += 1;
+        el.style.zIndex = zTopo;
+      }
+    }
+  });
+  const observarTodos = () => {
+    document.querySelectorAll('.modal-overlay').forEach(el => {
+      if (el.dataset.ppObservado) return;
+      el.dataset.ppObservado = '1';
+      observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+    });
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', observarTodos);
+  } else {
+    observarTodos();
+  }
+  // Modais criados/injetados depois do carregamento inicial da página também
+  // precisam ser observados — reobserva a cada mudança no body.
+  new MutationObserver(observarTodos).observe(document.body, { childList: true, subtree: true });
+})();
+
 // Normaliza texto pra busca sem acento/maiúscula — "acai" acha "Açaí", "cafe" acha
 // "Café". Usado em todo campo de buscar produto/cliente, pra atendente não precisar
 // digitar acentuação certinha correndo no meio de uma venda.
