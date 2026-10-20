@@ -8684,7 +8684,19 @@ function abrirJanelaImpressaoTermica(bodyHtml, janelaPre, manterAberta) {
       .linha .valor { flex-shrink: 0; text-align: right; }
       .total { font-size: 14px; font-weight: bold; display: flex; justify-content: space-between; margin-top: 6px; }
       .rodape { text-align: center; font-size: 10px; margin-top: 10px; }
+      /* Botão manual: se a impressão automática não disparar (bug ainda em
+         investigação nesse tablet), a janela não fica mais travada sem saída —
+         dá pra fechar na mão e seguir o trabalho. Some ao imprimir de verdade. */
+      .pp-barra-manual { position: sticky; top: 0; display: flex; gap: 8px; padding: 8px; background: #f1f5f9; border-bottom: 1px solid #cbd5e1; margin: -6px -4px 8px; }
+      .pp-barra-manual button { flex: 1; padding: 10px; font-size: 13px; font-weight: 700; border-radius: 8px; border: none; cursor: pointer; }
+      .pp-barra-manual .pp-btn-imprimir { background: #2563eb; color: #fff; }
+      .pp-barra-manual .pp-btn-fechar { background: #e2e8f0; color: #0f172a; }
+      @media print { .pp-barra-manual { display: none; } }
     </style></head><body>
+    <div class="pp-barra-manual">
+      <button class="pp-btn-imprimir" onclick="window.print()">🖨️ Imprimir</button>
+      <button class="pp-btn-fechar" onclick="window.close()">✕ Fechar</button>
+    </div>
     ${bodyHtml}
     </body></html>`;
   const w = (janelaPre && !janelaPre.closed) ? janelaPre : window.open('', '_blank', 'width=380,height=600');
