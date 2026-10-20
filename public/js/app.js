@@ -5682,13 +5682,18 @@ async function confirmarFecharCaixa() {
   // falhava em silêncio em alguns tablets/navegadores em modo app, fechando a
   // janela de impressão sem nunca imprimir o comprovante de fechamento.
   if (cego || await confirmarBonito('Imprimir o comprovante de fechamento de caixa?')) {
-    imprimirFechamentoCaixa(caixaSnapshot, r.conferencia, dif, janelaPre);
+    // manterAberta=true: não fecha a janela sozinha aqui — precisa dela viva ainda pra
+    // pergunta "saiu certinho?" logo abaixo, caso a resposta seja "não" e precise
+    // reaproveitar pra reimprimir (ver comentário em abrirJanelaImpressaoTermica).
+    imprimirFechamentoCaixa(caixaSnapshot, r.conferencia, dif, janelaPre, true);
     // Rede de segurança: impressão às vezes falha sem erro nenhum na tela (bug real,
     // ainda investigando a causa de fundo). Em vez de obrigar a entrar no Financeiro
     // depois (que exige senha de gerente, nem sempre tem alguém autorizado na loja),
     // oferece reimprimir na hora, pra qualquer atendente — sem precisar do Financeiro.
     if ((await confirmarBonito('O comprovante saiu certinho da impressora?')) === false) {
-      await reimprimirFechamentoUI(caixaSnapshot?.id);
+      await reimprimirFechamentoUI(caixaSnapshot?.id, janelaPre);
+    } else {
+      janelaPre?.close();
     }
   } else {
     janelaPre?.close();
@@ -5721,10 +5726,15 @@ async function abrirHistoricoCaixas() {
   `).join('');
 }
 
-async function reimprimirFechamentoUI(caixaId) {
-  // Mesmo cuidado do fechamento original: abre a janela antes do "await", senão o
-  // navegador pode bloquear o popup depois da espera de rede.
-  const janelaPre = window.open('', '_blank', 'width=380,height=600');
+async function reimprimirFechamentoUI(caixaId, janelaExistente) {
+  // Bug real: quando chamado depois de vários await em sequência (ex: respondeu "Não"
+  // na pergunta "saiu certinho?", que já veio depois de outros awaits), o navegador
+  // não considera mais isso uma ação direta do usuário e BLOQUEIA esse window.open()
+  // em silêncio — nada aparece na tela, sem erro nenhum. Por isso, sempre que já existir
+  // uma janela aberta de uma tentativa anterior (janelaExistente), reaproveita ela em vez
+  // de abrir uma nova — só o histórico de caixas fechados (sem janela prévia) ainda abre
+  // uma nova, porque ali o clique no botão "Reimprimir" é uma ação direta e recente.
+  const janelaPre = (janelaExistente && !janelaExistente.closed) ? janelaExistente : window.open('', '_blank', 'width=380,height=600');
   const r = await api(`/caixa/${caixaId}/reimprimir-fechamento`);
   if (!r) { janelaPre?.close(); return; }
   imprimirFechamentoCaixa(r.caixa, r.conferencia, r.diferenca, janelaPre);
@@ -5732,7 +5742,7 @@ async function reimprimirFechamentoUI(caixaId) {
 
 // Comprovante impresso do fechamento de caixa — formato "relatório completo de
 // sessão" (mesmo padrão que a gerente pediu, igual ao relatório do Saurus).
-function imprimirFechamentoCaixa(caixa, conferencia, diferenca, janelaPre) {
+function imprimirFechamentoCaixa(caixa, conferencia, diferenca, janelaPre, manterAberta) {
   const r = caixa?.resumo;
   const informado = (conferencia || []).find(c => c.forma_pagamento === 'Dinheiro')?.fechado || 0;
   const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
@@ -5809,7 +5819,7 @@ function imprimirFechamentoCaixa(caixa, conferencia, diferenca, janelaPre) {
     <hr/>
     <div class="rodape">${nomePadaria} · PanificaPro</div>
     <div class="rodape">Fim do Relatório · ${agora}</div>
-  `, janelaPre);
+  `, janelaPre, manterAberta);
 }
 
 /* ===================== EQUIPE (tela própria de gerenciar atendentes) ===================== */
@@ -8673,7 +8683,7 @@ async function finalizarVendaUI() {
 // ── Impressão térmica (80mm) ─────────────────────────────────────
 // janelaPre: reaproveita uma janela já aberta (ver finalizarVendaUI) em vez de chamar
 // window.open() de novo — evita bloqueio de pop-up depois de uma espera de rede.
-function abrirJanelaImpressaoTermica(bodyHtml, janelaPre) {
+function abrirJanelaImpressaoTermica(bodyHtml, janelaPre, manterAberta) {
   const html = `<!doctype html><html><head><meta charset="utf-8">
     <title>Imprimir</title>
     <style>
@@ -8715,9 +8725,16 @@ function abrirJanelaImpressaoTermica(bodyHtml, janelaPre) {
   // essa mesma função) "não imprimindo" de vez em quando.
   try {
     w.print();
-    w.onafterprint = () => w.close();
+    if (!manterAberta) w.onafterprint = () => w.close();
   } catch (e) { /* janela pode já ter sido fechada nesse meio-tempo — ignora */ }
-  setTimeout(() => { try { w.close(); } catch (e) {} }, 2000);
+  // manterAberta: usado no fechamento de caixa, que pergunta "saiu certinho?" depois —
+  // se fechasse sozinha aqui, a pergunta não teria mais janela pra reaproveitar caso a
+  // resposta seja "não", e abrir uma window.open() nova àquela altura (vários awaits
+  // depois) é bloqueada em silêncio pelo navegador por não ser mais considerado uma
+  // ação direta do usuário. Quem chamou com manterAberta=true é responsável por fechar
+  // a janela na hora certa.
+  if (!manterAberta) setTimeout(() => { try { w.close(); } catch (e) {} }, 2000);
+  return w;
 }
 
 // Imprime vários papéis em sequência (ex: recibo + as 2 vias do Faturado) reaproveitando
