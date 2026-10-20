@@ -1,4 +1,5 @@
 const API = '/api';
+console.log('PanificaPro app.js carregado — versão 20261020a (fix impressão fechamento de caixa)');
 
 // Normaliza texto pra busca sem acento/maiúscula — "acai" acha "Açaí", "cafe" acha
 // "Café". Usado em todo campo de buscar produto/cliente, pra atendente não precisar
