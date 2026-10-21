@@ -8761,14 +8761,27 @@ function abrirJanelaImpressaoTermica(bodyHtml, janelaPre) {
   // em quando. O console.log/error aqui é só diagnóstico temporário (bug ainda em
   // investigação em alguns PCs) — ajuda a ver, com F12 → Console, em qual ponto
   // exatamente trava da próxima vez que acontecer.
+  // Confirmado no Console (F12) de um PC real: w.print() trava a aba inteira por uns
+  // 2s (violação "'click' handler took Xms") nesse driver/impressora — trava igual
+  // um laço travado, nada responde nesse meio-tempo, nem clique em botão. Por isso o
+  // setTimeout de fechar sozinho é agendado ANTES do print(), não depois: assim, assim
+  // que a trava liberar (seja lá quanto tempo levar), o timer dispara quase na hora,
+  // em vez de esperar mais 2s inteiros depois da trava já ter acabado.
+  setTimeout(() => {
+    console.log('[pp-print] timeout, tentando fechar');
+    try { w.close(); } catch (e) { console.error('[pp-print] w.close() deu erro:', e); }
+    console.log('[pp-print] depois do close(), w.closed =', w.closed);
+  }, 2000);
   console.log('[pp-print] antes de w.print()');
   try {
     w.print();
     console.log('[pp-print] w.print() retornou sem travar');
     w.onafterprint = () => { console.log('[pp-print] onafterprint disparou, fechando'); w.close(); };
   } catch (e) { console.error('[pp-print] w.print() deu erro:', e); }
+  // Mantido como segunda rede de segurança (caso a trava do print() dure mais que o
+  // timer de cima, que já foi agendado antes).
   setTimeout(() => {
-    console.log('[pp-print] timeout de 2s, tentando fechar');
+    console.log('[pp-print] timeout de reforço, tentando fechar de novo');
     try { w.close(); } catch (e) { console.error('[pp-print] w.close() deu erro:', e); }
     console.log('[pp-print] depois do close(), w.closed =', w.closed);
   }, 2000);
