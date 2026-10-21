@@ -760,6 +760,15 @@ router.post('/categorias', auth, wrap(async (req, res) => {
   res.status(201).json({ id: r.insertId, nome });
 }));
 
+router.put('/categorias/:id', auth, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const { nome } = req.body;
+  if (!nome || !nome.trim()) return res.status(400).json({ erro: 'Nome é obrigatório.' });
+  const [r] = await db.query('UPDATE categorias SET nome = ? WHERE id = ? AND padaria_id = ?', [nome.trim(), req.params.id, req.padaria.id]);
+  if (!r.affectedRows) return res.status(404).json({ erro: 'Categoria não encontrada.' });
+  res.json({ ok: true, nome: nome.trim() });
+}));
+
 router.delete('/categorias/:id', auth, wrap(async (req, res) => {
   const db = require('../database/connection');
   await db.query('DELETE FROM categorias WHERE id = ? AND padaria_id = ?', [req.params.id, req.padaria.id]);
