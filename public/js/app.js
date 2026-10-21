@@ -8730,7 +8730,19 @@ function abrirJanelaImpressaoTermica(bodyHtml, janelaPre) {
       .linha .valor { flex-shrink: 0; text-align: right; }
       .total { font-size: 14px; font-weight: bold; display: flex; justify-content: space-between; margin-top: 6px; }
       .rodape { text-align: center; font-size: 10px; margin-top: 10px; }
+      /* Botão manual: se a impressão automática não disparar (bug ainda em
+         investigação em alguns PCs), a janela não fica mais travada sem saída —
+         dá pra fechar na mão e seguir o trabalho. Some ao imprimir de verdade. */
+      .pp-barra-manual { position: sticky; top: 0; display: flex; gap: 8px; padding: 8px; background: #f1f5f9; border-bottom: 1px solid #cbd5e1; margin: -6px -4px 8px; }
+      .pp-barra-manual button { flex: 1; padding: 10px; font-size: 13px; font-weight: 700; border-radius: 8px; border: none; cursor: pointer; }
+      .pp-barra-manual .pp-btn-imprimir { background: #2563eb; color: #fff; }
+      .pp-barra-manual .pp-btn-fechar { background: #e2e8f0; color: #0f172a; }
+      @media print { .pp-barra-manual { display: none; } }
     </style></head><body>
+    <div class="pp-barra-manual">
+      <button class="pp-btn-imprimir" onclick="window.print()">🖨️ Imprimir</button>
+      <button class="pp-btn-fechar" onclick="window.close()">✕ Fechar</button>
+    </div>
     ${bodyHtml}
     </body></html>`;
   const w = (janelaPre && !janelaPre.closed) ? janelaPre : window.open('', '_blank', 'width=380,height=600');
@@ -8742,16 +8754,24 @@ function abrirJanelaImpressaoTermica(bodyHtml, janelaPre) {
   w.focus();
   // Bug real (igual já corrigido no DANFE e na gaveta): dispara o print() direto
   // daqui, sem depender do window.onload embutido no HTML — numa janela
-  // REAPROVEITADA (janelaPre, aberta minutos antes), o onload já disparou faz
-  // tempo pro "about:blank" e não dispara de novo depois do document.write(),
-  // então o print() nunca era chamado e o papel simplesmente não saía, sem erro
-  // nenhum na tela. Isso explica fechamento de caixa (e outros recibos que usam
-  // essa mesma função) "não imprimindo" de vez em quando.
+  // REAPROVEITADA (janelaPre, aberta minutos antes), o onload às vezes não dispara
+  // de novo depois do document.write(), então o print() nunca era chamado e o papel
+  // simplesmente não saía, sem erro nenhum na tela. Isso explica fechamento de
+  // caixa (e outros recibos que usam essa mesma função) "não imprimindo" de vez
+  // em quando. O console.log/error aqui é só diagnóstico temporário (bug ainda em
+  // investigação em alguns PCs) — ajuda a ver, com F12 → Console, em qual ponto
+  // exatamente trava da próxima vez que acontecer.
+  console.log('[pp-print] antes de w.print()');
   try {
     w.print();
-    w.onafterprint = () => w.close();
-  } catch (e) { /* janela pode já ter sido fechada nesse meio-tempo — ignora */ }
-  setTimeout(() => { try { w.close(); } catch (e) {} }, 2000);
+    console.log('[pp-print] w.print() retornou sem travar');
+    w.onafterprint = () => { console.log('[pp-print] onafterprint disparou, fechando'); w.close(); };
+  } catch (e) { console.error('[pp-print] w.print() deu erro:', e); }
+  setTimeout(() => {
+    console.log('[pp-print] timeout de 2s, tentando fechar');
+    try { w.close(); } catch (e) { console.error('[pp-print] w.close() deu erro:', e); }
+    console.log('[pp-print] depois do close(), w.closed =', w.closed);
+  }, 2000);
 }
 
 // Imprime vários papéis em sequência (ex: recibo + as 2 vias do Faturado) reaproveitando
