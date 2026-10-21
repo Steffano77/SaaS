@@ -8734,6 +8734,15 @@ function abrirJanelaImpressaoTermica(bodyHtml, janelaPre) {
       <button class="pp-btn-fechar" onclick="window.close()">✕ Fechar</button>
     </div>
     ${bodyHtml}
+    <script>
+      // Fechamento automático feito DE DENTRO da própria janela (igual o botão manual
+      // "Fechar" acima, que sempre funciona) — bug real confirmado em PCs de loja: o
+      // fechamento tentado "de fora" (pela janela principal, depois do document.write)
+      // às vezes é bloqueado pelo navegador sem erro nenhum, mesmo com o setTimeout.
+      // Rodando aqui dentro, com o mesmo window.close() do botão manual, é confiável.
+      window.addEventListener('afterprint', () => window.close());
+      setTimeout(() => window.close(), 2500);
+    <\/script>
     </body></html>`;
   const w = (janelaPre && !janelaPre.closed) ? janelaPre : window.open('', '_blank', 'width=380,height=600');
   if (!w) { mostrarToast('O navegador bloqueou a janela de impressão — permite pop-up nesse site.', 'warn'); return; }
