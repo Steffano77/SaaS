@@ -7909,7 +7909,7 @@ async function fecharMensalRhUI() {
     // navegador), então cada funcionário sai numa "folha" nova sem precisar de outra janela.
     janela.document.write(`<!doctype html><html><head><meta charset="utf-8">
       <style>
-        @page { size: 80mm auto; margin: 0; }
+        @page { size: 80mm 1200mm; margin: 0; }
         * { box-sizing: border-box; }
       body { width: 72mm; margin: 0 auto; padding: 6px 4px; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; color: #000; }
         h1 { font-size: 15px; text-align: center; margin: 0 0 2px; font-weight: 800; }
@@ -8697,7 +8697,11 @@ function abrirJanelaImpressaoTermica(bodyHtml, janelaPre) {
   const html = `<!doctype html><html><head><meta charset="utf-8">
     <title>Imprimir</title>
     <style>
-      @page { size: 80mm auto; margin: 0; }
+      /* "size: 80mm auto" (altura automática, usada antes) faz o Chrome travar
+         calculando a prévia de impressão em alguns PCs — trava sem erro nenhum na
+         tela, a janela nunca fecha. Usar uma altura fixa (bem alta, pra caber
+         qualquer comprovante grande) evita esse cálculo e resolve o travamento. */
+      @page { size: 80mm 1200mm; margin: 0; }
       * { box-sizing: border-box; }
       /* Negrito em tudo — em impressora térmica, fonte fina/normal sai fraca/cinza,
          principalmente comparado a apps que mandam comando ESC/POS direto (que sempre
@@ -8751,7 +8755,7 @@ async function imprimirSequenciaTermicaUI(janela, corpos) {
     if (janela.closed) return;
     janela.document.write(`<!doctype html><html><head><meta charset="utf-8">
       <style>
-        @page { size: 80mm auto; margin: 0; }
+        @page { size: 80mm 1200mm; margin: 0; }
         * { box-sizing: border-box; }
       body { width: 72mm; margin: 0 auto; padding: 6px 4px; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; color: #000; }
         h1 { font-size: 15px; text-align: center; margin: 0 0 2px; font-weight: 800; }
