@@ -7919,7 +7919,7 @@ async function fecharMensalRhUI() {
     // navegador), então cada funcionário sai numa "folha" nova sem precisar de outra janela.
     janela.document.write(`<!doctype html><html><head><meta charset="utf-8">
       <style>
-        @page { size: 80mm 400mm; margin: 0; }
+        @page { size: 80mm 200mm; margin: 0; }
         * { box-sizing: border-box; }
       body { width: 72mm; margin: 0 auto; padding: 6px 4px; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; color: #000; }
         h1 { font-size: 15px; text-align: center; margin: 0 0 2px; font-weight: 800; }
@@ -8712,8 +8712,9 @@ function abrirJanelaImpressaoTermica(bodyHtml, janelaPre) {
          tela, a janela nunca fecha. Altura fixa evita esse cálculo e resolve o
          travamento — mas uma altura exagerada (ex: 1200mm, usado antes) faz a
          impressora encolher tudo pra caber nessa folha gigante, saindo minúsculo.
-         400mm já é mais que suficiente pra qualquer comprovante e não encolhe nada. */
-      @page { size: 80mm 400mm; margin: 0; }
+         200mm é o tamanho padrão de página pra impressora térmica 80mm, cabe
+         tranquilo um comprovante normal sem encolher nada. */
+      @page { size: 80mm 200mm; margin: 0; }
       * { box-sizing: border-box; }
       /* Negrito em tudo — em impressora térmica, fonte fina/normal sai fraca/cinza,
          principalmente comparado a apps que mandam comando ESC/POS direto (que sempre
@@ -8809,7 +8810,7 @@ async function imprimirSequenciaTermicaUI(janela, corpos) {
     if (janela.closed) return;
     janela.document.write(`<!doctype html><html><head><meta charset="utf-8">
       <style>
-        @page { size: 80mm 400mm; margin: 0; }
+        @page { size: 80mm 200mm; margin: 0; }
         * { box-sizing: border-box; }
       body { width: 72mm; margin: 0 auto; padding: 6px 4px; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; color: #000; }
         h1 { font-size: 15px; text-align: center; margin: 0 0 2px; font-weight: 800; }
