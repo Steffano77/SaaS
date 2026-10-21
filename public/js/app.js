@@ -3767,6 +3767,28 @@ async function criarCategoria() {
   document.getElementById('prod-categoria').value = d.id;
 }
 
+// Renomeia a categoria que estiver selecionada no momento no select "Categoria" do
+// modal de produto — antes só dava pra criar ou excluir categoria, nunca renomear
+// (tinha que mexer direto no banco).
+async function editarCategoriaSelecionada() {
+  const sel = document.getElementById('prod-categoria');
+  const id = sel.value;
+  if (!id) return mostrarToast('Escolhe uma categoria no campo acima antes de editar.', 'warn');
+  const nomeAtual = sel.options[sel.selectedIndex].textContent;
+  const novoNome = prompt('Novo nome da categoria:', nomeAtual);
+  if (!novoNome || !novoNome.trim() || novoNome.trim() === nomeAtual) return;
+  const r = await fetch(`${API}/categorias/${id}`, {
+    method: 'PUT',
+    headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nome: novoNome.trim() })
+  });
+  const d = await r.json();
+  if (!r.ok) return alert('Erro: ' + d.erro);
+  await carregarCategorias();
+  sel.value = id;
+  mostrarToast('Categoria renomeada!', 'ok');
+}
+
 // Controla se o "Código da balança" deve se auto-preencher a partir do "Código
 // de barras" digitado (fórmula código × 100, igual ao preenchimento em massa).
 // Fica true em produto novo, ou se a pessoa nunca digitou nada manual ali.
