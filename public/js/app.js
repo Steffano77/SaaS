@@ -8299,7 +8299,11 @@ function atualizarPagamentoUI() {
     label.textContent = '✅ Pagamento completo';
     btnFinalizar.classList.remove('hidden');
   } else {
-    label.innerHTML = `Restante: <span class="cmd-restante-valor">${fmtMoeda(restante)}</span> — toque na forma de pagamento`;
+    // Só pisca quando já tem pagamento dividido em mais de uma forma (já pagou uma
+    // parte e falta o restante) — numa venda com forma única ainda não escolhida,
+    // o valor cheio piscando não faz sentido, é só ruído visual.
+    const classePisca = comandaPagamentosPendentes.length ? ' cmd-restante-valor' : '';
+    label.innerHTML = `Restante: <span class="${classePisca.trim()}">${fmtMoeda(restante)}</span> — toque na forma de pagamento`;
     btnFinalizar.classList.add('hidden');
   }
 }
