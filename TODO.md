@@ -12,17 +12,26 @@ Ainda não testado num caso real de queda da Sefaz em produção — só
 validado via código/sanidade. Se acontecer uma queda de verdade, vale
 conferir se o fluxo todo funcionou como esperado.
 
-## Fechamento de caixa às vezes ainda não imprime (investigar com calma)
+## ✅ Fechamento de caixa não imprimia / janela travava — resolvido em 2026-10-21
 
-Relatado em 2026-10-19 pelo Estefano: caixa 1 da Jota 3 não imprimiu o
-comprovante de fechamento, teve que reimprimir pelo Financeiro. Ele não
-tem certeza se foi antes ou depois do fix de `abrirJanelaImpressaoTermica`
-(commit "Corrige impressões que às vezes não saem", 5e13f32/a3832aa já
-aplicado nas duas lojas).
+Causa raiz real (confirmada com Console/F12 num PC de loja): `window.print()`
+trava a aba inteira por alguns segundos em certos PCs/drivers de impressora
+(print spooler lento), e o fechamento "de fora" da janela (pela janela
+principal) às vezes era bloqueado pelo navegador depois disso. Corrigido
+fazendo a janela se fechar sozinha de DENTRO dela mesma (script embutido no
+HTML, igual o botão manual "Fechar" que sempre funcionou) + botão manual
+Imprimir/Fechar como rede de segurança, caso aconteça de novo.
 
-Hipóteses já descartadas: confirm() nativo (trocado por confirmarBonito),
-onload não disparando em janela reaproveitada (corrigido). Se continuar
-acontecendo mesmo depois do fix, pode ser outra causa (ex: popup
-bloqueado de vez em quando, impressora/driver, ou algo na própria tela
-de fechamento). Próxima vez que acontecer, pegar a hora exata pra cruzar
-com os logs do PM2.
+## Duas rejeições de NFC-e na mesma comanda (Balcão C57, 2026-10-21) — investigar com calma
+
+Reportado pelo Estefano, caixas em operação então não mexi na hora:
+
+- Erro 704: "NFC-e ou NF-e com DANFE Simplificado Tipo 2 com Data-Hora de
+  emissão atrasada" — nota reenviada com dhEmi velho demais.
+- Erro 865: "Total dos pagamentos menor que o total da nota" — na tentativa
+  de "Reemitir corrigida", os pagamentos da nota corrigida ficaram com total
+  menor que o da nota.
+
+Conferir `src/controllers/nfceController.js` (`reenviar`, reemissão
+corrigida) e `src/fiscal/xmlNFCe.js` (geração do `dhEmi`). Comanda específica
+(Balcão C57) — conferir se precisa agir nela além do código.
