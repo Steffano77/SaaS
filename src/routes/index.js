@@ -169,12 +169,19 @@ router.post('/clientes-faturado/documento/:documento/liquidar-selecionados', aut
 router.post('/clientes-faturado/documento/:documento/pagar-parcial', auth, authPremium, wrap(clienteFaturadoCtrl.pagarParcial));
 // Senha fixa (1234) só pra confirmar o lançamento em "Faturado" — separada da senha do
 // Financeiro, de propósito (essa aqui todo mundo do time sabe, a do Financeiro não).
-// Bug real: antes checava um "1234" fixo no código, sem relação nenhuma com a senha
-// financeira de verdade configurada na loja — por isso a senha de gerente/gestor real
-// nunca funcionava aqui. Agora usa o mesmo sistema de PIN financeiro do resto do
-// sistema (configurável em Financeiro → Alterar PIN, com PIN_FINANCEIRO_MASTER como
-// reserva de emergência).
-router.post('/clientes-faturado/verificar-pin', auth, authPremium, wrap(financeiroCtrl.verificarPin));
+// "1234" fixo de propósito — é a senha que qualquer atendente usa pra LANÇAR uma venda
+// em Faturado na hora de cobrar (não é uma trava de gerente, é só uma confirmação
+// simples, igual já era antes). Não trocar pela senha financeira de verdade aqui: já
+// foi trocado uma vez e quebrou o lançamento pras atendentes, que só sabem o "1234".
+router.post('/clientes-faturado/verificar-pin', auth, authPremium, wrap((req, res) => {
+  if (String(req.body.pin || '') !== '1234') return res.status(401).json({ erro: 'Senha incorreta.' });
+  res.json({ ok: true });
+}));
+
+// Essa sim é a senha financeira de verdade (gerente/gestor) — só pro botão de
+// RECEBER pagamento de cliente (dar baixa), que mexe em dinheiro de verdade e
+// precisa de mais trava que o lançamento comum.
+router.post('/clientes-faturado/verificar-pin-gerente', auth, authPremium, wrap(financeiroCtrl.verificarPin));
 
 router.get('/financeiro',                   auth, authPremium, wrap(financeiroCtrl.listar));
 router.post('/financeiro',                  auth, authPremium, wrap(financeiroCtrl.criar));
