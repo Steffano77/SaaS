@@ -5771,82 +5771,122 @@ async function reimprimirFechamentoUI(caixaId) {
 // Comprovante impresso do fechamento de caixa — formato "relatório completo de
 // sessão" (mesmo padrão que a gerente pediu, igual ao relatório do Saurus).
 function imprimirFechamentoCaixa(caixa, conferencia, diferenca, janelaPre) {
-  const r = caixa?.resumo;
-  const informado = (conferencia || []).find(c => c.forma_pagamento === 'Dinheiro')?.fechado || 0;
+  // Layout copiado do "Relatório Completo de Sessão" do Saurus (pedido do dono, que já
+  // conhece esse papel de cor): mesmas seções, na mesma ordem, com os nomes em
+  // maiúsculo e valores sem "R$". O que o PanificaPro não tem (receita, estornos,
+  // vale troco, créditos, trocas) sai zerado, igual o Saurus imprime quando não houve.
+  const r = caixa?.resumo || {};
   const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
-  const agora = new Date().toLocaleString('pt-BR');
-  const abertura = fmtDataHoraBR ? fmtDataHoraBR(caixa?.aberto_em) : new Date(caixa?.aberto_em).toLocaleString('pt-BR');
+  const dataHora = v => { const d = v ? new Date(v) : new Date(); return isNaN(d) ? '-' : d.toLocaleString('pt-BR').replace(',', ''); };
+  const n2 = v => (parseFloat(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false });
+  const n3 = v => (parseFloat(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3, useGrouping: false });
+  const maiusc = t => String(t || '').toUpperCase();
+  const linha = (nome, valor) => `<div class="sl"><span>${nome}</span><span class="dp">:</span><span class="v">${valor}</span></div>`;
+  const titulo = t => `<div class="st">${t}</div>`;
 
-  const porForma = r?.porForma || [];
-  // Dinheiro é o único que se confere fisicamente (conta o dinheiro na gaveta) —
-  // as outras formas (cartão, pix, faturado...) não têm contagem física, então
-  // "Fechado" é igual ao valor do sistema e a diferença é sempre 0.
-  const linhasFormaPag = porForma.map(f => `
-    <div class="linha"><span class="nome">${f.forma_pagamento} (${f.qtd})</span><span class="valor">${fmtMoeda(f.total)}</span></div>
-  `).join('');
-
-  const linhasFechamento = (conferencia || []).map(c =>
-    `<tr><td>${c.forma_pagamento}</td><td>${fmtMoeda(c.em_caixa)}</td><td>${fmtMoeda(c.fechado)}</td><td>${fmtMoeda(c.diferenca)}</td></tr>`
-  ).join('');
-
-  const difLabel = Math.abs(diferenca) < 0.01 ? '0,00' : fmtMoeda(diferenca);
-
-  // Despesas do caixa, listadas uma a uma (não só o total) — o que a atendente lançou
-  // na hora de fechar, dizendo em que usou o dinheiro que saiu da gaveta.
-  const linhasDespesas = (r?.despesas || []).map(d =>
-    `<div class="linha"><span class="nome">${d.descricao}</span><span class="valor">${fmtMoeda(d.valor)}</span></div>`
-  ).join('');
-  const blocoDespesas = (r?.despesas || []).length ? `
-    <hr/>
-    <div class="rodape" style="text-align:left;font-weight:bold;">Despesas do Caixa</div>
-    ${linhasDespesas}
-    <div class="linha total"><span>Total Despesas</span><span>${fmtMoeda(r?.totalDespesas)}</span></div>
-  ` : '';
+  // Sempre as mesmas 6 formas, sempre nessa ordem (mesmo zeradas) — igual o papel do
+  // Saurus que a gerência confere. Outras formas (ex: Padaria, Cortesia) vão no final.
+  const ORDEM_FORMAS = ['Dinheiro', 'Crédito', 'Débito', 'Faturado', 'Pix', 'Voucher'];
+  const chave = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  const ordenarFormas = (lista, vazio) => {
+    const fixas = ORDEM_FORMAS.map(nome => lista.find(x => chave(x.forma_pagamento) === chave(nome)) || { forma_pagamento: nome, ...vazio });
+    const outras = lista.filter(x => !ORDEM_FORMAS.some(nome => chave(nome) === chave(x.forma_pagamento)));
+    return [...fixas, ...outras];
+  };
+  const porForma = ordenarFormas(r.porForma || [], { qtd: 0, total: 0 });
+  const totalVendas = parseFloat(r.totalVendas) || 0;
+  const despesas = r.despesas || [];
+  const totalDespesas = parseFloat(r.totalDespesas) || 0;
+  const conf = ordenarFormas(conferencia || [], { em_caixa: 0, fechado: 0, diferenca: 0 });
+  const valorEmCaixa = conf.reduce((s, c) => s + (parseFloat(c.em_caixa) || 0), 0);
+  const valorFechamento = conf.reduce((s, c) => s + (parseFloat(c.fechado) || 0), 0);
+  const dif = parseFloat(diferenca) || 0;
+  const difLabel = Math.abs(dif) < 0.01 ? '0,00' : `(${dif > 0 ? 'Sobra' : 'Falta'}) ${n2(Math.abs(dif))}`;
 
   abrirJanelaImpressaoTermica(`
-    <h1>${nomePadaria}</h1>
-    <div class="sub">Relatório Completo de Sessão</div>
-    <div class="sub">Sessão ${caixa?.id} · Terminal: ${caixa?.nome || '-'} · Operador: ${caixa?.atendente || '-'}</div>
-    <div class="sub">Data Inicial: ${abertura}</div>
-    <div class="sub">Data Final: ${agora}</div>
-    <hr/>
-    <div class="rodape" style="text-align:left;font-weight:bold;">Forma Pag.</div>
-    ${linhasFormaPag || '<div class="linha"><span class="nome">Nenhuma venda nesse caixa</span><span class="valor">—</span></div>'}
-    <div class="linha total"><span>TOTAL DA SESSÃO (${r?.qtdVendas || 0})</span><span>${fmtMoeda(r?.totalVendas)}</span></div>
-    <hr/>
-    <div class="rodape" style="text-align:left;font-weight:bold;">Resumo Movimentação</div>
-    <div class="linha"><span class="nome">Abertura</span><span class="valor">${fmtMoeda(caixa?.valor_abertura)}</span></div>
-    <div class="linha"><span class="nome">Suprimento</span><span class="valor">${fmtMoeda(r?.totalSuprimentos)}</span></div>
-    <div class="linha"><span class="nome">Sangria</span><span class="valor">${fmtMoeda(r?.totalSangrias)}</span></div>
-    <div class="linha"><span class="nome">Despesas</span><span class="valor">${fmtMoeda(r?.totalDespesas)}</span></div>
-    ${blocoDespesas}
-    <hr/>
-    <div class="rodape" style="text-align:left;font-weight:bold;">Fechamento Caixa</div>
-    <table style="width:100%;font-size:11px;border-collapse:collapse;margin-top:4px;">
-      <thead><tr><th style="text-align:left;">Forma</th><th style="text-align:right;">Em Caixa</th><th style="text-align:right;">Fechado</th><th style="text-align:right;">Difer.</th></tr></thead>
-      <tbody>${linhasFechamento}</tbody>
+    <style>
+      .cab { text-align:center; font-size:11px; border-top:1px dashed #000; border-bottom:1px dashed #000; padding:3px 0; margin-bottom:4px; }
+      .st { font-size:11px; border-bottom:1px dashed #000; padding:4px 0 2px; margin:4px 0 3px; }
+      .sl { display:flex; font-size:11px; line-height:1.35; }
+      .sl > span:first-child { width:46%; white-space:nowrap; }
+      .sl .dp { width:4%; }
+      .sl .v { flex:1; text-align:right; white-space:nowrap; }
+      .fp { display:flex; justify-content:space-between; font-size:11px; line-height:1.35; }
+      .ind { padding-left:10px; }
+      table.fc { width:100%; font-size:10px; border-collapse:collapse; }
+      table.fc th { font-weight:700; text-align:right; border-bottom:1px dashed #000; padding-bottom:2px; white-space:nowrap; }
+      table.fc th:first-child, table.fc td:first-child { text-align:left; }
+      table.fc td { text-align:right; padding-left:4px; white-space:nowrap; }
+      .sep { border-top:1px dashed #000; margin:4px 0; }
+    </style>
+    <div class="cab">RELATÓRIO COMPLETO DE SESSÃO<br/>${maiusc(nomePadaria)}</div>
+    <div class="fp" style="font-size:10.5px;"><span>Sessão</span><span>${caixa?.id || '-'}</span></div>
+    ${linha('Data Inicial', dataHora(caixa?.aberto_em))}
+    ${linha('Data Final', dataHora(caixa?.fechado_em))}
+    <div class="sep"></div>
+    ${linha('Terminal', caixa?.nome || '-')}
+    ${linha('Operador', caixa?.atendente || '-')}
+
+    <div class="st" style="display:flex;justify-content:space-between;"><span>Forma Pag.</span><span>Valor</span></div>
+    ${porForma.map(f => `<div class="fp"><span>${maiusc(f.forma_pagamento)} (${f.qtd}):</span><span>${n2(f.total)}</span></div>`).join('')}
+    <div class="fp"><span>TOTAL DA SESSÃO (${r.qtdVendas || 0}):</span><span>${n2(totalVendas)}</span></div>
+
+    ${titulo('RESUMO MOVIMENTAÇÃO')}
+    ${linha('Abertura', n2(caixa?.valor_abertura))}
+    ${linha('Suprimento', n2(r.totalSuprimentos))}
+    ${linha('Receita', n2(0))}
+    ${linha('Despesa', n2(totalDespesas))}
+    ${totalDespesas > 0 ? `<div class="sl"><span class="ind">DINHEIRO</span><span class="dp"></span><span class="v">- ${n2(totalDespesas)}</span></div>` : ''}
+    ${linha('Sangria', n2(r.totalSangrias))}
+
+    ${titulo('FECHAMENTO CAIXA')}
+    <table class="fc">
+      <thead><tr><th>Forma Pagto</th><th>Em Caixa</th><th>Fechado</th><th>Diferença</th></tr></thead>
+      <tbody>${conf.map(c => `<tr><td>${maiusc(c.forma_pagamento)}</td><td>${n2(c.em_caixa)}</td><td>${n2(c.fechado)}</td><td>${n2(c.diferenca)}</td></tr>`).join('')}</tbody>
     </table>
-    <hr/>
-    <div class="linha"><span class="nome">Total Vendido</span><span class="valor">${fmtMoeda(r?.totalVendas)}</span></div>
-    <div class="linha"><span class="nome">Abertura</span><span class="valor">${fmtMoeda(caixa?.valor_abertura)}</span></div>
-    <div class="linha"><span class="nome">Suprimento</span><span class="valor">${fmtMoeda(r?.totalSuprimentos)}</span></div>
-    <div class="linha"><span class="nome">Sangria</span><span class="valor">${fmtMoeda(r?.totalSangrias)}</span></div>
-    <div class="linha"><span class="nome">Despesas</span><span class="valor">${fmtMoeda(r?.totalDespesas)}</span></div>
-    <hr/>
-    <div class="linha"><span class="nome">Valor em Caixa</span><span class="valor">${fmtMoeda(r?.esperadoEmDinheiro)}</span></div>
-    <div class="linha"><span class="nome">Valor Fechamento</span><span class="valor">${fmtMoeda(informado)}</span></div>
-    <div class="total"><span>Diferença</span><span>${difLabel}</span></div>
-    <hr/>
-    <div class="rodape" style="text-align:left;font-weight:bold;">Resumo de Vendas</div>
-    <div class="linha"><span class="nome">SubTotal</span><span class="valor">${fmtMoeda(r?.totalVendas)}</span></div>
-    <div class="linha"><span class="nome">Desconto</span><span class="valor">${fmtMoeda(r?.totalDescontos)}</span></div>
-    <div class="linha"><span class="nome">Acréscimo</span><span class="valor">${fmtMoeda(r?.totalAcrescimos)}</span></div>
-    <div class="linha"><span class="nome">Total</span><span class="valor">${fmtMoeda(r?.totalVendas)}</span></div>
-    <div class="linha"><span class="nome">Qtd. Vendas</span><span class="valor">${r?.qtdVendas || 0}</span></div>
-    <div class="linha"><span class="nome">Total Itens</span><span class="valor">${fmtQtd(r?.totalItens || 0)}</span></div>
-    <hr/>
-    <div class="rodape">${nomePadaria} · PanificaPro</div>
-    <div class="rodape">Fim do Relatório · ${agora}</div>
+    <div class="sep"></div>
+    ${linha('Total Vendido', n2(totalVendas))}
+    ${linha('Abertura', n2(caixa?.valor_abertura))}
+    ${linha('Suprimento', n2(r.totalSuprimentos))}
+    ${linha('Receita', n2(0))}
+    ${linha('Estorno Sangria', n2(0))}
+    ${linha('Estorno Despesa', n2(0))}
+    ${linha('Despesa', n2(totalDespesas))}
+    ${linha('Estorno Receita', n2(0))}
+    ${linha('Estorno Suprimento', n2(0))}
+    ${linha('Sangria', n2(r.totalSangrias))}
+    ${linha('Vale Troco', n2(0))}
+    <div class="sep"></div>
+    ${linha('Valor em Caixa', n2(valorEmCaixa))}
+    ${linha('Valor Fechamento', n2(valorFechamento))}
+    ${linha('Diferença', difLabel)}
+
+    ${titulo('RESUMO DE VENDAS')}
+    ${linha('SubTotal', n2(totalVendas + (parseFloat(r.totalDescontos) || 0) - (parseFloat(r.totalAcrescimos) || 0)))}
+    ${linha('Desconto', n2(r.totalDescontos))}
+    ${linha('Acréscimo', n2(r.totalAcrescimos))}
+    ${linha('Total', n2(totalVendas))}
+    <div class="sep"></div>
+    ${linha('Qtd. Vendas', r.qtdVendas || 0)}
+    ${linha('Total Itens', n3(r.totalItens))}
+
+    ${titulo('CRÉDITOS')}
+    ${linha('Valor gerado', n2(0))}
+    ${linha('Valor consumido', n2(0))}
+
+    ${titulo('RESUMO DESPESA')}
+    ${despesas.map((d, k) => `
+      <div class="fp"><span>${String(k + 1).padStart(3, '0')} - DINHEIRO</span><span>${n2(d.valor)}</span></div>
+      <div class="sl"><span class="ind" style="width:100%;">${maiusc(d.descricao)}</span></div>`).join('')}
+    ${linha('Total', n2(totalDespesas))}
+
+    ${titulo('RESUMO DE TROCAS')}
+    ${linha('Total Trocado', n2(0))}
+    ${linha('Operações', 0)}
+    ${linha('Total Itens', n3(0))}
+    <div class="sep"></div>
+    <div style="font-size:11px;">Fim do Arquivo. ${dataHora(caixa?.fechado_em)}</div>
+    <div class="sep"></div>
   `, janelaPre);
 }
 
