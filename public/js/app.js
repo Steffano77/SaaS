@@ -8202,6 +8202,12 @@ async function selecionarClienteFaturadoUI(cliente) {
 // ── Receber pagamento de Faturado direto da tela do caixa (total ou parcial) ──────
 // Reaproveita o mesmo cache de clientes usado em identificarClienteFaturadoUI.
 let _clientesFaturadoCachePag = null;
+// Pede a senha de gerente antes de abrir — é uma ação financeira sensível (mexe no
+// saldo devedor de um cliente), igual outras ações do Financeiro já pedem.
+function abrirPagarFaturadoComSenhaUI() {
+  abrirSenhaGerenteUI(() => abrirPagarFaturadoUI());
+}
+
 async function abrirPagarFaturadoUI() {
   _clientesFaturadoCachePag = await api('/clientes-faturado') || [];
   document.getElementById('pagfat-nome').value = '';
@@ -8310,8 +8316,24 @@ function pedirSenhaFaturadoUI(cliente) {
   setTimeout(() => document.getElementById('senha-faturado-input')?.focus(), 100);
 }
 
+// Jeito genérico de pedir a mesma senha financeira pra outras ações (ex: abrir o
+// receber-pagamento de Clientes, antes do caixa normal poder mexer nisso) — sem
+// depender do fluxo de "identificar cliente" que pedirSenhaFaturadoUI usa.
+let _onSenhaFaturadoOk = null;
+function abrirSenhaGerenteUI(onOk) {
+  _onSenhaFaturadoOk = onOk;
+  document.getElementById('senha-faturado-cliente').textContent = 'Senha de gerente';
+  document.getElementById('senha-faturado-input').value = '';
+  document.getElementById('senha-faturado-erro').classList.add('hidden');
+  document.getElementById('modal-senha-faturado').classList.remove('hidden');
+  setTimeout(() => document.getElementById('senha-faturado-input')?.focus(), 100);
+}
+
 function _fecharSenhaFaturado(ok) {
   document.getElementById('modal-senha-faturado').classList.add('hidden');
+  const callback = _onSenhaFaturadoOk;
+  _onSenhaFaturadoOk = null;
+  if (callback) { if (ok) callback(); return; }
   if (!ok) { _fecharIdentificarCliente(null); return; }
   _fecharIdentificarCliente(_clienteFaturadoSelecionadoTemp);
 }
