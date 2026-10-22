@@ -62,4 +62,70 @@ describe('Cliente Faturado (venda fiada)', () => {
     // R$600 num limite de R$500 tem que ser recusado no servidor, não só escondido na tela
     expect(fechou.status).toBe(400);
   });
+
+  test('pagamento parcial abate do saldo sem precisar quitar tudo', async () => {
+    const cnpj = '22333444000195';
+    await auth(request(app).post('/api/clientes-faturado')).send({
+      cnpj, nome: 'Oficina Teste LTDA', tipo: 'empresa',
+    });
+
+    const abriuCaixa = await auth(request(app).post('/api/caixa/abrir')).send({ valor_abertura: 0, nome: 'Caixa Parcial' });
+    const comanda = await auth(request(app).post('/api/comandas')).send({ identificador: 'Parcial Teste' });
+    await auth(request(app).post(`/api/comandas/${comanda.body.id}/itens`)).send({
+      nome_produto: 'Pedido grande', quantidade: 1, preco_unitario: 200,
+    });
+    await auth(request(app).post(`/api/comandas/${comanda.body.id}/fechar`)).send({
+      caixa_id: abriuCaixa.body.id,
+      pagamentos: [{ forma_pagamento: 'Faturado', valor: 200, cliente_documento: cnpj, cliente_nome: 'Oficina Teste LTDA' }],
+    });
+
+    // Deve R$200, paga R$100 — saldo tem que ficar em R$100, não zerar
+    const pagou = await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/pagar-parcial`)).send({ valor: 100 });
+    expect(pagou.status).toBe(200);
+    expect(pagou.body.saldoAntes).toBeCloseTo(200, 2);
+    expect(pagou.body.saldoDepois).toBeCloseTo(100, 2);
+
+    const saldo1 = await auth(request(app).get(`/api/clientes-faturado/documento/${cnpj}/saldo`));
+    expect(saldo1.body.saldoDevedor).toBeCloseTo(100, 2);
+
+    // Paga o resto depois, em outra visita — saldo zera
+    const pagouResto = await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/pagar-parcial`)).send({ valor: 100 });
+    expect(pagouResto.status).toBe(200);
+    const saldo2 = await auth(request(app).get(`/api/clientes-faturado/documento/${cnpj}/saldo`));
+    expect(saldo2.body.saldoDevedor).toBeCloseTo(0, 2);
+
+    // Não deixa pagar mais do que deve
+    const pagouDemais = await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/pagar-parcial`)).send({ valor: 50 });
+    expect(pagouDemais.status).toBe(400);
+  });
+
+  test('pagamento parcial aplica nas compras mais antigas primeiro (FIFO)', async () => {
+    const cnpj = '33444555000106';
+    await auth(request(app).post('/api/clientes-faturado')).send({
+      cnpj, nome: 'Mercado Teste LTDA', tipo: 'empresa',
+    });
+    const abriuCaixa = await auth(request(app).post('/api/caixa/abrir')).send({ valor_abertura: 0, nome: 'Caixa FIFO' });
+
+    // Duas comandas de R$50 cada, uma depois da outra
+    const c1 = await auth(request(app).post('/api/comandas')).send({ identificador: 'FIFO 1' });
+    await auth(request(app).post(`/api/comandas/${c1.body.id}/itens`)).send({ nome_produto: 'Item A', quantidade: 1, preco_unitario: 50 });
+    await auth(request(app).post(`/api/comandas/${c1.body.id}/fechar`)).send({
+      caixa_id: abriuCaixa.body.id,
+      pagamentos: [{ forma_pagamento: 'Faturado', valor: 50, cliente_documento: cnpj, cliente_nome: 'Mercado Teste LTDA' }],
+    });
+    const c2 = await auth(request(app).post('/api/comandas')).send({ identificador: 'FIFO 2' });
+    await auth(request(app).post(`/api/comandas/${c2.body.id}/itens`)).send({ nome_produto: 'Item B', quantidade: 1, preco_unitario: 50 });
+    await auth(request(app).post(`/api/comandas/${c2.body.id}/fechar`)).send({
+      caixa_id: abriuCaixa.body.id,
+      pagamentos: [{ forma_pagamento: 'Faturado', valor: 50, cliente_documento: cnpj, cliente_nome: 'Mercado Teste LTDA' }],
+    });
+
+    // Paga R$50 — deve quitar a comanda 1 (mais antiga) inteira, deixando a 2 intacta
+    await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/pagar-parcial`)).send({ valor: 50 });
+    const extrato = await auth(request(app).get(`/api/clientes-faturado/documento/${cnpj}/extrato`));
+    const linha1 = extrato.body.find(l => l.comanda_id === c1.body.id);
+    const linha2 = extrato.body.find(l => l.comanda_id === c2.body.id);
+    expect(linha1.quitado_em).not.toBeNull();
+    expect(linha2.quitado_em).toBeNull();
+  });
 });

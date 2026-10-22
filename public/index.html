@@ -793,6 +793,7 @@
             <button id="btn-equipe-modo-caixa" class="btn-icon hidden" onclick="mostrarPagina('equipe')" title="Equipe">👥</button>
             <button id="btn-sair-modo-caixa" class="btn-icon hidden" onclick="sair()" title="Sair">🚪</button>
             <button id="btn-caixa-modo-lancamento" onclick="abrirPainelCaixaUI()" class="btn-icon" title="Caixa (fechar, sangria, suprimento)">💰</button>
+            <button onclick="abrirPagarFaturadoUI()" class="btn-icon" title="Receber pagamento de cliente Faturado (fiado)">🔎💳</button>
             <button onclick="imprimirFichaCozinha()" class="btn-icon esconde-modo-caixa" title="Imprimir ficha pra cozinha">🖨️</button>
             <button onclick="fecharModalComanda()" class="btn-icon esconde-modo-caixa">✕</button>
           </div>
@@ -1241,6 +1242,25 @@
           <div id="idcli-nome-lista" class="autocomplete-lista hidden" style="position:static;box-shadow:none;border:1.5px solid var(--slate-200);margin-top:10px;max-height:min(58vh,480px);font-size:18px;"></div>
         </div>
         <div id="idcli-resultado"></div>
+      </div>
+    </div>
+
+    <!-- Modal: buscar cliente Faturado e receber pagamento (total ou parcial) na hora,
+         direto da tela do caixa — sem precisar sair da venda pra ir em Clientes Faturado. -->
+    <div id="modal-pagar-faturado" class="modal-overlay hidden">
+      <div class="modal-box" style="max-width:640px;width:92vw;">
+        <div class="modal-header">
+          <span class="modal-title" style="font-size:22px;">💳 Receber pagamento (Faturado)</span>
+          <button onclick="fecharModal('modal-pagar-faturado')" class="btn-icon">✕</button>
+        </div>
+        <div class="form-group" style="position:relative;">
+          <label class="form-label" style="font-size:16px;margin-bottom:8px;">Nome do cliente</label>
+          <input type="text" id="pagfat-nome" class="form-control" placeholder="Digite pra buscar..." autocomplete="off"
+            style="font-size:22px;padding:16px 18px;height:auto;"
+            oninput="filtrarPagarFaturadoUI(this)" onfocus="filtrarPagarFaturadoUI(this)"/>
+          <div id="pagfat-nome-lista" class="autocomplete-lista hidden" style="position:static;box-shadow:none;border:1.5px solid var(--slate-200);margin-top:10px;max-height:min(58vh,480px);font-size:18px;"></div>
+        </div>
+        <div id="pagfat-resultado"></div>
       </div>
     </div>
 
@@ -2286,7 +2306,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20261022c"></script>
+<script src="/js/app.js?v=20261022d"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
