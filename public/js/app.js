@@ -5738,6 +5738,19 @@ async function confirmarFecharCaixa() {
   // janela de impressão sem nunca imprimir o comprovante de fechamento.
   if (cego || await confirmarBonito('Imprimir o comprovante de fechamento de caixa?')) {
     imprimirFechamentoCaixa(caixaSnapshot, r.conferencia, dif, janelaPre);
+    // Rede de segurança: só sai da tela depois que a atendente confirma que o papel saiu.
+    // Bug real (Caixa 2 da Jota 2, mais de uma vez): o comprovante não saía, a tela já
+    // voltava pro login e só dava pra reimprimir pelo AnyDesk. Agora "Não" imprime de
+    // novo ali mesmo (o clique no botão vale como gesto, então o pop-up não é bloqueado).
+    // Foco começa no "Não": Enter no automático reimprime em vez de pular o comprovante.
+    const perguntarSeSaiu = () => {
+      const p = confirmarBonito('O comprovante do fechamento saiu na impressora? Sim = continuar · Não = imprimir de novo');
+      document.getElementById('confirmar-bonito-cancelar')?.focus();
+      return p;
+    };
+    while (!(await perguntarSeSaiu())) {
+      imprimirFechamentoCaixa(caixaSnapshot, r.conferencia, dif, null);
+    }
   } else {
     janelaPre?.close();
   }
