@@ -33,9 +33,11 @@ const db = require('../src/database/connection');
   }
 
   console.log(`\n== Resumo do mês ${mes} ==`);
+  // Nota em "contingência" (Sefaz fora do ar na hora) também é válida e conta fiscalmente
+  // — por isso entra junto com "autorizada" aqui, pra não parecer que falta nota à toa.
   const [[resumoNotas]] = await db.query(
-    `SELECT COUNT(*) AS qtd_notas_autorizadas, COALESCE(SUM(valor_total),0) AS total_notas_autorizadas
-     FROM notas_fiscais WHERE status = 'autorizada' AND DATE_FORMAT(autorizada_em, '%Y-%m') = ?`,
+    `SELECT COUNT(*) AS qtd_notas_validas, COALESCE(SUM(valor_total),0) AS total_notas_validas
+     FROM notas_fiscais WHERE status IN ('autorizada','contingencia') AND DATE_FORMAT(COALESCE(autorizada_em, criado_em), '%Y-%m') = ?`,
     [mes]
   );
   const [[resumoComandas]] = await db.query(
@@ -44,8 +46,30 @@ const db = require('../src/database/connection');
     [mes]
   );
   console.table([{ ...resumoNotas, ...resumoComandas }]);
-  const diferenca = parseFloat(resumoNotas.total_notas_autorizadas) - parseFloat(resumoComandas.total_comandas_fechadas);
-  console.log(`Diferença (notas - comandas): R$ ${diferenca.toFixed(2)} ${Math.abs(diferenca) > 1 ? '⚠️  investigar' : '✅ bate certinho'}`);
+  const diferenca = parseFloat(resumoNotas.total_notas_validas) - parseFloat(resumoComandas.total_comandas_fechadas);
+  console.log(`Diferença (notas válidas - comandas): R$ ${diferenca.toFixed(2)} ${Math.abs(diferenca) > 1 ? '⚠️  investigar' : '✅ bate certinho'}`);
+
+  // Quebra o que está faltando: comanda fechada sem NENHUMA nota, com nota rejeitada
+  // (nunca corrigida), ou cancelada — ajuda a entender de onde vem a diferença acima.
+  console.log(`\n== Comandas fechadas em ${mes} SEM nota válida (nem autorizada, nem contingência) ==`);
+  const [[semNota]] = await db.query(
+    `SELECT COUNT(*) AS qtd, COALESCE(SUM(c.total),0) AS total
+     FROM comandas c
+     WHERE c.status = 'fechada' AND DATE_FORMAT(c.fechada_em, '%Y-%m') = ?
+       AND NOT EXISTS (SELECT 1 FROM notas_fiscais n WHERE n.comanda_id = c.id AND n.status IN ('autorizada','contingencia'))`,
+    [mes]
+  );
+  console.table([semNota]);
+  const [porStatus] = await db.query(
+    `SELECT n.status, COUNT(*) AS qtd, COALESCE(SUM(n.valor_total),0) AS total
+     FROM notas_fiscais n
+     JOIN comandas c ON c.id = n.comanda_id
+     WHERE c.status = 'fechada' AND DATE_FORMAT(c.fechada_em, '%Y-%m') = ?
+     GROUP BY n.status`,
+    [mes]
+  );
+  console.log('\n== Status das notas das comandas fechadas desse mês (qualquer tentativa) ==');
+  console.table(porStatus);
 
   await db.end();
 })().catch(e => { console.error('Erro:', e.message); process.exit(1); });
