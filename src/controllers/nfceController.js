@@ -434,6 +434,15 @@ exports.reenviar = async (req, res) => {
     if (!nota) return res.status(404).json({ erro: 'Nota não encontrada.' });
     if (nota.status === 'autorizada') return res.status(400).json({ erro: 'Essa nota já foi autorizada — nada a fazer.' });
     if (!nota.xml_assinado) return res.status(400).json({ erro: 'Essa nota não tem XML assinado salvo — não dá pra reenviar, precisa emitir uma nova.' });
+    // Nota normal (tpEmis=1) só é aceita pela Sefaz poucos minutos depois do horário
+    // de emissão gravado nela — reenviar o MESMO xml horas depois sempre volta 704
+    // ("Data-Hora de emissão atrasada") e ainda gasta uma tentativa. Só contingência
+    // (tpEmis=9) tem prazo longo pra transmitir depois.
+    const tpEmis = (nota.xml_assinado.match(/<tpEmis>(\d)<\/tpEmis>/) || [])[1];
+    const dhEmi = (nota.xml_assinado.match(/<dhEmi>([^<]+)<\/dhEmi>/) || [])[1];
+    if (tpEmis === '1' && dhEmi && Date.now() - new Date(dhEmi).getTime() > 4 * 60 * 1000) {
+      return res.status(400).json({ erro: 'Essa nota passou do prazo pra reenviar (a Sefaz recusa com erro 704). Use "Reemitir corrigida", que gera uma nota nova com o horário de agora.' });
+    }
 
     const cert = await carregarCertificado(padaria_id);
     if (!cert.ok) return res.status(400).json({ erro: cert.erro });
