@@ -166,6 +166,7 @@ router.post('/clientes-faturado/documento/:documento/liquidar', auth, authPremiu
 router.post('/clientes-faturado/documento/:documento/lancar', auth, authPremium, wrap(clienteFaturadoCtrl.lancar));
 router.post('/clientes-faturado/documento/:documento/liquidar-lancados', auth, authPremium, wrap(clienteFaturadoCtrl.liquidarLancados));
 router.post('/clientes-faturado/documento/:documento/liquidar-selecionados', auth, authPremium, wrap(clienteFaturadoCtrl.liquidarSelecionados));
+router.post('/clientes-faturado/documento/:documento/pagar-parcial', auth, authPremium, wrap(clienteFaturadoCtrl.pagarParcial));
 // Senha fixa (1234) só pra confirmar o lançamento em "Faturado" — separada da senha do
 // Financeiro, de propósito (essa aqui todo mundo do time sabe, a do Financeiro não).
 router.post('/clientes-faturado/verificar-pin', auth, authPremium, wrap((req, res) => {

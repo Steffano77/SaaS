@@ -21,7 +21,7 @@ exports.listar = async (req, res) => {
   // Junto com cada um, já manda o saldo devedor atual (soma dos pagamentos "Faturado"
   // ainda não quitados) — pra tela mostrar de cara quem está perto do limite.
   const [saldos] = await db.query(
-    `SELECT cliente_documento, COALESCE(SUM(valor), 0) AS saldo
+    `SELECT cliente_documento, COALESCE(SUM(valor - valor_pago), 0) AS saldo
      FROM comanda_pagamentos
      WHERE forma_pagamento = 'Faturado' AND quitado_em IS NULL AND cliente_documento IS NOT NULL
      GROUP BY cliente_documento`
@@ -38,7 +38,7 @@ exports.listar = async (req, res) => {
   // Valor específico do que foi lançado (pode ser menor que o saldo total, se o
   // cliente consumiu mais depois do "Fechar e cobrar") — pra confirmar a baixa certa.
   const [lancadosValor] = await db.query(
-    `SELECT cliente_documento, COALESCE(SUM(valor), 0) AS valor
+    `SELECT cliente_documento, COALESCE(SUM(valor - valor_pago), 0) AS valor
      FROM comanda_pagamentos
      WHERE forma_pagamento = 'Faturado' AND quitado_em IS NULL AND lancado_em IS NOT NULL
        AND cliente_documento IS NOT NULL
@@ -142,7 +142,7 @@ exports.saldo = async (req, res) => {
   );
   if (!cliente) return res.status(404).json({ erro: 'Cliente não encontrado.' });
   const [[{ saldo }]] = await db.query(
-    `SELECT COALESCE(SUM(cp.valor), 0) AS saldo
+    `SELECT COALESCE(SUM(cp.valor - cp.valor_pago), 0) AS saldo
      FROM comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
      WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND cp.quitado_em IS NULL AND cp.cliente_documento = ?`,
     [padaria_id, docLimpo]
@@ -162,7 +162,7 @@ exports.extrato = async (req, res) => {
   const padaria_id = req.padaria.id;
   const docLimpo = limparDoc(req.params.documento);
   const [linhas] = await db.query(
-    `SELECT c.id AS comanda_id, c.identificador, c.fechada_em, cp.valor, cp.quitado_em
+    `SELECT c.id AS comanda_id, c.identificador, c.fechada_em, cp.valor, cp.valor_pago, cp.quitado_em
      FROM comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
      WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND cp.cliente_documento = ?
      ORDER BY c.fechada_em DESC`,
@@ -210,7 +210,7 @@ exports.liquidar = async (req, res) => {
   const docLimpo = limparDoc(req.params.documento);
   const [r] = await db.query(
     `UPDATE comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
-     SET cp.quitado_em = NOW()
+     SET cp.quitado_em = NOW(), cp.valor_pago = cp.valor
      WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND cp.cliente_documento = ? AND cp.quitado_em IS NULL`,
     [padaria_id, docLimpo]
   );
@@ -226,7 +226,7 @@ exports.liquidarSelecionados = async (req, res) => {
   if (!comandaIds.length) return res.status(400).json({ erro: 'Nenhuma comanda selecionada.' });
   const [r] = await db.query(
     `UPDATE comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
-     SET cp.quitado_em = NOW()
+     SET cp.quitado_em = NOW(), cp.valor_pago = cp.valor
      WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND cp.cliente_documento = ?
        AND cp.quitado_em IS NULL AND cp.comanda_id IN (?)`,
     [padaria_id, docLimpo, comandaIds]
@@ -242,12 +242,70 @@ exports.liquidarLancados = async (req, res) => {
   const docLimpo = limparDoc(req.params.documento);
   const [r] = await db.query(
     `UPDATE comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
-     SET cp.quitado_em = NOW()
+     SET cp.quitado_em = NOW(), cp.valor_pago = cp.valor
      WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND cp.cliente_documento = ?
        AND cp.quitado_em IS NULL AND cp.lancado_em IS NOT NULL`,
     [padaria_id, docLimpo]
   );
   res.json({ ok: true, quitados: r.affectedRows });
+};
+
+// Pagamento parcial — abate um valor qualquer do saldo devedor (ex: deve R$200, paga
+// R$100) sem precisar escolher quais compras específicas quitar. Aplica o valor nas
+// compras mais antigas primeiro (FIFO): quita inteira a mais velha, depois a próxima,
+// até o valor acabar — a última que sobrar fica parcialmente paga (valor_pago < valor),
+// sem marcar quitado_em, então continua contando como "em aberto" pelo resto.
+// Trava as linhas com FOR UPDATE: se dois caixas tentarem baixar o mesmo cliente ao
+// mesmo tempo, um espera o outro terminar, em vez de os dois abaterem do mesmo saldo
+// e sobrar menos dinheiro recebido do que realmente entrou.
+exports.pagarParcial = async (req, res) => {
+  const padaria_id = req.padaria.id;
+  const docLimpo = limparDoc(req.params.documento);
+  const valorPago = parseFloat(req.body.valor);
+  if (!(valorPago > 0)) return res.status(400).json({ erro: 'Informe um valor maior que zero.' });
+
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [abertas] = await conn.query(
+      `SELECT cp.id, cp.valor, cp.valor_pago
+       FROM comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
+       WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND cp.cliente_documento = ?
+         AND cp.quitado_em IS NULL
+       ORDER BY c.fechada_em ASC
+       FOR UPDATE`,
+      [padaria_id, docLimpo]
+    );
+    const saldoAntes = abertas.reduce((s, l) => s + (parseFloat(l.valor) - parseFloat(l.valor_pago)), 0);
+    if (!abertas.length) { await conn.rollback(); return res.status(400).json({ erro: 'Esse cliente não tem nada em aberto pra pagar.' }); }
+    if (valorPago > saldoAntes + 0.01) {
+      await conn.rollback();
+      return res.status(400).json({ erro: `O valor digitado (${valorPago.toFixed(2)}) é maior que o saldo devedor (${saldoAntes.toFixed(2)}).` });
+    }
+
+    let restante = valorPago;
+    for (const linha of abertas) {
+      if (restante <= 0) break;
+      const faltaNessaLinha = parseFloat(linha.valor) - parseFloat(linha.valor_pago);
+      const abateAqui = Math.min(restante, faltaNessaLinha);
+      const novoValorPago = parseFloat(linha.valor_pago) + abateAqui;
+      const quitouTudo = novoValorPago >= parseFloat(linha.valor) - 0.005;
+      await conn.query(
+        `UPDATE comanda_pagamentos SET valor_pago = ?, quitado_em = ? WHERE id = ?`,
+        [novoValorPago, quitouTudo ? new Date() : null, linha.id]
+      );
+      restante -= abateAqui;
+    }
+    await conn.commit();
+    const saldoDepois = saldoAntes - valorPago;
+    res.json({ ok: true, saldoAntes, valorPago, saldoDepois });
+  } catch (e) {
+    await conn.rollback().catch(() => {});
+    console.error('Erro ao pagar parcial do Faturado:', e);
+    res.status(500).json({ erro: 'Erro interno ao registrar o pagamento.' });
+  } finally {
+    conn.release();
+  }
 };
 
 exports.formatarCnpj = formatarCnpj;

@@ -8209,6 +8209,104 @@ async function selecionarClienteFaturadoUI(cliente) {
   `;
 }
 
+// ── Receber pagamento de Faturado direto da tela do caixa (total ou parcial) ──────
+// Reaproveita o mesmo cache de clientes usado em identificarClienteFaturadoUI.
+let _clientesFaturadoCachePag = null;
+async function abrirPagarFaturadoUI() {
+  _clientesFaturadoCachePag = await api('/clientes-faturado') || [];
+  document.getElementById('pagfat-nome').value = '';
+  document.getElementById('pagfat-nome-lista').classList.add('hidden');
+  document.getElementById('pagfat-resultado').innerHTML = '';
+  document.getElementById('modal-pagar-faturado').classList.remove('hidden');
+  setTimeout(() => document.getElementById('pagfat-nome')?.focus(), 100);
+}
+
+function filtrarPagarFaturadoUI(input) {
+  const termo = normalizarBusca(input.value.trim());
+  const lista = document.getElementById('pagfat-nome-lista');
+  document.getElementById('pagfat-resultado').innerHTML = '';
+  if (!termo) { lista.classList.add('hidden'); return; }
+  const filtrados = (_clientesFaturadoCachePag || []).filter(c => normalizarBusca(c.nome).includes(termo)).slice(0, 8);
+  if (!filtrados.length) {
+    lista.innerHTML = `<div class="autocomplete-item" style="color:var(--slate-400);cursor:default;">Nenhum cliente com esse nome.</div>`;
+    lista.classList.remove('hidden');
+    return;
+  }
+  lista.innerHTML = filtrados.map(c => `
+    <div class="autocomplete-item" onclick='selecionarClientePagarFaturadoUI(${JSON.stringify({ nome: c.nome, cnpj: c.cnpj, tipo: c.tipo })})'>
+      <strong>${c.nome}</strong> ${c.tipo === 'funcionario' ? '👤' : '🏢'}<br/><span style="font-size:11.5px;color:var(--slate-400);">${formatarCnpjUI(c.cnpj)}</span>
+    </div>
+  `).join('');
+  lista.classList.remove('hidden');
+}
+
+async function selecionarClientePagarFaturadoUI(cliente) {
+  document.getElementById('pagfat-nome').value = cliente.nome;
+  document.getElementById('pagfat-nome-lista').classList.add('hidden');
+  const resultadoEl = document.getElementById('pagfat-resultado');
+  resultadoEl.innerHTML = '<p style="font-size:12px;color:var(--slate-400);">Verificando saldo...</p>';
+
+  const saldoInfo = await api(`/clientes-faturado/documento/${cliente.cnpj}/saldo`);
+  if (!saldoInfo) { resultadoEl.innerHTML = ''; return; }
+
+  if (saldoInfo.saldoDevedor <= 0) {
+    resultadoEl.innerHTML = `
+      <div style="background:rgba(16,185,129,0.1);border-radius:10px;padding:12px;text-align:center;font-size:14px;">
+        ✅ ${cliente.nome} não tem nada em aberto.
+      </div>`;
+    return;
+  }
+
+  resultadoEl.innerHTML = `
+    <div style="background:var(--slate-50);border-radius:10px;padding:12px 14px;margin-bottom:12px;">
+      <div style="font-size:13px;color:var(--slate-500);">Saldo devedor atual</div>
+      <div style="font-size:26px;font-weight:800;color:var(--navy);">${fmtMoeda(saldoInfo.saldoDevedor)}</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Valor que o cliente está pagando agora</label>
+      <input type="text" id="pagfat-valor" class="form-control" inputmode="decimal" placeholder="0,00"
+        style="font-size:22px;padding:14px 16px;height:auto;" value="${fmtMoeda(saldoInfo.saldoDevedor).replace('R$','').trim()}"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();confirmarPagamentoParcialUI('${cliente.cnpj}','${cliente.nome.replace(/'/g,"\\'")}',${saldoInfo.saldoDevedor});}"/>
+    </div>
+    <button class="btn-primary full" onclick="confirmarPagamentoParcialUI('${cliente.cnpj}','${cliente.nome.replace(/'/g,"\\'")}',${saldoInfo.saldoDevedor})">✅ Confirmar pagamento</button>
+  `;
+  setTimeout(() => document.getElementById('pagfat-valor')?.focus(), 50);
+}
+
+async function confirmarPagamentoParcialUI(documento, nome, saldoAntes) {
+  const valor = paraNumeroMoeda(document.getElementById('pagfat-valor').value);
+  if (!(valor > 0)) { mostrarToast('Digita um valor maior que zero.', 'warn'); return; }
+  if (valor > saldoAntes + 0.01) { mostrarToast(`O valor não pode ser maior que o saldo devedor (${fmtMoeda(saldoAntes)}).`, 'warn'); return; }
+  const ehTotal = Math.abs(valor - saldoAntes) < 0.01;
+  if (!(await confirmarBonito(`Confirma o pagamento de ${fmtMoeda(valor)} de ${nome}?${ehTotal ? ' (quita tudo)' : ` (fica faltando ${fmtMoeda(saldoAntes - valor)})`}`))) return;
+
+  const r = await api(`/clientes-faturado/documento/${documento}/pagar-parcial`, { method: 'POST', body: { valor } });
+  if (!r) return;
+  mostrarToast(`Pagamento de ${fmtMoeda(valor)} registrado!`, 'ok');
+  fecharModal('modal-pagar-faturado');
+  imprimirComprovantePagamentoFaturadoUI(nome, r.saldoAntes, r.valorPago, r.saldoDepois);
+}
+
+// Comprovante impresso do pagamento — mostra saldo anterior, valor pago agora e
+// saldo que ainda fica em aberto, bem detalhado (pedido explícito do Estefano).
+function imprimirComprovantePagamentoFaturadoUI(nome, saldoAntes, valorPago, saldoDepois) {
+  const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
+  const agora = new Date().toLocaleString('pt-BR');
+  abrirJanelaImpressaoTermica(`
+    <h1>${nomePadaria}</h1>
+    <div class="sub">Comprovante de Pagamento — Faturado</div>
+    <div class="sub">${agora}</div>
+    <hr/>
+    <div class="sub" style="text-align:left;font-weight:800;">${nome}</div>
+    <hr/>
+    <div class="linha"><span class="nome">Saldo devedor antes</span><span class="valor">${fmtMoeda(saldoAntes)}</span></div>
+    <div class="linha"><span class="nome">Valor pago agora</span><span class="valor">${fmtMoeda(valorPago)}</span></div>
+    <div class="total"><span>Saldo devedor depois</span><span>${fmtMoeda(saldoDepois)}</span></div>
+    <hr/>
+    <div class="rodape">${saldoDepois <= 0.01 ? 'Fatura quitada — obrigado!' : 'Ainda resta saldo em aberto.'}</div>
+  `);
+}
+
 // ── Senha financeira (4 dígitos) pra confirmar o lançamento ──────────────
 let _resolverSenhaFaturado = null;
 

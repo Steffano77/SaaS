@@ -587,6 +587,11 @@ const migracoesProntas = (async () => {
         taxa_pct DECIMAL(5,2) NOT NULL DEFAULT 0,
         participacao_pct DECIMAL(5,2) NOT NULL DEFAULT 0
       )`,
+      // Pagamento parcial de Faturado: antes cada compra era "paga" ou "não paga"
+      // inteira — não dava pra abater um valor qualquer (ex: deve 200, paga 100) sem
+      // vincular a uma compra específica. valor_pago registra quanto já foi abatido
+      // dessa linha; quitado_em só é marcado quando valor_pago alcança o valor total.
+      'ALTER TABLE comanda_pagamentos ADD COLUMN valor_pago DECIMAL(10,2) NOT NULL DEFAULT 0',
     ];
     // Uma de cada vez, não todas juntas: num banco novinho (primeira vez rodando,
     // ex: servidor local de teste), várias dessas ALTER TABLE mexem na MESMA tabela
