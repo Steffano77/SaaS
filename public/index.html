@@ -793,7 +793,16 @@
             <button id="btn-equipe-modo-caixa" class="btn-icon hidden" onclick="mostrarPagina('equipe')" title="Equipe">👥</button>
             <button id="btn-sair-modo-caixa" class="btn-icon hidden" onclick="sair()" title="Sair">🚪</button>
             <button id="btn-caixa-modo-lancamento" onclick="abrirPainelCaixaUI()" class="btn-icon" title="Caixa (fechar, sangria, suprimento)">💰</button>
-            <button onclick="abrirPagarFaturadoUI()" class="btn-icon" title="Receber pagamento de cliente Faturado (fiado)">🔎💳</button>
+            <button onclick="abrirPagarFaturadoComSenhaUI()" class="btn-icon" title="Receber pagamento de cliente (fiado) — pede senha de gerente">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="7" r="3"/>
+                <path d="M9 7h-3"/><path d="M18 7h-3"/>
+                <path d="M4 20v-1a5 5 0 0 1 5-5h1"/>
+                <path d="M15 14a5 5 0 0 1 5 5v1"/>
+                <path d="M9 20h3"/>
+                <polyline points="16.5 17.5 18 19 20.5 16.5"/>
+              </svg>
+            </button>
             <button onclick="imprimirFichaCozinha()" class="btn-icon esconde-modo-caixa" title="Imprimir ficha pra cozinha">🖨️</button>
             <button onclick="fecharModalComanda()" class="btn-icon esconde-modo-caixa">✕</button>
           </div>
@@ -1250,7 +1259,7 @@
     <div id="modal-pagar-faturado" class="modal-overlay hidden">
       <div class="modal-box" style="max-width:640px;width:92vw;">
         <div class="modal-header">
-          <span class="modal-title" style="font-size:22px;">💳 Receber pagamento (Faturado)</span>
+          <span class="modal-title" style="font-size:22px;">💳 Receber pagamento (Clientes)</span>
           <button onclick="fecharModal('modal-pagar-faturado')" class="btn-icon">✕</button>
         </div>
         <div class="form-group" style="position:relative;">
@@ -2306,7 +2315,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20261022d"></script>
+<script src="/js/app.js?v=20261022e"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
