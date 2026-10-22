@@ -8656,7 +8656,13 @@ async function finalizarVendaUI() {
       cpf_nota: _cpfNotaSelecionado || null,
     }
   });
-  if (!r) return;
+  if (!r) {
+    // Cobrança recusada (ex: entrou item bem na hora de cobrar) — fecha as janelas de
+    // impressão já abertas e recarrega a comanda, pra atendente ver o total certo.
+    janelaImpressao?.close(); janelaGaveta?.close(); janelaFaturadoLoja?.close(); janelaFaturadoCliente?.close();
+    if (comandaAtualId) await abrirModalComanda(comandaAtualId);
+    return;
+  }
   _faturadoClienteSelecionado = null;
   _cpfNotaSelecionado = null;
   atualizarLinkCpfNotaUI();

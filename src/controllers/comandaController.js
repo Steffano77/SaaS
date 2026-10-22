@@ -206,6 +206,28 @@ exports.buscar = async (req, res) => {
   res.json({ ...comanda, itens, pagamentos });
 };
 
+// Mexe nos itens só com a comanda TRAVADA e ainda aberta (SELECT ... FOR UPDATE).
+// Bug real (Balcão C57, 21/10): a atendente bipou um item e cobrou no mesmo segundo —
+// o fechamento leu os itens antes do item novo entrar, cobrou só R$16,00 de R$19,29 e
+// a comanda fechou com item sem pagar (a nota fiscal ficou rejeitada pra sempre: 865).
+// Com a trava, quem chega depois espera o outro terminar e vê o status de verdade.
+async function comComandaAbertaTravada(comandaId, fn) {
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [[c]] = await conn.query(`SELECT status FROM comandas WHERE id = ? FOR UPDATE`, [comandaId]);
+    if (!c || c.status !== 'aberta') { await conn.rollback(); return { fechada: true }; }
+    const resultado = await fn(conn);
+    await conn.commit();
+    return { resultado };
+  } catch (e) {
+    await conn.rollback().catch(() => {});
+    throw e;
+  } finally {
+    conn.release();
+  }
+}
+
 // Adiciona um item (produto cadastrado ou avulso) à comanda
 exports.adicionarItem = async (req, res) => {
   const padaria_id = req.padaria.id;
@@ -236,12 +258,16 @@ exports.adicionarItem = async (req, res) => {
   if (!nome || !nome.trim()) return res.status(400).json({ erro: 'Nome do item é obrigatório.' });
   if (preco == null || isNaN(preco) || preco < 0) preco = 0;
 
-  const [r] = await db.query(
-    `INSERT INTO itens_comanda (comanda_id, produto_id, nome_produto, unidade, quantidade, preco_unitario) VALUES (?,?,?,?,?,?)`,
-    [comanda.id, pid, nome.trim(), unid, qtd, preco]
-  );
+  const t = await comComandaAbertaTravada(comanda.id, async (conn) => {
+    const [r] = await conn.query(
+      `INSERT INTO itens_comanda (comanda_id, produto_id, nome_produto, unidade, quantidade, preco_unitario) VALUES (?,?,?,?,?,?)`,
+      [comanda.id, pid, nome.trim(), unid, qtd, preco]
+    );
+    return r.insertId;
+  });
+  if (t.fechada) return res.status(400).json({ erro: 'Essa comanda já foi fechada — o item não entrou.' });
   await recalcularTotal(comanda.id);
-  res.status(201).json({ id: r.insertId });
+  res.status(201).json({ id: t.resultado });
 };
 
 // Remove um item da comanda
@@ -253,7 +279,9 @@ exports.removerItem = async (req, res) => {
   if (!comanda) return res.status(404).json({ erro: 'Comanda não encontrada.' });
   if (comanda.status !== 'aberta') return res.status(400).json({ erro: 'Essa comanda já foi fechada.' });
 
-  await db.query(`DELETE FROM itens_comanda WHERE id = ? AND comanda_id = ?`, [req.params.itemId, comanda.id]);
+  const t = await comComandaAbertaTravada(comanda.id, (conn) =>
+    conn.query(`DELETE FROM itens_comanda WHERE id = ? AND comanda_id = ?`, [req.params.itemId, comanda.id]));
+  if (t.fechada) return res.status(400).json({ erro: 'Essa comanda já foi fechada.' });
   await recalcularTotal(comanda.id);
   res.json({ ok: true });
 };
@@ -271,12 +299,16 @@ exports.alterarQuantidadeItem = async (req, res) => {
   if (!comanda) return res.status(404).json({ erro: 'Comanda não encontrada.' });
   if (comanda.status !== 'aberta') return res.status(400).json({ erro: 'Essa comanda já foi fechada.' });
 
-  const [r] = await db.query(
-    `UPDATE itens_comanda SET quantidade = quantidade + ?
-     WHERE id = ? AND comanda_id = ? AND quantidade + ? >= 1 AND quantidade + ? <= 9999`,
-    [delta, req.params.itemId, comanda.id, delta, delta]
-  );
-  if (!r.affectedRows) return res.status(400).json({ erro: 'Não dá pra mudar a quantidade desse item.' });
+  const t = await comComandaAbertaTravada(comanda.id, async (conn) => {
+    const [r] = await conn.query(
+      `UPDATE itens_comanda SET quantidade = quantidade + ?
+       WHERE id = ? AND comanda_id = ? AND quantidade + ? >= 1 AND quantidade + ? <= 9999`,
+      [delta, req.params.itemId, comanda.id, delta, delta]
+    );
+    return r.affectedRows;
+  });
+  if (t.fechada) return res.status(400).json({ erro: 'Essa comanda já foi fechada.' });
+  if (!t.resultado) return res.status(400).json({ erro: 'Não dá pra mudar a quantidade desse item.' });
   await recalcularTotal(comanda.id);
   res.json({ ok: true });
 };
@@ -394,12 +426,20 @@ exports.fechar = async (req, res) => {
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
-      if (tentativa > 1) {
-        const [[atual]] = await conn.query(`SELECT status FROM comandas WHERE id = ?`, [comanda.id]);
-        if (!atual || atual.status !== 'aberta') {
-          await conn.rollback();
-          return res.status(400).json({ erro: 'Essa comanda já foi fechada.' });
-        }
+      // Trava a comanda até o fim da cobrança (ninguém bipa/tira item no meio) e confere
+      // se os itens ainda são exatamente os que foram somados lá em cima — se entrou ou
+      // saiu item nesse meio-tempo, o pagamento não cobre mais o total: recusa e a tela
+      // recarrega a comanda com o total certo.
+      const [[atual]] = await conn.query(`SELECT status FROM comandas WHERE id = ? FOR UPDATE`, [comanda.id]);
+      if (!atual || atual.status !== 'aberta') {
+        await conn.rollback();
+        return res.status(400).json({ erro: 'Essa comanda já foi fechada.' });
+      }
+      const [itensAgora] = await conn.query(`SELECT id, subtotal FROM itens_comanda WHERE comanda_id = ?`, [comanda.id]);
+      const assinatura = l => l.map(i => `${i.id}:${parseFloat(i.subtotal).toFixed(2)}`).sort().join('|');
+      if (assinatura(itensAgora) !== assinatura(itens)) {
+        await conn.rollback();
+        return res.status(409).json({ erro: 'Entrou ou saiu item da comanda bem na hora de cobrar — confira o novo total e cobre de novo.', itens_mudaram: true });
       }
 
       const formasResumo = [];
