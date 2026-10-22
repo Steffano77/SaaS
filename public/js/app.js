@@ -6495,7 +6495,11 @@ async function reimprimirComandaUI(id) {
   imprimirReciboComanda(c, formaResumo);
 }
 
-async function abrirModalNovaComanda() {
+// Número já digitado num campo de busca (comanda que ainda não existe) — entra sozinho
+// no campo depois que o atendente escolhe o nome, pra comanda nunca nascer sem nome.
+let _numeroNovaComandaPre = '';
+async function abrirModalNovaComanda(numeroPre = '') {
+  _numeroNovaComandaPre = numeroPre;
   document.getElementById('cmd-novo-identificador').value = '';
   document.getElementById('cmd-novo-identificador').disabled = true;
   await carregarAtendentesSelect('cmd-novo-atendente');
@@ -6509,6 +6513,7 @@ async function abrirModalNovaComanda() {
 }
 
 function fecharModalNovaComanda() {
+  _numeroNovaComandaPre = '';
   document.getElementById('modal-nova-comanda').classList.add('hidden');
 }
 
@@ -6519,8 +6524,10 @@ function onMudarAtendenteNovaComanda(selectEl) {
   const identificadorInput = document.getElementById('cmd-novo-identificador');
   const selecionado = !!selectEl.value;
   identificadorInput.disabled = !selecionado;
-  if (selecionado) identificadorInput.focus();
-  else identificadorInput.value = '';
+  if (selecionado) {
+    if (!identificadorInput.value && _numeroNovaComandaPre) identificadorInput.value = _numeroNovaComandaPre;
+    identificadorInput.focus();
+  } else identificadorInput.value = '';
 }
 
 async function criarComanda() {
@@ -9119,10 +9126,11 @@ async function selecionarProdutoBuscaComanda(produtoId) {
   let alvo = data.abertas.find(c => c.identificador === termo) || todas.find(c => c.identificador === termo);
 
   if (!alvo) {
-    if (!confirm(`Nenhuma comanda "${termo}" aberta. Abrir uma nova com esse número?`)) return;
-    const r = await api('/comandas', { method: 'POST', body: { identificador: termo } });
-    if (!r) return;
-    alvo = { id: r.id };
+    // Comanda nova só nasce com o atendente escolhido (bug real: Enter no automático
+    // nessa pergunta abria comandas vazias e sem nome, ex: 889 e 240).
+    mostrarToast(`Comanda "${termo}" não existe — escolha o atendente pra abrir.`, 'warn');
+    abrirModalNovaComanda(termo);
+    return;
   } else if (alvo.status && alvo.status !== 'aberta') {
     mostrarToast('Essa comanda já foi fechada.', 'warn');
     return;
@@ -9306,7 +9314,7 @@ async function abrirComandaPorNumeroPdv(termoRaw) {
       mostrarToast('Tem item do balcão ainda sem conexão — espere sincronizar antes de juntar.', 'warn');
       return;
     }
-    if (!alvo && !confirm(`Nenhuma comanda "${termo}" aberta. Abrir uma nova com esse número, já com os itens do balcão?`)) return;
+    if (!alvo) { mostrarToast(`Comanda ${termo} não existe.`, 'warn'); return; }
     const r = await api(`/comandas/${atual.id}/juntar`, { method: 'POST', body: { identificador: termo } });
     if (!r) return;
     _balcaoComandaAtiva = null;
@@ -9315,13 +9323,9 @@ async function abrirComandaPorNumeroPdv(termoRaw) {
     return;
   }
 
-  if (!alvo) {
-    if (!confirm(`Nenhuma comanda "${termo}" aberta. Abrir uma nova com esse número?`)) return;
-    const r = await api('/comandas', { method: 'POST', body: { identificador: termo } });
-    if (!r) return;
-    abrirModalComanda(r.id);
-    return;
-  }
+  // O caixa só cobra — não abre comanda (número errado/bipado no campo errado criava
+  // comanda vazia e sem nome). Comanda nova é aberta no tablet, com o atendente.
+  if (!alvo) { mostrarToast(`Comanda ${termo} não existe.`, 'warn'); return; }
   abrirModalComanda(alvo.id);
 }
 
@@ -9355,12 +9359,8 @@ async function abrirComandaPorNumeroRapido() {
   let alvo = data.abertas.find(c => c.identificador === termo)
     || todas.find(c => c.identificador === termo);
   if (!alvo) {
-    if (!confirm(`Nenhuma comanda "${termo}" aberta. Abrir uma nova com esse número?`)) return;
-    const r = await api('/comandas', { method: 'POST', body: { identificador: termo } });
-    if (!r) return;
     input.value = '';
-    await carregarComandas();
-    abrirModalComanda(r.id);
+    abrirModalNovaComanda(termo);
     return;
   }
   input.value = '';
@@ -9377,12 +9377,8 @@ async function buscarComandaPorNumero() {
   let alvo = data.abertas.find(c => c.identificador === termo)
     || todas.find(c => c.identificador === termo);
   if (!alvo) {
-    if (!confirm(`Nenhuma comanda "${termo}" aberta. Abrir uma nova com esse número?`)) return;
-    const r = await api('/comandas', { method: 'POST', body: { identificador: termo } });
-    if (!r) return;
     document.getElementById('cmd-busca-numero').value = '';
-    await carregarComandas();
-    abrirModalComanda(r.id);
+    abrirModalNovaComanda(termo);
     return;
   }
   document.getElementById('cmd-busca-numero').value = '';
