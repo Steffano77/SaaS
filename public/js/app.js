@@ -5711,7 +5711,10 @@ async function confirmarFecharCaixa() {
   // Chrome bloquear o popup silenciosamente às vezes, sem aviso nenhum na tela. Se no
   // final não for pra imprimir (ex: recusou o fechamento, ou a segunda confirmação de
   // impressão foi "não"), essa janela em branco é fechada mais abaixo.
-  const janelaPre = window.open('', '_blank', 'width=380,height=600');
+  // Sem pop-up: o comprovante do fechamento sai por um iframe escondido na própria
+  // tela (ver imprimirViaIframe) — não depende de janela aberta antes nem de bloqueio
+  // de pop-up, e nada fecha a impressão no meio.
+  const janelaPre = null;
   const caixaSnapshot = caixaAtualCache; // guarda os dados fixos do caixa (nome, aberto_em...) pro comprovante
   const r = await api(`/caixa/${CAIXA_LOCAL_ID}/fechar`, { method: 'POST', body: { fechamento_formas, observacao, despesas } });
   if (!r) { janelaPre?.close(); return; }
@@ -5772,14 +5775,43 @@ async function abrirHistoricoCaixas() {
 async function reimprimirFechamentoUI(caixaId) {
   // Mesmo cuidado do fechamento original: abre a janela antes do "await", senão o
   // navegador pode bloquear o popup depois da espera de rede.
-  const janelaPre = window.open('', '_blank', 'width=380,height=600');
   const r = await api(`/caixa/${caixaId}/reimprimir-fechamento`);
-  if (!r) { janelaPre?.close(); return; }
-  imprimirFechamentoCaixa(r.caixa, r.conferencia, r.diferenca, janelaPre);
+  if (!r) return;
+  imprimirFechamentoCaixa(r.caixa, r.conferencia, r.diferenca, null);
 }
 
 // Comprovante impresso do fechamento de caixa — formato "relatório completo de
 // sessão" (mesmo padrão que a gerente pediu, igual ao relatório do Saurus).
+// Imprime por um iframe escondido dentro da própria tela, em vez de pop-up. Bug real
+// (Caixa 2 da Jota 2, repetido): o comprovante de fechamento — o papel mais longo do
+// sistema — às vezes não saía. O caminho por pop-up tem várias formas de falhar sem
+// aviso (janela aberta antes da espera do servidor, bloqueio de pop-up, e os timers
+// que fecham a janela em 2s, que podem cortar uma impressão demorada). O iframe não
+// tem nenhuma delas: não é pop-up, não fecha sozinho no meio, e só é removido 2 min
+// depois (ou ao imprimir o próximo).
+function imprimirViaIframe(bodyHtml) {
+  document.getElementById('pp-iframe-impressao')?.remove();
+  const f = document.createElement('iframe');
+  f.id = 'pp-iframe-impressao';
+  f.setAttribute('aria-hidden', 'true');
+  f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+  document.body.appendChild(f);
+  const d = f.contentWindow.document;
+  d.open();
+  d.write(`<!doctype html><html><head><meta charset="utf-8"><title>Imprimir</title><style>
+    @page { size: 80mm auto; margin: 0; }
+    * { box-sizing: border-box; }
+    body { width: 72mm; margin: 0 auto; padding: 6px 4px; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; color: #000; }
+  </style></head><body>${bodyHtml}</body></html>`);
+  d.close();
+  // Espera o layout montar antes de mandar pra impressora.
+  setTimeout(() => {
+    try { f.contentWindow.focus(); f.contentWindow.print(); }
+    catch (e) { console.error('[pp-print] iframe print() deu erro:', e); mostrarToast('Não consegui imprimir — use Caixa → Histórico → Reimprimir.', 'warn'); }
+    setTimeout(() => f.remove(), 120000);
+  }, 400);
+}
+
 function imprimirFechamentoCaixa(caixa, conferencia, diferenca, janelaPre) {
   // Layout copiado do "Relatório Completo de Sessão" do Saurus (pedido do dono, que já
   // conhece esse papel de cor): mesmas seções, na mesma ordem, com os nomes em
@@ -5813,7 +5845,8 @@ function imprimirFechamentoCaixa(caixa, conferencia, diferenca, janelaPre) {
   const dif = parseFloat(diferenca) || 0;
   const difLabel = Math.abs(dif) < 0.01 ? '0,00' : `(${dif > 0 ? 'Sobra' : 'Falta'}) ${n2(Math.abs(dif))}`;
 
-  abrirJanelaImpressaoTermica(`
+  janelaPre?.close?.();
+  imprimirViaIframe(`
     <style>
       .cab { text-align:center; font-size:11px; border-top:1px dashed #000; border-bottom:1px dashed #000; padding:3px 0; margin-bottom:4px; }
       .st { font-size:11px; border-bottom:1px dashed #000; padding:4px 0 2px; margin:4px 0 3px; }
@@ -5897,7 +5930,7 @@ function imprimirFechamentoCaixa(caixa, conferencia, diferenca, janelaPre) {
     <div class="sep"></div>
     <div style="font-size:11px;">Fim do Arquivo. ${dataHora(caixa?.fechado_em)}</div>
     <div class="sep"></div>
-  `, janelaPre);
+  `);
 }
 
 /* ===================== EQUIPE (tela própria de gerenciar atendentes) ===================== */
