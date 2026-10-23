@@ -7550,8 +7550,25 @@ document.addEventListener('keydown', (e) => {
 // janelaPre: reaproveita uma janela já aberta ainda dentro do clique/tecla que
 // disparou a ação (ver finalizarVendaUI) — abrir na hora, sem esperar rede antes,
 // evita o Chrome bloquear o pop-up silenciosamente depois de um await.
-function abrirGavetaUI(janelaPre) {
-  const janela = janelaPre || window.open('', '_blank', 'width=200,height=200');
+// Primeiro tenta pelo servidor da loja: ele manda o comando de abrir gaveta direto pra
+// impressora desse caixa, sem imprimir nada (ver gavetaController). Só se esse caixa não
+// estiver configurado lá é que cai no jeito antigo do tíquete em branco, abaixo.
+async function abrirGavetaUI(janelaPre) {
+  try {
+    const r = await fetch(`${API}/gaveta/abrir`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}`, 'X-Aparelho': APARELHO_ID },
+      body: JSON.stringify({ caixa_nome: CAIXA_NOME_FIXO || caixaAtualCache?.nome || '' }),
+    });
+    if (r.ok) { try { janelaPre?.close(); } catch (e) {} return; }
+    const d = await r.json().catch(() => ({}));
+    if (!d.sem_config) { try { janelaPre?.close(); } catch (e) {} mostrarToast(d.erro || 'Não consegui abrir a gaveta.', 'warn'); return; }
+  } catch (e) { /* servidor fora do ar: tenta o jeito antigo */ }
+  abrirGavetaPorImpressao(janelaPre);
+}
+
+function abrirGavetaPorImpressao(janelaPre) {
+  const janela = (janelaPre && !janelaPre.closed) ? janelaPre : window.open('', '_blank', 'width=200,height=200');
   if (!janela) { mostrarToast('O navegador bloqueou a janela — permite pop-up nesse site.', 'warn'); return; }
   janela.document.write(`<!doctype html><html><head><meta charset="utf-8"/>
     <style>@page{margin:0;}body{margin:0;padding:0;height:1px;font-size:1px;line-height:1px;}</style></head><body>&nbsp;

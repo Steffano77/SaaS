@@ -250,6 +250,7 @@ router.post('/comandas/:id/enviar',    auth, authPremium, wrap(comandaCtrl.envia
 router.get('/caixa/abertos',        auth, authPremium, wrap(caixaCtrl.abertos));
 router.get('/caixa/historico',      auth, authPremium, wrap(caixaCtrl.historico));
 router.get('/caixa/:id',            auth, authPremium, wrap(caixaCtrl.buscar));
+router.post('/gaveta/abrir',        auth, authPremium, require('../controllers/gavetaController').abrir);
 router.post('/caixa/abrir',         auth, authPremium, wrap(caixaCtrl.abrir));
 
 router.post('/caixa/:id/fechar',    auth, authPremium, wrap(caixaCtrl.fechar));
