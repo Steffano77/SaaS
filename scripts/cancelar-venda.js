@@ -24,6 +24,7 @@ const db = require('../src/database/connection');
     console.table(comandas); await db.end(); process.exit(1);
   }
   const c = comandas[0];
+  if (c.status === 'aberta') { console.log('Essa comanda ainda está ABERTA — cancele pela tela, não por aqui.'); await db.end(); process.exit(1); }
   const [itens] = await db.query(`SELECT produto_id, nome_produto, quantidade, subtotal FROM itens_comanda WHERE comanda_id = ?`, [c.id]);
   const [pags] = await db.query(`SELECT forma_pagamento, valor, troco, cliente_nome, quitado_em FROM comanda_pagamentos WHERE comanda_id = ?`, [c.id]);
   const [notas] = await db.query(`SELECT id, numero, status FROM notas_fiscais WHERE comanda_id = ?`, [c.id]);
