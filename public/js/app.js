@@ -6717,6 +6717,7 @@ async function abrirModalComanda(id) {
   // essa função de novo) não pode apagar o CPF/CNPJ que a atendente já tinha digitado —
   // bug real: isso zerava o documento sem avisar ninguém, e a nota saía sem ele.
   const mesmaComanda = comandaAtualId === c.id;
+  if (!mesmaComanda) _gavetaAbertaNaVenda = false;
   comandaAtualId = c.id;
   comandaPagamentosPendentes = [];
   resetEscolhaNFCe();
@@ -7553,6 +7554,26 @@ document.addEventListener('keydown', (e) => {
 // Primeiro tenta pelo servidor da loja: ele manda o comando de abrir gaveta direto pra
 // impressora desse caixa, sem imprimir nada (ver gavetaController). Só se esse caixa não
 // estiver configurado lá é que cai no jeito antigo do tíquete em branco, abaixo.
+// Abre a gaveta só pelo servidor (sem o tíquete em branco de reserva). Devolve true se o
+// servidor cuidou (abriu ou tentou), false se esse caixa não tem gaveta direta configurada.
+async function abrirGavetaDiretoUI() {
+  try {
+    const r = await fetch(`${API}/gaveta/abrir`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}`, 'X-Aparelho': APARELHO_ID },
+      body: JSON.stringify({ caixa_nome: CAIXA_NOME_FIXO || caixaAtualCache?.nome || '' }),
+    });
+    if (r.ok) return true;
+    const d = await r.json().catch(() => ({}));
+    if (d.sem_config) return false;
+    mostrarToast(d.erro || 'Não consegui abrir a gaveta.', 'warn');
+    return true;
+  } catch (e) { return false; }
+}
+
+// Gaveta já aberta ao escolher Dinheiro nessa venda — no fim da venda não abre de novo.
+let _gavetaAbertaNaVenda = false;
+
 async function abrirGavetaUI(janelaPre) {
   try {
     const r = await fetch(`${API}/gaveta/abrir`, {
@@ -7741,11 +7762,12 @@ async function adicionarPagamentoUI(forma) {
 
   // Dinheiro sempre pede o valor recebido — é o único jeito de calcular troco.
   if (forma === 'Dinheiro') {
-    // A abertura automática da gaveta aqui foi DESLIGADA — abrir uma janela de
-    // impressão nesse momento parece causar um recarregamento da tela nesse PC (perdia
-    // a escolha "com nota" da etapa 1, zerando a emissão fiscal do dia). Usa a tecla G
-    // pra abrir manualmente até resolver a causa direito.
+    // Gaveta abre NA HORA que escolhe Dinheiro (pedido do Estefano), pelo servidor —
+    // sem janela de impressão, que era o que recarregava a tela nesse momento antes e
+    // por isso tinha sido desligado aqui. Caixa sem gaveta direta configurada continua
+    // abrindo só no fim da venda, como antes.
     abrirModalValorPagamento(forma, restante, true);
+    if (!_gavetaAbertaNaVenda) abrirGavetaDiretoUI().then(ok => { if (ok) _gavetaAbertaNaVenda = true; });
     return;
   }
 
@@ -8814,7 +8836,8 @@ async function finalizarVendaOfflineUI(comNotaCapturada) {
   try {
     // Abre a janela da gaveta JÁ, ainda dentro do clique — depois do await do
     // confirmarBonito ela pode ser bloqueada em silêncio pelo navegador.
-    const temDinheiro = comandaPagamentosPendentes.some(p => p.forma_pagamento === 'Dinheiro');
+    const temDinheiro = comandaPagamentosPendentes.some(p => p.forma_pagamento === 'Dinheiro') && !_gavetaAbertaNaVenda;
+    _gavetaAbertaNaVenda = false;
     const janelaGaveta = temDinheiro ? window.open('', '_blank', 'width=200,height=200') : null;
     // Pagamento em Faturado com funcionário/cliente identificado — mesmo offline, precisa
     // vincular certinho (senão o saldo dele nunca sobe) e imprimir o comprovante de
@@ -8917,7 +8940,9 @@ async function finalizarVendaUI() {
   // Venda em dinheiro — abre a janela da gaveta JÁ (mesmo motivo da janela de cima:
   // depois do await ela pode ser bloqueada em silêncio). Só imprime de verdade lá
   // embaixo, se a venda for confirmada.
-  const temDinheiro = comandaPagamentosPendentes.some(p => p.forma_pagamento === 'Dinheiro');
+  // Se a gaveta já abriu ao escolher Dinheiro, não abre de novo no fim da venda.
+  const temDinheiro = comandaPagamentosPendentes.some(p => p.forma_pagamento === 'Dinheiro') && !_gavetaAbertaNaVenda;
+  _gavetaAbertaNaVenda = false;
   const janelaGaveta = temDinheiro ? window.open('', '_blank', 'width=200,height=200') : null;
   // Pagamento em Faturado com funcionário/cliente identificado — abre as 2 janelas do
   // comprovante (via loja + via cliente) JÁ, mesmo motivo das de cima. Se abrir só depois
