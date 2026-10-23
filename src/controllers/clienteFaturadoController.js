@@ -104,15 +104,19 @@ exports.atualizar = async (req, res) => {
   const telefone = String(req.body.telefone || '').trim() || null;
   if (!nome) return res.status(400).json({ erro: 'Nome é obrigatório.' });
 
-  // Limite só existe (e só pode ser mudado) pra funcionário — CNPJ (empresa) continua sem limite.
+  // Funcionário sempre tem limite. Empresa (CNPJ) também pode ter, opcional: vazio ou 0
+  // = sem limite (NULL), que é como todas as empresas já cadastradas continuam.
   const [[atual]] = await db.query(
     `SELECT tipo FROM clientes_faturado WHERE id = ? AND padaria_id = ?`, [req.params.id, padaria_id]
   );
   if (!atual) return res.status(404).json({ erro: 'Cliente não encontrado.' });
 
-  if (atual.tipo === 'funcionario' && req.body.limite !== undefined && req.body.limite !== null && req.body.limite !== '') {
-    const limite = parseFloat(req.body.limite);
-    if (isNaN(limite) || limite < 0) return res.status(400).json({ erro: 'Limite inválido.' });
+  const limiteVeio = req.body.limite !== undefined && req.body.limite !== null;
+  const limiteVazio = !limiteVeio || String(req.body.limite).trim() === '';
+  if ((atual.tipo === 'funcionario' && !limiteVazio) || (atual.tipo === 'empresa' && limiteVeio)) {
+    let limite = limiteVazio ? null : parseFloat(String(req.body.limite).replace(',', '.'));
+    if (limite !== null && (isNaN(limite) || limite < 0)) return res.status(400).json({ erro: 'Limite inválido.' });
+    if (atual.tipo === 'empresa' && !(limite > 0)) limite = null;
     await db.query(
       `UPDATE clientes_faturado SET nome = ?, endereco = ?, telefone = ?, limite = ? WHERE id = ? AND padaria_id = ?`,
       [nome, endereco, telefone, limite, req.params.id, padaria_id]
@@ -148,7 +152,9 @@ exports.saldo = async (req, res) => {
     [padaria_id, docLimpo]
   );
   const saldoDevedor = parseFloat(saldo);
-  const limite = cliente.tipo === 'funcionario' ? parseFloat(cliente.limite || 0) : null;
+  const limite = cliente.tipo === 'funcionario'
+    ? parseFloat(cliente.limite || 0)
+    : (parseFloat(cliente.limite) > 0 ? parseFloat(cliente.limite) : null); // empresa: só se tiver limite
   res.json({
     tipo: cliente.tipo,
     limite,
