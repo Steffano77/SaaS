@@ -304,7 +304,7 @@ async function toggleManutencaoModoCaixa() {
     return;
   }
 
-  const pin = prompt('Senha financeira, pra liberar o menu completo (manutenção):');
+  const pin = await pedirSenhaTela('Manutenção', 'Senha financeira, pra liberar o menu completo');
   if (pin === null) return;
   const r = await fetch(`${API}/financeiro/pin`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` },
@@ -785,6 +785,26 @@ function financeiroDesbloqueado() {
 let _pinCallback = null;
 let _paginaAposPin = null; // qual página abrir depois de digitar o PIN certo (financeiro ou equipe)
 let _pinJaConfirmadoAgora = false; // evita reabrir o PIN de novo logo após confirmar (loop)
+// Pede uma senha numa janela no meio da tela (igual os outros pedidos de PIN), no lugar
+// do prompt() do navegador. Devolve o texto digitado, ou null se cancelar.
+let _resolverSenhaTela = null;
+function pedirSenhaTela(titulo, sub) {
+  return new Promise(resolve => {
+    _resolverSenhaTela = resolve;
+    document.getElementById('senha-tela-titulo').textContent = titulo;
+    document.getElementById('senha-tela-sub').textContent = sub;
+    document.getElementById('senha-tela-input').value = '';
+    document.getElementById('modal-senha-tela').classList.remove('hidden');
+    setTimeout(() => document.getElementById('senha-tela-input')?.focus(), 100);
+  });
+}
+function _fecharSenhaTela(ok) {
+  const valor = document.getElementById('senha-tela-input').value;
+  document.getElementById('modal-senha-tela').classList.add('hidden');
+  const r = _resolverSenhaTela; _resolverSenhaTela = null;
+  if (r) r(ok ? valor : null);
+}
+
 function pedirPinPara(callback) {
   if (financeiroDesbloqueado()) { callback(); return; }
   _pinCallback = callback;
