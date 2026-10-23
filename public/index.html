@@ -2333,24 +2333,24 @@
 <!-- Editar cliente do Faturado (empresa ou funcionário) — fica depois da lista de clientes no
      HTML pra abrir por cima dela. -->
 <div id="modal-editar-cliente-faturado" class="modal-overlay hidden">
-  <div class="modal-box" style="max-width:640px;width:92vw;">
+  <div class="modal-box" style="max-width:640px;width:92vw;padding:0 0 24px;">
     <div class="modal-header">
       <span class="modal-title" id="edit-cf-titulo" style="font-size:22px;">✏️ Editar</span>
       <button onclick="fecharEditarClienteFaturado()" class="btn-icon">✕</button>
     </div>
-    <p id="edit-cf-doc" style="color:var(--slate-500);font-size:16px;font-weight:600;margin:4px 0 14px;"></p>
-    <div class="form-group"><label class="form-label" style="font-size:16px;margin-bottom:8px;">Nome / Razão social</label><input id="edit-cf-nome" class="form-control" autocomplete="off" style="font-size:22px;padding:16px 18px;height:auto;"/></div>
-    <div class="form-group"><label class="form-label" style="font-size:16px;margin-bottom:8px;">Endereço</label><input id="edit-cf-endereco" class="form-control" autocomplete="off" style="font-size:22px;padding:16px 18px;height:auto;"/></div>
-    <div class="form-group"><label class="form-label" style="font-size:16px;margin-bottom:8px;">Telefone</label><input id="edit-cf-telefone" class="form-control" autocomplete="off" style="font-size:22px;padding:16px 18px;height:auto;"/></div>
-    <div class="form-group" id="edit-cf-limite-grupo"><label class="form-label" style="font-size:16px;margin-bottom:8px;">Limite de crédito (R$)</label><input id="edit-cf-limite" class="form-control" inputmode="decimal" autocomplete="off" style="font-size:22px;padding:16px 18px;height:auto;"/></div>
-    <div style="display:flex;gap:12px;margin-top:12px;">
+    <p id="edit-cf-doc" style="padding:0 28px;color:var(--slate-500);font-size:16px;font-weight:600;margin:4px 0 14px;"></p>
+    <div class="form-group" style="padding:0 28px;"><label class="form-label" style="font-size:16px;margin-bottom:8px;">Nome / Razão social</label><input id="edit-cf-nome" class="form-control" autocomplete="off" style="font-size:22px;padding:16px 18px;height:auto;"/></div>
+    <div class="form-group" style="padding:0 28px;"><label class="form-label" style="font-size:16px;margin-bottom:8px;">Endereço</label><input id="edit-cf-endereco" class="form-control" autocomplete="off" style="font-size:22px;padding:16px 18px;height:auto;"/></div>
+    <div class="form-group" style="padding:0 28px;"><label class="form-label" style="font-size:16px;margin-bottom:8px;">Telefone</label><input id="edit-cf-telefone" class="form-control" autocomplete="off" style="font-size:22px;padding:16px 18px;height:auto;"/></div>
+    <div class="form-group" id="edit-cf-limite-grupo" style="padding:0 28px;"><label class="form-label" style="font-size:16px;margin-bottom:8px;">Limite de crédito (R$)</label><input id="edit-cf-limite" class="form-control" inputmode="decimal" autocomplete="off" style="font-size:22px;padding:16px 18px;height:auto;"/></div>
+    <div style="display:flex;gap:12px;margin-top:12px;padding:0 28px;">
       <button onclick="fecharEditarClienteFaturado()" class="btn-ghost" style="flex:1;font-size:18px;padding:16px;">Cancelar</button>
       <button onclick="salvarEditarClienteFaturado()" class="btn-primary" style="flex:1;font-size:18px;padding:16px;">Salvar</button>
     </div>
   </div>
 </div>
 
-<script src="/js/app.js?v=20261023g"></script>
+<script src="/js/app.js?v=20261023h"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
