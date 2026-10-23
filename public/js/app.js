@@ -7768,7 +7768,7 @@ function cartaoClienteFaturadoHtml(c) {
           <button class="btn-icon" title="Extrato / imprimir" onclick="abrirExtratoFaturadoUI('${c.cnpj}','${nomeEsc}')">📋</button>
           ${ehFuncionario ? `<button class="btn-icon" title="Imprimir comprovante pro RH (nome + valor gasto + saldo)" onclick="imprimirComprovanteRhUI('${nomeEsc}',${saldo},${limite})">🧾</button>` : ''}
           ${saldo > 0 ? `<button class="btn-icon" title="Dar baixa (marcar como pago)" onclick="darBaixaFaturadoUI('${c.cnpj}','${nomeEsc}')">💰</button>` : ''}
-          <button class="btn-icon" title="Editar" onclick="editarClienteFaturadoUI(${c.id},'${nomeEsc}','${(c.endereco||'').replace(/'/g,"\\'")}','${(c.telefone||'').replace(/'/g,"\\'")}','${c.tipo}',${limite})">✏️</button>
+          <button class="btn-icon" title="Editar" onclick="editarClienteFaturadoUI(${c.id})">✏️</button>
           <button class="btn-icon" title="Excluir" onclick="excluirClienteFaturadoUI(${c.id})">🗑️</button>
         </div>
       </div>
@@ -8173,20 +8173,49 @@ async function abrirNovoClienteFaturadoUI() {
   abrirClientesFaturado();
 }
 
-async function editarClienteFaturadoUI(id, nomeAtual, enderecoAtual, telefoneAtual, tipo, limiteAtual) {
-  const nome = prompt('Nome / Razão social:', nomeAtual);
-  if (!nome || !nome.trim()) return;
-  const endereco = prompt('Endereço:', enderecoAtual) || '';
-  const telefone = prompt('Telefone:', telefoneAtual) || '';
-  const body = { nome, endereco, telefone };
-  if (tipo === 'funcionario') {
-    const limiteDigitado = prompt('Limite de crédito desse funcionário (R$):', String(limiteAtual || 0));
-    if (limiteDigitado === null) return; // cancelou
-    body.limite = limiteDigitado.replace(',', '.');
+// Editar cliente do Faturado numa janela com os campos (no lugar de vários prompt()).
+// Bug real: o botão passava nome/endereço/telefone dentro do onclick — endereço de
+// empresa com aspas ou quebra de linha quebrava o JavaScript e o botão não fazia nada.
+// Agora o botão só manda o id, e os dados vêm da lista já carregada.
+let _editandoClienteFaturadoId = null;
+function editarClienteFaturadoUI(id) {
+  const c = (_clientesFaturadoListaCache || []).find(x => Number(x.id) === Number(id));
+  if (!c) { mostrarToast('Cliente não encontrado — feche e abra a lista de novo.', 'warn'); return; }
+  _editandoClienteFaturadoId = c.id;
+  const ehFuncionario = c.tipo === 'funcionario';
+  document.getElementById('edit-cf-titulo').textContent = ehFuncionario ? '✏️ Editar funcionário' : '✏️ Editar empresa';
+  document.getElementById('edit-cf-doc').textContent = formatarCnpjUI(c.cnpj);
+  document.getElementById('edit-cf-nome').value = c.nome || '';
+  document.getElementById('edit-cf-endereco').value = c.endereco || '';
+  document.getElementById('edit-cf-telefone').value = c.telefone || '';
+  document.getElementById('edit-cf-limite').value = ehFuncionario ? String(parseFloat(c.limite || 0)).replace('.', ',') : '';
+  document.getElementById('edit-cf-limite-grupo').classList.toggle('hidden', !ehFuncionario);
+  document.getElementById('modal-editar-cliente-faturado').classList.remove('hidden');
+  setTimeout(() => document.getElementById('edit-cf-nome')?.focus(), 100);
+}
+
+function fecharEditarClienteFaturado() {
+  _editandoClienteFaturadoId = null;
+  document.getElementById('modal-editar-cliente-faturado').classList.add('hidden');
+}
+
+async function salvarEditarClienteFaturado() {
+  const id = _editandoClienteFaturadoId;
+  if (!id) return;
+  const nome = document.getElementById('edit-cf-nome').value.trim();
+  if (!nome) { mostrarToast('O nome é obrigatório.', 'warn'); return; }
+  const body = {
+    nome,
+    endereco: document.getElementById('edit-cf-endereco').value.trim(),
+    telefone: document.getElementById('edit-cf-telefone').value.trim(),
+  };
+  if (!document.getElementById('edit-cf-limite-grupo').classList.contains('hidden')) {
+    body.limite = document.getElementById('edit-cf-limite').value.trim().replace(',', '.');
   }
   const r = await api(`/clientes-faturado/${id}`, { method: 'PUT', body });
   if (!r) return;
   mostrarToast('Atualizado!', 'ok');
+  fecharEditarClienteFaturado();
   _clientesFaturadoCache = null;
   abrirClientesFaturado();
 }
