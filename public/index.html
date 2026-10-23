@@ -2330,7 +2330,27 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20261023c"></script>
+<!-- Editar cliente do Faturado (empresa ou funcionário) — fica depois da lista de clientes no
+     HTML pra abrir por cima dela. -->
+<div id="modal-editar-cliente-faturado" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-header">
+      <span class="modal-title" id="edit-cf-titulo">✏️ Editar</span>
+      <button onclick="fecharEditarClienteFaturado()" class="btn-icon">✕</button>
+    </div>
+    <p id="edit-cf-doc" style="color:var(--slate-500);font-size:13px;margin:-4px 0 12px;"></p>
+    <div class="form-group"><label class="form-label">Nome / Razão social</label><input id="edit-cf-nome" class="form-control" autocomplete="off"/></div>
+    <div class="form-group"><label class="form-label">Endereço</label><input id="edit-cf-endereco" class="form-control" autocomplete="off"/></div>
+    <div class="form-group"><label class="form-label">Telefone</label><input id="edit-cf-telefone" class="form-control" autocomplete="off"/></div>
+    <div class="form-group" id="edit-cf-limite-grupo"><label class="form-label">Limite de crédito (R$)</label><input id="edit-cf-limite" class="form-control" inputmode="decimal" autocomplete="off"/></div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button onclick="fecharEditarClienteFaturado()" class="btn-ghost" style="flex:1;">Cancelar</button>
+      <button onclick="salvarEditarClienteFaturado()" class="btn-primary" style="flex:1;">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js?v=20261023d"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
