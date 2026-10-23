@@ -1195,6 +1195,21 @@
     </section>
 
     <!-- Modal PIN Financeiro -->
+    <!-- Pedido de senha no meio da tela (no lugar do prompt() do navegador) — usado pra
+         liberar o menu completo (manutenção). Campo livre: a senha mestre pode ter mais de 4 dígitos. -->
+    <div id="modal-senha-tela" class="modal-overlay hidden">
+      <div class="modal-box pin-modal-box">
+        <div class="pin-modal-icon">🔒</div>
+        <h3 class="pin-modal-title" id="senha-tela-titulo">Área restrita</h3>
+        <p class="pin-modal-sub" id="senha-tela-sub"></p>
+        <input type="password" id="senha-tela-input" class="form-control" inputmode="numeric" autocomplete="off"
+          placeholder="••••" style="text-align:center;font-size:22px;letter-spacing:0.3em;"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();_fecharSenhaTela(true);}if(event.key==='Escape'){event.preventDefault();_fecharSenhaTela(false);}"/>
+        <button onclick="_fecharSenhaTela(true)" class="btn-primary pin-btn">Entrar</button>
+        <button onclick="_fecharSenhaTela(false)" class="pin-cancelar">Cancelar</button>
+      </div>
+    </div>
+
     <div id="modal-pin-financeiro" class="modal-overlay hidden">
       <div class="modal-box pin-modal-box">
         <div class="pin-modal-icon">🔒</div>
@@ -2315,7 +2330,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20261022g"></script>
+<script src="/js/app.js?v=20261023b"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
