@@ -1126,6 +1126,7 @@ const APARELHO_ID = (() => {
 })();
 
 async function api(path, opts = {}) {
+  const tinhaToken = !!TOKEN;
   const funcToken = sessionStorage.getItem('func_token');
   opts.headers = { ...opts.headers, 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json', 'X-Aparelho': APARELHO_ID };
   if (funcToken) opts.headers['X-Func-Token'] = funcToken;
@@ -1160,6 +1161,11 @@ async function api(path, opts = {}) {
         sessionStorage.removeItem('func_role');
         return { ok: false, precisa_login_funcionario: true };
       }
+      // Chamada que já saiu SEM login (ex: alguma atualização de tela que terminou logo
+      // depois do sair() do fechamento de caixa) não é sessão expirada — só ignora.
+      // Bug real (caixas da Jota 2): esse 401 recarregava a página no meio da
+      // impressão do comprovante de fechamento, que sumia sem aviso nenhum.
+      if (!tinhaToken) return null;
       localStorage.removeItem('panificapro_token');
       localStorage.removeItem('pptoken');
       location.reload();
@@ -5760,7 +5766,9 @@ async function confirmarFecharCaixa() {
   // falhava em silêncio em alguns tablets/navegadores em modo app, fechando a
   // janela de impressão sem nunca imprimir o comprovante de fechamento.
   if (cego || await confirmarBonito('Imprimir o comprovante de fechamento de caixa?')) {
-    imprimirFechamentoCaixa(caixaSnapshot, r.conferencia, dif, janelaPre);
+    // Espera o comprovante ir pra impressora ANTES de sair pro login — sair() apaga o
+    // login, e qualquer coisa da tela que terminasse no meio da impressão derrubava ela.
+    await imprimirFechamentoCaixa(caixaSnapshot, r.conferencia, dif, janelaPre);
   } else {
     janelaPre?.close();
   }
@@ -5810,6 +5818,7 @@ async function reimprimirFechamentoUI(caixaId) {
 // tem nenhuma delas: não é pop-up, não fecha sozinho no meio, e só é removido 2 min
 // depois (ou ao imprimir o próximo).
 function imprimirViaIframe(bodyHtml) {
+  return new Promise(resolve => {
   document.getElementById('pp-iframe-impressao')?.remove();
   const f = document.createElement('iframe');
   f.id = 'pp-iframe-impressao';
@@ -5829,7 +5838,9 @@ function imprimirViaIframe(bodyHtml) {
     try { f.contentWindow.focus(); f.contentWindow.print(); }
     catch (e) { console.error('[pp-print] iframe print() deu erro:', e); mostrarToast('Não consegui imprimir — use Caixa → Histórico → Reimprimir.', 'warn'); }
     setTimeout(() => f.remove(), 120000);
+    resolve();
   }, 400);
+  });
 }
 
 function imprimirFechamentoCaixa(caixa, conferencia, diferenca, janelaPre) {
@@ -5866,7 +5877,7 @@ function imprimirFechamentoCaixa(caixa, conferencia, diferenca, janelaPre) {
   const difLabel = Math.abs(dif) < 0.01 ? '0,00' : `(${dif > 0 ? 'Sobra' : 'Falta'}) ${n2(Math.abs(dif))}`;
 
   janelaPre?.close?.();
-  imprimirViaIframe(`
+  return imprimirViaIframe(`
     <style>
       .cab { text-align:center; font-size:11px; border-top:1px dashed #000; border-bottom:1px dashed #000; padding:3px 0; margin-bottom:4px; }
       .st { font-size:11px; border-bottom:1px dashed #000; padding:4px 0 2px; margin:4px 0 3px; }
