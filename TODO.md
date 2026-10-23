@@ -29,3 +29,20 @@ Causa: item bipado no mesmo segundo da cobrança entrou na comanda já cobrada
 nota de 07:15 horas depois. Corrigido: fechar/itens com a comanda travada (FOR
 UPDATE) + Reenviar recusa nota normal vencida (commit b63bea1). Comanda 5148:
 Pão Francês sem pagar removido e nota reemitida/autorizada.
+
+## Gaveta só no Dinheiro/G (Jota 2) — em andamento, pausado em 2026-10-23
+
+Objetivo: gaveta abre só no Dinheiro (2º F2) e no G; nunca no cartão. Causa do cartão:
+driver das impressoras abre a gaveta a CADA impressão.
+- Feito: comando ESC/POS direto pelo servidor (gavetaController + scripts/abrir-gaveta.ps1),
+  .env GAVETA_CAIXA_1=\\DESKTOP-98CNNAE\imp (Epson TM-T20X, Caixa 1) e
+  GAVETA_CAIXA_2=POS-80C (App-Tech Q851L, Caixa 2). cmdkey do usuário windows do
+  Caixa 1 guardado no servidor (usuário Home).
+- Problema: via PowerShell fica lento/estoura timeout no Caixa 1 (log "[gaveta] Falha");
+  com o cabo de rede solto, comandos acumularam na fila e abriram a gaveta várias vezes.
+- Próximo: testar `node scripts\testar-gaveta.js \\DESKTOP-98CNNAE\imp` e `\\localhost\IMP`
+  (gravação direta no compartilhamento, sem PowerShell). Se rápido, trocar o controller
+  pra esse jeito + trava contra comando repetido. Só depois desligar a gaveta no driver
+  (Padrões de impressão) das duas impressoras.
+- Se o Caixa 1 ficar sem abrir no Dinheiro antes disso: comentar GAVETA_CAIXA_1 no .env
+  e rodar o bat (volta pro jeito antigo).
