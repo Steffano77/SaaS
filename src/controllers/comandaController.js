@@ -399,7 +399,8 @@ exports.fechar = async (req, res) => {
         `SELECT tipo, limite FROM clientes_faturado WHERE padaria_id = ? AND cnpj = ?`,
         [padaria_id, p.cliente_documento]
       );
-      if (!cliente || cliente.tipo !== 'funcionario') continue;
+      // Funcionário sempre tem limite; empresa só se tiver um limite cadastrado (> 0).
+      if (!cliente || (cliente.tipo !== 'funcionario' && !(parseFloat(cliente.limite) > 0))) continue;
       const [[{ saldo }]] = await db.query(
         `SELECT COALESCE(SUM(cp.valor), 0) AS saldo
          FROM comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id

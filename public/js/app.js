@@ -7779,12 +7779,12 @@ function cartaoClienteFaturadoHtml(c) {
           <div style="font-size:12px;color:var(--slate-500);">${formatarCnpjUI(c.cnpj)}${c.telefone ? ' · ' + c.telefone : ''}</div>
           ${c.endereco ? `<div style="font-size:12px;color:var(--slate-500);">${c.endereco}</div>` : ''}
           ${ehFuncionario ? `<div style="font-size:12px;font-weight:600;color:${estourado ? '#dc2626' : 'var(--orange)'};margin-top:2px;">Saldo: ${fmtMoeda(saldo)} / ${fmtMoeda(limite)}${estourado ? ' — limite estourado' : ''}</div>` : ''}
-          ${!ehFuncionario && saldo > 0 ? `<div style="font-size:12px;font-weight:600;color:var(--orange);margin-top:2px;">Saldo: ${fmtMoeda(saldo)}</div>` : ''}
+          ${!ehFuncionario && (saldo > 0 || limite > 0) ? `<div style="font-size:12px;font-weight:600;color:${limite > 0 && saldo >= limite ? '#dc2626' : 'var(--orange)'};margin-top:2px;">Saldo: ${fmtMoeda(saldo)}${limite > 0 ? ' / limite ' + fmtMoeda(limite) : ''}</div>` : ''}
         </div>
         <div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
           <button class="btn-icon" title="Extrato / imprimir" onclick="abrirExtratoFaturadoUI('${c.cnpj}','${nomeEsc}')">📋</button>
           ${ehFuncionario ? `<button class="btn-icon" title="Imprimir comprovante pro RH (nome + valor gasto + saldo)" onclick="imprimirComprovanteRhUI('${nomeEsc}',${saldo},${limite})">🧾</button>` : ''}
-          ${saldo > 0 ? `<button class="btn-icon" title="Dar baixa (marcar como pago)" onclick="darBaixaFaturadoUI('${c.cnpj}','${nomeEsc}')">💰</button>` : ''}
+          ${saldo > 0 ? `<button class="btn-icon" title="Dar baixa (marcar como pago)" onclick="darBaixaParcialFaturadoUI(${c.id})">💰</button>` : ''}
           <button class="btn-icon" title="Editar" onclick="editarClienteFaturadoUI(${c.id})">✏️</button>
           <button class="btn-icon" title="Excluir" onclick="excluirClienteFaturadoUI(${c.id})">🗑️</button>
         </div>
@@ -8108,12 +8108,14 @@ async function fecharMensalRhUI() {
   abrirClientesFaturado();
 }
 
-async function darBaixaFaturadoUI(documento, nome) {
-  if (!(await confirmarBonito(`Confirma que ${nome} pagou/quitou a fatura em aberto? Isso zera o saldo devedor dele.`))) return;
-  const r = await api(`/clientes-faturado/documento/${documento}/liquidar`, { method: 'POST' });
-  if (!r) return;
-  mostrarToast(`Fatura de ${nome} quitada!`, 'ok');
-  abrirClientesFaturado();
+// 💰 na lista de Clientes faturado: abre a mesma janela de receber pagamento do caixa,
+// já com o cliente escolhido — dá pra quitar tudo (valor já vem preenchido com o saldo)
+// ou só uma parte (ex: deve R$200, pagou R$100, fica R$100 em aberto).
+async function darBaixaParcialFaturadoUI(id) {
+  const c = (_clientesFaturadoListaCache || []).find(x => Number(x.id) === Number(id));
+  if (!c) { mostrarToast('Cliente não encontrado — feche e abra a lista de novo.', 'warn'); return; }
+  await abrirPagarFaturadoUI();
+  await selecionarClientePagarFaturadoUI({ nome: c.nome, cnpj: c.cnpj, tipo: c.tipo });
 }
 
 // Dá baixa só no valor que já foi "lançado" (fechado em "Fechar e cobrar") — se o
@@ -8205,8 +8207,10 @@ function editarClienteFaturadoUI(id) {
   document.getElementById('edit-cf-nome').value = c.nome || '';
   document.getElementById('edit-cf-endereco').value = c.endereco || '';
   document.getElementById('edit-cf-telefone').value = c.telefone || '';
-  document.getElementById('edit-cf-limite').value = ehFuncionario ? String(parseFloat(c.limite || 0)).replace('.', ',') : '';
-  document.getElementById('edit-cf-limite-grupo').classList.toggle('hidden', !ehFuncionario);
+  const lim = parseFloat(c.limite);
+  document.getElementById('edit-cf-limite').value = lim > 0 || ehFuncionario ? String(lim || 0).replace('.', ',') : '';
+  document.getElementById('edit-cf-limite').placeholder = ehFuncionario ? '0,00' : 'Vazio = sem limite';
+  document.getElementById('edit-cf-limite-dica').textContent = ehFuncionario ? '' : 'Deixe vazio pra empresa continuar sem limite.';
   document.getElementById('modal-editar-cliente-faturado').classList.remove('hidden');
   setTimeout(() => document.getElementById('edit-cf-nome')?.focus(), 100);
 }
@@ -8226,9 +8230,7 @@ async function salvarEditarClienteFaturado() {
     endereco: document.getElementById('edit-cf-endereco').value.trim(),
     telefone: document.getElementById('edit-cf-telefone').value.trim(),
   };
-  if (!document.getElementById('edit-cf-limite-grupo').classList.contains('hidden')) {
-    body.limite = document.getElementById('edit-cf-limite').value.trim().replace(',', '.');
-  }
+  body.limite = document.getElementById('edit-cf-limite').value.trim().replace(',', '.');
   const r = await api(`/clientes-faturado/${id}`, { method: 'PUT', body });
   if (!r) return;
   mostrarToast('Atualizado!', 'ok');
@@ -8304,7 +8306,7 @@ async function selecionarClienteFaturadoUI(cliente) {
   const saldoInfo = await api(`/clientes-faturado/documento/${cliente.cnpj}/saldo`);
   const clienteCompleto = { ...cliente, ...(saldoInfo || {}) };
 
-  const avisoLimite = (clienteCompleto.tipo === 'funcionario' && clienteCompleto.limite != null) ? `
+  const avisoLimite = (clienteCompleto.limite != null) ? `
     <div style="background:${clienteCompleto.disponivel <= 0 ? 'rgba(220,38,38,0.12)' : 'rgba(249,115,22,0.1)'};border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12.5px;">
       Saldo usado: <strong>${fmtMoeda(clienteCompleto.saldoDevedor)}</strong> de ${fmtMoeda(clienteCompleto.limite)}
       ${clienteCompleto.disponivel <= 0 ? '<br/><strong style="color:#dc2626;">⛔ Limite estourado — precisa quitar antes de lançar mais.</strong>' : `<br/>Disponível: ${fmtMoeda(clienteCompleto.disponivel)}`}
@@ -8401,6 +8403,8 @@ async function confirmarPagamentoParcialUI(documento, nome, saldoAntes) {
   mostrarToast(`Pagamento de ${fmtMoeda(valor)} registrado!`, 'ok');
   fecharModal('modal-pagar-faturado');
   imprimirComprovantePagamentoFaturadoUI(nome, r.saldoAntes, r.valorPago, r.saldoDepois);
+  // Aberto pela lista de Clientes faturado: atualiza o saldo mostrado lá.
+  if (!document.getElementById('modal-clientes-faturado')?.classList.contains('hidden')) abrirClientesFaturado();
 }
 
 // Comprovante impresso do pagamento — mostra saldo anterior, valor pago agora e
@@ -8538,7 +8542,7 @@ function confirmarValorPagamento() {
   }
   // Funcionário tem limite de R$500 de saldo — trava aqui se esse valor for passar do
   // que ainda está disponível (empresa/CNPJ nunca tem limite, disponivel fica null).
-  if (_pgtoForma === 'Faturado' && _faturadoClienteSelecionado?.tipo === 'funcionario' && _faturadoClienteSelecionado.disponivel != null) {
+  if (_pgtoForma === 'Faturado' && _faturadoClienteSelecionado && _faturadoClienteSelecionado.disponivel != null) {
     if (valor > _faturadoClienteSelecionado.disponivel + 0.01) {
       mostrarToast(`Limite de ${_faturadoClienteSelecionado.nome} estourado — disponível: ${fmtMoeda(_faturadoClienteSelecionado.disponivel)}. Precisa quitar antes de lançar mais.`, 'warn');
       return;

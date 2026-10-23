@@ -129,3 +129,30 @@ describe('Cliente Faturado (venda fiada)', () => {
     expect(linha2.quitado_em).toBeNull();
   });
 });
+
+describe('Limite de crédito de empresa (opcional)', () => {
+  test('empresa sem limite não trava; com limite cadastrado, trava', async () => {
+    const { appPronto, request } = require('./helpers/testApp');
+    const { criarPadariaPremium } = require('./helpers/fixtures');
+    const app = await appPronto();
+    const { token } = await criarPadariaPremium(app, request);
+    const auth = r => r.set('Authorization', `Bearer ${token}`);
+    const cnpj = '11222333000181';
+    const criado = await auth(request(app).post('/api/clientes-faturado')).send({ cnpj, nome: 'Empresa Teste', tipo: 'empresa' });
+    expect(criado.status).toBe(201);
+    let s = await auth(request(app).get(`/api/clientes-faturado/documento/${cnpj}/saldo`));
+    expect(s.body.limite).toBeNull();
+    const up = await auth(request(app).put(`/api/clientes-faturado/${criado.body.id}`)).send({ nome: 'Empresa Teste', limite: '50' });
+    expect(up.status).toBe(200);
+    s = await auth(request(app).get(`/api/clientes-faturado/documento/${cnpj}/saldo`));
+    expect(s.body.limite).toBe(50);
+    const caixa = await auth(request(app).post('/api/caixa/abrir')).send({ valor_abertura: 0, nome: 'Caixa Lim' });
+    const c = await auth(request(app).post('/api/comandas')).send({ identificador: 'Lim 1' });
+    await auth(request(app).post(`/api/comandas/${c.body.id}/itens`)).send({ nome_produto: 'X', quantidade: 1, preco_unitario: 80 });
+    const f = await auth(request(app).post(`/api/comandas/${c.body.id}/fechar`)).send({ caixa_id: caixa.body.id, pagamentos: [{ forma_pagamento: 'Faturado', valor: 80, cliente_documento: cnpj, cliente_nome: 'Empresa Teste' }] });
+    expect(f.status).toBe(400);
+    await auth(request(app).put(`/api/clientes-faturado/${criado.body.id}`)).send({ nome: 'Empresa Teste', limite: '' });
+    s = await auth(request(app).get(`/api/clientes-faturado/documento/${cnpj}/saldo`));
+    expect(s.body.limite).toBeNull();
+  });
+});
