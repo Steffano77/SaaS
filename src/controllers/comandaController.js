@@ -177,6 +177,11 @@ exports.definirAjuste = async (req, res) => {
   const desconto = parseFloat(req.body.desconto) || 0;
   const acrescimo = parseFloat(req.body.acrescimo) || 0;
   if (desconto < 0 || acrescimo < 0) return res.status(400).json({ erro: 'Valores não podem ser negativos.' });
+  // Bug real (Jota 2): código de barras bipado no campo de acréscimo virou um acréscimo de
+  // R$ 2.025.700.008.000 e o banco recusou com erro técnico. Trava num teto sensato.
+  if (desconto > 99999 || acrescimo > 99999) {
+    return res.status(400).json({ erro: 'Valor de desconto/acréscimo grande demais — parece um código de barras bipado no campo errado.' });
+  }
 
   const [[comanda]] = await db.query(
     `SELECT id, status FROM comandas WHERE id = ? AND padaria_id = ?`, [req.params.id, padaria_id]
