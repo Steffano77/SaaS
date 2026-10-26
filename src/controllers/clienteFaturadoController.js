@@ -168,7 +168,7 @@ exports.extrato = async (req, res) => {
   const padaria_id = req.padaria.id;
   const docLimpo = limparDoc(req.params.documento);
   const [linhas] = await db.query(
-    `SELECT c.id AS comanda_id, c.identificador, c.fechada_em, cp.valor, cp.valor_pago, cp.quitado_em
+    `SELECT c.id AS comanda_id, c.identificador, c.fechada_em, cp.valor, cp.valor_pago, cp.quitado_em, cp.forma_quitacao
      FROM comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
      WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND cp.cliente_documento = ?
      ORDER BY c.fechada_em DESC`,
@@ -209,16 +209,25 @@ exports.lancar = async (req, res) => {
   res.json({ ok: true, lancados: r.affectedRows });
 };
 
+// Formas aceitas pra registrar como a dívida foi quitada — mesmo vocabulário das
+// formas de pagamento normais do caixa, pra não confundir ninguém.
+const FORMAS_QUITACAO = ['Dinheiro', 'Pix', 'Crédito', 'Débito', 'Voucher', 'Desconto em folha'];
+function formaQuitacaoValida(forma) {
+  return FORMAS_QUITACAO.includes(forma) ? forma : null;
+}
+
 // "Dar baixa" — marca tudo que esse documento deve como quitado (pagou a fatura),
 // zerando o saldo devedor e liberando o limite de novo.
 exports.liquidar = async (req, res) => {
   const padaria_id = req.padaria.id;
   const docLimpo = limparDoc(req.params.documento);
+  const forma = formaQuitacaoValida(req.body.forma);
+  if (!forma) return res.status(400).json({ erro: 'Informe a forma de pagamento (Dinheiro, Pix, Crédito, Débito ou Voucher).' });
   const [r] = await db.query(
     `UPDATE comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
-     SET cp.quitado_em = NOW(), cp.valor_pago = cp.valor
+     SET cp.quitado_em = NOW(), cp.valor_pago = cp.valor, cp.forma_quitacao = ?
      WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND cp.cliente_documento = ? AND cp.quitado_em IS NULL`,
-    [padaria_id, docLimpo]
+    [forma, padaria_id, docLimpo]
   );
   res.json({ ok: true, quitados: r.affectedRows });
 };
@@ -228,14 +237,16 @@ exports.liquidar = async (req, res) => {
 exports.liquidarSelecionados = async (req, res) => {
   const padaria_id = req.padaria.id;
   const docLimpo = limparDoc(req.params.documento);
+  const forma = formaQuitacaoValida(req.body.forma);
+  if (!forma) return res.status(400).json({ erro: 'Informe a forma de pagamento (Dinheiro, Pix, Crédito, Débito ou Voucher).' });
   const comandaIds = (req.body.comanda_ids || []).map(Number).filter(n => Number.isInteger(n) && n > 0);
   if (!comandaIds.length) return res.status(400).json({ erro: 'Nenhuma comanda selecionada.' });
   const [r] = await db.query(
     `UPDATE comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
-     SET cp.quitado_em = NOW(), cp.valor_pago = cp.valor
+     SET cp.quitado_em = NOW(), cp.valor_pago = cp.valor, cp.forma_quitacao = ?
      WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND cp.cliente_documento = ?
        AND cp.quitado_em IS NULL AND cp.comanda_id IN (?)`,
-    [padaria_id, docLimpo, comandaIds]
+    [forma, padaria_id, docLimpo, comandaIds]
   );
   res.json({ ok: true, quitados: r.affectedRows });
 };
@@ -246,12 +257,14 @@ exports.liquidarSelecionados = async (req, res) => {
 exports.liquidarLancados = async (req, res) => {
   const padaria_id = req.padaria.id;
   const docLimpo = limparDoc(req.params.documento);
+  const forma = formaQuitacaoValida(req.body.forma);
+  if (!forma) return res.status(400).json({ erro: 'Informe a forma de pagamento (Dinheiro, Pix, Crédito, Débito ou Voucher).' });
   const [r] = await db.query(
     `UPDATE comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
-     SET cp.quitado_em = NOW(), cp.valor_pago = cp.valor
+     SET cp.quitado_em = NOW(), cp.valor_pago = cp.valor, cp.forma_quitacao = ?
      WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND cp.cliente_documento = ?
        AND cp.quitado_em IS NULL AND cp.lancado_em IS NOT NULL`,
-    [padaria_id, docLimpo]
+    [forma, padaria_id, docLimpo]
   );
   res.json({ ok: true, quitados: r.affectedRows });
 };
@@ -269,6 +282,8 @@ exports.pagarParcial = async (req, res) => {
   const docLimpo = limparDoc(req.params.documento);
   const valorPago = parseFloat(req.body.valor);
   if (!(valorPago > 0)) return res.status(400).json({ erro: 'Informe um valor maior que zero.' });
+  const forma = formaQuitacaoValida(req.body.forma);
+  if (!forma) return res.status(400).json({ erro: 'Informe a forma de pagamento (Dinheiro, Pix, Crédito, Débito ou Voucher).' });
 
   const conn = await db.getConnection();
   try {
@@ -297,8 +312,8 @@ exports.pagarParcial = async (req, res) => {
       const novoValorPago = parseFloat(linha.valor_pago) + abateAqui;
       const quitouTudo = novoValorPago >= parseFloat(linha.valor) - 0.005;
       await conn.query(
-        `UPDATE comanda_pagamentos SET valor_pago = ?, quitado_em = ? WHERE id = ?`,
-        [novoValorPago, quitouTudo ? new Date() : null, linha.id]
+        `UPDATE comanda_pagamentos SET valor_pago = ?, quitado_em = ?, forma_quitacao = ? WHERE id = ?`,
+        [novoValorPago, quitouTudo ? new Date() : null, quitouTudo ? forma : null, linha.id]
       );
       restante -= abateAqui;
     }
