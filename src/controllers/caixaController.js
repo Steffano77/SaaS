@@ -197,8 +197,23 @@ async function montarResumoCaixa(caixa) {
     [caixa.id]
   );
 
+  // Recebimentos de fiado feitos nesse caixa (cliente Faturado pagando a conta) — o
+  // dinheiro/pix entra no "Em Caixa" da forma em que foi pago. Try/catch: banco sem a
+  // tabela ainda (migração não rodou) não pode derrubar o fechamento de caixa.
+  let receitas = [];
+  try {
+    [receitas] = await db.query(
+      `SELECT cliente_documento, cliente_nome, valor, forma_pagamento, criado_em
+       FROM recebimentos_faturado WHERE caixa_id = ? ORDER BY criado_em, id`, [caixa.id]);
+  } catch (e) { if (e.code !== 'ER_NO_SUCH_TABLE') throw e; }
+  receitas = receitas.map(x => ({ ...x, valor: parseFloat(x.valor) }));
+  const receitasPorFormaMap = {};
+  for (const x of receitas) receitasPorFormaMap[x.forma_pagamento] = (receitasPorFormaMap[x.forma_pagamento] || 0) + x.valor;
+  const receitasPorForma = Object.entries(receitasPorFormaMap).map(([forma_pagamento, total]) => ({ forma_pagamento, total }));
+  const totalReceitas = receitas.reduce((s, x) => s + x.valor, 0);
+
   const esperadoEmDinheiro = parseFloat(caixa.valor_abertura) + parseFloat(totalDinheiro.total)
-    + totalSuprimentos - totalSangrias - totalDespesas;
+    + totalSuprimentos - totalSangrias - totalDespesas + (receitasPorFormaMap.Dinheiro || 0);
 
   return {
     porForma,
@@ -211,6 +226,7 @@ async function montarResumoCaixa(caixa) {
     despesas: despesas.map(d => ({ descricao: d.observacao || '(sem descrição)', valor: parseFloat(d.valor) })),
     movimentos,
     esperadoEmDinheiro,
+    receitas, receitasPorForma, totalReceitas,
     qtdVendas: contagem.qtdVendas,
     totalItens: parseFloat(contagem.totalItens),
   };
@@ -230,11 +246,16 @@ function calcularConferencia(caixa, resumo, formasInformadas) {
   if (!formasParaConferir.some(f => f.forma_pagamento === 'Dinheiro')) {
     formasParaConferir.unshift({ forma_pagamento: 'Dinheiro', total: 0 });
   }
+  // Forma que só teve recebimento de fiado (sem venda) também precisa ser conferida.
+  for (const rf of (resumo.receitasPorForma || [])) {
+    if (!formasParaConferir.some(f => f.forma_pagamento === rf.forma_pagamento)) formasParaConferir.push({ forma_pagamento: rf.forma_pagamento, total: 0 });
+  }
+  const receitaDa = forma => (resumo.receitasPorForma || []).find(x => x.forma_pagamento === forma)?.total || 0;
   return formasParaConferir.map(f => {
     const ehDinheiro = f.forma_pagamento === 'Dinheiro';
-    const emCaixa = ehDinheiro
+    const emCaixa = (ehDinheiro
       ? parseFloat(caixa.valor_abertura) + parseFloat(f.total) + resumo.totalSuprimentos - resumo.totalSangrias - (resumo.totalDespesas || 0)
-      : parseFloat(f.total);
+      : parseFloat(f.total)) + receitaDa(f.forma_pagamento);
     const bruto = formasInformadas[f.forma_pagamento];
     const fechado = (bruto !== undefined && bruto !== null && bruto !== '') ? (parseFloat(bruto) || 0) : emCaixa;
     return { forma_pagamento: f.forma_pagamento, em_caixa: emCaixa, fechado, diferenca: fechado - emCaixa };

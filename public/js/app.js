@@ -5655,6 +5655,10 @@ async function abrirModalCaixa(modo) {
     // era trabalho à toa: o valor já "bate" sozinho (fica igual ao que o sistema lançou).
     const formasConferir = [...(r?.porForma || [])].filter(f => f.forma_pagamento !== 'Padaria');
     if (!formasConferir.some(f => f.forma_pagamento === 'Dinheiro')) formasConferir.unshift({ forma_pagamento: 'Dinheiro', total: 0 });
+    // Forma que só teve recebimento de fiado nesse caixa (sem venda) também é conferida.
+    for (const rf of (r?.receitasPorForma || [])) {
+      if (!formasConferir.some(f => f.forma_pagamento === rf.forma_pagamento)) formasConferir.push({ forma_pagamento: rf.forma_pagamento, total: 0 });
+    }
     const camposConferencia = formasConferir.map(f => {
       const ehDinheiro = f.forma_pagamento === 'Dinheiro';
       const emCaixa = ehDinheiro
@@ -6001,6 +6005,11 @@ function imprimirFechamentoCaixa(caixa, conferencia, diferenca, janelaPre) {
   const totalVendas = parseFloat(r.totalVendas) || 0;
   const despesas = r.despesas || [];
   const totalDespesas = parseFloat(r.totalDespesas) || 0;
+  // Recebimentos de fiado (cliente Faturado pagando a conta) feitos nesse caixa — o
+  // Saurus chama de "Receita". Entram no "Em Caixa" da forma em que foram pagos.
+  const receitas = r.receitas || [];
+  const totalReceitas = parseFloat(r.totalReceitas) || 0;
+  const receitasPorForma = ordenarFormas(r.receitasPorForma || [], { total: 0 }).filter(f => parseFloat(f.total) > 0);
   const conf = ordenarFormas(conferencia || [], { em_caixa: 0, fechado: 0, diferenca: 0 });
   const valorEmCaixa = conf.reduce((s, c) => s + (parseFloat(c.em_caixa) || 0), 0);
   const valorFechamento = conf.reduce((s, c) => s + (parseFloat(c.fechado) || 0), 0);
@@ -6039,7 +6048,8 @@ function imprimirFechamentoCaixa(caixa, conferencia, diferenca, janelaPre) {
     ${titulo('RESUMO MOVIMENTAÇÃO')}
     ${linha('Abertura', n2(caixa?.valor_abertura))}
     ${linha('Suprimento', n2(r.totalSuprimentos))}
-    ${linha('Receita', n2(0))}
+    ${linha('Receita', n2(totalReceitas))}
+    ${receitasPorForma.map(f => `<div class="sl"><span class="ind">${maiusc(f.forma_pagamento)}</span><span class="dp"></span><span class="v">+ ${n2(f.total)}</span></div>`).join('')}
     ${linha('Despesa', n2(totalDespesas))}
     ${totalDespesas > 0 ? `<div class="sl"><span class="ind">DINHEIRO</span><span class="dp"></span><span class="v">- ${n2(totalDespesas)}</span></div>` : ''}
     ${linha('Sangria', n2(r.totalSangrias))}
@@ -6053,7 +6063,7 @@ function imprimirFechamentoCaixa(caixa, conferencia, diferenca, janelaPre) {
     ${linha('Total Vendido', n2(totalVendas))}
     ${linha('Abertura', n2(caixa?.valor_abertura))}
     ${linha('Suprimento', n2(r.totalSuprimentos))}
-    ${linha('Receita', n2(0))}
+    ${linha('Receita', n2(totalReceitas))}
     ${linha('Estorno Sangria', n2(0))}
     ${linha('Estorno Despesa', n2(0))}
     ${linha('Despesa', n2(totalDespesas))}
@@ -6084,6 +6094,14 @@ function imprimirFechamentoCaixa(caixa, conferencia, diferenca, janelaPre) {
       <div class="fp"><span>${String(k + 1).padStart(3, '0')} - DINHEIRO</span><span>${n2(d.valor)}</span></div>
       <div class="sl"><span class="ind" style="width:100%;">${maiusc(d.descricao)}</span></div>`).join('')}
     ${linha('Total', n2(totalDespesas))}
+
+    ${receitas.length ? `
+      ${titulo('RESUMO RECEITAS')}
+      <div class="fp" style="font-size:10.5px;"><span>SEQ CLIENTE</span><span>VALOR</span></div>
+      ${receitas.map((x, k) => `
+        <div class="fp"><span>${String(k + 1).padStart(3, '0')} ${maiusc(x.cliente_nome || '-')}</span><span>${n2(x.valor)}</span></div>
+        <div class="sl"><span class="ind" style="width:100%;font-size:10px;">${formatarCnpjUI(x.cliente_documento || '')} · ${maiusc(x.forma_pagamento)} · ${new Date(x.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span></div>`).join('')}
+      ${linha('Total', n2(totalReceitas))}` : ''}
 
     ${titulo('RESUMO DE TROCAS')}
     ${linha('Total Trocado', n2(0))}
@@ -8141,7 +8159,7 @@ async function confirmarQuitarSelecionadosExtratoUI() {
   if (!forma) return;
   const r = await api(`/clientes-faturado/documento/${d.documento}/liquidar-selecionados`, {
     method: 'POST',
-    body: { comanda_ids: selecionadas.map(l => l.comanda_id), forma },
+    body: { comanda_ids: selecionadas.map(l => l.comanda_id), forma, caixa_id: CAIXA_LOCAL_ID },
   });
   if (!r) return;
   mostrarToast(`${r.quitados} comanda(s) de ${d.nome} quitada(s)!`, 'ok');
@@ -8291,7 +8309,7 @@ async function darBaixaLancadoUI(documento, nome, valorLancado) {
   if (!(await confirmarBonito(`Confirma que ${nome} pagou o valor lançado de ${fmtMoeda(valorLancado)}?\n\nSó esse valor será quitado — qualquer consumo feito depois do lançamento continua em aberto.`))) return;
   const forma = await escolherFormaQuitacaoUI();
   if (!forma) return;
-  const r = await api(`/clientes-faturado/documento/${documento}/liquidar-lancados`, { method: 'POST', body: { forma } });
+  const r = await api(`/clientes-faturado/documento/${documento}/liquidar-lancados`, { method: 'POST', body: { forma, caixa_id: CAIXA_LOCAL_ID } });
   if (!r) return;
   mostrarToast(`Baixa do valor lançado de ${nome} confirmada!`, 'ok');
   abrirClientesFaturado();
@@ -8583,7 +8601,7 @@ async function confirmarPagamentoParcialUI(documento, nome, saldoAntes) {
   const forma = await escolherFormaQuitacaoUI();
   if (!forma) return;
 
-  const r = await api(`/clientes-faturado/documento/${documento}/pagar-parcial`, { method: 'POST', body: { valor, forma } });
+  const r = await api(`/clientes-faturado/documento/${documento}/pagar-parcial`, { method: 'POST', body: { valor, forma, caixa_id: CAIXA_LOCAL_ID } });
   if (!r) return;
   mostrarToast(`Pagamento de ${fmtMoeda(valor)} registrado!`, 'ok');
   fecharModal('modal-pagar-faturado');

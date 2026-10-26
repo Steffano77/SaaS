@@ -216,6 +216,32 @@ function formaQuitacaoValida(forma) {
   return FORMAS_QUITACAO.includes(forma) ? forma : null;
 }
 
+// Registra o recebimento no caixa onde ele aconteceu (aparece no fechamento: "Receita"
+// e "Resumo Receitas"). Só quando veio de um caixa aberto e é dinheiro de verdade —
+// "Desconto em folha" (RH) não passa pelo caixa.
+const FORMAS_DE_CAIXA = ['Dinheiro', 'Pix', 'Crédito', 'Débito', 'Voucher'];
+async function registrarRecebimento(conn, { padaria_id, caixa_id, documento, valor, forma }) {
+  if (!caixa_id || !(valor > 0) || !FORMAS_DE_CAIXA.includes(forma)) return;
+  const [[caixa]] = await conn.query(
+    `SELECT id FROM caixas WHERE id = ? AND padaria_id = ? AND status = 'aberto'`, [caixa_id, padaria_id]);
+  if (!caixa) return;
+  const [[cliente]] = await conn.query(
+    `SELECT nome FROM clientes_faturado WHERE padaria_id = ? AND cnpj = ?`, [padaria_id, documento]);
+  await conn.query(
+    `INSERT INTO recebimentos_faturado (padaria_id, caixa_id, cliente_documento, cliente_nome, valor, forma_pagamento) VALUES (?,?,?,?,?,?)`,
+    [padaria_id, caixa.id, documento, cliente?.nome || null, Math.round(valor * 100) / 100, forma]);
+}
+
+// Quanto ainda falta pagar nas linhas que um "dar baixa" vai quitar (pra registrar o valor recebido).
+async function emAbertoAntesDaBaixa(padaria_id, documento, filtroExtra = '', params = []) {
+  const [[{ falta }]] = await db.query(
+    `SELECT COALESCE(SUM(cp.valor - cp.valor_pago), 0) AS falta
+     FROM comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
+     WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND cp.cliente_documento = ? AND cp.quitado_em IS NULL ${filtroExtra}`,
+    [padaria_id, documento, ...params]);
+  return parseFloat(falta) || 0;
+}
+
 // "Dar baixa" — marca tudo que esse documento deve como quitado (pagou a fatura),
 // zerando o saldo devedor e liberando o limite de novo.
 exports.liquidar = async (req, res) => {
@@ -223,12 +249,14 @@ exports.liquidar = async (req, res) => {
   const docLimpo = limparDoc(req.params.documento);
   const forma = formaQuitacaoValida(req.body.forma);
   if (!forma) return res.status(400).json({ erro: 'Informe a forma de pagamento (Dinheiro, Pix, Crédito, Débito ou Voucher).' });
+  const valor = await emAbertoAntesDaBaixa(padaria_id, docLimpo);
   const [r] = await db.query(
     `UPDATE comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
      SET cp.quitado_em = NOW(), cp.valor_pago = cp.valor, cp.forma_quitacao = ?
      WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND cp.cliente_documento = ? AND cp.quitado_em IS NULL`,
     [forma, padaria_id, docLimpo]
   );
+  if (r.affectedRows) await registrarRecebimento(db, { padaria_id, caixa_id: req.body.caixa_id, documento: docLimpo, valor, forma });
   res.json({ ok: true, quitados: r.affectedRows });
 };
 
@@ -241,6 +269,7 @@ exports.liquidarSelecionados = async (req, res) => {
   if (!forma) return res.status(400).json({ erro: 'Informe a forma de pagamento (Dinheiro, Pix, Crédito, Débito ou Voucher).' });
   const comandaIds = (req.body.comanda_ids || []).map(Number).filter(n => Number.isInteger(n) && n > 0);
   if (!comandaIds.length) return res.status(400).json({ erro: 'Nenhuma comanda selecionada.' });
+  const valor = await emAbertoAntesDaBaixa(padaria_id, docLimpo, 'AND cp.comanda_id IN (?)', [comandaIds]);
   const [r] = await db.query(
     `UPDATE comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
      SET cp.quitado_em = NOW(), cp.valor_pago = cp.valor, cp.forma_quitacao = ?
@@ -248,6 +277,7 @@ exports.liquidarSelecionados = async (req, res) => {
        AND cp.quitado_em IS NULL AND cp.comanda_id IN (?)`,
     [forma, padaria_id, docLimpo, comandaIds]
   );
+  if (r.affectedRows) await registrarRecebimento(db, { padaria_id, caixa_id: req.body.caixa_id, documento: docLimpo, valor, forma });
   res.json({ ok: true, quitados: r.affectedRows });
 };
 
@@ -259,6 +289,7 @@ exports.liquidarLancados = async (req, res) => {
   const docLimpo = limparDoc(req.params.documento);
   const forma = formaQuitacaoValida(req.body.forma);
   if (!forma) return res.status(400).json({ erro: 'Informe a forma de pagamento (Dinheiro, Pix, Crédito, Débito ou Voucher).' });
+  const valor = await emAbertoAntesDaBaixa(padaria_id, docLimpo, 'AND cp.lancado_em IS NOT NULL');
   const [r] = await db.query(
     `UPDATE comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
      SET cp.quitado_em = NOW(), cp.valor_pago = cp.valor, cp.forma_quitacao = ?
@@ -266,6 +297,7 @@ exports.liquidarLancados = async (req, res) => {
        AND cp.quitado_em IS NULL AND cp.lancado_em IS NOT NULL`,
     [forma, padaria_id, docLimpo]
   );
+  if (r.affectedRows) await registrarRecebimento(db, { padaria_id, caixa_id: req.body.caixa_id, documento: docLimpo, valor, forma });
   res.json({ ok: true, quitados: r.affectedRows });
 };
 
@@ -317,6 +349,7 @@ exports.pagarParcial = async (req, res) => {
       );
       restante -= abateAqui;
     }
+    await registrarRecebimento(conn, { padaria_id, caixa_id: req.body.caixa_id, documento: docLimpo, valor: valorPago, forma });
     await conn.commit();
     const saldoDepois = saldoAntes - valorPago;
     res.json({ ok: true, saldoAntes, valorPago, saldoDepois });

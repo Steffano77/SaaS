@@ -596,6 +596,22 @@ const migracoesProntas = (async () => {
       // antes só sabia QUE foi quitado, não COMO. Pedido do Estefano: o extrato do
       // Faturado precisa mostrar isso, não só o selo "Quitado".
       'ALTER TABLE comanda_pagamentos ADD COLUMN forma_quitacao VARCHAR(20) NULL',
+      // Cada pagamento de fiado recebido num caixa (cliente Faturado pagando a conta) —
+      // pro fechamento de caixa somar esse dinheiro/pix no "Em Caixa" e listar no
+      // "Resumo Receitas", igual o Saurus. Antes o pagamento só abatia a dívida, sem
+      // saber em qual caixa entrou, e o dinheiro aparecia como "sobra" no fechamento.
+      `CREATE TABLE IF NOT EXISTS recebimentos_faturado (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        padaria_id INT NOT NULL,
+        caixa_id INT NULL,
+        cliente_documento VARCHAR(18) NOT NULL,
+        cliente_nome VARCHAR(150) NULL,
+        valor DECIMAL(10,2) NOT NULL,
+        forma_pagamento VARCHAR(20) NOT NULL,
+        criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_receb_caixa (caixa_id),
+        INDEX idx_receb_padaria (padaria_id, criado_em)
+      )`,
     ];
     // Uma de cada vez, não todas juntas: num banco novinho (primeira vez rodando,
     // ex: servidor local de teste), várias dessas ALTER TABLE mexem na MESMA tabela
