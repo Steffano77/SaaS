@@ -37,7 +37,8 @@ describe('Item bipado bem na hora de cobrar', () => {
         expect(parseFloat(pago)).toBeCloseTo(parseFloat(itens), 2);
       } else {
         expect(item.status).toBe(201);
-        expect(fechou.status).toBe(409);
+        // 409 = item entrou no meio da cobrança; 400 = item entrou antes e a soma não bateu.
+        expect([400, 409]).toContain(fechou.status);
         expect(parseFloat(itens)).toBeCloseTo(19.29, 2);
       }
     }

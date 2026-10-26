@@ -293,7 +293,7 @@ exports.pagarParcial = async (req, res) => {
        FROM comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
        WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND cp.cliente_documento = ?
          AND cp.quitado_em IS NULL
-       ORDER BY c.fechada_em ASC
+       ORDER BY c.fechada_em ASC, cp.id ASC  -- desempate: duas vendas no mesmo segundo
        FOR UPDATE`,
       [padaria_id, docLimpo]
     );

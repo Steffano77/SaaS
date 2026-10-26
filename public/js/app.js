@@ -3621,8 +3621,139 @@ function relBuscarProduto(termo) {
           <div><span style="color:var(--slate-400);">Vendido no mês</span><br><span style="color:var(--slate-800);">${fmtQtd(p.qtd_vendida_mes)} ${p.unidade}</span></div>
           <div><span style="color:var(--slate-400);">Valor vendido no mês</span><br><strong style="color:#16a34a;">${fmtR$(p.valor_vendido_mes)}</strong></div>
         </div>
+        <button class="btn-secondary" style="margin-top:10px;padding:7px 12px;font-size:12.5px;" onclick="abrirMediaProdutoUI(${p.id})">📈 Ver média</button>
       </div>`).join('');
   }, 350);
+}
+
+// ── Média por produto (Relatórios) ─────────────────────────────────
+// Média por dia, por dia da semana, por horário e sugestão de produção pra amanhã
+// (ver mediaProdutoController). O dia de hoje fica sempre fora das médias.
+const MP_DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const MP_ORDEM = [1, 2, 3, 4, 5, 6, 0]; // mostra de segunda a domingo
+let _mpProdutoId = null, _mpPeriodo = 30, _mpProdutos = [];
+
+async function abrirMediaProdutoUI(produtoId) {
+  if (!produtosCache.length) produtosCache = await api('/produtos') || [];
+  _mpProdutos = produtosCache;
+  _mpProdutoId = produtoId || null;
+  const p = _mpProdutos.find(x => Number(x.id) === Number(produtoId));
+  document.getElementById('mp-busca').value = p ? p.nome : '';
+  document.getElementById('mp-busca-lista').classList.add('hidden');
+  escolherPeriodoMediaUI(_mpPeriodo, true);
+  document.getElementById('modal-media-produto').classList.remove('hidden');
+  if (_mpProdutoId) carregarMediaProdutoUI();
+  else {
+    document.getElementById('mp-resultado').innerHTML = '<p class="mp-sub" style="margin-top:14px;">Escolha um produto pra ver as médias.</p>';
+    setTimeout(() => document.getElementById('mp-busca')?.focus(), 100);
+  }
+}
+
+function filtrarMediaProdutoUI(termo) {
+  const lista = document.getElementById('mp-busca-lista');
+  const t = normalizarBusca(String(termo || '').trim());
+  if (!t) { lista.classList.add('hidden'); return; }
+  const achados = _mpProdutos.filter(p => normalizarBusca(p.nome).includes(t)).slice(0, 10);
+  lista.innerHTML = achados.length
+    ? achados.map(p => `<div class="autocomplete-item" onclick="escolherProdutoMediaUI(${p.id})"><strong>${escHtmlCmd(p.nome)}</strong> <span style="font-size:12px;color:var(--slate-400);">${escHtmlCmd(p.unidade || '')}</span></div>`).join('')
+    : '<div class="autocomplete-item" style="color:var(--slate-400);cursor:default;">Nenhum produto com esse nome.</div>';
+  lista.classList.remove('hidden');
+}
+
+function escolherProdutoMediaUI(id) {
+  const p = _mpProdutos.find(x => Number(x.id) === Number(id));
+  _mpProdutoId = id;
+  document.getElementById('mp-busca').value = p ? p.nome : '';
+  document.getElementById('mp-busca-lista').classList.add('hidden');
+  carregarMediaProdutoUI();
+}
+
+function escolherPeriodoMediaUI(dias, semCarregar) {
+  _mpPeriodo = dias;
+  document.querySelectorAll('#modal-media-produto .mp-chip').forEach(b => b.classList.toggle('on', Number(b.dataset.dias) === dias));
+  const datas = document.getElementById('mp-datas');
+  datas.classList.toggle('hidden', dias !== 0);
+  if (dias === 0 && !document.getElementById('mp-ate').value) {
+    const ontem = new Date(); ontem.setDate(ontem.getDate() - 1);
+    const ini = new Date(ontem); ini.setDate(ini.getDate() - 29);
+    const f = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    document.getElementById('mp-de').value = f(ini);
+    document.getElementById('mp-ate').value = f(ontem);
+  }
+  if (!semCarregar && _mpProdutoId) carregarMediaProdutoUI();
+}
+
+async function carregarMediaProdutoUI() {
+  if (!_mpProdutoId) return;
+  const el = document.getElementById('mp-resultado');
+  let qs = `produto_id=${_mpProdutoId}`;
+  if (_mpPeriodo === 0) {
+    qs += `&de=${document.getElementById('mp-de').value}&ate=${document.getElementById('mp-ate').value}`;
+  } else {
+    const ontem = new Date(); ontem.setDate(ontem.getDate() - 1);
+    const ini = new Date(ontem); ini.setDate(ini.getDate() - (_mpPeriodo - 1));
+    const f = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    qs += `&de=${f(ini)}&ate=${f(ontem)}`;
+  }
+  el.innerHTML = '<p class="mp-sub" style="margin-top:14px;">Calculando...</p>';
+  const r = await api(`/relatorios/produto-media?${qs}`);
+  if (!r) { el.innerHTML = ''; return; }
+  el.innerHTML = htmlMediaProduto(r);
+}
+
+function htmlMediaProduto(r) {
+  const un = String(r.produto.unidade || 'un').toLowerCase();
+  const q = v => `${(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${un}`;
+  const dataBR = s => s.split('-').reverse().slice(0, 2).join('/');
+  const varia = (a, b) => {
+    if (!b) return '<div class="s">sem dados no período anterior</div>';
+    const p = Math.round((a - b) / b * 100);
+    return `<div class="s ${p >= 0 ? 'mp-up' : 'mp-down'}">${p >= 0 ? '▲' : '▼'} ${Math.abs(p)}% vs anterior</div>`;
+  };
+  if (!r.totais.qtd) {
+    return `<p class="mp-sub" style="margin-top:14px;">${escHtmlCmd(r.produto.nome)} não teve venda de ${dataBR(r.periodo.de)} a ${dataBR(r.periodo.ate)}.</p>`;
+  }
+  const max = Math.max(...r.por_dia_semana.map(d => d.media), 0.0001);
+  const barras = MP_ORDEM.map(dow => {
+    const d = r.por_dia_semana[dow];
+    return `<div class="mp-bcol${dow === r.sugestao.dow ? ' amanha' : ''}" title="${d.dias} ${MP_DIAS[dow]} no período"><div class="mp-bval">${d.media.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</div><div class="mp-bar" style="height:${Math.round(d.media / max * 120)}px"></div><div class="mp-blab">${MP_DIAS[dow]}</div></div>`;
+  }).join('');
+  // Mapa de calor: só as horas em que houve venda em algum dia (o resto é loja fechada).
+  const horasUsadas = [...new Set(r.por_horario.flatMap(d => Object.keys(d.horas).map(Number)))].sort((a, b) => a - b);
+  const hMin = Math.min(...horasUsadas), hMax = Math.max(...horasUsadas);
+  const horas = []; for (let h = hMin; h <= hMax; h++) horas.push(h);
+  const maxH = Math.max(...r.por_horario.flatMap(d => Object.values(d.horas)), 0.0001);
+  const linhas = MP_ORDEM.map(dow => {
+    const hs = r.por_horario[dow].horas;
+    return `<tr><th>${MP_DIAS[dow]}</th>${horas.map(h => {
+      const v = hs[h];
+      if (!v) return '<td class="vazio">—</td>';
+      return `<td style="background:rgba(249,115,22,${(0.12 + Math.min(1, v / maxH) * 0.8).toFixed(2)})">${v.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</td>`;
+    }).join('')}</tr>`;
+  }).join('');
+  const sug = r.sugestao;
+  return `
+    <p class="mp-sub" style="margin-top:8px;">${dataBR(r.periodo.de)} a ${dataBR(r.periodo.ate)} (${r.periodo.dias} dias) · o dia de hoje fica de fora · comparado com ${dataBR(r.periodo.anterior_de)} a ${dataBR(r.periodo.anterior_ate)} · consumo interno e cortesia não contam</p>
+    <div class="mp-kpis">
+      <div class="mp-k"><div class="l">Média por dia</div><div class="v">${q(r.totais.media_qtd_dia)}</div>${varia(r.totais.media_qtd_dia, r.anterior.media_qtd_dia)}</div>
+      <div class="mp-k"><div class="l">Faturamento médio/dia</div><div class="v">${fmtMoeda(r.totais.media_valor_dia)}</div>${varia(r.totais.media_valor_dia, r.anterior.media_valor_dia)}</div>
+      <div class="mp-k"><div class="l">Total no período</div><div class="v">${q(r.totais.qtd)}</div><div class="s">${fmtMoeda(r.totais.valor)}</div></div>
+      <div class="mp-k"><div class="l">Preço médio</div><div class="v">${fmtMoeda(r.totais.preco_medio)}/${un}</div><div class="s">em ${r.totais.vendas} venda(s)</div></div>
+      <div class="mp-k"><div class="l">Margem</div>${r.margem == null
+        ? '<div class="v" style="font-size:16px;">sem custo cadastrado</div><div class="s">cadastre o custo no produto</div>'
+        : `<div class="v">${Math.round(r.margem * 100)}%</div><div class="s">custo ${fmtMoeda(r.produto.custo_unitario)}/${un}</div>`}</div>
+    </div>
+    <div class="mp-dois">
+      <div class="mp-card"><div class="mp-ct">Média por dia da semana</div><div class="mp-sub">quanto sai, em média, em cada dia (${un})</div><div class="mp-barras">${barras}</div></div>
+      <div class="mp-card"><div class="mp-ct">Sugestão de produção pra amanhã (${MP_DIAS[sug.dow]})</div>
+        <div class="mp-sub">média das últimas ${MP_DIAS[sug.dow]} do período + ${Math.round(sug.folga * 100)}% de folga</div>
+        <div class="mp-sug">≈ ${q(sug.total)}</div>
+        <div class="mp-faixas">${sug.faixas.map(f => `<div>${f.rotulo}<br><b>${q(f.qtd)}</b></div>`).join('')}</div>
+      </div>
+    </div>
+    <div class="mp-card"><div class="mp-ct">Média por horário (${un})</div><div class="mp-sub">quanto sai em cada hora, por dia da semana · “—” = sem venda nesse horário</div>
+      <div class="mp-scroll"><table class="mp-calor"><tr><th></th>${horas.map(h => `<th>${h}h</th>`).join('')}</tr>${linhas}</table></div>
+    </div>`;
 }
 
 async function carregarRelatorios() {

@@ -465,6 +465,7 @@ router.get('/relatorios/mes', auth, authPro, wrap(async (req, res) => {
 // Busca um produto pelo nome e devolve tudo num lugar só: estoque, preço, e o que foi
 // vendido dele no mês escolhido — pra responder "quanto vendi de X" sem ter que cruzar
 // Estoque + Relatórios + Financeiro na mão.
+router.get('/relatorios/produto-media', auth, authPro, wrap(require('../controllers/mediaProdutoController').media));
 router.get('/relatorios/produto', auth, authPro, wrap(async (req, res) => {
   const db = require('../database/connection');
   const termo = String(req.query.busca || '').trim();
