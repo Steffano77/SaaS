@@ -1921,7 +1921,7 @@ async function carregarProdutos() {
         <button onclick="movRapido(${p.id},'entrada')" class="btn-icon" title="Entrada" style="color:#16a34a;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
         <button onclick="movRapido(${p.id},'saida')" class="btn-icon" title="Saída" style="color:#dc2626;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
         <button onclick="editarProduto(${p.id})" class="btn-icon" title="Editar"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-        <button onclick="excluirProduto(this,${p.id},'${p.nome.replace(/'/g,"\\'")}')" class="btn-icon" title="Excluir" style="color:#dc2626;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+        <button onclick="excluirProduto(this,${p.id},'${jsEmAtributo(p.nome)}')" class="btn-icon" title="Excluir" style="color:#dc2626;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
       </td>
     </tr>`;
   }).join('') || '<tr class="empty-row"><td colspan="10">Nenhum produto encontrado</td></tr>';
@@ -1976,7 +1976,7 @@ function abrirModalDuplicatas() {
           <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">
             <button onclick="fecharModalDuplicatas();editarProduto(${p.id})" style="background:var(--slate-100);color:var(--slate-700);border:none;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;">Editar</button>
             <button onclick="mesclarDuplicataGrupo(this,${gi},${p.id})" style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;" title="Soma o estoque dos outros deste grupo aqui e desativa os demais">🔗 Mesclar aqui</button>
-            <button onclick="excluirDuplicata(this,${p.id},'${p.nome.replace(/'/g,"\\'")}',${grupo.length})" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;">Desativar</button>
+            <button onclick="excluirDuplicata(this,${p.id},'${jsEmAtributo(p.nome)}',${grupo.length})" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;">Desativar</button>
           </div>
         </div>
       `).join('')}
@@ -3334,7 +3334,7 @@ function filtrarCorrecaoItem(itemKey) {
   const prods = (_produtosCache || []).filter(p => normalizarBusca(p.nome).includes(termo));
   if (!prods.length) {
     // Permite digitar nome novo
-    lista.innerHTML = `<div class="autocomplete-item" onclick="selecionarCorrecaoNovo('${itemKey}', '${inp.value.replace(/'/g,"\\'")}')">
+    lista.innerHTML = `<div class="autocomplete-item" onclick="selecionarCorrecaoNovo('${itemKey}', '${jsEmAtributo(inp.value)}')">
       <strong>+ Cadastrar como novo:</strong> "${inp.value}"
     </div>`;
     lista.classList.remove('hidden');
@@ -3342,7 +3342,7 @@ function filtrarCorrecaoItem(itemKey) {
   }
 
   lista.innerHTML = prods.slice(0, 8).map(p =>
-    `<div class="autocomplete-item" onclick="selecionarCorrecaoExistente('${itemKey}', ${p.id}, '${p.nome.replace(/'/g,"\\'")}')">
+    `<div class="autocomplete-item" onclick="selecionarCorrecaoExistente('${itemKey}', ${p.id}, '${jsEmAtributo(p.nome)}')">
       ${p.nome} <span style="color:var(--slate-400);font-size:0.8em;">${p.unidade}</span>
     </div>`
   ).join('');
@@ -3531,8 +3531,8 @@ async function carregarFornecedores() {
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
           ${waBtn}
-          <button onclick="abrirHistoricoFornecedor(${f.id},'${f.nome.replace(/'/g,"\\'")}')" class="btn-icon" title="Histórico de compras"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></button>
-          <button onclick="editarFornecedor(${f.id},'${f.nome.replace(/'/g,"\\'")}','${(f.contato||'').replace(/'/g,"\\'")}','${(f.telefone||'').replace(/'/g,"\\'")}','${(f.email||'').replace(/'/g,"\\'")}')" class="btn-icon" title="Editar"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button onclick="abrirHistoricoFornecedor(${f.id},'${jsEmAtributo(f.nome)}')" class="btn-icon" title="Histórico de compras"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></button>
+          <button onclick="editarFornecedor(${f.id},'${jsEmAtributo(f.nome)}','${jsEmAtributo(f.contato)}','${jsEmAtributo(f.telefone)}','${jsEmAtributo(f.email)}')" class="btn-icon" title="Editar"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
           <button onclick="excluirFornecedor(${f.id})" class="btn-icon" style="color:#dc2626;" title="Excluir"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
         </div>
       </div>`;
@@ -4793,10 +4793,10 @@ async function abrirTelaAdmin() {
       </div>
       <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;">
         ${p.role !== 'admin' ? `
-          <button onclick="adminEntrarComoPadaria(${p.id}, '${p.nome.replace(/'/g,"\\'")}')" class="btn-primary" style="font-size:13px;padding:7px 12px;">🔀 Entrar como</button>
-          <button onclick="adminRenovarPlano(${p.id}, '${p.nome.replace(/'/g,"\\'")}')" class="btn-secondary" style="font-size:13px;padding:7px 12px;">🔄 Renovar</button>
+          <button onclick="adminEntrarComoPadaria(${p.id}, '${jsEmAtributo(p.nome)}')" class="btn-primary" style="font-size:13px;padding:7px 12px;">🔀 Entrar como</button>
+          <button onclick="adminRenovarPlano(${p.id}, '${jsEmAtributo(p.nome)}')" class="btn-secondary" style="font-size:13px;padding:7px 12px;">🔄 Renovar</button>
           <button onclick="adminToggleAtivo(${p.id}, ${p.ativo ? 0 : 1})" class="btn-secondary" style="font-size:13px;padding:7px 12px;">${p.ativo ? '🔒 Desativar' : '✅ Reativar'}</button>
-          <button onclick="adminApagarPadaria(${p.id}, '${p.nome.replace(/'/g,"\\'")}' )" class="btn-danger" style="font-size:13px;padding:7px 12px;">🗑️ Apagar</button>
+          <button onclick="adminApagarPadaria(${p.id}, '${jsEmAtributo(p.nome)}' )" class="btn-danger" style="font-size:13px;padding:7px 12px;">🗑️ Apagar</button>
         ` : '<span style="font-size:13px;color:var(--slate-400);">— Admin —</span>'}
       </div>
     </div>`;
@@ -5990,10 +5990,10 @@ async function carregarEquipe() {
         <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--slate-500);cursor:pointer;" title="Gestor mexe na tela de Equipe por completo (cadastro, dados sensíveis)">
           <input type="checkbox" ${a.gestor ? 'checked' : ''} onchange="trocarGestorAtendente(${a.id}, this.checked)"/> Gestor
         </label>
-        <button class="btn-icon" title="Editar dados (RH)" onclick="abrirDadosAtendente(${a.id}, '${a.nome.replace(/'/g,"\\'")}')">📇</button>
-        <button class="btn-icon" title="Resetar PIN" onclick="resetarPinAtendenteUI(${a.id}, '${a.nome.replace(/'/g,"\\'")}')">🔑</button>
-        <button class="btn-icon" title="Exportar dados desse funcionário pra Excel" onclick="exportarAtendenteExcel(${a.id}, '${a.nome.replace(/'/g,"\\'")}')">📤</button>
-        <button class="btn-icon" title="Desativar" onclick="desativarAtendenteUI(${a.id}, '${a.nome.replace(/'/g,"\\'")}')">✕</button>
+        <button class="btn-icon" title="Editar dados (RH)" onclick="abrirDadosAtendente(${a.id}, '${jsEmAtributo(a.nome)}')">📇</button>
+        <button class="btn-icon" title="Resetar PIN" onclick="resetarPinAtendenteUI(${a.id}, '${jsEmAtributo(a.nome)}')">🔑</button>
+        <button class="btn-icon" title="Exportar dados desse funcionário pra Excel" onclick="exportarAtendenteExcel(${a.id}, '${jsEmAtributo(a.nome)}')">📤</button>
+        <button class="btn-icon" title="Desativar" onclick="desativarAtendenteUI(${a.id}, '${jsEmAtributo(a.nome)}')">✕</button>
       </div>
     </div>
   `).join('');
@@ -7105,7 +7105,7 @@ function abrirCategoriasComanda() {
   const categorias = [...new Set(produtosCache.map(p => p.categoria || 'Sem categoria'))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   const grid = document.getElementById('cat-comanda-grid');
   grid.innerHTML = categorias.map((c, i) => `
-    <button class="cat-tile" style="background:${CAT_COMANDA_CORES[i % CAT_COMANDA_CORES.length]}" onclick="abrirProdutosDaCategoria('${c.replace(/'/g, "\\'")}')">
+    <button class="cat-tile" style="background:${CAT_COMANDA_CORES[i % CAT_COMANDA_CORES.length]}" onclick="abrirProdutosDaCategoria('${jsEmAtributo(c)}')">
       <span class="cat-tile-nome">${c}</span>
     </button>
   `).join('') || '<div class="cmd-vazio">Nenhum produto cadastrado ainda.</div>';
@@ -7787,12 +7787,23 @@ async function abrirClientesFaturado() {
 
 let _clientesFaturadoListaCache = [];
 
+// Texto que vai dentro de um onclick="...('TEXTO')". Bug real: nomes cadastrados com
+// aspas (ex: Ailton "Cliente", Banco do Brasil S.A "Empresa") fechavam o atributo do
+// HTML no meio e o botão simplesmente não fazia nada ao clicar.
+function jsEmAtributo(t) {
+  return String(t ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
+}
+// Objeto que vai dentro de um onclick='...(OBJ)' (aspas simples por fora).
+function jsonEmAtributo(o) {
+  return JSON.stringify(o).replace(/&/g, '&amp;').replace(/'/g, '&#39;');
+}
+
 function cartaoClienteFaturadoHtml(c) {
   const ehFuncionario = c.tipo === 'funcionario';
   const saldo = parseFloat(c.saldo_devedor || 0);
   const limite = parseFloat(c.limite || 0);
   const estourado = ehFuncionario && saldo >= limite && limite > 0;
-  const nomeEsc = (c.nome || '').replace(/'/g, "\\'");
+  const nomeEsc = jsEmAtributo(c.nome);
   return `
     <div style="display:flex;flex-direction:column;gap:8px;padding:12px 14px;border:1px solid var(--slate-200,#e2e8f0);border-radius:10px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
@@ -8311,7 +8322,7 @@ function filtrarClienteFaturadoUI(input) {
     return;
   }
   lista.innerHTML = filtrados.map(c => `
-    <div class="autocomplete-item" onclick='selecionarClienteFaturadoUI(${JSON.stringify({ nome: c.nome, cnpj: c.cnpj, tipo: c.tipo })})'>
+    <div class="autocomplete-item" onclick='selecionarClienteFaturadoUI(${jsonEmAtributo({ nome: c.nome, cnpj: c.cnpj, tipo: c.tipo })})'>
       <strong>${c.nome}</strong> ${c.tipo === 'funcionario' ? '👤' : '🏢'}<br/><span style="font-size:11.5px;color:var(--slate-400);">${formatarCnpjUI(c.cnpj)}</span>
     </div>
   `).join('');
@@ -8336,7 +8347,7 @@ async function selecionarClienteFaturadoUI(cliente) {
 
   document.getElementById('idcli-resultado').innerHTML = `
     ${avisoLimite}
-    <button class="btn-primary full" ${clienteCompleto.disponivel === 0 ? 'disabled' : ''} onclick='pedirSenhaFaturadoUI(${JSON.stringify(clienteCompleto)})'>✅ Confirmar e cobrar pra este cliente</button>
+    <button class="btn-primary full" ${clienteCompleto.disponivel === 0 ? 'disabled' : ''} onclick='pedirSenhaFaturadoUI(${jsonEmAtributo(clienteCompleto)})'>✅ Confirmar e cobrar pra este cliente</button>
     <p style="font-size:12px;color:var(--slate-400);text-align:center;margin-top:10px;">
       Não achou o cliente? <a href="#" onclick="event.preventDefault();abrirClientesFaturado();" style="color:var(--orange);">Cadastra em Financeiro → Clientes faturado</a>.
     </p>
@@ -8373,7 +8384,7 @@ function filtrarPagarFaturadoUI(input) {
     return;
   }
   lista.innerHTML = filtrados.map(c => `
-    <div class="autocomplete-item" onclick='selecionarClientePagarFaturadoUI(${JSON.stringify({ nome: c.nome, cnpj: c.cnpj, tipo: c.tipo })})'>
+    <div class="autocomplete-item" onclick='selecionarClientePagarFaturadoUI(${jsonEmAtributo({ nome: c.nome, cnpj: c.cnpj, tipo: c.tipo })})'>
       <strong>${c.nome}</strong> ${c.tipo === 'funcionario' ? '👤' : '🏢'}<br/><span style="font-size:11.5px;color:var(--slate-400);">${formatarCnpjUI(c.cnpj)}</span>
     </div>
   `).join('');
@@ -8406,9 +8417,9 @@ async function selecionarClientePagarFaturadoUI(cliente) {
       <label class="form-label">Valor que o cliente está pagando agora</label>
       <input type="text" id="pagfat-valor" class="form-control" inputmode="decimal" placeholder="0,00"
         style="font-size:22px;padding:14px 16px;height:auto;" value="${fmtMoeda(saldoInfo.saldoDevedor).replace('R$','').trim()}"
-        onkeydown="if(event.key==='Enter'){event.preventDefault();confirmarPagamentoParcialUI('${cliente.cnpj}','${cliente.nome.replace(/'/g,"\\'")}',${saldoInfo.saldoDevedor});}"/>
+        onkeydown="if(event.key==='Enter'){event.preventDefault();confirmarPagamentoParcialUI('${cliente.cnpj}','${jsEmAtributo(cliente.nome)}',${saldoInfo.saldoDevedor});}"/>
     </div>
-    <button class="btn-primary full" onclick="confirmarPagamentoParcialUI('${cliente.cnpj}','${cliente.nome.replace(/'/g,"\\'")}',${saldoInfo.saldoDevedor})">✅ Confirmar pagamento</button>
+    <button class="btn-primary full" onclick="confirmarPagamentoParcialUI('${cliente.cnpj}','${jsEmAtributo(cliente.nome)}',${saldoInfo.saldoDevedor})">✅ Confirmar pagamento</button>
   `;
   setTimeout(() => document.getElementById('pagfat-valor')?.focus(), 50);
 }
