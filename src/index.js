@@ -592,6 +592,10 @@ const migracoesProntas = (async () => {
       // vincular a uma compra específica. valor_pago registra quanto já foi abatido
       // dessa linha; quitado_em só é marcado quando valor_pago alcança o valor total.
       'ALTER TABLE comanda_pagamentos ADD COLUMN valor_pago DECIMAL(10,2) NOT NULL DEFAULT 0',
+      // Qual forma de pagamento quitou a dívida de Faturado (dinheiro, pix, cartão...) —
+      // antes só sabia QUE foi quitado, não COMO. Pedido do Estefano: o extrato do
+      // Faturado precisa mostrar isso, não só o selo "Quitado".
+      'ALTER TABLE comanda_pagamentos ADD COLUMN forma_quitacao VARCHAR(20) NULL',
     ];
     // Uma de cada vez, não todas juntas: num banco novinho (primeira vez rodando,
     // ex: servidor local de teste), várias dessas ALTER TABLE mexem na MESMA tabela

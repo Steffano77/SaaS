@@ -35,7 +35,7 @@ describe('Cliente Faturado (venda fiada)', () => {
     const saldoDepois = await auth(request(app).get(`/api/clientes-faturado/documento/${cnpj}/saldo`));
     expect(saldoDepois.body.saldoDevedor).toBeCloseTo(80, 2);
 
-    const baixa = await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/liquidar`));
+    const baixa = await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/liquidar`)).send({ forma: 'Dinheiro' });
     expect(baixa.status).toBe(200);
 
     const saldoFinal = await auth(request(app).get(`/api/clientes-faturado/documento/${cnpj}/saldo`));
@@ -80,7 +80,7 @@ describe('Cliente Faturado (venda fiada)', () => {
     });
 
     // Deve R$200, paga R$100 — saldo tem que ficar em R$100, não zerar
-    const pagou = await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/pagar-parcial`)).send({ valor: 100 });
+    const pagou = await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/pagar-parcial`)).send({ valor: 100, forma: 'Pix' });
     expect(pagou.status).toBe(200);
     expect(pagou.body.saldoAntes).toBeCloseTo(200, 2);
     expect(pagou.body.saldoDepois).toBeCloseTo(100, 2);
@@ -89,13 +89,13 @@ describe('Cliente Faturado (venda fiada)', () => {
     expect(saldo1.body.saldoDevedor).toBeCloseTo(100, 2);
 
     // Paga o resto depois, em outra visita — saldo zera
-    const pagouResto = await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/pagar-parcial`)).send({ valor: 100 });
+    const pagouResto = await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/pagar-parcial`)).send({ valor: 100, forma: 'Dinheiro' });
     expect(pagouResto.status).toBe(200);
     const saldo2 = await auth(request(app).get(`/api/clientes-faturado/documento/${cnpj}/saldo`));
     expect(saldo2.body.saldoDevedor).toBeCloseTo(0, 2);
 
     // Não deixa pagar mais do que deve
-    const pagouDemais = await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/pagar-parcial`)).send({ valor: 50 });
+    const pagouDemais = await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/pagar-parcial`)).send({ valor: 50, forma: 'Dinheiro' });
     expect(pagouDemais.status).toBe(400);
   });
 
@@ -121,12 +121,34 @@ describe('Cliente Faturado (venda fiada)', () => {
     });
 
     // Paga R$50 — deve quitar a comanda 1 (mais antiga) inteira, deixando a 2 intacta
-    await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/pagar-parcial`)).send({ valor: 50 });
+    await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/pagar-parcial`)).send({ valor: 50, forma: 'Pix' });
     const extrato = await auth(request(app).get(`/api/clientes-faturado/documento/${cnpj}/extrato`));
     const linha1 = extrato.body.find(l => l.comanda_id === c1.body.id);
     const linha2 = extrato.body.find(l => l.comanda_id === c2.body.id);
     expect(linha1.quitado_em).not.toBeNull();
+    expect(linha1.forma_quitacao).toBe('Pix');
     expect(linha2.quitado_em).toBeNull();
+  });
+
+  test('forma de pagamento é obrigatória ao dar baixa ou pagar parcial', async () => {
+    const cnpj = '44555666000117';
+    await auth(request(app).post('/api/clientes-faturado')).send({
+      cnpj, nome: 'Padaria Teste LTDA', tipo: 'empresa',
+    });
+    const abriuCaixa = await auth(request(app).post('/api/caixa/abrir')).send({ valor_abertura: 0, nome: 'Caixa Forma' });
+    const comanda = await auth(request(app).post('/api/comandas')).send({ identificador: 'Forma Teste' });
+    await auth(request(app).post(`/api/comandas/${comanda.body.id}/itens`)).send({ nome_produto: 'Item', quantidade: 1, preco_unitario: 30 });
+    await auth(request(app).post(`/api/comandas/${comanda.body.id}/fechar`)).send({
+      caixa_id: abriuCaixa.body.id,
+      pagamentos: [{ forma_pagamento: 'Faturado', valor: 30, cliente_documento: cnpj, cliente_nome: 'Padaria Teste LTDA' }],
+    });
+
+    const semForma = await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/pagar-parcial`)).send({ valor: 30 });
+    expect(semForma.status).toBe(400);
+    const formaInvalida = await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/pagar-parcial`)).send({ valor: 30, forma: 'Bitcoin' });
+    expect(formaInvalida.status).toBe(400);
+    const ok = await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/pagar-parcial`)).send({ valor: 30, forma: 'Débito' });
+    expect(ok.status).toBe(200);
   });
 });
 

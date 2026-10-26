@@ -7969,7 +7969,7 @@ function renderizarExtratoFaturadoLista() {
       </div>
       <div style="flex-shrink:0;text-align:right;">
         <div style="font-size:13.5px;font-weight:700;">${fmtMoeda(l.valor)}</div>
-        <div style="font-size:11px;${l.quitado_em ? 'color:#16a34a;' : 'color:#c2410c;'}">${l.quitado_em ? '✅ Quitado' : '🟠 Em aberto'}</div>
+        <div style="font-size:11px;${l.quitado_em ? 'color:#16a34a;' : 'color:#c2410c;'}">${l.quitado_em ? `✅ Quitado${l.forma_quitacao ? ' · ' + l.forma_quitacao : ''}` : '🟠 Em aberto'}</div>
       </div>
     </div>`).join('');
 }
@@ -8006,9 +8006,11 @@ async function confirmarQuitarSelecionadosExtratoUI() {
   const total = selecionadas.reduce((s, l) => s + parseFloat(l.valor), 0);
   const ok = await confirmarBonito(`Dar baixa em ${selecionadas.length} comanda(s) de ${d.nome}, totalizando ${fmtMoeda(total)}?\n\nAs outras comandas (não marcadas) continuam em aberto.`);
   if (!ok) return;
+  const forma = await escolherFormaQuitacaoUI();
+  if (!forma) return;
   const r = await api(`/clientes-faturado/documento/${d.documento}/liquidar-selecionados`, {
     method: 'POST',
-    body: { comanda_ids: selecionadas.map(l => l.comanda_id) },
+    body: { comanda_ids: selecionadas.map(l => l.comanda_id), forma },
   });
   if (!r) return;
   mostrarToast(`${r.quitados} comanda(s) de ${d.nome} quitada(s)!`, 'ok');
@@ -8041,7 +8043,7 @@ async function imprimirExtratoFaturadoUI(janelaPre, linhasSelecionadas) {
   const total = linhas.reduce((s, l) => s + parseFloat(l.valor), 0);
 
   const linhasHtml = linhas.map(l =>
-    `<div class="linha"><span class="nome">${fmtDataHoraBR(l.fechada_em)} Comanda ${l.identificador}${l.quitado_em ? ' (quitado)' : ''}</span><span class="valor">${fmtMoeda(l.valor)}</span></div>`
+    `<div class="linha"><span class="nome">${fmtDataHoraBR(l.fechada_em)} Comanda ${l.identificador}${l.quitado_em ? ` (quitado${l.forma_quitacao ? ' - ' + l.forma_quitacao : ''})` : ''}</span><span class="valor">${fmtMoeda(l.valor)}</span></div>`
   ).join('');
 
   abrirJanelaImpressaoTermica(`
@@ -8134,7 +8136,7 @@ async function fecharMensalRhUI() {
   try { janela.close(); } catch (e) {}
   let zerados = 0;
   for (const c of funcionarios) {
-    const r = await api(`/clientes-faturado/documento/${c.cnpj}/liquidar`, { method: 'POST' });
+    const r = await api(`/clientes-faturado/documento/${c.cnpj}/liquidar`, { method: 'POST', body: { forma: 'Desconto em folha' } });
     if (r) zerados++;
   }
   mostrarToast(`Fechamento mensal concluído — ${zerados} de ${funcionarios.length} funcionário(s) zerado(s).`, 'ok');
@@ -8156,7 +8158,9 @@ async function darBaixaParcialFaturadoUI(id) {
 // diferente do 💰 "Dar baixa" normal que zera tudo de uma vez.
 async function darBaixaLancadoUI(documento, nome, valorLancado) {
   if (!(await confirmarBonito(`Confirma que ${nome} pagou o valor lançado de ${fmtMoeda(valorLancado)}?\n\nSó esse valor será quitado — qualquer consumo feito depois do lançamento continua em aberto.`))) return;
-  const r = await api(`/clientes-faturado/documento/${documento}/liquidar-lancados`, { method: 'POST' });
+  const forma = await escolherFormaQuitacaoUI();
+  if (!forma) return;
+  const r = await api(`/clientes-faturado/documento/${documento}/liquidar-lancados`, { method: 'POST', body: { forma } });
   if (!r) return;
   mostrarToast(`Baixa do valor lançado de ${nome} confirmada!`, 'ok');
   abrirClientesFaturado();
@@ -8424,14 +8428,31 @@ async function selecionarClientePagarFaturadoUI(cliente) {
   setTimeout(() => document.getElementById('pagfat-valor')?.focus(), 50);
 }
 
+// Escolhe a forma de pagamento (Dinheiro/Pix/Crédito/Débito/Voucher) usada pra quitar
+// uma dívida de Faturado — mostra no modal-forma-quitacao e devolve a escolha (ou
+// null se cancelar). O extrato guarda essa escolha pra mostrar junto do "Quitado".
+let _resolverFormaQuitacao = null;
+function escolherFormaQuitacaoUI() {
+  return new Promise(resolve => {
+    _resolverFormaQuitacao = resolve;
+    document.getElementById('modal-forma-quitacao').classList.remove('hidden');
+  });
+}
+function _fecharFormaQuitacao(forma) {
+  document.getElementById('modal-forma-quitacao').classList.add('hidden');
+  if (_resolverFormaQuitacao) { const r = _resolverFormaQuitacao; _resolverFormaQuitacao = null; r(forma); }
+}
+
 async function confirmarPagamentoParcialUI(documento, nome, saldoAntes) {
   const valor = paraNumeroMoeda(document.getElementById('pagfat-valor').value);
   if (!(valor > 0)) { mostrarToast('Digita um valor maior que zero.', 'warn'); return; }
   if (valor > saldoAntes + 0.01) { mostrarToast(`O valor não pode ser maior que o saldo devedor (${fmtMoeda(saldoAntes)}).`, 'warn'); return; }
   const ehTotal = Math.abs(valor - saldoAntes) < 0.01;
   if (!(await confirmarBonito(`Confirma o pagamento de ${fmtMoeda(valor)} de ${nome}?${ehTotal ? ' (quita tudo)' : ` (fica faltando ${fmtMoeda(saldoAntes - valor)})`}`))) return;
+  const forma = await escolherFormaQuitacaoUI();
+  if (!forma) return;
 
-  const r = await api(`/clientes-faturado/documento/${documento}/pagar-parcial`, { method: 'POST', body: { valor } });
+  const r = await api(`/clientes-faturado/documento/${documento}/pagar-parcial`, { method: 'POST', body: { valor, forma } });
   if (!r) return;
   mostrarToast(`Pagamento de ${fmtMoeda(valor)} registrado!`, 'ok');
   fecharModal('modal-pagar-faturado');
