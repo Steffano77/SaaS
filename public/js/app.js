@@ -8155,11 +8155,11 @@ async function confirmarQuitarSelecionadosExtratoUI() {
   const total = selecionadas.reduce((s, l) => s + parseFloat(l.valor), 0);
   const ok = await confirmarBonito(`Dar baixa em ${selecionadas.length} comanda(s) de ${d.nome}, totalizando ${fmtMoeda(total)}?\n\nAs outras comandas (não marcadas) continuam em aberto.`);
   if (!ok) return;
-  const forma = await escolherFormaQuitacaoUI();
-  if (!forma) return;
+  const forma = await formaQuitacaoSeCaixaUI();
+  if (forma === null) return;
   const r = await api(`/clientes-faturado/documento/${d.documento}/liquidar-selecionados`, {
     method: 'POST',
-    body: { comanda_ids: selecionadas.map(l => l.comanda_id), forma, caixa_id: CAIXA_LOCAL_ID },
+    body: { comanda_ids: selecionadas.map(l => l.comanda_id), forma, caixa_id: forma ? CAIXA_LOCAL_ID : null },
   });
   if (!r) return;
   mostrarToast(`${r.quitados} comanda(s) de ${d.nome} quitada(s)!`, 'ok');
@@ -8307,9 +8307,9 @@ async function darBaixaParcialFaturadoUI(id) {
 // diferente do 💰 "Dar baixa" normal que zera tudo de uma vez.
 async function darBaixaLancadoUI(documento, nome, valorLancado) {
   if (!(await confirmarBonito(`Confirma que ${nome} pagou o valor lançado de ${fmtMoeda(valorLancado)}?\n\nSó esse valor será quitado — qualquer consumo feito depois do lançamento continua em aberto.`))) return;
-  const forma = await escolherFormaQuitacaoUI();
-  if (!forma) return;
-  const r = await api(`/clientes-faturado/documento/${documento}/liquidar-lancados`, { method: 'POST', body: { forma, caixa_id: CAIXA_LOCAL_ID } });
+  const forma = await formaQuitacaoSeCaixaUI();
+  if (forma === null) return;
+  const r = await api(`/clientes-faturado/documento/${documento}/liquidar-lancados`, { method: 'POST', body: { forma, caixa_id: forma ? CAIXA_LOCAL_ID : null } });
   if (!r) return;
   mostrarToast(`Baixa do valor lançado de ${nome} confirmada!`, 'ok');
   abrirClientesFaturado();
@@ -8587,6 +8587,13 @@ function escolherFormaQuitacaoUI() {
     document.getElementById('modal-forma-quitacao').classList.remove('hidden');
   });
 }
+// Só pergunta a forma na tela do caixa (o valor entra no fechamento daquele caixa). Na
+// retaguarda (Financeiro, manutenção), dá baixa direto sem perguntar, como era antes.
+// Devolve null se cancelou, '' na retaguarda (sem forma), ou a forma escolhida.
+async function formaQuitacaoSeCaixaUI() {
+  if (!document.documentElement.classList.contains('modo-caixa-ativo')) return '';
+  return escolherFormaQuitacaoUI();
+}
 function _fecharFormaQuitacao(forma) {
   document.getElementById('modal-forma-quitacao').classList.add('hidden');
   if (_resolverFormaQuitacao) { const r = _resolverFormaQuitacao; _resolverFormaQuitacao = null; r(forma); }
@@ -8598,10 +8605,10 @@ async function confirmarPagamentoParcialUI(documento, nome, saldoAntes) {
   if (valor > saldoAntes + 0.01) { mostrarToast(`O valor não pode ser maior que o saldo devedor (${fmtMoeda(saldoAntes)}).`, 'warn'); return; }
   const ehTotal = Math.abs(valor - saldoAntes) < 0.01;
   if (!(await confirmarBonito(`Confirma o pagamento de ${fmtMoeda(valor)} de ${nome}?${ehTotal ? ' (quita tudo)' : ` (fica faltando ${fmtMoeda(saldoAntes - valor)})`}`))) return;
-  const forma = await escolherFormaQuitacaoUI();
-  if (!forma) return;
+  const forma = await formaQuitacaoSeCaixaUI();
+  if (forma === null) return;
 
-  const r = await api(`/clientes-faturado/documento/${documento}/pagar-parcial`, { method: 'POST', body: { valor, forma, caixa_id: CAIXA_LOCAL_ID } });
+  const r = await api(`/clientes-faturado/documento/${documento}/pagar-parcial`, { method: 'POST', body: { valor, forma, caixa_id: forma ? CAIXA_LOCAL_ID : null } });
   if (!r) return;
   mostrarToast(`Pagamento de ${fmtMoeda(valor)} registrado!`, 'ok');
   fecharModal('modal-pagar-faturado');

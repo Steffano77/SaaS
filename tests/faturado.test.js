@@ -130,7 +130,7 @@ describe('Cliente Faturado (venda fiada)', () => {
     expect(linha2.quitado_em).toBeNull();
   });
 
-  test('forma de pagamento é obrigatória ao dar baixa ou pagar parcial', async () => {
+  test('forma de pagamento: obrigatória no caixa, opcional na retaguarda', async () => {
     const cnpj = '44555666000117';
     await auth(request(app).post('/api/clientes-faturado')).send({
       cnpj, nome: 'Padaria Teste LTDA', tipo: 'empresa',
@@ -143,12 +143,16 @@ describe('Cliente Faturado (venda fiada)', () => {
       pagamentos: [{ forma_pagamento: 'Faturado', valor: 30, cliente_documento: cnpj, cliente_nome: 'Padaria Teste LTDA' }],
     });
 
-    const semForma = await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/pagar-parcial`)).send({ valor: 30 });
-    expect(semForma.status).toBe(400);
+    // No caixa (com caixa_id) a forma é obrigatória — entra no fechamento.
+    const semFormaNoCaixa = await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/pagar-parcial`)).send({ valor: 10, caixa_id: abriuCaixa.body.id });
+    expect(semFormaNoCaixa.status).toBe(400);
     const formaInvalida = await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/pagar-parcial`)).send({ valor: 30, forma: 'Bitcoin' });
     expect(formaInvalida.status).toBe(400);
-    const ok = await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/pagar-parcial`)).send({ valor: 30, forma: 'Débito' });
+    const ok = await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/pagar-parcial`)).send({ valor: 20, forma: 'Débito' });
     expect(ok.status).toBe(200);
+    // Na retaguarda (sem caixa) dá baixa sem informar a forma, como era antes.
+    const retaguarda = await auth(request(app).post(`/api/clientes-faturado/documento/${cnpj}/pagar-parcial`)).send({ valor: 10 });
+    expect(retaguarda.status).toBe(200);
   });
 });
 
