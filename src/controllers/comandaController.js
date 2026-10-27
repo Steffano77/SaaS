@@ -458,7 +458,11 @@ exports.fechar = async (req, res) => {
         // banco rejeitava e derrubava o pagamento inteiro com erro técnico feio. Agora trava
         // num teto sensato em vez de deixar passar um número absurdo pro banco.
         const trocoBruto = parseFloat(p.troco) || 0;
-        const troco = Math.min(Math.max(trocoBruto, 0), 99999.99);
+        // Troco acima de R$ 1.000 é sempre engano (código de barras bipado no valor
+        // recebido — caso real na Jota 3): grava zero em vez do valor absurdo, que ia
+        // parar no recibo e na NFC-e (vPag/vTroco). A tela já bloqueia isso antes.
+        const troco = trocoBruto > 1000 ? 0 : Math.max(trocoBruto, 0);
+        if (trocoBruto > 1000) console.warn(`[fechar] Troco absurdo ignorado na comanda ${comanda.id}: ${trocoBruto}`);
         if (valor <= 0) continue;
         const clienteDoc = forma === 'Faturado' ? (p.cliente_documento || null) : null;
         const clienteNome = forma === 'Faturado' ? (p.cliente_nome || null) : null;
