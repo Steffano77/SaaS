@@ -596,6 +596,13 @@ const migracoesProntas = (async () => {
       // antes só sabia QUE foi quitado, não COMO. Pedido do Estefano: o extrato do
       // Faturado precisa mostrar isso, não só o selo "Quitado".
       'ALTER TABLE comanda_pagamentos ADD COLUMN forma_quitacao VARCHAR(20) NULL',
+      // notas_fiscais já é a maior tabela do banco (cada linha guarda o XML completo) —
+      // essas duas consultas rodavam sem índice que as cubra: o job de reenviar
+      // contingência (a cada 5min) filtra só por status, sem padaria_id, então o índice
+      // composto (padaria_id, status) não ajuda; e a lista "últimas notas" ordena por
+      // criado_em sem índice nenhum nessa coluna.
+      'CREATE INDEX idx_notas_status ON notas_fiscais (status)',
+      'CREATE INDEX idx_notas_criado_em ON notas_fiscais (criado_em)',
       // Cada pagamento de fiado recebido num caixa (cliente Faturado pagando a conta) —
       // pro fechamento de caixa somar esse dinheiro/pix no "Em Caixa" e listar no
       // "Resumo Receitas", igual o Saurus. Antes o pagamento só abatia a dívida, sem

@@ -43,9 +43,12 @@ async function montarResumoDeHoje() {
   );
   // Notas fiscais com problema hoje (rejeitada, erro, ou ainda pendente) — dono acompanha
   // de longe que tem algo pra resolver, mesmo sem poder resolver de longe ainda (só ver).
+  // "criado_em >= hoje AND < amanhã" em vez de "DATE(criado_em) = hoje" — a função
+  // em cima da coluna impedia o banco de usar o índice de criado_em, forçando
+  // varrer a tabela inteira (131MB) toda vez que esse job rodava.
   const [[notasProblema]] = await db.query(
-    `SELECT COUNT(*) AS qtd FROM notas_fiscais WHERE DATE(criado_em) = ? AND status IN ('rejeitada','erro','pendente')`,
-    [hoje]
+    `SELECT COUNT(*) AS qtd FROM notas_fiscais WHERE criado_em >= ? AND criado_em < DATE_ADD(?, INTERVAL 1 DAY) AND status IN ('rejeitada','erro','pendente')`,
+    [hoje, hoje]
   );
   return {
     data: hoje,
