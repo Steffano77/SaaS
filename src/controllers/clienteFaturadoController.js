@@ -247,8 +247,11 @@ async function emAbertoAntesDaBaixa(padaria_id, documento, filtroExtra = '', par
 exports.liquidar = async (req, res) => {
   const padaria_id = req.padaria.id;
   const docLimpo = limparDoc(req.params.documento);
-  const forma = formaQuitacaoValida(req.body.forma);
-  if (!forma) return res.status(400).json({ erro: 'Informe a forma de pagamento (Dinheiro, Pix, Crédito, Débito ou Voucher).' });
+  // Forma é opcional: o caixa sempre informa (entra no fechamento); na retaguarda
+  // (Financeiro) dá pra dar baixa sem saber como o cliente pagou, como era antes.
+  const forma = req.body.forma ? formaQuitacaoValida(req.body.forma) : null;
+  if (req.body.forma && !forma) return res.status(400).json({ erro: 'Forma de pagamento inválida.' });
+  if (req.body.caixa_id && !forma) return res.status(400).json({ erro: 'No caixa, informe a forma de pagamento (Dinheiro, Pix, Crédito, Débito ou Voucher).' });
   const valor = await emAbertoAntesDaBaixa(padaria_id, docLimpo);
   const [r] = await db.query(
     `UPDATE comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
@@ -265,8 +268,11 @@ exports.liquidar = async (req, res) => {
 exports.liquidarSelecionados = async (req, res) => {
   const padaria_id = req.padaria.id;
   const docLimpo = limparDoc(req.params.documento);
-  const forma = formaQuitacaoValida(req.body.forma);
-  if (!forma) return res.status(400).json({ erro: 'Informe a forma de pagamento (Dinheiro, Pix, Crédito, Débito ou Voucher).' });
+  // Forma é opcional: o caixa sempre informa (entra no fechamento); na retaguarda
+  // (Financeiro) dá pra dar baixa sem saber como o cliente pagou, como era antes.
+  const forma = req.body.forma ? formaQuitacaoValida(req.body.forma) : null;
+  if (req.body.forma && !forma) return res.status(400).json({ erro: 'Forma de pagamento inválida.' });
+  if (req.body.caixa_id && !forma) return res.status(400).json({ erro: 'No caixa, informe a forma de pagamento (Dinheiro, Pix, Crédito, Débito ou Voucher).' });
   const comandaIds = (req.body.comanda_ids || []).map(Number).filter(n => Number.isInteger(n) && n > 0);
   if (!comandaIds.length) return res.status(400).json({ erro: 'Nenhuma comanda selecionada.' });
   const valor = await emAbertoAntesDaBaixa(padaria_id, docLimpo, 'AND cp.comanda_id IN (?)', [comandaIds]);
@@ -287,8 +293,11 @@ exports.liquidarSelecionados = async (req, res) => {
 exports.liquidarLancados = async (req, res) => {
   const padaria_id = req.padaria.id;
   const docLimpo = limparDoc(req.params.documento);
-  const forma = formaQuitacaoValida(req.body.forma);
-  if (!forma) return res.status(400).json({ erro: 'Informe a forma de pagamento (Dinheiro, Pix, Crédito, Débito ou Voucher).' });
+  // Forma é opcional: o caixa sempre informa (entra no fechamento); na retaguarda
+  // (Financeiro) dá pra dar baixa sem saber como o cliente pagou, como era antes.
+  const forma = req.body.forma ? formaQuitacaoValida(req.body.forma) : null;
+  if (req.body.forma && !forma) return res.status(400).json({ erro: 'Forma de pagamento inválida.' });
+  if (req.body.caixa_id && !forma) return res.status(400).json({ erro: 'No caixa, informe a forma de pagamento (Dinheiro, Pix, Crédito, Débito ou Voucher).' });
   const valor = await emAbertoAntesDaBaixa(padaria_id, docLimpo, 'AND cp.lancado_em IS NOT NULL');
   const [r] = await db.query(
     `UPDATE comanda_pagamentos cp JOIN comandas c ON c.id = cp.comanda_id
@@ -314,8 +323,11 @@ exports.pagarParcial = async (req, res) => {
   const docLimpo = limparDoc(req.params.documento);
   const valorPago = parseFloat(req.body.valor);
   if (!(valorPago > 0)) return res.status(400).json({ erro: 'Informe um valor maior que zero.' });
-  const forma = formaQuitacaoValida(req.body.forma);
-  if (!forma) return res.status(400).json({ erro: 'Informe a forma de pagamento (Dinheiro, Pix, Crédito, Débito ou Voucher).' });
+  // Forma é opcional: o caixa sempre informa (entra no fechamento); na retaguarda
+  // (Financeiro) dá pra dar baixa sem saber como o cliente pagou, como era antes.
+  const forma = req.body.forma ? formaQuitacaoValida(req.body.forma) : null;
+  if (req.body.forma && !forma) return res.status(400).json({ erro: 'Forma de pagamento inválida.' });
+  if (req.body.caixa_id && !forma) return res.status(400).json({ erro: 'No caixa, informe a forma de pagamento (Dinheiro, Pix, Crédito, Débito ou Voucher).' });
 
   const conn = await db.getConnection();
   try {
