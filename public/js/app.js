@@ -8737,6 +8737,15 @@ function atualizarTrocoUI() {
 function confirmarValorPagamento() {
   const valor = paraNumeroMoeda(document.getElementById('pgto-valor-input').value);
   if (!valor || valor <= 0) { mostrarToast('Digite um valor válido.', 'warn'); return; }
+  // Bug real (Jota 3, comanda 51): código de barras bipado no campo de valor recebido
+  // virou "R$ 200.078.962.623.010,22" e o recibo saiu com um troco absurdo. Ninguém paga
+  // uma conta com mais de R$ 1.000 de troco — trava e limpa o campo pra digitar de novo.
+  if (_pgtoEhDinheiro && valor - _pgtoRestante > 1000) {
+    mostrarToast('Valor recebido alto demais — parece um código de barras bipado no campo. Digite o valor que o cliente entregou.', 'warn');
+    const inp = document.getElementById('pgto-valor-input');
+    inp.value = ''; inp.focus(); atualizarTrocoUI();
+    return;
+  }
   // Dinheiro pode vir maior que o restante (o excedente é troco); qualquer outra forma
   // não pode passar do que falta, senão a comanda "receberia" mais do que o total.
   if (!_pgtoEhDinheiro && valor > _pgtoRestante + 0.01) {
