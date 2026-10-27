@@ -22,16 +22,10 @@ fazendo a janela se fechar sozinha de DENTRO dela mesma (script embutido no
 HTML, igual o botão manual "Fechar" que sempre funcionou) + botão manual
 Imprimir/Fechar como rede de segurança, caso aconteça de novo.
 
-## Duas rejeições de NFC-e na mesma comanda (Balcão C57, 2026-10-21) — investigar com calma
+## ✅ Rejeições 704/865 na Balcão C57 (2026-10-21) — resolvido em 2026-10-22
 
-Reportado pelo Estefano, caixas em operação então não mexi na hora:
-
-- Erro 704: "NFC-e ou NF-e com DANFE Simplificado Tipo 2 com Data-Hora de
-  emissão atrasada" — nota reenviada com dhEmi velho demais.
-- Erro 865: "Total dos pagamentos menor que o total da nota" — na tentativa
-  de "Reemitir corrigida", os pagamentos da nota corrigida ficaram com total
-  menor que o da nota.
-
-Conferir `src/controllers/nfceController.js` (`reenviar`, reemissão
-corrigida) e `src/fiscal/xmlNFCe.js` (geração do `dhEmi`). Comanda específica
-(Balcão C57) — conferir se precisa agir nela além do código.
+Causa: item bipado no mesmo segundo da cobrança entrou na comanda já cobrada
+(R$16,00 pago de R$19,29) → 865 pra sempre; o 704 veio do "Reenviar" mandando a
+nota de 07:15 horas depois. Corrigido: fechar/itens com a comanda travada (FOR
+UPDATE) + Reenviar recusa nota normal vencida (commit b63bea1). Comanda 5148:
+Pão Francês sem pagar removido e nota reemitida/autorizada.
