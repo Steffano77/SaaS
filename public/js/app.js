@@ -9000,6 +9000,19 @@ document.addEventListener('keydown', (e) => {
 document.addEventListener('contextmenu', (e) => {
   if (sessionStorage.getItem('pp_modo_caixa_restrito')) e.preventDefault();
 });
+// F1 a F7 são atalhos do caixa (com/sem nota, formas de pagamento) — mas quando o atalho
+// não se aplica naquela hora (ex: ainda sem item, outra tela aberta), a tecla ia pro
+// Chrome: F1 abria a "Ajuda do Chrome" numa aba nova, F5 recarregava a página, F3/F6/F7
+// abriam busca/barra de endereço/navegação por cursor. As atendentes apertavam sem querer
+// e a aba atrapalhava a venda. Só tira a ação do navegador — os atalhos do sistema
+// continuam funcionando normal (não para a propagação). Ctrl+F5 continua recarregando.
+// F1 é bloqueado sempre; os outros, só no aparelho em modo caixa.
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === 'F1') { e.preventDefault(); return; }
+  if (!sessionStorage.getItem('pp_modo_caixa_restrito')) return;
+  if (['F2', 'F3', 'F4', 'F5', 'F6', 'F7'].includes(e.key)) e.preventDefault();
+}, true);
 document.addEventListener('keydown', (e) => {
   if (!sessionStorage.getItem('pp_modo_caixa_restrito')) return;
   const tecla = (e.key || '').toUpperCase();
