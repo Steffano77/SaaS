@@ -5411,6 +5411,10 @@ async function carregarComandas() {
   // quem lança pedido não precisa (nem deve) continuar vendo/mexendo numa comanda que já
   // foi concluída e está só esperando ser cobrada.
   let abertas = MODO_LANCAMENTO ? data.abertas.filter(c => !c.pronta_pagamento) : data.abertas;
+  // Tablet da copa só vê comanda com NÚMERO (o cartão físico). Venda de balcão ("Balcão
+  // 16:02", cliente que pega pão e vai direto pro caixa) e comanda sem número ("Comanda")
+  // não são da copa e só confundiam a lista.
+  if (MODO_LANCAMENTO) abertas = abertas.filter(c => /^\d+$/.test(String(c.identificador || '').trim()));
   // Vendas em Dinheiro já fechadas offline, mas que o servidor ainda não sabe (fila
   // aguardando internet voltar) — não pode continuar aparecendo como "aberta".
   if (_comandasFechadasOfflinePendentes.size) {
