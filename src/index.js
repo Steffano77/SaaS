@@ -132,6 +132,9 @@ app.use('/api/auth/esqueci-senha', rateLimit({
 const limitePin = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 15,
+  // Só conta PIN errado. Bug real (Jota 2): o caixa do servidor é um IP só (localhost)
+  // e os logins/aberturas CERTOS do dia somavam até travar a operadora por 15 minutos.
+  skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
   message: { erro: 'Muitas tentativas de PIN. Aguarde 15 minutos.' }
