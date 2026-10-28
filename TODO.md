@@ -38,3 +38,18 @@ Comando ESC/POS direto pelo servidor (gavetaController: grava no compartilhament
 Jota 3 GAVETA_CAIXA_2=\\localhost\imp (o outro caixa da Jota 3 tem gaveta manual).
 Driver das impressoras com gaveta em "Não abrir" (Preferências e Padrões de impressão),
 então o cartão não abre mais a gaveta.
+
+## Pra fazer em 2026-10-29
+
+1. **Impressão silenciosa (sem janela do Chrome)** em cada PC de caixa, nas duas lojas:
+   - Impressora térmica como padrão: `rundll32 printui.dll,PrintUIEntry /y /n "POS-80C"` (Jota 2 Caixa 2)
+     ou `"EPSON TM-T20X Receipt"` (Jota 2 Caixa 1 / Jota 3 servidor); desmarcar "Permitir que o
+     Windows gerencie minha impressora padrão".
+   - Atalho do Chrome do caixa (e o de inicialização, se tiver) com `--kiosk-printing` no fim do
+     Destino; fechar todo o Chrome antes. Testar: cupom sai sem janela.
+   - Cuidado: tudo vai pra impressora padrão (relatório A4 sai na térmica nesse PC).
+2. **Caixa 1 da Jota 2 (DESKTOP-98CNNAE) — 2 telas azuis em 27/10 e sumiu da rede:**
+   foto do código de parada; `Get-WinEvent` (Id 1001, 41, 6008) e `wmic diskdrive get model,status`.
+3. **Papéis na Equipe (Jota 2 e Jota 3):** todas as operadoras de caixa com papel Caixa/Gerente
+   (caixa agora só abre com operador desses papéis + PIN).
+4. **Jota 3:** aplicar `a4f7030` e `3e7b8b0` do jota2-producao, se ainda não foram.
