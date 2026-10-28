@@ -21,7 +21,17 @@ async function criarPadariaPremium(app, request) {
   if (registro.status !== 201) {
     throw new Error(`Falha ao registrar padaria de teste: ${registro.status} ${JSON.stringify(registro.body)}`);
   }
-  return { token: registro.body.token, padaria: registro.body.padaria, email };
+  // Caixa só abre com operador (papel Caixa + PIN) — cria um pra cada padaria de teste.
+  const token = registro.body.token;
+  const op = await request(app).post('/api/atendentes').set('Authorization', `Bearer ${token}`)
+    .send({ nome: 'Operador Teste', pin: '4321', role: 'caixa' });
+  if (op.status !== 201) throw new Error(`Falha ao criar operador de teste: ${op.status} ${JSON.stringify(op.body)}`);
+  operadores.set(token, { atendente_id: op.body.id, pin: '4321' });
+  return { token, padaria: registro.body.padaria, email };
 }
 
-module.exports = { criarPadariaPremium };
+// Campos de operador pra mandar junto no /api/caixa/abrir dos testes.
+const operadores = new Map();
+function opCaixa(token) { return operadores.get(token) || {}; }
+
+module.exports = { criarPadariaPremium, opCaixa };

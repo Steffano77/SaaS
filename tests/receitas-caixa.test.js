@@ -1,5 +1,5 @@
 const { appPronto, request } = require('./helpers/testApp');
-const { criarPadariaPremium } = require('./helpers/fixtures');
+const { criarPadariaPremium, opCaixa } = require('./helpers/fixtures');
 
 // Pagamento de fiado recebido no caixa entra no fechamento: "Receita", "Resumo Receitas"
 // e no "Em Caixa" da forma em que foi pago (antes aparecia como sobra no dinheiro).
@@ -10,7 +10,7 @@ describe('Recebimento de fiado no fechamento de caixa', () => {
     const auth = r => r.set('Authorization', `Bearer ${token}`);
     const cnpj = '11444777000161';
     await auth(request(app).post('/api/clientes-faturado')).send({ cnpj, nome: 'Empresa Receita', tipo: 'empresa' });
-    const caixa = await auth(request(app).post('/api/caixa/abrir')).send({ valor_abertura: 100, nome: 'Caixa Receita' });
+    const caixa = await auth(request(app).post('/api/caixa/abrir')).send({ ...opCaixa(token), valor_abertura: 100, nome: 'Caixa Receita' });
     const c = await auth(request(app).post('/api/comandas')).send({ identificador: 'Rec 1' });
     await auth(request(app).post(`/api/comandas/${c.body.id}/itens`)).send({ nome_produto: 'X', quantidade: 1, preco_unitario: 80 });
     const f = await auth(request(app).post(`/api/comandas/${c.body.id}/fechar`)).send({ caixa_id: caixa.body.id, pagamentos: [{ forma_pagamento: 'Faturado', valor: 80, cliente_documento: cnpj, cliente_nome: 'Empresa Receita' }] });

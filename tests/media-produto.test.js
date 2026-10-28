@@ -1,5 +1,5 @@
 const { appPronto, request } = require('./helpers/testApp');
-const { criarPadariaPremium } = require('./helpers/fixtures');
+const { criarPadariaPremium, opCaixa } = require('./helpers/fixtures');
 const db = require('../src/database/connection');
 
 // Média por produto: vende 2 un ontem às 7h e 4 un anteontem às 17h — média de 7 dias
@@ -9,7 +9,7 @@ describe('Média por produto', () => {
     const app = await appPronto();
     const { token } = await criarPadariaPremium(app, request);
     const auth = r => r.set('Authorization', `Bearer ${token}`);
-    const caixa = await auth(request(app).post('/api/caixa/abrir')).send({ valor_abertura: 0, nome: 'Caixa Media' });
+    const caixa = await auth(request(app).post('/api/caixa/abrir')).send({ ...opCaixa(token), valor_abertura: 0, nome: 'Caixa Media' });
     const prod = await auth(request(app).post('/api/produtos')).send({ nome: 'Pão Média Teste', preco_venda: 10 });
     const vender = async (qtd, forma) => {
       const c = await auth(request(app).post('/api/comandas')).send({ identificador: `M ${Math.random()}` });

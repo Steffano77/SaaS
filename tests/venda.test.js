@@ -1,5 +1,5 @@
 const { appPronto, request } = require('./helpers/testApp');
-const { criarPadariaPremium } = require('./helpers/fixtures');
+const { criarPadariaPremium, opCaixa } = require('./helpers/fixtures');
 
 // Fluxo completo de uma venda de balcão: abrir caixa -> cadastrar produto -> abrir
 // comanda -> adicionar item -> fechar comanda cobrando -> fechar caixa -> conferir que
@@ -17,7 +17,7 @@ describe('Venda de balcão (caixa -> comanda -> pagamento -> fechamento)', () =>
 
   test('abre caixa, vende e fecha batendo o dinheiro esperado', async () => {
     // 1) Abre o caixa com R$100 de fundo de troco
-    const abriuCaixa = await auth(request(app).post('/api/caixa/abrir')).send({ valor_abertura: 100, nome: 'Caixa Teste' });
+    const abriuCaixa = await auth(request(app).post('/api/caixa/abrir')).send({ ...opCaixa(token), valor_abertura: 100, nome: 'Caixa Teste' });
     expect(abriuCaixa.status).toBe(201);
     const caixaId = abriuCaixa.body.id;
 
@@ -50,7 +50,7 @@ describe('Venda de balcão (caixa -> comanda -> pagamento -> fechamento)', () =>
   });
 
   test('não deixa fechar comanda sem item', async () => {
-    const abriuCaixa = await auth(request(app).post('/api/caixa/abrir')).send({ valor_abertura: 0, nome: 'Caixa Teste Vazia' });
+    const abriuCaixa = await auth(request(app).post('/api/caixa/abrir')).send({ ...opCaixa(token), valor_abertura: 0, nome: 'Caixa Teste Vazia' });
     const caixaId = abriuCaixa.body.id;
     const comanda = await auth(request(app).post('/api/comandas')).send({ identificador: 'Balcão Teste Vazia' });
     const fechou = await auth(request(app).post(`/api/comandas/${comanda.body.id}/fechar`)).send({ caixa_id: caixaId });
@@ -58,8 +58,26 @@ describe('Venda de balcão (caixa -> comanda -> pagamento -> fechamento)', () =>
   });
 
   test('não deixa abrir dois caixas com o mesmo nome ao mesmo tempo', async () => {
-    await auth(request(app).post('/api/caixa/abrir')).send({ valor_abertura: 0, nome: 'Caixa Duplicada' });
-    const segunda = await auth(request(app).post('/api/caixa/abrir')).send({ valor_abertura: 0, nome: 'Caixa Duplicada' });
+    await auth(request(app).post('/api/caixa/abrir')).send({ ...opCaixa(token), valor_abertura: 0, nome: 'Caixa Duplicada' });
+    const segunda = await auth(request(app).post('/api/caixa/abrir')).send({ ...opCaixa(token), valor_abertura: 0, nome: 'Caixa Duplicada' });
     expect(segunda.status).toBe(409);
+  });
+});
+
+describe('Abrir caixa exige operador', () => {
+  test('sem operador, ou com papel atendente, não abre', async () => {
+    const app = await appPronto();
+    const { token } = await criarPadariaPremium(app, request);
+    const auth = r => r.set('Authorization', `Bearer ${token}`);
+    const sem = await auth(request(app).post('/api/caixa/abrir')).send({ valor_abertura: 0, nome: 'Caixa Sem Op' });
+    expect(sem.status).toBe(400);
+    const balcao = await auth(request(app).post('/api/atendentes')).send({ nome: 'Balconista', pin: '9876', role: 'atendente' });
+    const comBalcao = await auth(request(app).post('/api/caixa/abrir')).send({ valor_abertura: 0, nome: 'Caixa Balcao', atendente_id: balcao.body.id, pin: '9876' });
+    expect(comBalcao.status).toBe(403);
+    const pinErrado = await auth(request(app).post('/api/caixa/abrir')).send({ ...opCaixa(token), pin: '0000', valor_abertura: 0, nome: 'Caixa Pin' });
+    expect(pinErrado.status).toBe(401);
+    const ok = await auth(request(app).post('/api/caixa/abrir')).send({ ...opCaixa(token), valor_abertura: 0, nome: 'Caixa Op' });
+    expect(ok.status).toBe(201);
+    expect(ok.body.atendente).toBe('Operador Teste');
   });
 });
