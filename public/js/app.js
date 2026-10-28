@@ -9603,17 +9603,15 @@ async function selecionarProdutoBuscaComanda(produtoId) {
 
   const data = await api('/comandas');
   if (!data) return;
-  const todas = [...data.abertas, ...data.recentes];
-  let alvo = data.abertas.find(c => c.identificador === termo) || todas.find(c => c.identificador === termo);
+  // Só comanda ABERTA — a de hoje já paga com o mesmo número é outro cliente (ver
+  // abrirComandaPorNumeroRapido).
+  const alvo = data.abertas.find(c => c.identificador === termo);
 
   if (!alvo) {
     // Comanda nova só nasce com o atendente escolhido (bug real: Enter no automático
     // nessa pergunta abria comandas vazias e sem nome, ex: 889 e 240).
-    mostrarToast(`Comanda "${termo}" não existe — escolha o atendente pra abrir.`, 'warn');
+    mostrarToast(`Comanda "${termo}" não está aberta — escolha o atendente pra abrir.`, 'warn');
     abrirModalNovaComanda(termo);
-    return;
-  } else if (alvo.status && alvo.status !== 'aberta') {
-    mostrarToast('Essa comanda já foi fechada.', 'warn');
     return;
   }
 
@@ -9836,9 +9834,11 @@ async function abrirComandaPorNumeroRapido() {
   if (!termo) return;
   const data = await api('/comandas');
   if (!data) return;
-  const todas = [...data.abertas, ...data.recentes];
-  let alvo = data.abertas.find(c => c.identificador === termo)
-    || todas.find(c => c.identificador === termo);
+  // Só comanda ABERTA. Bug real (Jota 2, 28/10): o cartão físico volta pro balcão depois
+  // de pago; sem aberta com o número, o tablet abria a comanda JÁ PAGA de hoje e a
+  // atendente via os itens do cliente anterior como se a comanda não tivesse fechado.
+  // Venda já paga se consulta pelo Histórico.
+  const alvo = data.abertas.find(c => c.identificador === termo);
   if (!alvo) {
     input.value = '';
     abrirModalNovaComanda(termo);
@@ -9853,10 +9853,8 @@ async function buscarComandaPorNumero() {
   if (!termo) return;
   const data = await api('/comandas');
   if (!data) return;
-  const todas = [...data.abertas, ...data.recentes];
-  // Prioriza comanda aberta com esse identificador exato; senão pega a mais recente com esse nome
-  let alvo = data.abertas.find(c => c.identificador === termo)
-    || todas.find(c => c.identificador === termo);
+  // Só comanda ABERTA (ver abrirComandaPorNumeroRapido).
+  const alvo = data.abertas.find(c => c.identificador === termo);
   if (!alvo) {
     document.getElementById('cmd-busca-numero').value = '';
     abrirModalNovaComanda(termo);
