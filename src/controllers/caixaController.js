@@ -75,19 +75,22 @@ exports.abrir = async (req, res) => {
   const { valor_abertura, atendente_id, pin, observacao } = req.body;
   const nome = String(req.body.nome || '').trim() || 'Caixa 1';
 
-  let atendenteNome = null;
-  if (atendente_id) {
-    const [[atendente]] = await db.query(
-      `SELECT id, nome, pin_hash FROM atendentes WHERE id = ? AND padaria_id = ? AND ativo = 1`,
-      [atendente_id, padaria_id]
-    );
-    if (!atendente) return res.status(404).json({ erro: 'Atendente não encontrado.' });
-    if (atendente.pin_hash) {
-      const ok = await bcrypt.compare(String(pin || ''), atendente.pin_hash);
-      if (!ok) return res.status(401).json({ erro: 'PIN incorreto.' });
-    }
-    atendenteNome = atendente.nome;
+  // Caixa só abre com operador identificado (nome + PIN) e com papel Caixa ou Gerente.
+  // Bug real (Jota 2, caixa 81): caixa de 12h aberto sem operador — o comprovante saía
+  // com "Operador: -" e não dava pra saber de quem era a diferença do caixa.
+  if (!atendente_id) return res.status(400).json({ erro: 'Escolha o operador do caixa e digite o PIN.' });
+  const [[atendente]] = await db.query(
+    `SELECT id, nome, pin_hash, role FROM atendentes WHERE id = ? AND padaria_id = ? AND ativo = 1`,
+    [atendente_id, padaria_id]
+  );
+  if (!atendente) return res.status(404).json({ erro: 'Atendente não encontrado.' });
+  if (!['caixa', 'gerente'].includes(atendente.role)) {
+    return res.status(403).json({ erro: `${atendente.nome} não tem papel de Caixa nem de Gerente — só eles podem abrir caixa. Ajuste o papel em Equipe.` });
   }
+  if (!atendente.pin_hash) return res.status(400).json({ erro: `${atendente.nome} não tem PIN cadastrado — cadastre um PIN em Equipe antes de abrir o caixa.` });
+  const pinOk = await bcrypt.compare(String(pin || ''), atendente.pin_hash);
+  if (!pinOk) return res.status(401).json({ erro: 'PIN incorreto.' });
+  const atendenteNome = atendente.nome;
 
   // Nunca deixa abrir 2 caixas com o mesmo nome ao mesmo tempo (ex: dois aparelhos
   // logando como "Caixa 1" junto) — isso já causou vendas de um se misturarem com o

@@ -1,5 +1,5 @@
 const { appPronto, request } = require('./helpers/testApp');
-const { criarPadariaPremium } = require('./helpers/fixtures');
+const { criarPadariaPremium, opCaixa } = require('./helpers/fixtures');
 
 // Cancelar/excluir comanda é uma ação sensível (mexe em dinheiro já registrado) — só
 // atendente com papel "gerente" pode, e só depois de logar com o PIN dele (X-Func-Token).
@@ -39,7 +39,7 @@ describe('Cancelar / excluir comanda (ação de gerente)', () => {
   });
 
   test('excluir de vez uma comanda já fechada some do histórico', async () => {
-    const abriuCaixa = await auth(request(app).post('/api/caixa/abrir')).send({ valor_abertura: 0, nome: 'Caixa Exclusão' });
+    const abriuCaixa = await auth(request(app).post('/api/caixa/abrir')).send({ ...opCaixa(token), valor_abertura: 0, nome: 'Caixa Exclusão' });
     const comanda = await auth(request(app).post('/api/comandas')).send({ identificador: 'Excluir Teste' });
     await auth(request(app).post(`/api/comandas/${comanda.body.id}/itens`)).send({
       nome_produto: 'Item qualquer', quantidade: 1, preco_unitario: 10,

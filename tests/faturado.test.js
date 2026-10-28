@@ -1,5 +1,5 @@
 const { appPronto, request } = require('./helpers/testApp');
-const { criarPadariaPremium } = require('./helpers/fixtures');
+const { criarPadariaPremium, opCaixa } = require('./helpers/fixtures');
 
 // "Faturado" é o fluxo de cliente que consome fiado e paga depois (empresa/CNPJ, ou
 // funcionário/CPF com limite de R$500) — dinheiro real fica pendurado até "Dar baixa",
@@ -21,7 +21,7 @@ describe('Cliente Faturado (venda fiada)', () => {
     });
     expect(cliente.status).toBe(201);
 
-    const abriuCaixa = await auth(request(app).post('/api/caixa/abrir')).send({ valor_abertura: 0, nome: 'Caixa Faturado' });
+    const abriuCaixa = await auth(request(app).post('/api/caixa/abrir')).send({ ...opCaixa(token), valor_abertura: 0, nome: 'Caixa Faturado' });
     const comanda = await auth(request(app).post('/api/comandas')).send({ identificador: 'Faturado Teste' });
     await auth(request(app).post(`/api/comandas/${comanda.body.id}/itens`)).send({
       nome_produto: 'Café da manhã', quantidade: 1, preco_unitario: 80,
@@ -50,7 +50,7 @@ describe('Cliente Faturado (venda fiada)', () => {
     expect(cliente.status).toBe(201);
     expect(cliente.body.limite).toBe(500);
 
-    const abriuCaixa = await auth(request(app).post('/api/caixa/abrir')).send({ valor_abertura: 0, nome: 'Caixa Limite' });
+    const abriuCaixa = await auth(request(app).post('/api/caixa/abrir')).send({ ...opCaixa(token), valor_abertura: 0, nome: 'Caixa Limite' });
     const comanda = await auth(request(app).post('/api/comandas')).send({ identificador: 'Limite Teste' });
     await auth(request(app).post(`/api/comandas/${comanda.body.id}/itens`)).send({
       nome_produto: 'Compra grande', quantidade: 1, preco_unitario: 600,
@@ -69,7 +69,7 @@ describe('Cliente Faturado (venda fiada)', () => {
       cnpj, nome: 'Oficina Teste LTDA', tipo: 'empresa',
     });
 
-    const abriuCaixa = await auth(request(app).post('/api/caixa/abrir')).send({ valor_abertura: 0, nome: 'Caixa Parcial' });
+    const abriuCaixa = await auth(request(app).post('/api/caixa/abrir')).send({ ...opCaixa(token), valor_abertura: 0, nome: 'Caixa Parcial' });
     const comanda = await auth(request(app).post('/api/comandas')).send({ identificador: 'Parcial Teste' });
     await auth(request(app).post(`/api/comandas/${comanda.body.id}/itens`)).send({
       nome_produto: 'Pedido grande', quantidade: 1, preco_unitario: 200,
@@ -104,7 +104,7 @@ describe('Cliente Faturado (venda fiada)', () => {
     await auth(request(app).post('/api/clientes-faturado')).send({
       cnpj, nome: 'Mercado Teste LTDA', tipo: 'empresa',
     });
-    const abriuCaixa = await auth(request(app).post('/api/caixa/abrir')).send({ valor_abertura: 0, nome: 'Caixa FIFO' });
+    const abriuCaixa = await auth(request(app).post('/api/caixa/abrir')).send({ ...opCaixa(token), valor_abertura: 0, nome: 'Caixa FIFO' });
 
     // Duas comandas de R$50 cada, uma depois da outra
     const c1 = await auth(request(app).post('/api/comandas')).send({ identificador: 'FIFO 1' });
@@ -135,7 +135,7 @@ describe('Cliente Faturado (venda fiada)', () => {
     await auth(request(app).post('/api/clientes-faturado')).send({
       cnpj, nome: 'Padaria Teste LTDA', tipo: 'empresa',
     });
-    const abriuCaixa = await auth(request(app).post('/api/caixa/abrir')).send({ valor_abertura: 0, nome: 'Caixa Forma' });
+    const abriuCaixa = await auth(request(app).post('/api/caixa/abrir')).send({ ...opCaixa(token), valor_abertura: 0, nome: 'Caixa Forma' });
     const comanda = await auth(request(app).post('/api/comandas')).send({ identificador: 'Forma Teste' });
     await auth(request(app).post(`/api/comandas/${comanda.body.id}/itens`)).send({ nome_produto: 'Item', quantidade: 1, preco_unitario: 30 });
     await auth(request(app).post(`/api/comandas/${comanda.body.id}/fechar`)).send({
@@ -159,7 +159,7 @@ describe('Cliente Faturado (venda fiada)', () => {
 describe('Limite de crédito de empresa (opcional)', () => {
   test('empresa sem limite não trava; com limite cadastrado, trava', async () => {
     const { appPronto, request } = require('./helpers/testApp');
-    const { criarPadariaPremium } = require('./helpers/fixtures');
+    const { criarPadariaPremium, opCaixa } = require('./helpers/fixtures');
     const app = await appPronto();
     const { token } = await criarPadariaPremium(app, request);
     const auth = r => r.set('Authorization', `Bearer ${token}`);
@@ -172,7 +172,7 @@ describe('Limite de crédito de empresa (opcional)', () => {
     expect(up.status).toBe(200);
     s = await auth(request(app).get(`/api/clientes-faturado/documento/${cnpj}/saldo`));
     expect(s.body.limite).toBe(50);
-    const caixa = await auth(request(app).post('/api/caixa/abrir')).send({ valor_abertura: 0, nome: 'Caixa Lim' });
+    const caixa = await auth(request(app).post('/api/caixa/abrir')).send({ ...opCaixa(token), valor_abertura: 0, nome: 'Caixa Lim' });
     const c = await auth(request(app).post('/api/comandas')).send({ identificador: 'Lim 1' });
     await auth(request(app).post(`/api/comandas/${c.body.id}/itens`)).send({ nome_produto: 'X', quantidade: 1, preco_unitario: 80 });
     const f = await auth(request(app).post(`/api/comandas/${c.body.id}/fechar`)).send({ caixa_id: caixa.body.id, pagamentos: [{ forma_pagamento: 'Faturado', valor: 80, cliente_documento: cnpj, cliente_nome: 'Empresa Teste' }] });

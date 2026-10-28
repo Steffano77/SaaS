@@ -5768,8 +5768,12 @@ async function confirmarAbrirCaixa() {
   const valor_abertura = document.getElementById('caixa-valor-abertura').value;
   const atendente_id = document.getElementById('caixa-atendente').value;
   const pin = document.getElementById('caixa-pin').value.trim();
-  if (atendente_id && atendente_id !== '__novo__' && !/^\d{4}$/.test(pin)) {
-    mostrarToast('Digite o PIN de 4 dígitos do atendente.', 'warn');
+  if (!atendente_id || atendente_id === '__novo__') {
+    mostrarToast('Escolha o operador do caixa.', 'warn');
+    return;
+  }
+  if (!/^\d{4}$/.test(pin)) {
+    mostrarToast('Digite o PIN de 4 dígitos do operador.', 'warn');
     return;
   }
   const r = await api('/caixa/abrir', {
@@ -6257,8 +6261,12 @@ async function carregarAtendentesSelect(selectId) {
   atendentesCache = r || [];
   const sel = document.getElementById(selectId);
   if (!sel) return;
+  // Abrir caixa: só aparece quem tem papel Caixa ou Gerente (o servidor também trava).
+  const lista = selectId === 'caixa-atendente'
+    ? atendentesCache.filter(a => a.role === 'caixa' || a.role === 'gerente')
+    : atendentesCache;
   sel.innerHTML = '<option value="">— Selecione —</option>' +
-    atendentesCache.map(a => `<option value="${a.id}">${a.nome}</option>`).join('') +
+    lista.map(a => `<option value="${a.id}">${a.nome}</option>`).join('') +
     '<option value="__novo__">+ Novo atendente...</option>';
 }
 

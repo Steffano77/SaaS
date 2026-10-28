@@ -1,5 +1,5 @@
 const { appPronto, request } = require('./helpers/testApp');
-const { criarPadariaPremium } = require('./helpers/fixtures');
+const { criarPadariaPremium, opCaixa } = require('./helpers/fixtures');
 const db = require('../src/database/connection');
 
 // Bug real (Balcão C57, 21/10): item bipado no mesmo instante da cobrança entrava numa
@@ -13,7 +13,7 @@ describe('Item bipado bem na hora de cobrar', () => {
   beforeAll(async () => {
     app = await appPronto();
     ({ token } = await criarPadariaPremium(app, request));
-    const caixa = await auth(request(app).post('/api/caixa/abrir')).send({ valor_abertura: 0, nome: 'Caixa Corrida' });
+    const caixa = await auth(request(app).post('/api/caixa/abrir')).send({ ...opCaixa(token), valor_abertura: 0, nome: 'Caixa Corrida' });
     caixaId = caixa.body.id;
   });
 
