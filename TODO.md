@@ -2,6 +2,18 @@
 
 Itens discutidos e aprovados pelo Estefano pra fazer depois, sem pressa.
 
+## Ponto de referência: Jota 2 estável em 29/10/2026 = commit aae52ff
+
+Operadora confirmou "perfeito": nota imprime direto pela janela (--kiosk-printing),
+gaveta só no Dinheiro, Caixa 1 com SSD novo, tablet da copa só com comandas
+numeradas, busca "saídas" no Financeiro. No servidor da Jota 2 existe a etiqueta
+local `jota2-estavel-2026-10-29` (criada lá, não no GitHub).
+Voltar pra esse ponto numa emergência (servidor da Jota 2):
+  cd C:\panificapro
+  git reset --hard jota2-estavel-2026-10-29
+  pm2 restart panificapro-local --update-env
+O próximo atualizar_local.bat volta pra versão mais nova da jota2-producao.
+
 ## Portal do Funcionário (intranet) — ideia, esperando o patrão (2026-10-29)
 
 Portal pras 3 lojas (hoje 2), ~70 funcionários: mural de avisos (por loja ou
