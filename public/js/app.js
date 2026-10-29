@@ -2469,7 +2469,9 @@ function renderMovimentacoes(movs) {
   const finOcultoLista = localStorage.getItem('fin-kpi-oculto') === '1';
   const linhas = movs.map(m => {
     const d = new Date(String(m.data).slice(0, 10) + 'T12:00:00').toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' });
-    const icone = FIN_ICONES[m.categoria] || '💵';
+    // Saída tirada da gaveta no caixa (só aparece na busca) — não é da tabela financeiro,
+    // por isso sem 🗑: o id dela é de outra tabela.
+    const icone = m.origem === 'caixa' ? '📤' : (FIN_ICONES[m.categoria] || '💵');
     const sinal = m.tipo === 'entrada' ? '+' : '−';
     const forma = m.forma_pagamento || 'Dinheiro';
     const corForma = coresForma[forma] || '#64748b';
@@ -2481,7 +2483,7 @@ function renderMovimentacoes(movs) {
       <td class="fin-mov-td-valor ${m.tipo}">${finOcultoLista ? '••••' : sinal + fmt(m.valor)}</td>
       <td class="fin-mov-td-acao">
         ${m.comanda_id ? `<button onclick="reimprimirComandaUI(${m.comanda_id})" class="btn-icon" style="font-size:13px;" title="Imprimir essa venda">🖨️</button>` : ''}
-        <button onclick="finExcluir(${m.id})" class="btn-icon" style="color:#dc2626;font-size:13px;" title="Excluir">🗑</button>
+        ${m.origem === 'caixa' ? '' : `<button onclick="finExcluir(${m.id})" class="btn-icon" style="color:#dc2626;font-size:13px;" title="Excluir">🗑</button>`}
       </td>
     </tr>`;
   }).join('');
