@@ -2,6 +2,25 @@
 
 Itens discutidos e aprovados pelo Estefano pra fazer depois, sem pressa.
 
+## Portal do Funcionário (intranet) — ideia, esperando o patrão (2026-10-29)
+
+Portal pras 3 lojas (hoje 2), ~70 funcionários: mural de avisos (por loja ou
+todas, com "quem leu"), holerites em PDF (cada um vê só o seu), documentos.
+Desenho combinado: roda na VPS (acesso de casa), endereço da padaria e não do
+PanificaPro (ex: portal.padariadojota.com.br, domínio ainda a registrar no
+registro.br), login CPF + senha (cadastro separado do PIN do caixa), papel "RH"
+que publica avisos/holerites sem ver vendas/caixa/financeiro. LGPD: HTTPS,
+registro de quem abriu cada holerite, desligar acesso de quem sair.
+Falta: conversar com o patrão; contador dizer se manda 1 PDF por funcionário
+ou 1 PDF com todos; confirmar se o CPF aparece no holerite.
+
+## Nota 6116 (Balcão C91 06:35, caixa 91, Jota 2) — conferir com a atendente
+
+No sistema: Pix R$13,00 + Dinheiro R$28,14, recebido R$100, troco R$71,86.
+Anotação à mão no papel sugere troco/forma diferentes. Se o pagamento real foi
+outro, corrigir comanda_pagamentos (NÃO apagar a nota — está autorizada na Sefaz;
+o sistema ainda não cancela NFC-e).
+
 ## ✅ Modo de contingência fiscal (NFC-e) — feito em 2026-10-09
 
 Implementado: se a Sefaz não responder na emissão, sai um XML em
