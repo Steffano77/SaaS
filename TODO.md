@@ -2,6 +2,14 @@
 
 Itens discutidos e aprovados pelo Estefano pra fazer depois, sem pressa.
 
+## Servidor da Jota 2: Windows Update pendente (fazer com a loja fechada)
+
+Conferido em 29/10: backup local a cada 6h funcionando (salva em C:\panificapro\backups
+e manda por e-mail). O "mysql.exe quebrado" era só não estar no PATH — não precisa
+consertar, consultas manuais vão por `node -e` com src/database/connection.
+Falta: rodar o Windows Update à noite e, depois de reiniciar, conferir `pm2 list`
+(panificapro-local online; se não, `pm2 resurrect`) antes de abrir a loja.
+
 ## Pontos de referência (versões aprovadas pelas operadoras)
 
 Ver no servidor: `git tag -l "*estavel*"`. As etiquetas ficam só no servidor de
