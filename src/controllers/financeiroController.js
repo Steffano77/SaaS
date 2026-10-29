@@ -115,15 +115,55 @@ exports.listar = async (req, res) => {
       params.push(`%Fiado: ${c.nome}%`);
     }
 
+    // "saída"/"saídas" (com ou sem acento) = todas as saídas: as do Financeiro e as
+    // tiradas da gaveta no caixa (sangria/despesa/vale), que não entram na tabela
+    // financeiro. Outro termo também procura na descrição das saídas do caixa
+    // (ex: "vale", "juliana", "hortfrut").
+    const pediuSaidas = /^sa[ií]das?$/i.test(termoBruto);
     const [movs] = await db.query(
-      `SELECT * FROM financeiro
-       WHERE padaria_id = ? AND (${condicoes.join(' OR ')})
-       ORDER BY data DESC, criado_em DESC
-       LIMIT 200`,
-      params
+      pediuSaidas
+        ? `SELECT * FROM financeiro WHERE padaria_id = ? AND tipo = 'saida' ORDER BY data DESC, criado_em DESC LIMIT 200`
+        : `SELECT * FROM financeiro
+           WHERE padaria_id = ? AND (${condicoes.join(' OR ')})
+           ORDER BY data DESC, criado_em DESC
+           LIMIT 200`,
+      pediuSaidas ? [padaria_id] : params
     );
+
+    let saidasCaixa = [];
+    try {
+      [saidasCaixa] = await db.query(
+        `SELECT m.id, m.tipo AS tipo_mov, m.valor, m.observacao, m.favorecido_nome, m.criado_em,
+                c.nome AS caixa_nome, c.atendente
+         FROM caixa_movimentos m JOIN caixas c ON c.id = m.caixa_id
+         WHERE c.padaria_id = ? AND m.tipo IN ('sangria','despesa')
+           ${pediuSaidas ? '' : 'AND (m.observacao LIKE ? OR m.favorecido_nome LIKE ? OR CAST(m.valor AS CHAR) LIKE ?)'}
+         ORDER BY m.criado_em DESC LIMIT 200`,
+        pediuSaidas ? [padaria_id] : [padaria_id, termo, termo, termo]
+      );
+    } catch (e) {
+      // Banco antigo sem favorecido_nome — a busca normal do Financeiro segue funcionando.
+      if (e.code !== 'ER_BAD_FIELD_ERROR') throw e;
+    }
+    const doCaixa = saidasCaixa.map(m => {
+      const hora = new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
+      const tipoNome = m.tipo_mov === 'sangria' ? 'Sangria' : 'Despesa';
+      return {
+        origem: 'caixa',
+        tipo: 'saida',
+        valor: m.valor,
+        data: m.criado_em,
+        criado_em: m.criado_em,
+        descricao: `${tipoNome} do caixa ${hora}: ${m.observacao || '(sem descrição)'}${m.favorecido_nome ? ` — ${m.favorecido_nome}` : ''}`,
+        categoria: `${m.caixa_nome || 'Caixa'}${m.atendente ? ' · ' + m.atendente : ''}`,
+        forma_pagamento: 'Dinheiro',
+      };
+    });
+    const todas = [...movs, ...doCaixa]
+      .sort((a, b) => new Date(b.criado_em || b.data) - new Date(a.criado_em || a.data))
+      .slice(0, 200);
     return res.json({
-      movimentacoes: movs,
+      movimentacoes: todas,
       total_entradas: null,
       total_saidas: null,
       saldo: null,
