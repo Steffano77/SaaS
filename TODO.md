@@ -2,7 +2,21 @@
 
 Itens discutidos e aprovados pelo Estefano pra fazer depois, sem pressa.
 
-## Ponto de referência: Jota 2 estável em 29/10/2026 = commit aae52ff
+## Pontos de referência (versões aprovadas pelas operadoras)
+
+Ver no servidor: `git tag -l "*estavel*"`. As etiquetas ficam só no servidor de
+cada loja (o GitHub desta sessão não aceita etiqueta); esta lista é a cópia que
+não se perde se o PC for formatado.
+
+| Loja   | Etiqueta no servidor       | Commit  | Data       |
+|--------|----------------------------|---------|------------|
+| Jota 2 | jota2-estavel-2026-10-29   | aae52ff | 29/10/2026 |
+| Jota 3 | jota3-estavel-2026-10-29   | b0bceb8 | 29/10/2026 |
+
+Jota 3 (pasta C:\Users\Jota\Documents\panificapro\SaaS-claude-affectionate-galileo-fot0op):
+mesmo procedimento de emergência abaixo, com a etiqueta jota3-estavel-2026-10-29.
+
+### Jota 2 estável em 29/10/2026 = commit aae52ff
 
 Operadora confirmou "perfeito": nota imprime direto pela janela (--kiosk-printing),
 gaveta só no Dinheiro, Caixa 1 com SSD novo, tablet da copa só com comandas
