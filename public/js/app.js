@@ -5407,10 +5407,11 @@ async function carregarComandas() {
   if (!data) return;
   const elAbertas = document.getElementById('cmd-lista-abertas');
 
-  // No tablet de Modo Lançamento, some da lista assim que o pedido é enviado pro caixa —
-  // quem lança pedido não precisa (nem deve) continuar vendo/mexendo numa comanda que já
-  // foi concluída e está só esperando ser cobrada.
-  let abertas = MODO_LANCAMENTO ? data.abertas.filter(c => !c.pronta_pagamento) : data.abertas;
+  // Pedido do Estefano: a comanda continua aparecendo no tablet de lançamento mesmo
+  // depois de enviada pro caixa (com o selo "💰 Pronta"), até o caixa cobrar de verdade
+  // (aí some sozinha, porque deixa de ter status "aberta") — assim o atendente consegue
+  // conferir rapidinho o que já foi lançado sem precisar ir até o caixa perguntar.
+  let abertas = data.abertas;
   // Tablet da copa só vê comanda com NÚMERO (o cartão físico). Venda de balcão ("Balcão
   // 16:02", cliente que pega pão e vai direto pro caixa) e comanda sem número ("Comanda")
   // não são da copa e só confundiam a lista.
