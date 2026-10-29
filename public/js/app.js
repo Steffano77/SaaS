@@ -8911,40 +8911,49 @@ async function emitirNotaFiscalComanda(comandaId, opts = {}) {
 // de chamar window.open() de novo — chamar window.open() depois de uma espera de rede
 // (emitir a nota) o Chrome trata como fora do "toque" do usuário e bloqueia sem avisar.
 async function imprimirDanfeNFCe(comandaId, janelaPre) {
-  // Imprime por um iframe escondido na própria tela (igual ao fechamento de caixa), não
-  // mais por pop-up: com o Chrome em --kiosk-printing a nota sai direto e nenhuma janela
-  // "DANFE NFC-e" pisca na frente do caixa. A janela pré-aberta não é mais usada aqui.
-  try { if (janelaPre && !janelaPre.closed) janelaPre.close(); } catch (e) {}
   const r = await api(`/fiscal/nfce/comanda/${comandaId}/danfe`);
-  if (!r || !r.html) return;
-  document.getElementById('pp-iframe-danfe')?.remove();
-  const f = document.createElement('iframe');
-  f.id = 'pp-iframe-danfe';
-  f.setAttribute('aria-hidden', 'true');
-  f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
-  document.body.appendChild(f);
-  const d = f.contentWindow.document;
-  d.open();
-  d.write(r.html);
-  d.close();
-  // "once": se o onload do QR e o tempo de segurança disparassem os dois, a DANFE saía
-  // duplicada (bug real).
+  const janela = (janelaPre && !janelaPre.closed) ? janelaPre : window.open('', '_blank', 'width=400,height=700');
+  if (!r || !r.html) { janela?.close(); return; }
+  if (!janela) { mostrarToast('O navegador bloqueou a janela de impressão — permite pop-up nesse site.', 'warn'); return; }
+  janela.document.write(r.html);
+  janela.document.close();
+  // Sem isso, o diálogo de impressão às vezes abre ATRÁS da janela principal e
+  // trava a tela (a pessoa acha que travou, mas é só o diálogo escondido).
+  janela.focus();
+  // Dispara o print/fechamento daqui, direto — antes isso vinha embutido no HTML
+  // da nota (onload do body) e dependia do onload disparar de novo numa janela
+  // REAPROVEITADA, o que nem sempre acontecia (ficava esperando a atendente
+  // clicar no X). Chamando explicitamente aqui, funciona sempre, janela nova ou
+  // reaproveitada. O "afterprint" fecha na hora certa; o tempo abaixo é só uma
+  // rede de segurança caso ele não dispare (reduzido de 5s pra 2s — a atendente
+  // reclamou que ficava demorando demais na tela quando isso acontecia).
+  const dispararImpressao = () => {
+    try {
+      janela.print();
+      janela.onafterprint = () => janela.close();
+    } catch (e) { /* janela pode já ter sido fechada nesse meio-tempo — ignora */ }
+    setTimeout(() => { try { janela.close(); } catch (e) {} }, 2000);
+  };
+  // O QR Code é uma imagem — mesmo embutida (não busca na rede), o navegador ainda
+  // leva um instante pra decodificar/desenhar. Chamar print() antes disso terminar
+  // fazia o QR sair em branco (bug real: o texto sempre carrega a tempo, só a
+  // imagem que às vezes fica atrás). Espera ela carregar antes de imprimir.
+  // "once" garante que só dispara UMA vez — sem isso, se a imagem carregasse (onload)
+  // E o temporizador de segurança também disparasse logo depois, imprimia duas vezes
+  // seguidas (bug real: DANFE saindo duplicada).
   let jaDisparou = false;
-  const imprimir = () => {
+  const dispararUmaVez = () => {
     if (jaDisparou) return;
     jaDisparou = true;
-    try { f.contentWindow.focus(); f.contentWindow.print(); }
-    catch (e) { console.error('[pp-print] DANFE print() deu erro:', e); mostrarToast('Não consegui imprimir a nota — use Caixa → Histórico → 🧾.', 'warn'); }
-    setTimeout(() => f.remove(), 120000);
+    dispararImpressao();
   };
-  // O QR Code é imagem: imprimir antes dela desenhar fazia o QR sair em branco (bug real).
-  const imgQr = d.querySelector('img');
+  const imgQr = janela.document.querySelector('img');
   if (imgQr && !imgQr.complete) {
-    imgQr.onload = imprimir;
-    imgQr.onerror = imprimir;
-    setTimeout(imprimir, 1200); // rede de segurança, caso onload não dispare
+    imgQr.onload = dispararUmaVez;
+    imgQr.onerror = dispararUmaVez; // não trava a impressão se o QR falhar por algum motivo
+    setTimeout(dispararUmaVez, 1200); // rede de segurança, caso onload não dispare
   } else {
-    setTimeout(imprimir, 200);
+    dispararUmaVez();
   }
 }
 
