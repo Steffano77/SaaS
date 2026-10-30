@@ -942,7 +942,12 @@ router.get('/exportar/tudo', auth, authPremium, wrap(async (req, res) => {
   if (quer('faturado')) {
     const [faturado] = await db.query(`
       SELECT cf.nome AS cliente, cf.tipo, cp.cliente_documento AS documento, c.identificador AS comanda,
-        c.fechada_em AS data_consumo, cp.valor, cp.valor_pago, (cp.valor - cp.valor_pago) AS saldo_em_aberto,
+        c.fechada_em AS data_consumo,
+        (SELECT GROUP_CONCAT(CONCAT(
+           TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM CAST(i.quantidade AS CHAR))),
+           'x ', i.nome_produto) SEPARATOR ', ')
+         FROM itens_comanda i WHERE i.comanda_id = c.id) AS itens,
+        cp.valor, cp.valor_pago, (cp.valor - cp.valor_pago) AS saldo_em_aberto,
         CASE WHEN cp.quitado_em IS NOT NULL THEN 'Quitado' ELSE 'Em aberto' END AS status,
         cp.forma_quitacao, cp.quitado_em
       FROM comanda_pagamentos cp
@@ -953,7 +958,8 @@ router.get('/exportar/tudo', auth, authPremium, wrap(async (req, res) => {
     addAba('Faturado - Consumo', [
       { header: 'Cliente', key: 'cliente', width: 26 }, { header: 'Tipo', key: 'tipo', width: 12 },
       { header: 'Documento', key: 'documento', width: 18 }, { header: 'Comanda', key: 'comanda', width: 20 },
-      { header: 'Data', key: 'data_consumo', width: 18 }, { header: 'Valor', key: 'valor', width: 12 },
+      { header: 'Data', key: 'data_consumo', width: 18 }, { header: 'Itens', key: 'itens', width: 40 },
+      { header: 'Valor', key: 'valor', width: 12 },
       { header: 'Pago', key: 'valor_pago', width: 12 }, { header: 'Saldo aberto', key: 'saldo_em_aberto', width: 12 },
       { header: 'Status', key: 'status', width: 12 }, { header: 'Forma quitação', key: 'forma_quitacao', width: 16 },
       { header: 'Quitado em', key: 'quitado_em', width: 18 },

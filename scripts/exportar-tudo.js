@@ -88,7 +88,12 @@ function escreverCsv(pasta, nomeArquivo, linhas) {
   if (quer('faturado')) {
     const [faturado] = await db.query(`
       SELECT cf.nome AS cliente, cf.tipo, cp.cliente_documento AS documento, c.identificador AS comanda,
-        c.fechada_em AS data_consumo, cp.valor, cp.valor_pago,
+        c.fechada_em AS data_consumo,
+        (SELECT GROUP_CONCAT(CONCAT(
+           TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM CAST(i.quantidade AS CHAR))),
+           'x ', i.nome_produto) SEPARATOR ', ')
+         FROM itens_comanda i WHERE i.comanda_id = c.id) AS itens,
+        cp.valor, cp.valor_pago,
         (cp.valor - cp.valor_pago) AS saldo_em_aberto,
         CASE WHEN cp.quitado_em IS NOT NULL THEN 'Quitado' ELSE 'Em aberto' END AS status,
         cp.forma_quitacao, cp.quitado_em
