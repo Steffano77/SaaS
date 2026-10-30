@@ -7,8 +7,16 @@ Itens discutidos e aprovados pelo Estefano pra fazer depois, sem pressa.
 Conferido em 29/10: backup local a cada 6h funcionando (salva em C:\panificapro\backups
 e manda por e-mail). O "mysql.exe quebrado" era só não estar no PATH — não precisa
 consertar, consultas manuais vão por `node -e` com src/database/connection.
-Falta: rodar o Windows Update à noite e, depois de reiniciar, conferir `pm2 list`
-(panificapro-local online; se não, `pm2 resurrect`) antes de abrir a loja.
+Windows Update feito em 29/10 à noite. Depois do reinício o PM2 NÃO subiu sozinho
+(lista vazia) — resolvido na hora com `pm2 resurrect`. Pra não repetir:
+- `pm2 save` feito (C:\Users\Home\.pm2\dump.pm2);
+- tarefa agendada "PanificaPro - iniciar": no login do Home, espera 30s e roda
+  C:\Users\Home\AppData\Roaming\npm\pm2.cmd resurrect;
+- login automático do Home pelo netplwiz (precisou do reg PasswordLess\Device
+  DevicePasswordLessBuildVersion=0 pra caixinha aparecer);
+- HopToDesk instalado como serviço AUTO_START (volta antes do login).
+Falta: testar num reinício com a loja fechada (pm2 list deve vir online sozinho).
+Fazer o mesmo no servidor da Jota 3.
 
 ## Pontos de referência (versões aprovadas pelas operadoras)
 
