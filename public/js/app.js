@@ -5170,6 +5170,20 @@ async function confirmarExportarTudoUI() {
   fecharModal('modal-exportar-tudo');
 }
 
+async function baixarRelatorioAlmocosPdf() {
+  mostrarToast('Gerando PDF...', 'ok');
+  const url = `${API}/exportar/relatorio-almocos-pdf`;
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
+  if (!r.ok) { mostrarToast('Erro ao gerar o PDF — tenta de novo.', 'err'); return; }
+  const blob = await r.blob();
+  const burl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = burl;
+  a.download = '';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(burl), 5000);
+}
+
 async function abrirHistoricoFornecedor(id, nome) {
   const modal = document.getElementById('modal-historico-forn');
   document.getElementById('historico-forn-titulo').textContent = `Histórico — ${nome}`;
