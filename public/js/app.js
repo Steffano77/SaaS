@@ -8377,9 +8377,12 @@ async function imprimirExtratoFaturadoUI(janelaPre, linhasSelecionadas) {
 
   const total = linhas.reduce((s, l) => s + parseFloat(l.valor), 0);
 
+  // Cada compra com os itens no padrão Saurus embaixo (pedido da cobrança: o cliente
+  // confere item por item antes de assinar e pagar).
   const linhasHtml = linhas.map(l =>
-    `<div class="linha"><span class="nome">${fmtDataHoraBR(l.fechada_em)} Comanda ${l.identificador}${l.quitado_em ? ` (quitado${l.forma_quitacao ? ' - ' + l.forma_quitacao : ''})` : ''}</span><span class="valor">${fmtMoeda(l.valor)}</span></div>`
-  ).join('');
+    `<div class="linha" style="margin-top:8px;"><span class="nome" style="font-weight:800;">${fmtDataHoraBR(l.fechada_em)} Comanda ${l.identificador}${l.quitado_em ? ` (quitado${l.forma_quitacao ? ' - ' + l.forma_quitacao : ''})` : ''}</span><span class="valor">${fmtMoeda(l.valor)}</span></div>
+     ${itensPadraoSaurusHtml(l.itens)}`
+  ).join('<hr/>');
 
   abrirJanelaImpressaoTermica(`
     <h1>${razaoSocial}</h1>
@@ -8400,6 +8403,7 @@ async function imprimirExtratoFaturadoUI(janelaPre, linhasSelecionadas) {
     ${linhasHtml}
     <hr/>
     <div class="total"><span>TOTAL A COBRAR</span><span>${fmtMoeda(total)}</span></div>
+    <div style="margin-top:28px;border-top:1px solid #000;text-align:center;font-size:11px;padding-top:2px;">Assinatura do cliente</div>
     <div class="rodape">Impresso em ${new Date().toLocaleString('pt-BR')}</div>
   `, janelaPre);
 }
@@ -9567,18 +9571,55 @@ async function imprimirSequenciaTermicaUI(janela, corpos) {
 // Monta as 2 vias do comprovante de autorização (sem abrir janela nenhuma) — separado
 // do "imprimir" pra poder reaproveitar numa impressão em sequência (ver reimprimirUltimaVendaCaixaUI).
 // Retorna null se não conseguir buscar o saldo (cliente sumiu do cadastro, sem rede etc).
+// Itens no padrão do cupom do Saurus (pedido da cobrança, 30/10), igual ao papel que
+// os clientes do Faturado já conhecem:
+//   ### COD DESC
+//            QTD UN x VL UN    VL ITEM
+//   001 228 media cafe
+//         1,082 KG x 12,99      14,06
+// COD é o código curto do cadastro (o do Saurus); código de barras longo (EAN) não
+// cabe na linha, então cai pro nº interno do produto.
+function itensPadraoSaurusHtml(itens) {
+  if (!itens || !itens.length) return '';
+  const n2 = v => (parseFloat(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const n3 = v => (parseFloat(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+  const codigo = i => {
+    const c = String(i.codigo_produto || '').trim();
+    if (/^\d{1,6}$/.test(c)) return c;
+    return i.produto_id ? String(i.produto_id) : '';
+  };
+  const linhas = itens.map((i, k) => {
+    const sub = i.subtotal != null ? i.subtotal : (parseFloat(i.quantidade) || 0) * (parseFloat(i.preco_unitario) || 0);
+    return `
+      <div class="saurus-l1">${String(k + 1).padStart(3, '0')} ${codigo(i)} ${i.nome_produto}</div>
+      <div class="saurus-l2"><span>${n3(i.quantidade)} ${String(i.unidade || 'UN').toUpperCase()} x ${n2(i.preco_unitario)}</span><span>${n2(sub)}</span></div>`;
+  }).join('');
+  return `
+    <style>
+      .saurus-cab { font-size:11px; display:flex; justify-content:space-between; gap:6px; }
+      .saurus-l1 { font-size:11.5px; margin-top:3px; overflow-wrap:anywhere; }
+      .saurus-l2 { font-size:11.5px; display:flex; justify-content:flex-end; gap:14px; }
+      .saurus-l2 span:last-child { min-width:56px; text-align:right; }
+    </style>
+    <div class="saurus-cab"><span>### COD DESC</span></div>
+    <div class="saurus-cab" style="justify-content:flex-end;gap:14px;"><span>QTD UN x VL UN</span><span style="min-width:56px;text-align:right;">VL ITEM</span></div>
+    <hr/>
+    ${linhas}`;
+}
+
 async function montarViasAutorizacaoFaturado(nomeCliente, documento, valor, itens) {
   const saldoInfo = await api(`/clientes-faturado/documento/${documento}/saldo`);
   if (!saldoInfo) return null;
   const nomePadaria = document.getElementById('sidebar-nome')?.textContent || 'PanificaPro';
   const agora = new Date().toLocaleString('pt-BR');
   const transacaoId = 'FAT-' + Date.now().toString(36).toUpperCase();
-  // Itens da compra (o que foi gasto) — só faz sentido mostrar pra funcionário (ele confere
-  // o que comprou fiado); cliente "empresa" normalmente não precisa desse detalhe no talão.
-  const itensHtml = (saldoInfo.tipo === 'funcionario' && itens?.length) ? `
+  // Itens da compra no padrão Saurus, pra qualquer cliente do Faturado (empresa também:
+  // a cobrança manda esse papel pro cliente conferir e assinar).
+  const itensHtml = itens?.length ? `
     <div class="sub" style="text-align:left;font-weight:800;margin-top:6px;">Itens dessa compra</div>
     <hr/>
-    ${itens.map(i => `<div class="linha"><span class="nome">${fmtQtd(i.quantidade)}x ${i.nome_produto}</span><span class="valor">${fmtMoeda(i.subtotal)}</span></div>`).join('')}
+    ${itensPadraoSaurusHtml(itens)}
+    <hr/>
   ` : '';
   const via = (titulo) => `
     <h1>PROGRAMA DE FIDELIDADE</h1>
