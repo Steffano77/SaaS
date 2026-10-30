@@ -2,6 +2,16 @@
 
 Itens discutidos e aprovados pelo Estefano pra fazer depois, sem pressa.
 
+## Campo de dinheiro estilo maquininha em TODO o sistema — fazer à noite (pedido 30/10)
+
+Pedido do estoque/caixa: digitar valor em R$ sem precisar pôr vírgula nem ponto.
+Os números entram pela direita, como na maquininha: 1 → 0,01; 12 → 0,12; 1250 → 12,50.
+Vale pra todo campo de MOEDA (caixa: valor recebido, desconto, acréscimo, sangria,
+despesa, fechamento; estoque: custo/preço; financeiro; faturado). NÃO vale pra
+quantidade/peso (kg com 3 casas) nem pra campo de código. Mostrar a lista de campos
+antes de aplicar; manter as travas de valor absurdo (código de barras bipado no campo).
+Levar pra Jota 3 depois.
+
 ## Servidor da Jota 2: Windows Update pendente (fazer com a loja fechada)
 
 Conferido em 29/10: backup local a cada 6h funcionando (salva em C:\panificapro\backups
