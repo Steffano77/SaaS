@@ -521,10 +521,11 @@ router.get('/saidas/recentes', auth, wrap(async (req, res) => {
     LEFT JOIN fornecedores f ON f.id = p.fornecedor_id AND f.padaria_id = m.padaria_id
     LEFT JOIN categorias c ON c.id = p.categoria_id AND c.padaria_id = m.padaria_id
     WHERE m.padaria_id = ? AND m.tipo = 'saida'
-      -- Só saída do ESTOQUE (transferência pras lojas, uso interno...). A baixa automática
-      -- de venda no caixa grava "Comanda <nº>" e não entra aqui. Pedido real (estoque da
-      -- Jota 2): o mês tinha 26 mil linhas, quase todas de venda.
-      AND (m.observacao IS NULL OR m.observacao NOT LIKE 'Comanda %')
+      -- Só saída do ESTOQUE (transferência pras lojas, uso interno...). Ficam de fora as
+      -- baixas automáticas: venda no caixa ("Comanda <nº>") e ingrediente gasto em produção
+      -- ("Produção #<nº> — ..."). Pedido real (estoque da Jota 2): o mês tinha 26 mil
+      -- linhas, quase todas de venda.
+      AND (m.observacao IS NULL OR (m.observacao NOT LIKE 'Comanda %' AND m.observacao NOT LIKE 'Produção #%'))
       AND DATE_FORMAT(m.data, '%Y-%m') = ?
     ORDER BY COALESCE(f.nome, 'Sem fornecedor'), m.data DESC, m.id DESC`,
     [req.padaria.id, mes]);

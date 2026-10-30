@@ -294,7 +294,7 @@ exports.dashboard = async (req, res) => {
              COUNT(*) AS qtd_saidas_30d
       FROM movimentacoes
       WHERE padaria_id = ? AND tipo = 'saida'
-        AND (observacao IS NULL OR observacao NOT LIKE 'Comanda %') -- igual à tela Saídas: sem venda do caixa
+        AND (observacao IS NULL OR (observacao NOT LIKE 'Comanda %' AND observacao NOT LIKE 'Produção #%')) -- igual à tela Saídas
         AND data >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)`, [pid]);
 
     const [[margemKpi]] = await db.query(`
