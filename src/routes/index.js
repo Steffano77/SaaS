@@ -940,6 +940,10 @@ router.get('/exportar/tudo', auth, authPremium, wrap(async (req, res) => {
   }
 
   if (quer('faturado')) {
+    // Filtro opcional: só funcionário (CPF), excluindo empresa (CNPJ) e quem comprou
+    // sem cadastro formal (não dá pra saber o tipo desses). Pedido do Estefano, pra
+    // mandar pro patrão só o consumo da equipe, sem misturar com fiado de empresa.
+    const somenteFuncionario = req.query.somenteFuncionario === '1';
     const [faturado] = await db.query(`
       SELECT COALESCE(cf.nome, cp.cliente_nome, 'Sem cadastro') AS cliente, cf.tipo, cp.cliente_documento AS documento, c.identificador AS comanda,
         c.fechada_em AS data_consumo,
@@ -954,6 +958,7 @@ router.get('/exportar/tudo', auth, authPremium, wrap(async (req, res) => {
       JOIN comandas c ON c.id = cp.comanda_id
       LEFT JOIN clientes_faturado cf ON cf.cnpj = cp.cliente_documento AND cf.padaria_id = c.padaria_id
       WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND c.fechada_em >= ? AND c.fechada_em < DATE_ADD(?, INTERVAL 1 DAY)
+        ${somenteFuncionario ? "AND cf.tipo = 'funcionario'" : ''}
       ORDER BY cliente, data_consumo`, [padaria_id, inicio, fim]);
     addAba('Faturado - Consumo', [
       { header: 'Cliente', key: 'cliente', width: 26 }, { header: 'Tipo', key: 'tipo', width: 12 },
@@ -966,10 +971,11 @@ router.get('/exportar/tudo', auth, authPremium, wrap(async (req, res) => {
     ], faturado);
 
     const [recebimentos] = await db.query(`
-      SELECT criado_em AS data, cliente_nome, cliente_documento, valor, forma_pagamento
-      FROM recebimentos_faturado
-      WHERE padaria_id = ? AND criado_em >= ? AND criado_em < DATE_ADD(?, INTERVAL 1 DAY)
-      ORDER BY criado_em`, [padaria_id, inicio, fim]).catch(() => [[]]);
+      SELECT r.criado_em AS data, r.cliente_nome, r.cliente_documento, r.valor, r.forma_pagamento
+      FROM recebimentos_faturado r
+      ${somenteFuncionario ? "JOIN clientes_faturado cf ON cf.cnpj = r.cliente_documento AND cf.padaria_id = r.padaria_id AND cf.tipo = 'funcionario'" : ''}
+      WHERE r.padaria_id = ? AND r.criado_em >= ? AND r.criado_em < DATE_ADD(?, INTERVAL 1 DAY)
+      ORDER BY r.criado_em`, [padaria_id, inicio, fim]).catch(() => [[]]);
     addAba('Faturado - Pagamentos', [
       { header: 'Data', key: 'data', width: 18 }, { header: 'Cliente', key: 'cliente_nome', width: 26 },
       { header: 'Documento', key: 'cliente_documento', width: 18 }, { header: 'Valor', key: 'valor', width: 12 },
