@@ -1428,18 +1428,73 @@ async function abrirTelaSaidas(mes) {
   }
 
   window._saidasRows = rows;
-  renderizarSaidas(rows);
+  renderizarSaidas(saidasFiltradas());
 }
+
+// Filtro por categoria (pedido do estoque: imprimir só as categorias que ela precisa).
+// Vazio = todas. Fica guardado ao trocar de mês, pra não ter que marcar de novo.
+window._saidasCats = window._saidasCats || new Set();
+
+function saidasFiltradas() {
+  const rows = window._saidasRows || [];
+  if (!window._saidasCats.size) return rows;
+  return rows.filter(r => window._saidasCats.has(r.categoria || 'Sem categoria'));
+}
+
+function atualizarBotaoCategoriasSaidas() {
+  const btn = document.getElementById('saidas-btn-cat');
+  if (btn) btn.textContent = window._saidasCats.size ? `Categorias (${window._saidasCats.size})` : 'Categorias';
+}
+
+function toggleFiltroCategoriasSaidas() {
+  const painel = document.getElementById('saidas-cat-painel');
+  if (!painel.classList.contains('hidden')) { painel.classList.add('hidden'); return; }
+  const contagem = {};
+  (window._saidasRows || []).forEach(r => {
+    const c = r.categoria || 'Sem categoria';
+    contagem[c] = (contagem[c] || 0) + 1;
+  });
+  const cats = Object.keys(contagem).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  painel.innerHTML = cats.length ? `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
+      <span style="font-weight:700;font-size:13px;">Mostrar só estas categorias</span>
+      <button class="btn-icon" style="font-size:12px;" onclick="limparFiltroCategoriasSaidas()">Todas</button>
+    </div>
+    ${cats.map(c => `
+      <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:13px;cursor:pointer;">
+        <input type="checkbox" ${window._saidasCats.has(c) ? 'checked' : ''} onchange="marcarCategoriaSaidas('${jsEmAtributo(c)}', this.checked)" style="width:16px;height:16px;accent-color:var(--navy);"/>
+        <span style="flex:1;">${c}</span>
+        <span style="color:var(--slate-400);font-size:12px;">${contagem[c]}</span>
+      </label>`).join('')}`
+    : '<div style="font-size:13px;color:var(--slate-400);">Nenhuma saída neste mês.</div>';
+  painel.classList.remove('hidden');
+}
+
+function marcarCategoriaSaidas(cat, marcado) {
+  if (marcado) window._saidasCats.add(cat); else window._saidasCats.delete(cat);
+  atualizarBotaoCategoriasSaidas();
+  renderizarSaidas(saidasFiltradas());
+}
+
+function limparFiltroCategoriasSaidas() {
+  window._saidasCats.clear();
+  atualizarBotaoCategoriasSaidas();
+  document.getElementById('saidas-cat-painel').classList.add('hidden');
+  renderizarSaidas(saidasFiltradas());
+}
+
+document.addEventListener('click', () => document.getElementById('saidas-cat-painel')?.classList.add('hidden'));
 
 function renderizarSaidas(rows) {
   const total = rows.reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
 
   // Agrupar por fornecedor
+  // _idx aponta pra lista COMPLETA do mês (o filtro de categoria mostra só parte dela).
   const grupos = {};
-  rows.forEach((r, i) => {
+  rows.forEach(r => {
     const forn = r.fornecedor || 'Sem fornecedor';
     if (!grupos[forn]) grupos[forn] = [];
-    grupos[forn].push({ ...r, _idx: i });
+    grupos[forn].push({ ...r, _idx: window._saidasRows.indexOf(r) });
   });
 
   const gruposHtml = Object.entries(grupos).map(([forn, itens]) => {
@@ -1495,7 +1550,8 @@ function toggleSelecionarTodasSaidas(checked) {
 function imprimirSaidas() {
   const checks = [...document.querySelectorAll('.saida-check')];
   const selecionados = checks.filter(c => c.checked).map(c => window._saidasRows[parseInt(c.dataset.idx)]);
-  const alvo = selecionados.length ? selecionados : window._saidasRows;
+  const alvo = selecionados.length ? selecionados : saidasFiltradas();
+  const catsFiltro = [...window._saidasCats].sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
   const total = alvo.reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
 
@@ -1576,7 +1632,7 @@ function imprimirSaidas() {
     <div class="page-header">
       <div class="page-header-left">
         <h2>${document.getElementById('sidebar-nome').textContent} — ${document.getElementById('saidas-titulo')?.textContent || 'Saídas'}</h2>
-        <p>Impresso em ${new Date().toLocaleDateString('pt-BR')} · ${alvo.length} registros</p>
+        <p>Impresso em ${new Date().toLocaleDateString('pt-BR')} · ${alvo.length} registros${catsFiltro.length ? ' · Categorias: ' + catsFiltro.join(', ') : ''}</p>
       </div>
       <div class="page-header-right">
         <img src="${logoUrl}" alt="logo"/>

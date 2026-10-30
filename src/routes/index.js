@@ -514,10 +514,12 @@ router.get('/saidas/recentes', auth, wrap(async (req, res) => {
   const [rows] = await db.query(`
     SELECT m.id, m.quantidade, m.custo_unit, m.valor_total, m.data, m.observacao,
            p.nome AS produto, p.unidade,
-           COALESCE(f.nome, 'Sem fornecedor') AS fornecedor
+           COALESCE(f.nome, 'Sem fornecedor') AS fornecedor,
+           COALESCE(c.nome, 'Sem categoria') AS categoria
     FROM movimentacoes m
     JOIN produtos p ON p.id = m.produto_id
     LEFT JOIN fornecedores f ON f.id = p.fornecedor_id AND f.padaria_id = m.padaria_id
+    LEFT JOIN categorias c ON c.id = p.categoria_id
     WHERE m.padaria_id = ? AND m.tipo = 'saida'
       AND DATE_FORMAT(m.data, '%Y-%m') = ?
     ORDER BY COALESCE(f.nome, 'Sem fornecedor'), m.data DESC, m.id DESC`,
