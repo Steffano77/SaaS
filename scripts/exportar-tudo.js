@@ -12,6 +12,10 @@
 // Opções disponíveis: --vendas --faturado --estoque --financeiro --caixa --notas
 // Sem nenhuma opção, exporta tudo (igual antes).
 //
+// Dentro de --faturado, acrescenta --funcionarios pra pegar só o CPF cadastrado
+// como funcionário (exclui empresa/CNPJ e quem comprou sem cadastro formal):
+//   node scripts\exportar-tudo.js 2026-01-01 2026-10-31 --faturado --funcionarios
+//
 // Os arquivos saem numa pasta "exportado_AAAA-MM-DD_a_AAAA-MM-DD" dentro de scripts\,
 // um .csv por tipo de dado. Abre cada um no Excel normalmente. Pra mandar em PDF pro
 // patrão: abre o .csv no Excel e usa "Arquivo → Salvar como → PDF" de lá — gerar PDF
@@ -86,6 +90,9 @@ function escreverCsv(pasta, nomeArquivo, linhas) {
 
   // ── 2 e 3. FATURADO — consumo (almoço/fiado lançado) e pagamentos recebidos (baixas) ──
   if (quer('faturado')) {
+    // --funcionarios: só CPF cadastrado como funcionário, exclui empresa (CNPJ) e
+    // quem comprou sem cadastro formal (não dá pra saber o tipo desses).
+    const somenteFuncionario = opcoes.includes('--funcionarios');
     const [faturado] = await db.query(`
       SELECT COALESCE(cf.nome, cp.cliente_nome, 'Sem cadastro') AS cliente, cf.tipo, cp.cliente_documento AS documento, c.identificador AS comanda,
         c.fechada_em AS data_consumo,
@@ -101,15 +108,17 @@ function escreverCsv(pasta, nomeArquivo, linhas) {
       JOIN comandas c ON c.id = cp.comanda_id
       LEFT JOIN clientes_faturado cf ON cf.cnpj = cp.cliente_documento AND cf.padaria_id = c.padaria_id
       WHERE cp.forma_pagamento = 'Faturado' AND c.fechada_em >= ? AND c.fechada_em < DATE_ADD(?, INTERVAL 1 DAY)
+        ${somenteFuncionario ? "AND cf.tipo = 'funcionario'" : ''}
       ORDER BY cliente, data_consumo
     `, [inicio, fimExclusivo]);
     escreverCsv(pasta, 'faturado_consumo.csv', faturado);
 
     const [faturadoPagamentos] = await db.query(`
-      SELECT criado_em AS data, cliente_nome, cliente_documento, valor, forma_pagamento
-      FROM recebimentos_faturado
-      WHERE criado_em >= ? AND criado_em < DATE_ADD(?, INTERVAL 1 DAY)
-      ORDER BY criado_em
+      SELECT r.criado_em AS data, r.cliente_nome, r.cliente_documento, r.valor, r.forma_pagamento
+      FROM recebimentos_faturado r
+      ${somenteFuncionario ? "JOIN clientes_faturado cf ON cf.cnpj = r.cliente_documento AND cf.tipo = 'funcionario'" : ''}
+      WHERE r.criado_em >= ? AND r.criado_em < DATE_ADD(?, INTERVAL 1 DAY)
+      ORDER BY r.criado_em
     `, [inicio, fimExclusivo]).catch(() => [[]]);
     escreverCsv(pasta, 'faturado_pagamentos_recebidos.csv', faturadoPagamentos);
   }

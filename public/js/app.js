@@ -5138,6 +5138,8 @@ function abrirExportarTudoUI() {
   ['vendas', 'faturado', 'estoque', 'financeiro', 'caixa', 'notas'].forEach(s => {
     document.getElementById(`exp-${s}`).checked = false;
   });
+  document.getElementById('exp-faturado-funcionarios').checked = false;
+  document.getElementById('exp-faturado-funcionarios-grupo').classList.add('hidden');
   document.getElementById('modal-exportar-tudo').classList.remove('hidden');
 }
 
@@ -5146,11 +5148,13 @@ async function confirmarExportarTudoUI() {
   const ate = document.getElementById('exp-ate').value;
   const secoes = ['vendas', 'faturado', 'estoque', 'financeiro', 'caixa', 'notas']
     .filter(s => document.getElementById(`exp-${s}`).checked);
+  const somenteFuncionario = document.getElementById('exp-faturado-funcionarios').checked;
 
   const params = new URLSearchParams();
   if (de) params.set('inicio', de);
   if (ate) params.set('fim', ate);
   if (secoes.length) params.set('secoes', secoes.join(','));
+  if (somenteFuncionario) params.set('somenteFuncionario', '1');
   const url = `${API}/exportar/tudo?${params.toString()}`;
 
   mostrarToast('Gerando Excel...', 'ok');
