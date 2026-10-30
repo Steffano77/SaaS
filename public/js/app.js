@@ -5132,6 +5132,40 @@ function exportarExcel(tipo) {
     });
 }
 
+function abrirExportarTudoUI() {
+  document.getElementById('exp-de').value = '';
+  document.getElementById('exp-ate').value = '';
+  ['vendas', 'faturado', 'estoque', 'financeiro', 'caixa', 'notas'].forEach(s => {
+    document.getElementById(`exp-${s}`).checked = false;
+  });
+  document.getElementById('modal-exportar-tudo').classList.remove('hidden');
+}
+
+async function confirmarExportarTudoUI() {
+  const de = document.getElementById('exp-de').value;
+  const ate = document.getElementById('exp-ate').value;
+  const secoes = ['vendas', 'faturado', 'estoque', 'financeiro', 'caixa', 'notas']
+    .filter(s => document.getElementById(`exp-${s}`).checked);
+
+  const params = new URLSearchParams();
+  if (de) params.set('inicio', de);
+  if (ate) params.set('fim', ate);
+  if (secoes.length) params.set('secoes', secoes.join(','));
+  const url = `${API}/exportar/tudo?${params.toString()}`;
+
+  mostrarToast('Gerando Excel...', 'ok');
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
+  if (!r.ok) { mostrarToast('Erro ao exportar — tenta de novo.', 'err'); return; }
+  const blob = await r.blob();
+  const burl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = burl;
+  a.download = '';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(burl), 5000);
+  fecharModal('modal-exportar-tudo');
+}
+
 async function abrirHistoricoFornecedor(id, nome) {
   const modal = document.getElementById('modal-historico-forn');
   document.getElementById('historico-forn-titulo').textContent = `Histórico — ${nome}`;
