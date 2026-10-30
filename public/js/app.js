@@ -5971,10 +5971,11 @@ async function confirmarFecharCaixa() {
   // Chrome bloquear o popup silenciosamente às vezes, sem aviso nenhum na tela. Se no
   // final não for pra imprimir (ex: recusou o fechamento, ou a segunda confirmação de
   // impressão foi "não"), essa janela em branco é fechada mais abaixo.
-  // Sem pop-up: o comprovante do fechamento sai por um iframe escondido na própria
-  // tela (ver imprimirViaIframe) — não depende de janela aberta antes nem de bloqueio
-  // de pop-up, e nada fecha a impressão no meio.
-  const janelaPre = null;
+  // Janela de impressão minúscula e fora da tela, aberta AINDA dentro do clique (o
+  // await abaixo quebra o gesto e o Chrome bloquearia o pop-up). Bug real (Jota 2,
+  // 30/10): pelo iframe escondido o Chrome mostrava a tela grande de impressão mesmo
+  // com --kiosk-printing; pela janela, imprime direto, igual a nota da venda.
+  const janelaPre = window.open('', '_blank', 'width=1,height=1,left=-2000,top=-2000');
   const caixaSnapshot = caixaAtualCache; // guarda os dados fixos do caixa (nome, aberto_em...) pro comprovante
   const r = await api(`/caixa/${CAIXA_LOCAL_ID}/fechar`, { method: 'POST', body: { fechamento_formas, observacao, despesas } });
   if (!r) { janelaPre?.close(); return; }
@@ -6037,9 +6038,10 @@ async function abrirHistoricoCaixas() {
 async function reimprimirFechamentoUI(caixaId) {
   // Mesmo cuidado do fechamento original: abre a janela antes do "await", senão o
   // navegador pode bloquear o popup depois da espera de rede.
+  const janelaPre = window.open('', '_blank', 'width=1,height=1,left=-2000,top=-2000');
   const r = await api(`/caixa/${caixaId}/reimprimir-fechamento`);
-  if (!r) return;
-  imprimirFechamentoCaixa(r.caixa, r.conferencia, r.diferenca, null);
+  if (!r) { janelaPre?.close(); return; }
+  imprimirFechamentoCaixa(r.caixa, r.conferencia, r.diferenca, janelaPre);
 }
 
 // Comprovante impresso do fechamento de caixa — formato "relatório completo de
@@ -6115,8 +6117,7 @@ function imprimirFechamentoCaixa(caixa, conferencia, diferenca, janelaPre) {
   const dif = parseFloat(diferenca) || 0;
   const difLabel = Math.abs(dif) < 0.01 ? '0,00' : `(${dif > 0 ? 'Sobra' : 'Falta'}) ${n2(Math.abs(dif))}`;
 
-  janelaPre?.close?.();
-  return imprimirViaIframe(`
+  return abrirJanelaImpressaoTermica(`
     <style>
       .cab { text-align:center; font-size:11px; border-top:1px dashed #000; border-bottom:1px dashed #000; padding:3px 0; margin-bottom:4px; }
       .st { font-size:11px; border-bottom:1px dashed #000; padding:4px 0 2px; margin:4px 0 3px; }
@@ -6209,7 +6210,7 @@ function imprimirFechamentoCaixa(caixa, conferencia, diferenca, janelaPre) {
     <div class="sep"></div>
     <div style="font-size:11px;">Fim do Arquivo. ${dataHora(caixa?.fechado_em)}</div>
     <div class="sep"></div>
-  `);
+  `, janelaPre);
 }
 
 /* ===================== EQUIPE (tela própria de gerenciar atendentes) ===================== */
