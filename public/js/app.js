@@ -5198,11 +5198,17 @@ async function confirmarPeriodoPdf() {
   const url = `${API}/exportar/${tipo.rota}?${params.toString()}`;
   const r = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
   if (!r.ok) { mostrarToast('Erro ao gerar o PDF — tenta de novo.', 'err'); return; }
+  const contentType = r.headers.get('content-type') || '';
+  if (!contentType.includes('application/pdf')) {
+    console.error('[PDF] resposta inesperada, content-type:', contentType, 'url:', url);
+    mostrarToast('A resposta do servidor não era um PDF — avisa o suporte (veja o console).', 'err');
+    return;
+  }
   const blob = await r.blob();
   const burl = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = burl;
-  a.download = '';
+  a.download = `relatorio-${pdfTipoAtual}.pdf`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(burl), 5000);
   fecharModal('modal-periodo-pdf');
