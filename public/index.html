@@ -501,7 +501,7 @@
               </div>
               <div class="form-group" style="margin:0;">
                 <label>Custo unit. (R$)</label>
-                <input type="number" id="compra-custo" min="0" step="0.01" placeholder="0.00" class="form-control"/>
+                <input type="text" inputmode="numeric" data-moeda autocomplete="off" id="compra-custo" placeholder="0.00" class="form-control"/>
               </div>
               <button class="btn-secondary" onclick="adicionarItemPedido()" style="white-space:nowrap;">+ Item</button>
             </div>
@@ -523,7 +523,7 @@
                 </div>
                 <div class="form-group" style="margin:0;">
                   <label>Preço por kg (R$)</label>
-                  <input type="number" id="calc-preco-kg" min="0" step="0.01" placeholder="0.00" class="form-control" style="width:110px;" oninput="calcularPorCaixa()"/>
+                  <input type="text" inputmode="numeric" data-moeda autocomplete="off" id="calc-preco-kg" placeholder="0.00" class="form-control" style="width:110px;" oninput="calcularPorCaixa()"/>
                 </div>
                 <div id="calc-resultado" style="font-size:13px;color:var(--slate-600);align-self:center;padding-bottom:2px;"></div>
               </div>
@@ -824,7 +824,7 @@
                   <div class="autocomplete-lista cmd-item-lista hidden"></div>
                 </div>
                 <input type="number" id="cmd-item-qtd" class="form-control" placeholder="Qtd" value="1" min="0.01" step="0.01" style="width:70px;"/>
-                <input type="number" id="cmd-item-preco" class="form-control" placeholder="R$" min="0" step="0.01" style="width:90px;"/>
+                <input type="text" inputmode="numeric" data-moeda autocomplete="off" id="cmd-item-preco" class="form-control" placeholder="R$" style="width:90px;"/>
                 <button onclick="adicionarItemComandaUI()" class="btn-primary" style="padding:10px 16px;">+</button>
                 <button onclick="abrirCategoriasComanda()" class="btn-secondary" style="padding:10px 14px;" title="Ver por categoria">📋</button>
                 <button id="btn-scanner-camera-comanda" onclick="abrirScannerCodigoBarras()" class="btn-secondary" style="padding:10px 14px;" title="Ler código de barras pela câmera">📷</button>
@@ -857,11 +857,11 @@
               <div id="cmd-ajuste-row" class="cmd-ajuste-row">
                 <div class="cmd-ajuste-campo">
                   <label>Desconto R$</label>
-                  <input type="number" id="cmd-desconto" class="form-control" min="0" step="0.01" placeholder="0,00" onchange="salvarAjusteComanda()"/>
+                  <input type="text" inputmode="numeric" data-moeda autocomplete="off" id="cmd-desconto" class="form-control" placeholder="0,00" onchange="salvarAjusteComanda()"/>
                 </div>
                 <div class="cmd-ajuste-campo">
                   <label>Acréscimo R$</label>
-                  <input type="number" id="cmd-acrescimo" class="form-control" min="0" step="0.01" placeholder="0,00" onchange="salvarAjusteComanda()"/>
+                  <input type="text" inputmode="numeric" data-moeda autocomplete="off" id="cmd-acrescimo" class="form-control" placeholder="0,00" onchange="salvarAjusteComanda()"/>
                 </div>
               </div>
 
@@ -1028,7 +1028,7 @@
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Data de nascimento</label><input type="date" id="dados-data_nascimento" class="form-control"/></div>
-          <div class="form-group"><label class="form-label">Salário</label><input type="number" id="dados-salario" class="form-control" min="0" step="0.01" placeholder="0,00"/></div>
+          <div class="form-group"><label class="form-label">Salário</label><input type="text" inputmode="numeric" data-moeda autocomplete="off" id="dados-salario" class="form-control" placeholder="0,00"/></div>
         </div>
         <div class="form-group"><label class="form-label">Endereço</label><input type="text" id="dados-endereco" class="form-control"/></div>
         <div class="form-row">
@@ -1074,11 +1074,11 @@
         <div style="display:flex;gap:10px;">
           <div class="form-group" style="flex:1;">
             <label class="form-label">Valor combinado (R$)</label>
-            <input id="enc-valor" type="number" class="form-control" min="0" step="0.01" placeholder="0,00"/>
+            <input type="text" inputmode="numeric" data-moeda autocomplete="off" id="enc-valor" class="form-control" placeholder="0,00"/>
           </div>
           <div class="form-group" style="flex:1;">
             <label class="form-label">Sinal já pago (R$)</label>
-            <input id="enc-sinal" type="number" class="form-control" min="0" step="0.01" placeholder="0,00"/>
+            <input type="text" inputmode="numeric" data-moeda autocomplete="off" id="enc-sinal" class="form-control" placeholder="0,00"/>
           </div>
         </div>
         <div class="form-group">
@@ -1518,7 +1518,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">Valor (R$)</label>
-          <input id="fin-valor" type="number" step="0.01" min="0" class="form-control" placeholder="0,00" style="font-size:20px;font-weight:800;"/>
+          <input type="text" inputmode="numeric" data-moeda autocomplete="off" id="fin-valor" class="form-control" placeholder="0,00" style="font-size:20px;font-weight:800;"/>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div class="form-group">
@@ -1587,7 +1587,7 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div class="form-group">
             <label class="form-label">Valor (R$)</label>
-            <input id="cp-valor" type="number" step="0.01" min="0" class="form-control" placeholder="0,00"/>
+            <input type="text" inputmode="numeric" data-moeda autocomplete="off" id="cp-valor" class="form-control" placeholder="0,00"/>
           </div>
           <div class="form-group">
             <label class="form-label">Vencimento</label>
@@ -2070,7 +2070,7 @@
         </div>
         <div class="form-group">
           <label>Preço de venda (R$)</label>
-          <input type="number" id="ficha-preco" class="form-control" placeholder="0,00" step="0.01">
+          <input type="text" inputmode="numeric" data-moeda autocomplete="off" id="ficha-preco" class="form-control" placeholder="0,00">
         </div>
       </div>
       <div class="form-row-2">
@@ -2209,7 +2209,7 @@
           </div>
           <div class="form-group">
             <label>Preço de venda (R$)</label>
-            <input type="number" id="prod-venda" step="0.01" min="0" value="0" class="form-control"/>
+            <input type="text" inputmode="numeric" data-moeda autocomplete="off" id="prod-venda" class="form-control"/>
           </div>
           <div class="form-group" style="display:flex;align-items:center;gap:8px;">
             <input type="checkbox" id="prod-venda-rapida" style="width:18px;height:18px;"/>
@@ -2225,7 +2225,7 @@
           <div id="bloco-embalagem" class="hidden form-group col-full" style="background:var(--slate-50);border-radius:10px;padding:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
             <div class="form-group" style="margin:0;flex:1;min-width:120px;">
               <label style="font-size:12px;">Paguei (R$)</label>
-              <input type="number" id="prod-embalagem-preco" step="0.01" min="0" class="form-control" oninput="calcularCustoPorEmbalagem()"/>
+              <input type="text" inputmode="numeric" data-moeda autocomplete="off" id="prod-embalagem-preco" class="form-control" oninput="calcularCustoPorEmbalagem()"/>
             </div>
             <div class="form-group" style="margin:0;flex:1;min-width:150px;">
               <label style="font-size:12px;">Quantidade na embalagem (<span id="prod-embalagem-unidade-label"></span>)</label>
@@ -2362,7 +2362,7 @@
     <div class="form-group" style="padding:0 28px;"><label class="form-label" style="font-size:16px;margin-bottom:8px;">Nome / Razão social</label><input id="edit-cf-nome" class="form-control" autocomplete="off" style="font-size:22px;padding:16px 18px;height:auto;"/></div>
     <div class="form-group" style="padding:0 28px;"><label class="form-label" style="font-size:16px;margin-bottom:8px;">Endereço</label><input id="edit-cf-endereco" class="form-control" autocomplete="off" style="font-size:22px;padding:16px 18px;height:auto;"/></div>
     <div class="form-group" style="padding:0 28px;"><label class="form-label" style="font-size:16px;margin-bottom:8px;">Telefone</label><input id="edit-cf-telefone" class="form-control" autocomplete="off" style="font-size:22px;padding:16px 18px;height:auto;"/></div>
-    <div class="form-group" id="edit-cf-limite-grupo" style="padding:0 28px;"><label class="form-label" style="font-size:16px;margin-bottom:8px;">Limite de crédito (R$)</label><input id="edit-cf-limite" class="form-control" inputmode="decimal" autocomplete="off" style="font-size:22px;padding:16px 18px;height:auto;"/><div id="edit-cf-limite-dica" style="font-size:13px;color:var(--slate-500);margin-top:6px;"></div></div>
+    <div class="form-group" id="edit-cf-limite-grupo" style="padding:0 28px;"><label class="form-label" style="font-size:16px;margin-bottom:8px;">Limite de crédito (R$)</label><input type="text" inputmode="numeric" data-moeda autocomplete="off" id="edit-cf-limite" class="form-control" style="font-size:22px;padding:16px 18px;height:auto;"/><div id="edit-cf-limite-dica" style="font-size:13px;color:var(--slate-500);margin-top:6px;"></div></div>
     <div style="display:flex;gap:12px;margin-top:12px;padding:0 28px;">
       <button onclick="fecharEditarClienteFaturado()" class="btn-ghost" style="flex:1;font-size:18px;padding:16px;">Cancelar</button>
       <button onclick="salvarEditarClienteFaturado()" class="btn-primary" style="flex:1;font-size:18px;padding:16px;">Salvar</button>
@@ -2433,7 +2433,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20261030h"></script>
+<script src="/js/app.js?v=20261030i"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
