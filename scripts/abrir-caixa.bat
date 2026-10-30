@@ -14,4 +14,4 @@ if %TENTATIVAS% GEQ 60 goto abrir
 timeout /t 5 /nobreak >nul
 goto espera
 :abrir
-start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk-printing --app=%URL%
+start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk-printing --start-fullscreen --app=%URL%
