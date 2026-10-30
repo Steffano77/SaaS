@@ -5763,7 +5763,7 @@ async function abrirModalCaixa(modo) {
       </div>
       <div class="form-group">
         <label class="form-label">Valor inicial (troco em caixa)</label>
-        <input id="caixa-valor-abertura" type="number" class="form-control" min="0" step="0.01" placeholder="0,00"/>
+        <input id="caixa-valor-abertura" type="text" inputmode="numeric" data-moeda autocomplete="off" class="form-control" placeholder="0,00"/>
       </div>
       <div class="form-group">
         <label class="form-label">Atendente</label>
@@ -5788,7 +5788,7 @@ async function abrirModalCaixa(modo) {
     corpo.innerHTML = `
       <div class="form-group">
         <label class="form-label">${label}</label>
-        <input id="caixa-mov-valor" type="number" class="form-control" min="0.01" step="0.01" placeholder="0,00"/>
+        <input id="caixa-mov-valor" type="text" inputmode="numeric" data-moeda autocomplete="off" class="form-control" placeholder="0,00"/>
       </div>
       <div class="form-group">
         <label class="form-label">${obsLabel}</label>
@@ -8758,7 +8758,7 @@ async function selecionarClientePagarFaturadoUI(cliente) {
     </div>
     <div class="form-group">
       <label class="form-label">Valor que o cliente está pagando agora</label>
-      <input type="text" id="pagfat-valor" class="form-control" inputmode="decimal" placeholder="0,00"
+      <input type="text" id="pagfat-valor" class="form-control" inputmode="numeric" data-moeda autocomplete="off" placeholder="0,00"
         style="font-size:22px;padding:14px 16px;height:auto;" value="${fmtMoeda(saldoInfo.saldoDevedor).replace('R$','').trim()}"
         onkeydown="if(event.key==='Enter'){event.preventDefault();confirmarPagamentoParcialUI('${cliente.cnpj}','${jsEmAtributo(cliente.nome)}',${saldoInfo.saldoDevedor});}"/>
     </div>
@@ -8893,6 +8893,60 @@ let _pgtoForma = null, _pgtoRestante = 0, _pgtoEhDinheiro = false;
 // vírgula decimal já aparece sozinha (ex: digitar 1000 vira "10,00"), igual ao
 // PDV físico — evita a atendente errar digitando "." em vez de "," ou esquecendo
 // a vírgula, que tava confundindo na hora de receber dinheiro.
+// ── Campo de dinheiro estilo maquininha (pedido do estoque/caixa, 30/10) ──
+// Todo <input data-moeda>: a pessoa digita só números e eles entram pela direita
+// (1 → 0,01 · 12 → 0,12 · 1250 → 12,50), sem precisar de vírgula nem ponto.
+// O .value do campo continua falando "número com ponto" (ex: "12.50") pro resto do
+// código — parseFloat(el.value) e el.value = x.toFixed(2) seguem funcionando sem
+// mexer em cada tela; só o que aparece na tela é "12,50". Campo vazio continua vazio
+// (ex: limite do Faturado vazio = sem limite).
+const _valorNativoInput = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+function _moedaParaTela(v) {
+  if (v === '' || v === null || v === undefined) return '';
+  // Com vírgula = formato BR ("1.250,50"); sem vírgula = número do sistema/banco ("12.5000").
+  const t = String(v).trim();
+  const n = typeof v === 'number' ? v : parseFloat(t.includes(',') ? t.replace(/\./g, '').replace(',', '.') : t);
+  if (!isFinite(n)) return '';
+  return n.toFixed(2).replace('.', ',');
+}
+function ativarCampoMoeda(el) {
+  if (!el || el._moedaAtiva) return;
+  el._moedaAtiva = true;
+  const atual = _valorNativoInput.get.call(el);
+  Object.defineProperty(el, 'value', {
+    configurable: true,
+    get() {
+      const tela = _valorNativoInput.get.call(this).trim();
+      return tela ? tela.replace(',', '.') : '';
+    },
+    set(v) { _valorNativoInput.set.call(this, _moedaParaTela(v)); },
+  });
+  if (atual) el.value = atual;
+  // capture: formata ANTES do oninput da própria tela (ex: cálculo por caixa), que
+  // assim já lê o valor certo.
+  el.addEventListener('input', () => {
+    // 10 dígitos no máximo (99.999.999,99): código de barras bipado aqui não vira valor absurdo.
+    const digitos = _valorNativoInput.get.call(el).replace(/\D/g, '').replace(/^0+/, '').slice(0, 10);
+    if (!digitos) { _valorNativoInput.set.call(el, ''); return; }
+    const d = digitos.padStart(3, '0');
+    _valorNativoInput.set.call(el, `${d.slice(0, -2).replace(/^0+(?=\d)/, '')},${d.slice(-2)}`);
+  }, true);
+}
+function ativarCamposMoeda(raiz) {
+  (raiz || document).querySelectorAll('input[data-moeda]').forEach(ativarCampoMoeda);
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => ativarCamposMoeda());
+else ativarCamposMoeda();
+// Campos criados depois (janelas montadas na hora, ex: abrir caixa, sangria, baixa do Faturado).
+document.addEventListener('focusin', e => { if (e.target.matches?.('input[data-moeda]')) ativarCampoMoeda(e.target); }, true);
+new MutationObserver(muts => {
+  for (const m of muts) for (const n of m.addedNodes) {
+    if (n.nodeType !== 1) continue;
+    if (n.matches?.('input[data-moeda]')) ativarCampoMoeda(n);
+    else if (n.querySelector) ativarCamposMoeda(n);
+  }
+}).observe(document.documentElement, { childList: true, subtree: true });
+
 function formatarCentavos(input) {
   let digitos = input.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
   while (digitos.length < 3) digitos = '0' + digitos;
