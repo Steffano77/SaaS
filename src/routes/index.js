@@ -1149,6 +1149,100 @@ router.get('/exportar/relatorio-almocos-pdf', auth, authPremium, wrap(async (req
   doc.end();
 }));
 
+// Relatório em PDF: almoços vendidos no BALCÃO (venda normal, paga na hora —
+// dinheiro/pix/cartão/voucher) pra clientes, nos últimos 30 dias por padrão.
+// Diferente do relatório Faturado: aqui é venda à vista, não consumo lançado
+// na conta. Identifica "almoço" pelo nome do item (qualquer produto com
+// "almo" no nome) e exclui comandas que tiveram algum pagamento Faturado.
+// ?inicio=AAAA-MM-DD&fim=AAAA-MM-DD
+router.get('/exportar/relatorio-almocos-balcao-pdf', auth, authPremium, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const PDFDocument = require('pdfkit');
+  const padaria_id = req.padaria.id;
+  const fim = /^\d{4}-\d{2}-\d{2}$/.test(req.query.fim || '') ? req.query.fim : new Date().toISOString().slice(0, 10);
+  let inicio = req.query.inicio;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(inicio || '')) {
+    const d = new Date(fim + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() - 30);
+    inicio = d.toISOString().slice(0, 10);
+  }
+
+  const [linhas] = await db.query(`
+    SELECT c.identificador AS comanda, c.fechada_em AS data, i.nome_produto,
+      TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM CAST(i.quantidade AS CHAR))) AS quantidade,
+      i.subtotal AS valor
+    FROM itens_comanda i
+    JOIN comandas c ON c.id = i.comanda_id
+    WHERE c.padaria_id = ? AND c.status = 'fechada' AND c.fechada_em >= ? AND c.fechada_em < DATE_ADD(?, INTERVAL 1 DAY)
+      AND i.nome_produto LIKE '%almo%'
+      AND NOT EXISTS (SELECT 1 FROM comanda_pagamentos cp WHERE cp.comanda_id = c.id AND cp.forma_pagamento = 'Faturado')
+    ORDER BY c.fechada_em
+  `, [padaria_id, inicio, fim]);
+
+  const formatarData = d => {
+    const p = n => String(n).padStart(2, '0');
+    return `${p(d.getUTCDate())}/${p(d.getUTCMonth() + 1)}/${d.getUTCFullYear()}`;
+  };
+  const formatarHora = d => {
+    const p = n => String(n).padStart(2, '0');
+    return `${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
+  };
+  const formatarMoeda = v => 'R$ ' + Number(v).toFixed(2).replace('.', ',');
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="relatorio-almocos-balcao_${inicio}_a_${fim}.pdf"`);
+
+  const doc = new PDFDocument({ margin: 50, size: 'A4' });
+  doc.pipe(res);
+
+  doc.fontSize(18).font('Helvetica-Bold').text('Almoços Vendidos no Balcão', { align: 'center' });
+  doc.fontSize(11).font('Helvetica').fillColor('#555')
+    .text(`Período: ${formatarData(new Date(inicio + 'T00:00:00Z'))} até ${formatarData(new Date(fim + 'T00:00:00Z'))}`, { align: 'center' });
+  doc.moveDown(1);
+  doc.fillColor('#000');
+
+  if (!linhas.length) {
+    doc.fontSize(12).text('Nenhuma venda de almoço no balcão nesse período.', { align: 'center' });
+    doc.end();
+    return;
+  }
+
+  const porDia = {};
+  for (const l of linhas) {
+    const diaChave = formatarData(l.data);
+    if (!porDia[diaChave]) porDia[diaChave] = { linhas: [], total: 0 };
+    porDia[diaChave].linhas.push(l);
+    porDia[diaChave].total += Number(l.valor);
+  }
+
+  let totalGeral = 0;
+  for (const [dia, dados] of Object.entries(porDia)) {
+    if (doc.y > 680) doc.addPage();
+    doc.fontSize(13).font('Helvetica-Bold').text(dia);
+    doc.moveDown(0.2);
+
+    for (const l of dados.linhas) {
+      if (doc.y > 700) doc.addPage();
+      const linhaTxt = `${formatarHora(l.data)} — Comanda ${l.comanda} — ${l.quantidade}x ${l.nome_produto}`;
+      doc.fontSize(10).font('Helvetica').text(linhaTxt, { width: 430, continued: false });
+      doc.font('Helvetica-Bold').text(formatarMoeda(l.valor), 480, doc.y - doc.currentLineHeight(), { width: 65, align: 'right' });
+      doc.moveDown(0.15);
+    }
+
+    doc.moveDown(0.2);
+    doc.fontSize(10).font('Helvetica-Bold').text(`Total do dia: ${formatarMoeda(dados.total)}`, { align: 'right' });
+    doc.moveDown(0.6);
+    doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor('#ccc').stroke();
+    doc.moveDown(0.6);
+    totalGeral += dados.total;
+  }
+
+  if (doc.y > 680) doc.addPage();
+  doc.moveDown(0.5);
+  doc.fontSize(14).font('Helvetica-Bold').text(`TOTAL GERAL: ${formatarMoeda(totalGeral)}`, { align: 'right' });
+  doc.end();
+}));
+
 // ── Admin ──────────────────────────────────────────────────────────────────
 const authAdmin = (req, res, next) => {
   if (req.padaria.role !== 'admin') return res.status(403).json({ erro: 'Acesso restrito.' });
