@@ -6002,7 +6002,12 @@ async function confirmarFecharCaixa() {
     mostrarToast('Tem uma despesa com o nome ou o valor em branco — preenche os dois ou apaga a linha antes de fechar.', 'warn');
     return;
   }
-  if (!confirm('Fechar o caixa agora? Confira os valores contados antes de confirmar.')) return;
+  // Pergunta dentro da tela (não o confirm() nativo). Bug real (Caixa 2 da Jota 2,
+  // 30/10): enquanto a operadora lia o confirm() nativo, passavam os ~5s em que o
+  // Chrome ainda considera "veio de um clique", e o pop-up de impressão logo abaixo era
+  // bloqueado em silêncio: voltava pro login sem papel. O clique em "Sim" daqui conta
+  // como clique novo, e o pop-up abre na hora.
+  if (!(await confirmarBonito('Fechar o caixa agora? Confira os valores contados antes de confirmar.'))) return;
   // Abre a janela de impressão JÁ aqui, ainda dentro do clique (confirm() não quebra
   // o gesto do usuário, mas o "await api(...)" logo abaixo quebra) — mesmo bug já visto
   // no Faturado e no DANFE: abrir window.open() só depois de esperar o servidor faz o
@@ -6038,12 +6043,17 @@ async function confirmarFecharCaixa() {
   // Usa confirmarBonito (não o confirm() nativo) — bug real: o confirm() nativo
   // falhava em silêncio em alguns tablets/navegadores em modo app, fechando a
   // janela de impressão sem nunca imprimir o comprovante de fechamento.
-  if (cego || await confirmarBonito('Imprimir o comprovante de fechamento de caixa?')) {
+  if (cego) {
     // Espera o comprovante ir pra impressora ANTES de sair pro login — sair() apaga o
     // login, e qualquer coisa da tela que terminasse no meio da impressão derrubava ela.
     await imprimirFechamentoCaixa(caixaSnapshot, r.conferencia, dif, janelaPre);
   } else {
-    janelaPre?.close();
+    // Fecha a janelinha antes de perguntar (no modo quiosque ela pode cobrir a
+    // pergunta) e abre outra no clique do "Sim", que conta como clique novo.
+    try { janelaPre?.close(); } catch (e) {}
+    if (await confirmarBonito('Imprimir o comprovante de fechamento de caixa?')) {
+      await imprimirFechamentoCaixa(caixaSnapshot, r.conferencia, dif, null);
+    }
   }
   // Caixa fechado: sai da tela de venda de balcão (não faz sentido continuar vendendo
   // sem caixa aberto) — volta pra lista de comandas, que agora mostra "abrir caixa".
@@ -6155,7 +6165,7 @@ function imprimirFechamentoCaixa(caixa, conferencia, diferenca, janelaPre) {
   const dif = parseFloat(diferenca) || 0;
   const difLabel = Math.abs(dif) < 0.01 ? '0,00' : `(${dif > 0 ? 'Sobra' : 'Falta'}) ${n2(Math.abs(dif))}`;
 
-  return abrirJanelaImpressaoTermica(`
+  const corpo = `
     <style>
       .cab { text-align:center; font-size:11px; border-top:1px dashed #000; border-bottom:1px dashed #000; padding:3px 0; margin-bottom:4px; }
       .st { font-size:11px; border-bottom:1px dashed #000; padding:4px 0 2px; margin:4px 0 3px; }
@@ -6248,7 +6258,14 @@ function imprimirFechamentoCaixa(caixa, conferencia, diferenca, janelaPre) {
     <div class="sep"></div>
     <div style="font-size:11px;">Fim do Arquivo. ${dataHora(caixa?.fechado_em)}</div>
     <div class="sep"></div>
-  `, janelaPre);
+  `;
+  // Pop-up de impressão: com --kiosk-printing sai direto, sem tela. Se o Chrome
+  // bloquear o pop-up mesmo assim, imprime pelo iframe: mostra a tela de impressão,
+  // mas o comprovante nunca deixa de sair (o fechamento é o papel mais importante).
+  let janela = (janelaPre && !janelaPre.closed) ? janelaPre : null;
+  if (!janela) janela = window.open('', '_blank', 'width=1,height=1,left=-2000,top=-2000');
+  if (!janela) return imprimirViaIframe(corpo);
+  return abrirJanelaImpressaoTermica(corpo, janela);
 }
 
 /* ===================== EQUIPE (tela própria de gerenciar atendentes) ===================== */
