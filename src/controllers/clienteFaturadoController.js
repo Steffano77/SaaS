@@ -179,8 +179,10 @@ exports.extrato = async (req, res) => {
   if (linhas.length) {
     const ids = linhas.map(l => l.comanda_id);
     const [itens] = await db.query(
-      `SELECT comanda_id, produto_id, nome_produto, unidade, quantidade, preco_unitario, subtotal
-       FROM itens_comanda WHERE comanda_id IN (?)`,
+      `SELECT i.comanda_id, i.produto_id, i.nome_produto, i.unidade, i.quantidade, i.preco_unitario, i.subtotal,
+              p.codigo_barras AS codigo_produto
+       FROM itens_comanda i LEFT JOIN produtos p ON p.id = i.produto_id
+       WHERE i.comanda_id IN (?) ORDER BY i.comanda_id, i.id`,
       [ids]
     );
     const itensPorComanda = {};

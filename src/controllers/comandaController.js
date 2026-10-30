@@ -202,7 +202,10 @@ exports.buscar = async (req, res) => {
   );
   if (!comanda) return res.status(404).json({ erro: 'Comanda não encontrada.' });
   const [itens] = await db.query(
-    `SELECT * FROM itens_comanda WHERE comanda_id = ? ORDER BY id`, [comanda.id]
+    // codigo_produto: código curto do cadastro, pro papel do Faturado no padrão Saurus.
+    `SELECT i.*, p.codigo_barras AS codigo_produto
+     FROM itens_comanda i LEFT JOIN produtos p ON p.id = i.produto_id
+     WHERE i.comanda_id = ? ORDER BY i.id`, [comanda.id]
   );
   // Pagamentos (com o troco) — pra reimpressão do recibo mostrar o valor recebido e o troco.
   const [pagamentos] = await db.query(
