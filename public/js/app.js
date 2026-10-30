@@ -1424,10 +1424,15 @@ async function abrirTelaSaidas(mes) {
   if (!rows.length) {
     lista.innerHTML = `<p style="padding:32px;text-align:center;color:var(--slate-400);">Nenhuma saída em ${labelMes}.</p>`;
     window._saidasRows = [];
+    window._saidasSel = new Set();
     return;
   }
 
+  // Posição de cada saída na lista do mês, calculada uma vez só. Bug real (Jota 2,
+  // 26 mil saídas no mês): procurar com indexOf a cada clique do filtro travava a página.
+  rows.forEach((r, i) => { r._pos = i; });
   window._saidasRows = rows;
+  window._saidasSel = new Set();
   renderizarSaidas(saidasFiltradas());
 }
 
@@ -1485,71 +1490,98 @@ function limparFiltroCategoriasSaidas() {
 
 document.addEventListener('click', () => document.getElementById('saidas-cat-painel')?.classList.add('hidden'));
 
-function renderizarSaidas(rows) {
-  const total = rows.reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
+// Lista desenhada aos poucos: os primeiros itens na hora e o resto em lotes. Bug real
+// (Jota 2, 26 mil saídas no mês): montar tudo de uma vez travava a página por segundos a
+// cada clique no filtro de categorias. A seleção (checkbox) fica guardada em
+// window._saidasSel (posição na lista do mês), não só na tela, porque nem todo item já
+// foi desenhado quando a pessoa clica em "Selecionar todos" ou "Imprimir".
+let _saidasRenderToken = 0;
+const _fmtSaidaMoeda = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const _fmtSaidaData = new Intl.DateTimeFormat('pt-BR');
 
-  // Agrupar por fornecedor
-  // _idx aponta pra lista COMPLETA do mês (o filtro de categoria mostra só parte dela).
-  const grupos = {};
-  rows.forEach(r => {
-    const forn = r.fornecedor || 'Sem fornecedor';
-    if (!grupos[forn]) grupos[forn] = [];
-    grupos[forn].push({ ...r, _idx: window._saidasRows.indexOf(r) });
-  });
-
-  const gruposHtml = Object.entries(grupos).map(([forn, itens]) => {
-    const subtotal = itens.reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
-    const itensHtml = itens.map(r => {
-      const data = new Date(r.data).toLocaleDateString('pt-BR');
-      const valor = parseFloat(r.valor_total || 0).toLocaleString('pt-BR',{minimumFractionDigits:2});
-      const custo = parseFloat(r.custo_unit || 0).toLocaleString('pt-BR',{minimumFractionDigits:2});
-      return `<div class="saida-item${r._idx % 2 === 0 ? ' saida-item-zebra' : ''}">
-        <input type="checkbox" class="saida-check" data-idx="${r._idx}" style="width:16px;height:16px;flex-shrink:0;accent-color:var(--navy);cursor:pointer;"/>
+function htmlItemSaida(r, sel) {
+  return `<div class="saida-item${r._pos % 2 === 0 ? ' saida-item-zebra' : ''}">
+        <input type="checkbox" class="saida-check" data-idx="${r._pos}" ${sel.has(r._pos) ? 'checked' : ''} onchange="marcarSaidaSelecionada(${r._pos}, this.checked)" style="width:16px;height:16px;flex-shrink:0;accent-color:var(--navy);cursor:pointer;"/>
         <div style="flex:1;min-width:0;">
           <div class="saida-item-nome">${r.produto}</div>
-          <div class="saida-item-sub">${fmtQtd(r.quantidade)} ${r.unidade} × R$ ${custo}${r.observacao ? ' · ' + r.observacao : ''}</div>
+          <div class="saida-item-sub">${fmtQtd(r.quantidade)} ${r.unidade} × R$ ${_fmtSaidaMoeda.format(parseFloat(r.custo_unit || 0))}${r.observacao ? ' · ' + r.observacao : ''}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;display:flex;align-items:center;gap:6px;">
           <div>
-            <div style="font-weight:700;color:var(--red-500);">R$ ${valor}</div>
-            <div class="saida-item-data">${data}</div>
+            <div style="font-weight:700;color:var(--red-500);">R$ ${_fmtSaidaMoeda.format(parseFloat(r.valor_total || 0))}</div>
+            <div class="saida-item-data">${_fmtSaidaData.format(new Date(r.data))}</div>
           </div>
           <button class="btn-icon" title="Corrigir esta saída" onclick="event.stopPropagation();abrirModalEditarMovimentacao(${r.id})">✏️</button>
         </div>
       </div>`;
-    }).join('');
-    return `
-      <div style="padding:10px 16px;background:var(--navy);color:#fff;display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-weight:700;font-size:13px;">${forn}</span>
-        <span style="font-size:12px;color:rgba(255,255,255,0.75);">Subtotal: R$ ${subtotal.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
-      </div>
-      ${itensHtml}`;
-  }).join('');
+}
 
-  document.getElementById('saidas-lista').innerHTML = `
+function renderizarSaidas(rows) {
+  const total = rows.reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
+  const sel = window._saidasSel || (window._saidasSel = new Set());
+
+  // Agrupar por fornecedor (só separa; o HTML é montado lote a lote, abaixo)
+  const grupos = {};
+  rows.forEach(r => {
+    const forn = r.fornecedor || 'Sem fornecedor';
+    (grupos[forn] || (grupos[forn] = [])).push(r);
+  });
+  const fila = [];
+  Object.entries(grupos).forEach(([forn, itens]) => {
+    const subtotal = itens.reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
+    fila.push({ forn, subtotal });
+    itens.forEach(r => fila.push(r));
+  });
+  const htmlDe = x => x.forn !== undefined
+    ? `<div style="padding:10px 16px;background:var(--navy);color:#fff;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-weight:700;font-size:13px;">${x.forn}</span>
+        <span style="font-size:12px;color:rgba(255,255,255,0.75);">Subtotal: R$ ${_fmtSaidaMoeda.format(x.subtotal)}</span>
+      </div>`
+    : htmlItemSaida(x, sel);
+
+  const lista = document.getElementById('saidas-lista');
+  lista.innerHTML = `
     <div style="padding:12px 16px;background:var(--slate-50);border-bottom:2px solid var(--slate-200);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--slate-600);cursor:pointer;">
         <input type="checkbox" id="saidas-select-all" onchange="toggleSelecionarTodasSaidas(this.checked)" style="width:16px;height:16px;accent-color:var(--navy);"/>
         Selecionar todos
       </label>
       <span style="font-size:13px;color:var(--slate-500);">${rows.length} registros</span>
-      <span style="font-weight:700;color:var(--red-500);">Total: R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
+      <span style="font-weight:700;color:var(--red-500);">Total: R$ ${_fmtSaidaMoeda.format(total)}</span>
     </div>
-    ${gruposHtml}`;
+    <div id="saidas-itens"></div>`;
+
+  const alvo = document.getElementById('saidas-itens');
+  const token = ++_saidasRenderToken;
+  const PRIMEIRO = 150, LOTE = 400;
+  alvo.insertAdjacentHTML('beforeend', fila.slice(0, PRIMEIRO).map(htmlDe).join(''));
+  let i = PRIMEIRO;
+  const proximo = () => {
+    if (token !== _saidasRenderToken || i >= fila.length) return; // outro filtro já redesenhou
+    alvo.insertAdjacentHTML('beforeend', fila.slice(i, i + LOTE).map(htmlDe).join(''));
+    i += LOTE;
+    setTimeout(proximo, 0);
+  };
+  setTimeout(proximo, 0);
+}
+
+function marcarSaidaSelecionada(pos, marcado) {
+  const sel = window._saidasSel || (window._saidasSel = new Set());
+  if (marcado) sel.add(pos); else sel.delete(pos);
 }
 
 function toggleSelecionarTodasSaidas(checked) {
-  document.querySelectorAll('.saida-check').forEach(cb => {
-    if (!checked) { cb.checked = false; return; }
-    const r = window._saidasRows[parseInt(cb.dataset.idx)];
-    const temLoja = /loja\s*\d+/i.test(r?.observacao || '');
-    cb.checked = temLoja;
-  });
+  const sel = window._saidasSel || (window._saidasSel = new Set());
+  sel.clear();
+  if (checked) {
+    saidasFiltradas().forEach(r => { if (/loja\s*\d+/i.test(r.observacao || '')) sel.add(r._pos); });
+  }
+  document.querySelectorAll('.saida-check').forEach(cb => { cb.checked = sel.has(parseInt(cb.dataset.idx)); });
 }
 
 function imprimirSaidas() {
-  const checks = [...document.querySelectorAll('.saida-check')];
-  const selecionados = checks.filter(c => c.checked).map(c => window._saidasRows[parseInt(c.dataset.idx)]);
+  const sel = window._saidasSel || new Set();
+  const selecionados = saidasFiltradas().filter(r => sel.has(r._pos));
   const alvo = selecionados.length ? selecionados : saidasFiltradas();
   const catsFiltro = [...window._saidasCats].sort((a, b) => a.localeCompare(b, 'pt-BR'));
 

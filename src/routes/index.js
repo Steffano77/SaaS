@@ -519,7 +519,7 @@ router.get('/saidas/recentes', auth, wrap(async (req, res) => {
     FROM movimentacoes m
     JOIN produtos p ON p.id = m.produto_id
     LEFT JOIN fornecedores f ON f.id = p.fornecedor_id AND f.padaria_id = m.padaria_id
-    LEFT JOIN categorias c ON c.id = p.categoria_id
+    LEFT JOIN categorias c ON c.id = p.categoria_id AND c.padaria_id = m.padaria_id
     WHERE m.padaria_id = ? AND m.tipo = 'saida'
       AND DATE_FORMAT(m.data, '%Y-%m') = ?
     ORDER BY COALESCE(f.nome, 'Sem fornecedor'), m.data DESC, m.id DESC`,
