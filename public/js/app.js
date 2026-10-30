@@ -5170,23 +5170,32 @@ async function confirmarExportarTudoUI() {
   fecharModal('modal-exportar-tudo');
 }
 
-async function baixarRelatorioAlmocosPdf() {
-  mostrarToast('Gerando PDF...', 'ok');
-  const url = `${API}/exportar/relatorio-almocos-pdf`;
-  const r = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
-  if (!r.ok) { mostrarToast('Erro ao gerar o PDF — tenta de novo.', 'err'); return; }
-  const blob = await r.blob();
-  const burl = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = burl;
-  a.download = '';
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(burl), 5000);
+// Rota + título de cada relatório PDF escolhido no modal de período.
+const RELATORIOS_PDF = {
+  faturado: { rota: 'relatorio-almocos-pdf', titulo: '🧾 Faturado (PDF)' },
+  balcao:   { rota: 'relatorio-almocos-balcao-pdf', titulo: '🍽️ Almoços no balcão (PDF)' },
+};
+let pdfTipoAtual = null;
+
+function abrirPeriodoPdf(tipo) {
+  pdfTipoAtual = tipo;
+  document.getElementById('periodo-pdf-titulo').textContent = RELATORIOS_PDF[tipo].titulo;
+  document.getElementById('pdf-periodo-de').value = '';
+  document.getElementById('pdf-periodo-ate').value = '';
+  document.getElementById('modal-periodo-pdf').classList.remove('hidden');
 }
 
-async function baixarRelatorioAlmocosBalcaoPdf() {
+async function confirmarPeriodoPdf() {
+  const tipo = RELATORIOS_PDF[pdfTipoAtual];
+  if (!tipo) return;
+  const de = document.getElementById('pdf-periodo-de').value;
+  const ate = document.getElementById('pdf-periodo-ate').value;
+  const params = new URLSearchParams();
+  if (de) params.set('inicio', de);
+  if (ate) params.set('fim', ate);
+
   mostrarToast('Gerando PDF...', 'ok');
-  const url = `${API}/exportar/relatorio-almocos-balcao-pdf`;
+  const url = `${API}/exportar/${tipo.rota}?${params.toString()}`;
   const r = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
   if (!r.ok) { mostrarToast('Erro ao gerar o PDF — tenta de novo.', 'err'); return; }
   const blob = await r.blob();
@@ -5196,6 +5205,7 @@ async function baixarRelatorioAlmocosBalcaoPdf() {
   a.download = '';
   a.click();
   setTimeout(() => URL.revokeObjectURL(burl), 5000);
+  fecharModal('modal-periodo-pdf');
 }
 
 async function abrirHistoricoFornecedor(id, nome) {

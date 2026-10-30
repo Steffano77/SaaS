@@ -1703,8 +1703,8 @@
           </select>
           <button class="btn-secondary" onclick="exportarExcel('movimentacoes')" style="gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Excel</button>
           <button class="btn-secondary" onclick="abrirExportarTudoUI()" style="gap:6px;">📦 Exportar tudo</button>
-          <button class="btn-secondary" onclick="baixarRelatorioAlmocosPdf()" style="gap:6px;">🧾 Faturado (PDF)</button>
-          <button class="btn-secondary" onclick="baixarRelatorioAlmocosBalcaoPdf()" style="gap:6px;">🍽️ Almoços no balcão (PDF)</button>
+          <button class="btn-secondary" onclick="abrirPeriodoPdf('faturado')" style="gap:6px;">🧾 Faturado (PDF)</button>
+          <button class="btn-secondary" onclick="abrirPeriodoPdf('balcao')" style="gap:6px;">🍽️ Almoços no balcão (PDF)</button>
           <button class="btn-primary" onclick="imprimirRelatorio()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Imprimir</button>
         </div>
       </div>
@@ -2408,6 +2408,27 @@
   </div>
 </div>
 
+<!-- Período dos relatórios em PDF (Faturado / Almoços no balcão): escolhe a data ou
+     deixa em branco pra pegar os últimos 30 dias. -->
+<div id="modal-periodo-pdf" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-header">
+      <span class="modal-title" id="periodo-pdf-titulo" style="font-size:22px;">📄 Gerar PDF</span>
+      <button onclick="fecharModal('modal-periodo-pdf')" class="btn-icon">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Período</label>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <input type="date" id="pdf-periodo-de" class="form-control"/>
+        <span>até</span>
+        <input type="date" id="pdf-periodo-ate" class="form-control"/>
+      </div>
+      <div style="font-size:12px;color:var(--slate-500);margin-top:6px;">Deixe em branco pra pegar os últimos 30 dias.</div>
+    </div>
+    <button class="btn-primary full" onclick="confirmarPeriodoPdf()">⬇️ Baixar PDF</button>
+  </div>
+</div>
+
 <!-- Média por produto (Relatórios): média por dia, dia da semana, horário e sugestão de produção. -->
 <div id="modal-media-produto" class="modal-overlay hidden">
   <div class="modal-box mp-box">
@@ -2435,7 +2456,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20261031d"></script>
+<script src="/js/app.js?v=20261031e"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
