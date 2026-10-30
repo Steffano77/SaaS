@@ -895,6 +895,154 @@ router.get('/exportar/movimentacoes', auth, authPro, wrap(async (req, res) => {
   res.end();
 }));
 
+// Exportação geral (pedido do Estefano): tudo da padaria num período — vendas
+// (com/sem nota), consumo de Faturado por cliente/funcionário (ex: almoço lançado)
+// + pagamentos recebidos, entradas/saídas de estoque, financeiro, sangria/
+// suprimento de caixa, resumo de notas fiscais. Uma aba por seção escolhida, num
+// único .xlsx — mesmas consultas do script scripts/exportar-tudo.js (mantém os
+// dois sincronizados se alguma mudar).
+// ?inicio=AAAA-MM-DD&fim=AAAA-MM-DD&secoes=vendas,faturado,estoque,financeiro,caixa,notas
+// Sem "secoes", exporta tudo.
+router.get('/exportar/tudo', auth, authPremium, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const ExcelJS = require('exceljs');
+  const inicio = /^\d{4}-\d{2}-\d{2}$/.test(req.query.inicio || '') ? req.query.inicio : '2000-01-01';
+  const fim = /^\d{4}-\d{2}-\d{2}$/.test(req.query.fim || '') ? req.query.fim : new Date().toISOString().slice(0, 10);
+  const padaria_id = req.padaria.id;
+  const secoesPedidas = String(req.query.secoes || '').split(',').map(s => s.trim()).filter(Boolean);
+  const tudo = !secoesPedidas.length;
+  const quer = secao => tudo || secoesPedidas.includes(secao);
+
+  const wb = new ExcelJS.Workbook();
+  const addAba = (nome, colunas, linhas) => {
+    const ws = wb.addWorksheet(nome);
+    ws.columns = colunas;
+    ws.getRow(1).font = { bold: true };
+    linhas.forEach(r => ws.addRow(r));
+  };
+
+  if (quer('vendas')) {
+    const [vendas] = await db.query(`
+      SELECT c.id, c.identificador, c.atendente, c.fechada_em, c.total, c.desconto, c.acrescimo,
+        (SELECT GROUP_CONCAT(DISTINCT cp.forma_pagamento SEPARATOR ' + ') FROM comanda_pagamentos cp WHERE cp.comanda_id = c.id) AS formas_pagamento,
+        (SELECT n.status FROM notas_fiscais n WHERE n.comanda_id = c.id ORDER BY n.id DESC LIMIT 1) AS status_nota,
+        (SELECT n.chave_acesso FROM notas_fiscais n WHERE n.comanda_id = c.id AND n.status IN ('autorizada','contingencia') ORDER BY n.id DESC LIMIT 1) AS chave_nfce
+      FROM comandas c
+      WHERE c.padaria_id = ? AND c.status = 'fechada' AND c.fechada_em >= ? AND c.fechada_em < DATE_ADD(?, INTERVAL 1 DAY)
+      ORDER BY c.fechada_em`, [padaria_id, inicio, fim]);
+    addAba('Vendas', [
+      { header: 'ID', key: 'id', width: 8 }, { header: 'Comanda', key: 'identificador', width: 20 },
+      { header: 'Atendente', key: 'atendente', width: 16 }, { header: 'Fechada em', key: 'fechada_em', width: 18 },
+      { header: 'Total', key: 'total', width: 12 }, { header: 'Desconto', key: 'desconto', width: 10 },
+      { header: 'Acréscimo', key: 'acrescimo', width: 10 }, { header: 'Formas pag.', key: 'formas_pagamento', width: 20 },
+      { header: 'Status nota', key: 'status_nota', width: 14 }, { header: 'Chave NFC-e', key: 'chave_nfce', width: 46 },
+    ], vendas);
+  }
+
+  if (quer('faturado')) {
+    const [faturado] = await db.query(`
+      SELECT cf.nome AS cliente, cf.tipo, cp.cliente_documento AS documento, c.identificador AS comanda,
+        c.fechada_em AS data_consumo, cp.valor, cp.valor_pago, (cp.valor - cp.valor_pago) AS saldo_em_aberto,
+        CASE WHEN cp.quitado_em IS NOT NULL THEN 'Quitado' ELSE 'Em aberto' END AS status,
+        cp.forma_quitacao, cp.quitado_em
+      FROM comanda_pagamentos cp
+      JOIN comandas c ON c.id = cp.comanda_id
+      LEFT JOIN clientes_faturado cf ON cf.cnpj = cp.cliente_documento AND cf.padaria_id = c.padaria_id
+      WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND c.fechada_em >= ? AND c.fechada_em < DATE_ADD(?, INTERVAL 1 DAY)
+      ORDER BY cliente, data_consumo`, [padaria_id, inicio, fim]);
+    addAba('Faturado - Consumo', [
+      { header: 'Cliente', key: 'cliente', width: 26 }, { header: 'Tipo', key: 'tipo', width: 12 },
+      { header: 'Documento', key: 'documento', width: 18 }, { header: 'Comanda', key: 'comanda', width: 20 },
+      { header: 'Data', key: 'data_consumo', width: 18 }, { header: 'Valor', key: 'valor', width: 12 },
+      { header: 'Pago', key: 'valor_pago', width: 12 }, { header: 'Saldo aberto', key: 'saldo_em_aberto', width: 12 },
+      { header: 'Status', key: 'status', width: 12 }, { header: 'Forma quitação', key: 'forma_quitacao', width: 16 },
+      { header: 'Quitado em', key: 'quitado_em', width: 18 },
+    ], faturado);
+
+    const [recebimentos] = await db.query(`
+      SELECT criado_em AS data, cliente_nome, cliente_documento, valor, forma_pagamento
+      FROM recebimentos_faturado
+      WHERE padaria_id = ? AND criado_em >= ? AND criado_em < DATE_ADD(?, INTERVAL 1 DAY)
+      ORDER BY criado_em`, [padaria_id, inicio, fim]).catch(() => [[]]);
+    addAba('Faturado - Pagamentos', [
+      { header: 'Data', key: 'data', width: 18 }, { header: 'Cliente', key: 'cliente_nome', width: 26 },
+      { header: 'Documento', key: 'cliente_documento', width: 18 }, { header: 'Valor', key: 'valor', width: 12 },
+      { header: 'Forma', key: 'forma_pagamento', width: 14 },
+    ], recebimentos);
+  }
+
+  if (quer('estoque')) {
+    const [entradas] = await db.query(`
+      SELECT m.data, p.nome AS produto, m.quantidade, m.custo_unit, m.valor_total, m.observacao
+      FROM movimentacoes m JOIN produtos p ON p.id = m.produto_id
+      WHERE m.padaria_id = ? AND m.tipo = 'entrada' AND m.data >= ? AND m.data < DATE_ADD(?, INTERVAL 1 DAY)
+      ORDER BY m.data`, [padaria_id, inicio, fim]);
+    addAba('Estoque - Entradas', [
+      { header: 'Data', key: 'data', width: 18 }, { header: 'Produto', key: 'produto', width: 28 },
+      { header: 'Quantidade', key: 'quantidade', width: 12 }, { header: 'Custo unit.', key: 'custo_unit', width: 12 },
+      { header: 'Total', key: 'valor_total', width: 12 }, { header: 'Observação', key: 'observacao', width: 28 },
+    ], entradas);
+
+    const [saidas] = await db.query(`
+      SELECT m.data, p.nome AS produto, m.quantidade, m.custo_unit, m.valor_total, m.observacao
+      FROM movimentacoes m JOIN produtos p ON p.id = m.produto_id
+      WHERE m.padaria_id = ? AND m.tipo = 'saida' AND m.data >= ? AND m.data < DATE_ADD(?, INTERVAL 1 DAY)
+        AND (m.observacao IS NULL OR (m.observacao NOT LIKE 'Comanda %' AND m.observacao NOT LIKE 'Produção #%'))
+      ORDER BY m.data`, [padaria_id, inicio, fim]);
+    addAba('Estoque - Saídas', [
+      { header: 'Data', key: 'data', width: 18 }, { header: 'Produto', key: 'produto', width: 28 },
+      { header: 'Quantidade', key: 'quantidade', width: 12 }, { header: 'Custo unit.', key: 'custo_unit', width: 12 },
+      { header: 'Total', key: 'valor_total', width: 12 }, { header: 'Observação', key: 'observacao', width: 28 },
+    ], saidas);
+  }
+
+  if (quer('financeiro')) {
+    const [financeiro] = await db.query(`
+      SELECT data, tipo, categoria, descricao, valor, forma_pagamento, criado_em
+      FROM financeiro
+      WHERE padaria_id = ? AND data >= ? AND data < DATE_ADD(?, INTERVAL 1 DAY)
+      ORDER BY data`, [padaria_id, inicio, fim]);
+    addAba('Financeiro', [
+      { header: 'Data', key: 'data', width: 14 }, { header: 'Tipo', key: 'tipo', width: 10 },
+      { header: 'Categoria', key: 'categoria', width: 18 }, { header: 'Descrição', key: 'descricao', width: 30 },
+      { header: 'Valor', key: 'valor', width: 12 }, { header: 'Forma', key: 'forma_pagamento', width: 14 },
+      { header: 'Criado em', key: 'criado_em', width: 18 },
+    ], financeiro);
+  }
+
+  if (quer('caixa')) {
+    const [caixaMov] = await db.query(`
+      SELECT cm.criado_em AS data, cx.nome AS caixa, cm.tipo, cm.valor, cm.observacao
+      FROM caixa_movimentos cm JOIN caixas cx ON cx.id = cm.caixa_id
+      WHERE cx.padaria_id = ? AND cm.criado_em >= ? AND cm.criado_em < DATE_ADD(?, INTERVAL 1 DAY)
+      ORDER BY cm.criado_em`, [padaria_id, inicio, fim]);
+    addAba('Caixa - Sangria e Suprimento', [
+      { header: 'Data', key: 'data', width: 18 }, { header: 'Caixa', key: 'caixa', width: 16 },
+      { header: 'Tipo', key: 'tipo', width: 12 }, { header: 'Valor', key: 'valor', width: 12 },
+      { header: 'Observação', key: 'observacao', width: 28 },
+    ], caixaMov);
+  }
+
+  if (quer('notas')) {
+    const [notas] = await db.query(`
+      SELECT status, COUNT(*) AS qtd, COALESCE(SUM(valor_total), 0) AS total
+      FROM notas_fiscais
+      WHERE padaria_id = ? AND criado_em >= ? AND criado_em < DATE_ADD(?, INTERVAL 1 DAY)
+      GROUP BY status`, [padaria_id, inicio, fim]);
+    addAba('Notas Fiscais - Resumo', [
+      { header: 'Status', key: 'status', width: 16 }, { header: 'Quantidade', key: 'qtd', width: 12 },
+      { header: 'Total', key: 'total', width: 14 },
+    ], notas);
+  }
+
+  if (!wb.worksheets.length) wb.addWorksheet('Sem dados');
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="panificapro-${inicio}_a_${fim}.xlsx"`);
+  await wb.xlsx.write(res);
+  res.end();
+}));
+
 // ── Admin ──────────────────────────────────────────────────────────────────
 const authAdmin = (req, res, next) => {
   if (req.padaria.role !== 'admin') return res.status(403).json({ erro: 'Acesso restrito.' });
