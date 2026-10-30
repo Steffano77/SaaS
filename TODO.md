@@ -16,8 +16,11 @@ Windows Update feito em 29/10 à noite. Depois do reinício o PM2 NÃO subiu soz
   DevicePasswordLessBuildVersion=0 pra caixinha aparecer);
 - HopToDesk instalado como serviço AUTO_START (volta antes do login).
 Testado em 30/10: reiniciou, entrou sozinho e o panificapro-local subiu online sem ninguém mexer.
-Tarefa "PanificaPro - abrir caixa" (Chrome --kiosk-printing --app, 1 min depois do login;
-no Caixa 1, 2 min com /ru "Jota 2") pra tela do caixa abrir sozinha.
+Tarefas finais (testadas em 30/10, sem janela de cmd, tela do caixa abre sozinha):
+- "PanificaPro - iniciar": wscript scripts\rodar-escondido.vbs pm2.cmd resurrect (30s após login);
+- "PanificaPro - abrir caixa": wscript scripts\rodar-escondido.vbs scripts\abrir-caixa.bat
+  (10s após login; o .bat espera /api/health responder e abre o Chrome --kiosk-printing).
+Caixa 1 da Jota 2: sem pasta do sistema; se quiser, tarefa com espera fixa de 2 min.
 Fazer o mesmo no servidor da Jota 3.
 
 ## Pontos de referência (versões aprovadas pelas operadoras)
