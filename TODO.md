@@ -15,7 +15,9 @@ Windows Update feito em 29/10 à noite. Depois do reinício o PM2 NÃO subiu soz
 - login automático do Home pelo netplwiz (precisou do reg PasswordLess\Device
   DevicePasswordLessBuildVersion=0 pra caixinha aparecer);
 - HopToDesk instalado como serviço AUTO_START (volta antes do login).
-Falta: testar num reinício com a loja fechada (pm2 list deve vir online sozinho).
+Testado em 30/10: reiniciou, entrou sozinho e o panificapro-local subiu online sem ninguém mexer.
+Tarefa "PanificaPro - abrir caixa" (Chrome --kiosk-printing --app, 1 min depois do login;
+no Caixa 1, 2 min com /ru "Jota 2") pra tela do caixa abrir sozinha.
 Fazer o mesmo no servidor da Jota 3.
 
 ## Pontos de referência (versões aprovadas pelas operadoras)
