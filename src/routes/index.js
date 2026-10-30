@@ -1055,6 +1055,100 @@ router.get('/exportar/tudo', auth, authPremium, wrap(async (req, res) => {
   res.end();
 }));
 
+// Relatório em PDF, pronto pra mandar pro patrão: consumo Faturado (almoço/
+// consumo lançado) só de clientes de verdade — empresas cadastradas em
+// Clientes Faturado (exclui funcionários e compras sem cadastro formal).
+// Mesma consulta do script scripts/relatorio-almocos-clientes.js.
+// ?inicio=AAAA-MM-DD&fim=AAAA-MM-DD — sem informar, pega os últimos 30 dias.
+router.get('/exportar/relatorio-almocos-pdf', auth, authPremium, wrap(async (req, res) => {
+  const db = require('../database/connection');
+  const PDFDocument = require('pdfkit');
+  const padaria_id = req.padaria.id;
+  const fim = /^\d{4}-\d{2}-\d{2}$/.test(req.query.fim || '') ? req.query.fim : new Date().toISOString().slice(0, 10);
+  let inicio = req.query.inicio;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(inicio || '')) {
+    const d = new Date(fim + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() - 30);
+    inicio = d.toISOString().slice(0, 10);
+  }
+
+  const [linhas] = await db.query(`
+    SELECT cf.nome AS cliente, cp.cliente_documento AS documento, c.identificador AS comanda,
+      c.fechada_em AS data_consumo,
+      (SELECT GROUP_CONCAT(CONCAT(
+         TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM CAST(i.quantidade AS CHAR))),
+         'x ', i.nome_produto) SEPARATOR ', ')
+       FROM itens_comanda i WHERE i.comanda_id = c.id) AS itens,
+      cp.valor
+    FROM comanda_pagamentos cp
+    JOIN comandas c ON c.id = cp.comanda_id
+    JOIN clientes_faturado cf ON cf.cnpj = cp.cliente_documento AND cf.padaria_id = c.padaria_id AND cf.tipo = 'empresa'
+    WHERE c.padaria_id = ? AND cp.forma_pagamento = 'Faturado' AND c.fechada_em >= ? AND c.fechada_em < DATE_ADD(?, INTERVAL 1 DAY)
+    ORDER BY cliente, data_consumo
+  `, [padaria_id, inicio, fim]);
+
+  const formatarData = d => {
+    const p = n => String(n).padStart(2, '0');
+    return `${p(d.getUTCDate())}/${p(d.getUTCMonth() + 1)}/${d.getUTCFullYear()}`;
+  };
+  const formatarMoeda = v => 'R$ ' + Number(v).toFixed(2).replace('.', ',');
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="relatorio-almocos-clientes_${inicio}_a_${fim}.pdf"`);
+
+  const doc = new PDFDocument({ margin: 50, size: 'A4' });
+  doc.pipe(res);
+
+  doc.fontSize(18).font('Helvetica-Bold').text('Consumo Faturado de Clientes', { align: 'center' });
+  doc.fontSize(11).font('Helvetica').fillColor('#555')
+    .text(`Período: ${formatarData(new Date(inicio + 'T00:00:00Z'))} até ${formatarData(new Date(fim + 'T00:00:00Z'))}`, { align: 'center' });
+  doc.moveDown(1);
+  doc.fillColor('#000');
+
+  if (!linhas.length) {
+    doc.fontSize(12).text('Nenhum consumo de cliente (empresa) nesse período.', { align: 'center' });
+    doc.end();
+    return;
+  }
+
+  const porCliente = {};
+  for (const l of linhas) {
+    if (!porCliente[l.cliente]) porCliente[l.cliente] = { documento: l.documento, linhas: [], total: 0 };
+    porCliente[l.cliente].linhas.push(l);
+    porCliente[l.cliente].total += Number(l.valor);
+  }
+
+  let totalGeral = 0;
+  for (const [nomeCliente, dados] of Object.entries(porCliente)) {
+    if (doc.y > 680) doc.addPage();
+    doc.fontSize(13).font('Helvetica-Bold').text(nomeCliente);
+    doc.fontSize(9).font('Helvetica').fillColor('#555').text(`Documento: ${dados.documento}`);
+    doc.fillColor('#000');
+    doc.moveDown(0.3);
+
+    for (const l of dados.linhas) {
+      if (doc.y > 700) doc.addPage();
+      const dataTxt = formatarData(l.data_consumo);
+      const linhaTxt = `${dataTxt} — Comanda ${l.comanda} — ${l.itens || '(sem itens registrados)'}`;
+      doc.fontSize(10).font('Helvetica').text(linhaTxt, { width: 430, continued: false });
+      doc.font('Helvetica-Bold').text(formatarMoeda(l.valor), 480, doc.y - doc.currentLineHeight(), { width: 65, align: 'right' });
+      doc.moveDown(0.15);
+    }
+
+    doc.moveDown(0.2);
+    doc.fontSize(10).font('Helvetica-Bold').text(`Subtotal ${nomeCliente}: ${formatarMoeda(dados.total)}`, { align: 'right' });
+    doc.moveDown(0.6);
+    doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor('#ccc').stroke();
+    doc.moveDown(0.6);
+    totalGeral += dados.total;
+  }
+
+  if (doc.y > 680) doc.addPage();
+  doc.moveDown(0.5);
+  doc.fontSize(14).font('Helvetica-Bold').text(`TOTAL GERAL: ${formatarMoeda(totalGeral)}`, { align: 'right' });
+  doc.end();
+}));
+
 // ── Admin ──────────────────────────────────────────────────────────────────
 const authAdmin = (req, res, next) => {
   if (req.padaria.role !== 'admin') return res.status(403).json({ erro: 'Acesso restrito.' });
