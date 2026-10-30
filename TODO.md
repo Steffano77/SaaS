@@ -20,7 +20,10 @@ Tarefas finais (testadas em 30/10, sem janela de cmd, tela do caixa abre sozinha
 - "PanificaPro - iniciar": wscript scripts\rodar-escondido.vbs pm2.cmd resurrect (30s após login);
 - "PanificaPro - abrir caixa": wscript scripts\rodar-escondido.vbs scripts\abrir-caixa.bat
   (10s após login; o .bat espera /api/health responder e abre o Chrome --kiosk-printing).
-Caixa 1 da Jota 2: sem pasta do sistema; se quiser, tarefa com espera fixa de 2 min.
+Caixa 1 da Jota 2 (testado em 30/10): login automático do "Jota 2" (netplwiz) + tarefa
+"PanificaPro - abrir caixa" (10s após login) rodando powershell -WindowStyle Hidden -File
+C:\PanificaPro\abrir-caixa.ps1, que espera http://10.0.0.158:3000/api/health e abre o
+Chrome --kiosk-printing --start-fullscreen --app=http://10.0.0.158:3000.
 Fazer o mesmo no servidor da Jota 3.
 
 ## Pontos de referência (versões aprovadas pelas operadoras)
