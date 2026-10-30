@@ -2,6 +2,16 @@
 
 Itens discutidos e aprovados pelo Estefano pra fazer depois, sem pressa.
 
+## Itens no padrão Saurus no papel do Faturado — fazer à noite (pedido 30/10)
+
+Pedido da cobrança: a lista de itens do papel que vai pro cliente igual à do Saurus
+(foto 30/10, "VENDA SIMPLES" da Cafeteria Biju):
+  cabeçalho: ### COD DESC        QTD UN VL UN   VL ITEM
+  linha:     001 228 media cafe  1,082 KG x 12,99   14,06
+(nº do item com 3 dígitos, código do produto, descrição; quantidade com 3 casas,
+unidade, "x" preço unitário e valor do item alinhado à direita).
+Confirmar qual papel: comprovante de autorização (sai na venda) e/ou extrato do cliente.
+
 ## Campo de dinheiro estilo maquininha em TODO o sistema — fazer à noite (pedido 30/10)
 
 Pedido do estoque/caixa: digitar valor em R$ sem precisar pôr vírgula nem ponto.
