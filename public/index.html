@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20261026b"/>
+  <link rel="stylesheet" href="/css/app.css?v=20261030b"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -2390,16 +2390,16 @@
     </div>
     <div class="form-group">
       <label class="form-label">O que incluir (nenhum marcado = tudo)</label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
-        <label style="display:flex;align-items:center;gap:6px;font-size:13.5px;"><input type="checkbox" id="exp-vendas"/> Vendas</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13.5px;"><input type="checkbox" id="exp-faturado" onchange="document.getElementById('exp-faturado-funcionarios-grupo').classList.toggle('hidden', !this.checked)"/> Faturado</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13.5px;"><input type="checkbox" id="exp-estoque"/> Estoque</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13.5px;"><input type="checkbox" id="exp-financeiro"/> Financeiro</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13.5px;"><input type="checkbox" id="exp-caixa"/> Caixa (sangria/suprimento)</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13.5px;"><input type="checkbox" id="exp-notas"/> Notas fiscais (resumo)</label>
+      <div class="exp-secoes-grid">
+        <label class="exp-chip"><input type="checkbox" id="exp-vendas"/> Vendas</label>
+        <label class="exp-chip"><input type="checkbox" id="exp-faturado" onchange="document.getElementById('exp-faturado-funcionarios-grupo').classList.toggle('hidden', !this.checked)"/> Faturado</label>
+        <label class="exp-chip"><input type="checkbox" id="exp-estoque"/> Estoque</label>
+        <label class="exp-chip"><input type="checkbox" id="exp-financeiro"/> Financeiro</label>
+        <label class="exp-chip"><input type="checkbox" id="exp-caixa"/> Caixa (sangria/suprimento)</label>
+        <label class="exp-chip"><input type="checkbox" id="exp-notas"/> Notas fiscais (resumo)</label>
       </div>
-      <div id="exp-faturado-funcionarios-grupo" class="hidden" style="margin-top:8px;padding:8px 10px;background:var(--slate-50);border-radius:8px;">
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;"><input type="checkbox" id="exp-faturado-funcionarios"/> Dentro do Faturado, só funcionários (exclui empresa e quem comprou sem cadastro)</label>
+      <div id="exp-faturado-funcionarios-grupo" class="hidden exp-sub-opcao">
+        <label class="exp-chip exp-chip-sub"><input type="checkbox" id="exp-faturado-funcionarios"/> 👥 Dentro do Faturado, só funcionários <span style="font-weight:400;color:var(--slate-500);">(exclui empresa e quem comprou sem cadastro)</span></label>
       </div>
     </div>
     <button class="btn-primary full" onclick="confirmarExportarTudoUI()">⬇️ Baixar Excel</button>
@@ -2433,7 +2433,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=20261030e"></script>
+<script src="/js/app.js?v=20261030f"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
