@@ -87,7 +87,7 @@ function escreverCsv(pasta, nomeArquivo, linhas) {
   // ── 2 e 3. FATURADO — consumo (almoço/fiado lançado) e pagamentos recebidos (baixas) ──
   if (quer('faturado')) {
     const [faturado] = await db.query(`
-      SELECT cf.nome AS cliente, cf.tipo, cp.cliente_documento AS documento, c.identificador AS comanda,
+      SELECT COALESCE(cf.nome, cp.cliente_nome, 'Sem cadastro') AS cliente, cf.tipo, cp.cliente_documento AS documento, c.identificador AS comanda,
         c.fechada_em AS data_consumo,
         (SELECT GROUP_CONCAT(CONCAT(
            TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM CAST(i.quantidade AS CHAR))),
