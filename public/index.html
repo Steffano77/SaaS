@@ -20,7 +20,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css?v=20261030a"/>
+  <link rel="stylesheet" href="/css/app.css?v=20261031a"/>
 </head>
 <body>
 <!-- ── LOGIN / REGISTRO ─────────────────────────────────── -->
@@ -2434,12 +2434,15 @@
   <div class="modal-box mp-box">
     <div class="modal-header">
       <span class="modal-title" style="font-size:22px;">📈 Média por produto</span>
-      <button onclick="fecharModal('modal-media-produto')" class="btn-icon">✕</button>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="btn-secondary" style="padding:6px 12px;font-size:12.5px;" onclick="baixarMediaProdutoPdf()">🖨️ PDF</button>
+        <button onclick="fecharModal('modal-media-produto')" class="btn-icon">✕</button>
+      </div>
     </div>
     <div class="mp-corpo">
       <div class="mp-linha">
         <div style="position:relative;flex:1;min-width:260px;">
-          <input type="text" id="mp-busca" class="form-control mp-input" placeholder="Digite o nome do produto..." autocomplete="off" oninput="filtrarMediaProdutoUI(this.value)"/>
+          <input type="text" id="mp-busca" class="form-control mp-input" placeholder="Produto (ex: Pão Francês) ou categoria (ex: Almoço)..." autocomplete="off" oninput="filtrarMediaProdutoUI(this.value)"/>
           <div id="mp-busca-lista" class="autocomplete-lista hidden" style="max-height:320px;font-size:16px;"></div>
         </div>
         <button class="mp-chip" data-dias="7" onclick="escolherPeriodoMediaUI(7)">7 dias</button>
@@ -2451,12 +2454,12 @@
         <span>De</span><input type="date" id="mp-de" class="form-control" style="width:auto;" onchange="carregarMediaProdutoUI()"/>
         <span>até</span><input type="date" id="mp-ate" class="form-control" style="width:auto;" onchange="carregarMediaProdutoUI()"/>
       </div>
-      <div id="mp-resultado"><p class="mp-sub" style="margin-top:14px;">Escolha um produto pra ver as médias.</p></div>
+      <div id="mp-resultado"><p class="mp-sub" style="margin-top:14px;">Escolha um produto ou categoria pra ver as médias.</p></div>
     </div>
   </div>
 </div>
 
-<script src="/js/app.js?v=20261030l"></script>
+<script src="/js/app.js?v=20261031a"></script>
 
 <!-- Tela Saídas (por mês) -->
 <div id="tela-saidas" class="hidden tela-fullscreen">
