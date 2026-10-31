@@ -3846,7 +3846,7 @@ function htmlMediaProduto(r) {
   const max = Math.max(...r.por_dia_semana.map(d => d.media), 0.0001);
   const barras = MP_ORDEM.map(dow => {
     const d = r.por_dia_semana[dow];
-    return `<div class="mp-bcol${dow === r.sugestao.dow ? ' amanha' : ''}" title="${d.dias} ${MP_DIAS[dow]} no período"><div class="mp-bval">${d.media.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</div><div class="mp-bar" style="height:${Math.round(d.media / max * 65)}px"></div><div class="mp-blab">${MP_DIAS[dow]}</div></div>`;
+    return `<div class="mp-bcol${dow === r.sugestao.dow ? ' amanha' : ''}" title="${d.dias} ${MP_DIAS[dow]} no período"><div class="mp-bval">${d.media.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</div><div class="mp-bar" style="height:${Math.round(d.media / max * 80)}px"></div><div class="mp-blab">${MP_DIAS[dow]}</div></div>`;
   }).join('');
   // Mapa de calor: só as horas em que houve venda em algum dia (o resto é loja fechada).
   const horasUsadas = [...new Set(r.por_horario.flatMap(d => Object.keys(d.horas).map(Number)))].sort((a, b) => a - b);
