@@ -466,6 +466,8 @@ router.get('/relatorios/mes', auth, authPro, wrap(async (req, res) => {
 // vendido dele no mês escolhido — pra responder "quanto vendi de X" sem ter que cruzar
 // Estoque + Relatórios + Financeiro na mão.
 router.get('/relatorios/produto-media', auth, authPro, wrap(require('../controllers/mediaProdutoController').media));
+// Mesmo relatório de cima (produto OU categoria_id), em PDF pronto pra imprimir/mandar.
+router.get('/relatorios/produto-media-pdf', auth, authPro, wrap(require('../controllers/mediaProdutoController').mediaPdf));
 router.get('/relatorios/produto', auth, authPro, wrap(async (req, res) => {
   const db = require('../database/connection');
   const termo = String(req.query.busca || '').trim();

@@ -3721,20 +3721,25 @@ function relBuscarProduto(termo) {
 // (ver mediaProdutoController). O dia de hoje fica sempre fora das médias.
 const MP_DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const MP_ORDEM = [1, 2, 3, 4, 5, 6, 0]; // mostra de segunda a domingo
-let _mpProdutoId = null, _mpPeriodo = 30, _mpProdutos = [];
+// _mpAlvo: { tipo: 'produto'|'categoria', id } — o que está sendo mostrado agora.
+let _mpAlvo = null, _mpPeriodo = 30, _mpProdutos = [], _mpCategorias = [];
 
 async function abrirMediaProdutoUI(produtoId) {
   if (!produtosCache.length) produtosCache = await api('/produtos') || [];
   _mpProdutos = produtosCache;
-  _mpProdutoId = produtoId || null;
-  const p = _mpProdutos.find(x => Number(x.id) === Number(produtoId));
+  const mapaCategorias = new Map();
+  for (const p of _mpProdutos) if (p.categoria_id && p.categoria) mapaCategorias.set(p.categoria_id, p.categoria);
+  _mpCategorias = [...mapaCategorias.entries()].map(([id, nome]) => ({ id, nome }));
+
+  _mpAlvo = produtoId ? { tipo: 'produto', id: Number(produtoId) } : null;
+  const p = produtoId ? _mpProdutos.find(x => Number(x.id) === Number(produtoId)) : null;
   document.getElementById('mp-busca').value = p ? p.nome : '';
   document.getElementById('mp-busca-lista').classList.add('hidden');
   escolherPeriodoMediaUI(_mpPeriodo, true);
   document.getElementById('modal-media-produto').classList.remove('hidden');
-  if (_mpProdutoId) carregarMediaProdutoUI();
+  if (_mpAlvo) carregarMediaProdutoUI();
   else {
-    document.getElementById('mp-resultado').innerHTML = '<p class="mp-sub" style="margin-top:14px;">Escolha um produto pra ver as médias.</p>';
+    document.getElementById('mp-resultado').innerHTML = '<p class="mp-sub" style="margin-top:14px;">Escolha um produto ou categoria pra ver as médias.</p>';
     setTimeout(() => document.getElementById('mp-busca')?.focus(), 100);
   }
 }
@@ -3743,17 +3748,27 @@ function filtrarMediaProdutoUI(termo) {
   const lista = document.getElementById('mp-busca-lista');
   const t = normalizarBusca(String(termo || '').trim());
   if (!t) { lista.classList.add('hidden'); return; }
-  const achados = _mpProdutos.filter(p => normalizarBusca(p.nome).includes(t)).slice(0, 10);
-  lista.innerHTML = achados.length
-    ? achados.map(p => `<div class="autocomplete-item" onclick="escolherProdutoMediaUI(${p.id})"><strong>${escHtmlCmd(p.nome)}</strong> <span style="font-size:12px;color:var(--slate-400);">${escHtmlCmd(p.unidade || '')}</span></div>`).join('')
-    : '<div class="autocomplete-item" style="color:var(--slate-400);cursor:default;">Nenhum produto com esse nome.</div>';
+  const categorias = _mpCategorias.filter(c => normalizarBusca(c.nome).includes(t)).slice(0, 5);
+  const produtos = _mpProdutos.filter(p => normalizarBusca(p.nome).includes(t)).slice(0, 10);
+  const htmlCategorias = categorias.map(c => `<div class="autocomplete-item" onclick="escolherCategoriaMediaUI(${c.id})">📁 <strong>${escHtmlCmd(c.nome)}</strong> <span style="font-size:12px;color:var(--slate-400);">categoria inteira</span></div>`).join('');
+  const htmlProdutos = produtos.map(p => `<div class="autocomplete-item" onclick="escolherProdutoMediaUI(${p.id})"><strong>${escHtmlCmd(p.nome)}</strong> <span style="font-size:12px;color:var(--slate-400);">${escHtmlCmd(p.unidade || '')}</span></div>`).join('');
+  lista.innerHTML = (htmlCategorias + htmlProdutos)
+    || '<div class="autocomplete-item" style="color:var(--slate-400);cursor:default;">Nada encontrado com esse nome.</div>';
   lista.classList.remove('hidden');
 }
 
 function escolherProdutoMediaUI(id) {
   const p = _mpProdutos.find(x => Number(x.id) === Number(id));
-  _mpProdutoId = id;
+  _mpAlvo = { tipo: 'produto', id: Number(id) };
   document.getElementById('mp-busca').value = p ? p.nome : '';
+  document.getElementById('mp-busca-lista').classList.add('hidden');
+  carregarMediaProdutoUI();
+}
+
+function escolherCategoriaMediaUI(id) {
+  const c = _mpCategorias.find(x => Number(x.id) === Number(id));
+  _mpAlvo = { tipo: 'categoria', id: Number(id) };
+  document.getElementById('mp-busca').value = c ? c.nome : '';
   document.getElementById('mp-busca-lista').classList.add('hidden');
   carregarMediaProdutoUI();
 }
@@ -3770,13 +3785,11 @@ function escolherPeriodoMediaUI(dias, semCarregar) {
     document.getElementById('mp-de').value = f(ini);
     document.getElementById('mp-ate').value = f(ontem);
   }
-  if (!semCarregar && _mpProdutoId) carregarMediaProdutoUI();
+  if (!semCarregar && _mpAlvo) carregarMediaProdutoUI();
 }
 
-async function carregarMediaProdutoUI() {
-  if (!_mpProdutoId) return;
-  const el = document.getElementById('mp-resultado');
-  let qs = `produto_id=${_mpProdutoId}`;
+function mpQuerystring() {
+  let qs = _mpAlvo.tipo === 'categoria' ? `categoria_id=${_mpAlvo.id}` : `produto_id=${_mpAlvo.id}`;
   if (_mpPeriodo === 0) {
     qs += `&de=${document.getElementById('mp-de').value}&ate=${document.getElementById('mp-ate').value}`;
   } else {
@@ -3785,10 +3798,37 @@ async function carregarMediaProdutoUI() {
     const f = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     qs += `&de=${f(ini)}&ate=${f(ontem)}`;
   }
+  return qs;
+}
+
+async function carregarMediaProdutoUI() {
+  if (!_mpAlvo) return;
+  const el = document.getElementById('mp-resultado');
   el.innerHTML = '<p class="mp-sub" style="margin-top:14px;">Calculando...</p>';
-  const r = await api(`/relatorios/produto-media?${qs}`);
+  const r = await api(`/relatorios/produto-media?${mpQuerystring()}`);
   if (!r) { el.innerHTML = ''; return; }
   el.innerHTML = htmlMediaProduto(r);
+}
+
+async function baixarMediaProdutoPdf() {
+  if (!_mpAlvo) return;
+  mostrarToast('Gerando PDF...', 'ok');
+  const url = `${API}/relatorios/produto-media-pdf?${mpQuerystring()}`;
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
+  if (!r.ok) { mostrarToast('Erro ao gerar o PDF — tenta de novo.', 'err'); return; }
+  const contentType = r.headers.get('content-type') || '';
+  if (!contentType.includes('application/pdf')) {
+    console.error('[PDF média] resposta inesperada, content-type:', contentType, 'url:', url);
+    mostrarToast('A resposta do servidor não era um PDF — avisa o suporte (veja o console).', 'err');
+    return;
+  }
+  const blob = await r.blob();
+  const burl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = burl;
+  a.download = `media-${_mpAlvo.tipo}.pdf`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(burl), 5000);
 }
 
 function htmlMediaProduto(r) {
@@ -3806,7 +3846,7 @@ function htmlMediaProduto(r) {
   const max = Math.max(...r.por_dia_semana.map(d => d.media), 0.0001);
   const barras = MP_ORDEM.map(dow => {
     const d = r.por_dia_semana[dow];
-    return `<div class="mp-bcol${dow === r.sugestao.dow ? ' amanha' : ''}" title="${d.dias} ${MP_DIAS[dow]} no período"><div class="mp-bval">${d.media.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</div><div class="mp-bar" style="height:${Math.round(d.media / max * 120)}px"></div><div class="mp-blab">${MP_DIAS[dow]}</div></div>`;
+    return `<div class="mp-bcol${dow === r.sugestao.dow ? ' amanha' : ''}" title="${d.dias} ${MP_DIAS[dow]} no período"><div class="mp-bval">${d.media.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</div><div class="mp-bar" style="height:${Math.round(d.media / max * 65)}px"></div><div class="mp-blab">${MP_DIAS[dow]}</div></div>`;
   }).join('');
   // Mapa de calor: só as horas em que houve venda em algum dia (o resto é loja fechada).
   const horasUsadas = [...new Set(r.por_horario.flatMap(d => Object.keys(d.horas).map(Number)))].sort((a, b) => a - b);
