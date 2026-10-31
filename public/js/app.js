@@ -214,12 +214,27 @@ function desfixarAparelhoCaixa(semConfirmar) {
   confirmarBonito('Desfazer a fixação desse aparelho? Ele volta a pedir login normal de dono.').then(ok => { if (ok) feito(); });
 }
 
+// Tenta de novo 2 vezes (com pausa curtinha) antes de desistir — mesma lógica do
+// api(), mas pras telas de login, que ainda não passam por api() (TOKEN vazio nelas).
+// Sem isso, a primeira conexão via Tailscale/dados móveis (que demora um instante a
+// mais pra "esquentar" a rota até o servidor) já dava "Erro de conexão" na cara do
+// usuário, mesmo com a internet 100% normal. Bug real, achado com um dono entrando
+// de fora da padaria pela primeira vez.
+async function fetchComRetry(url, opts) {
+  let ultimoErro;
+  for (let tentativa = 1; tentativa <= 3; tentativa++) {
+    try { return await fetch(url, opts); }
+    catch (err) { ultimoErro = err; if (tentativa < 3) await new Promise(res => setTimeout(res, 500 * tentativa)); }
+  }
+  throw ultimoErro;
+}
+
 async function fazerLoginCaixa(e) {
   e.preventDefault();
   const el = document.getElementById('erro-login-caixa');
   el.classList.add('hidden');
   try {
-    const r = await fetch(`${API}/auth/login-caixa`, {
+    const r = await fetchComRetry(`${API}/auth/login-caixa`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         padaria_id: APARELHO_FIXADO_ID,
@@ -446,7 +461,7 @@ async function fazerLogin(e) {
   const el = document.getElementById('erro-login');
   el.classList.add('hidden');
   try {
-    const r = await fetch(`${API}/auth/login`, {
+    const r = await fetchComRetry(`${API}/auth/login`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ email: document.getElementById('login-email').value, senha: document.getElementById('login-senha').value })
     });
